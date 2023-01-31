@@ -4,11 +4,11 @@ git checkout dev
 git add .
 git commit -am "made changes"
 git push GitHub dev
-git push earthengine master
 
 cd "C:\Users\tor_h\OneDrive - NTNU\Master thesis\MasterCode\MasterThesis-NaturalizingPlants-Arctic"
 git checkout master
-git add "C:\Users\tor_h\OneDrive - NTNU\Master thesis\MasterCode\MasterThesis-NaturalizingPlants-Arctic"
+git merge dev
+git add .
 git commit -am "made changes"
 git push earthengine master
 
