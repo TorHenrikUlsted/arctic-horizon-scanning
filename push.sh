@@ -3,7 +3,11 @@ cd "C:\Users\tor_h\OneDrive - NTNU\Master thesis\MasterCode\MasterThesis-Natural
 git checkout dev
 git add .
 git commit -am "made changes"
-git push earthengine master
 git push GitHub dev
+
+git checkout dmaster
+git add .
+git commit -am "made changes"
+git push earthengine master
 echo Press Enter...
 read
