@@ -5,9 +5,10 @@ git add .
 git commit -am "made changes"
 git push GitHub dev
 
-git checkout dmaster
+git checkout master
 git add .
 git commit -am "made changes"
 git push earthengine master
+
 echo Press Enter...
 read
