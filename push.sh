@@ -7,8 +7,8 @@ git push GitHub dev
 git push earthengine master
 
 cd "C:\Users\tor_h\OneDrive - NTNU\Master thesis\MasterCode\MasterThesis-NaturalizingPlants-Arctic"
-git checkout dev
-git add .
+git checkout master
+git add "C:\Users\tor_h\OneDrive - NTNU\Master thesis\MasterCode\MasterThesis-NaturalizingPlants-Arctic"
 git commit -am "made changes"
 git push earthengine master
 
