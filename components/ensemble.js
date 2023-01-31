@@ -1,4 +1,4 @@
-const bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
+var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 
 var annualMeanTemperature = dataset.select('bio01');
 var visParams = {
