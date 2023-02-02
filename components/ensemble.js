@@ -1,4 +1,5 @@
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
+var cavm = Image("projects/master-thesis-375622/assets/CAVMmap")
 
 var annualMeanTemperature = bioVars_df.select('bio01');
 var visParams = {
@@ -16,3 +17,4 @@ var visParamsWarmestMonth = {
 Map.setCenter(71.72, 52.48, 3.0);
 Map.addLayer(annualMeanTemperature, visParams, 'Annual Mean Temperature');
 Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
+
