@@ -6,7 +6,7 @@ Map.setCenter(-5.386895, 75.386895, 2.0);
 
 //Map.addLayer(cavm, {bands: "b1"});
 
-var annualMeanTemp = cavm.select('bio01');
+var annualMeanTemp = bioVars_df.select('bio01');
 var visParams = {
   min: -230.0,
   max: 300.0,
