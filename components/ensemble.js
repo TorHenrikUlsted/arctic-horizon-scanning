@@ -4,7 +4,7 @@ var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 
 var test = bioVars_df.clip(cavm)
-Map.centerObject(roi);
+Map.centerObject(cavm);
 
 Map.setCenter(-5, 75, 2);
 
