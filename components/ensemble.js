@@ -11,7 +11,7 @@ var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 
 var test = bioVars_df.clip(roi)
 
-Map.setCenter(-5.386895, 75.386895, 2.0);
+Map.setCenterroi, 2.0);
 
 //Map.addLayer(cavm, {bands: "b1"});
 
