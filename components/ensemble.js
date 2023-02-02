@@ -21,7 +21,7 @@ var visParamsWarmestMonth = {
 
 var test = ee.Join.simple.apply(cavm, annualMeanTemp);
 
-Map.addLayer(cavm, aTemp)
+Map.addLayer(cavm, test)
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
