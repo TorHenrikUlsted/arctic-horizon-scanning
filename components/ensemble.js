@@ -15,14 +15,14 @@ Map.setCenter(-5.386895, 75.386895, 2.0);
 
 //Map.addLayer(cavm, {bands: "b1"});
 
-var annualMeanTemp = bioVars_df.select('bio01');
+var annualMeanTemp = test.select('bio01');
 var visParams = {
   min: -230.0,
   max: 300.0,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var warmestMonth = test.select('bio05');
+var warmestMonth = bioVars_df.select('bio05');
 var visParamsWarmestMonth = {
   min: -96,
   max: 490,
