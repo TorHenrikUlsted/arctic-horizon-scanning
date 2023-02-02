@@ -1,5 +1,12 @@
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
+var roi = ee.Geometry.Polygon([[
+  [-180, -90],
+  [180, -90],
+  [180, 90],
+  [-180, 90],
+  [-180, -90]
+  ]], null, false)
 
 Map.setCenter(-5.386895, 75.386895, 2.0);
 
