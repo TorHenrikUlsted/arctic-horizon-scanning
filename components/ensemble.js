@@ -2,13 +2,8 @@
 var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
-var roi = ee.Geometry.Polygon(
-        [[[-180, 90],
-          [180, -90],
-          [180, 90],
-          [-180, -90]]], null, false);
 
-var test = bioVars_df.clip(roi)
+var test = bioVars_df.clip(cavm)
 Map.centerObject(roi);
 
 Map.setCenter(-5, 75, 2);
