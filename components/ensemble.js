@@ -19,7 +19,7 @@ var visParamsWarmestMonth = {
 };
 
 var fC = ee.ImageCollection([cavm, annualMeanTemp])
-Map.addLayer(fC)
+Map.addLayer(fC, )
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
