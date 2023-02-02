@@ -9,6 +9,7 @@ var roi = ee.Geometry.Polygon(
           [-180, -90]]], null, false);
 
 var test = bioVars_df.clip(roi)
+Map.centerObject(roi);
 
 Map.setCenter(roi);
 
