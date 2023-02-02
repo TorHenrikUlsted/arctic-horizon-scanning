@@ -13,7 +13,7 @@ var visParams = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var test = cavm.clip(biovars_df)
+var test = cavm.clip(bioVars_df)
 
 
 var warmestMonth = bioVars_df.select('bio05');
