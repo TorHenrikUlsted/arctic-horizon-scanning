@@ -3,7 +3,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 
-var test = bioVars_df.clip(cavm)
+var bioClip = bioVars_df.clip(cavm)
 Map.centerObject(cavm);
 
 Map.setCenter(-5, 75, 2);
@@ -24,7 +24,7 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-Map.addLayer(cavm);
+Map.addLayer(test);
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
