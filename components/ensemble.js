@@ -1,7 +1,7 @@
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 
-Map.addLayer(cavm, {bands: ["b1", "b2"], min: 6000, max: 12000});
+Map.addLayer(cavm, {bands: "b1", min: 6000, max: 12000});
 
 var annualMeanTemp = bioVars_df.select('bio01');
 var visParams = {
