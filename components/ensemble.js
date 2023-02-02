@@ -22,7 +22,7 @@ var visParams = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var warmestMonth = bioVars_df.select('bio05');
+var warmestMonth = test.select('bio05');
 var visParamsWarmestMonth = {
   min: -96,
   max: 490,
