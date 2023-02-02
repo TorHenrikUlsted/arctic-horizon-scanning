@@ -19,7 +19,7 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-Map.addLayer(cavm, {color: "red"}, "Cavm");
-Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
-Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
+//Map.addLayer(cavm, {color: "red"}, "Cavm");
+//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+//Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
