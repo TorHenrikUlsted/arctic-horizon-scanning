@@ -15,6 +15,7 @@ var visParams = {
 
 var cavm = CircumpolarArctic.clip(annualMeanTemp)
 
+
 var warmestMonth = bioVars_df.select('bio05');
 var visParamsWarmestMonth = {
   min: -96,
@@ -22,7 +23,7 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-Map.addLayer(test, visParams)
+Map.addLayer(cavm)
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
