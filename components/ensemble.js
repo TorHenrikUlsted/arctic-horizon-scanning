@@ -18,9 +18,6 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var fC = ee.ImageCollection([annualMeanTemp, cavm]).mosaic()
-Map.addLayer(fC)
-
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
