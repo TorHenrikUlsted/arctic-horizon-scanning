@@ -23,7 +23,6 @@ var visParamsWarmestMonth = {
   max: 490,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
-
 Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
