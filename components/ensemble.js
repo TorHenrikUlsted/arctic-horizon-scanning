@@ -26,3 +26,14 @@ var visParamsWarmestMonth = {
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
+
+// Create a chart.
+var chart = ui.Chart.image.series({
+  imageCollection: withNDVI.select('NDVI'),
+  region: bioClip,
+  reducer: ee.Reducer.first(),
+  scale: 30
+}).setOptions({title: 'NDVI over time'});
+
+// Display the chart in the console.
+print(chart);
