@@ -1,4 +1,4 @@
-var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
+var bioVars_df = ee.ImageCollection("WORLDCLIM/V1/BIO");
 var CircumpolarArctic = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 var cavm = CircumpolarArctic.clip(bioVars_df)
 
