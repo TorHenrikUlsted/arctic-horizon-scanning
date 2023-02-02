@@ -32,6 +32,6 @@ var visParamsWarmestMonth = {
 print(cavm)
 
 //Map.addLayer(cavm, "Cavm");
-//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
