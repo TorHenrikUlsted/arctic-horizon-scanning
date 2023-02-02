@@ -1,5 +1,5 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
-var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003_shp");
+var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 
@@ -24,9 +24,7 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-print(cavm)
-
-//Map.addLayer(cavm, "Cavm");
+Map.addLayer(cavm, "Cavm");
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
