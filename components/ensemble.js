@@ -10,7 +10,7 @@ Map.setCenter(-5, 75, 2);
 
 //Map.addLayer(cavm, {bands: "b1"});
 
-var annualMeanTemp = test.select('bio01');
+var annualMeanTemp = bioClip.select('bio01');
 var visParams = {
   min: -230.0,
   max: 300.0,
