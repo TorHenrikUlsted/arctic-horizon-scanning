@@ -1,5 +1,5 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
-var image = ee.Image("projects/master-thesis-375622/assets/CAVMmap"),
+var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap"),
     roi = /* color: #d63000 */ee.Geometry.Polygon(
         [[[-180, -90],
           [180, -90],
@@ -8,7 +8,6 @@ var image = ee.Image("projects/master-thesis-375622/assets/CAVMmap"),
           [-180, -90]]], null, false);
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
-var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 
 
 Map.setCenter(-5.386895, 75.386895, 2.0);
