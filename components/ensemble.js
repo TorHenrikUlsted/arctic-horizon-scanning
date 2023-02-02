@@ -1,6 +1,7 @@
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
-var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
+var CircumpolarArctic = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 
+var c
 Map.setCenter(-5.386895, 75.386895, 2.0);
 
 //Map.addLayer(cavm, {bands: "b1"});
@@ -18,8 +19,6 @@ var visParamsWarmestMonth = {
   max: 490,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
-
-var test = ee.Join.simple.apply(cavm, annualMeanTemp);
 
 Map.addLayer(test, visParams)
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
