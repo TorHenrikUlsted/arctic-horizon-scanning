@@ -21,6 +21,6 @@ var visParamsWarmestMonth = {
 };
 
 Map.addLayer(annualMeanTemp, visParams)
-//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+Mapp.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
