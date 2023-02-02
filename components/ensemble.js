@@ -25,6 +25,6 @@ var visParamsWarmestMonth = {
 };
 
 Map.addLayer(bioClip);
-//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
