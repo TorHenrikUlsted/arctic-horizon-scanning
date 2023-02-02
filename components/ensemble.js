@@ -10,7 +10,7 @@ var roi = ee.Geometry.Polygon(
 
 var test = bioVars_df.clip(roi)
 
-Map.setCenter(roi, 2.0);
+Map.setCenter(roi);
 
 //Map.addLayer(cavm, {bands: "b1"});
 
