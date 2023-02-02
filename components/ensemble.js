@@ -1,5 +1,6 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
-var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
+var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap"),
+    table = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003_shp");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 
@@ -27,6 +28,6 @@ var visParamsWarmestMonth = {
 print(cavm)
 
 //Map.addLayer(cavm, "Cavm");
-Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
