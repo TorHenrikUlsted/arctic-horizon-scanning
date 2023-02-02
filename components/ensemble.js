@@ -1,11 +1,11 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
-    bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
+    bioVars = ee.Image("WORLDCLIM/V1/BIO");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 
-Image.getNumber(bioVars);
+bioVars.gradient();
 
-var bioClip = bioVars_df.clip(cavm)
+var bioClip = bioVars.clip(cavm)
 Map.centerObject(cavm);
 
 Map.setCenter(-5, 75, 2);
@@ -17,7 +17,7 @@ var visParams = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var warmestMonth = bioVars_df.select('bio05');
+var warmestMonth = bioVars.select('bio05');
 var visParamsWarmestMonth = {
   min: -96,
   max: 490,
