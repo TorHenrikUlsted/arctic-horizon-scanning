@@ -9,6 +9,7 @@ var cavm = ee.Image("projects/master-thesis-375622/assets/CAVMmap"),
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 
+var test = bioVars_df.clip(roi)
 
 Map.setCenter(-5.386895, 75.386895, 2.0);
 
