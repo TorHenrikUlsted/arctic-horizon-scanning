@@ -16,7 +16,7 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-Map.setCenter(74.997832, 5.386895, 3.0);
+Map.setCenter(-5, 75.386895, 3.0);
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
