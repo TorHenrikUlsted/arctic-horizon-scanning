@@ -1,6 +1,6 @@
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 var CircumpolarArctic = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
-var cavm = ee.FeatureCollection(CircumpolarArctic).geometry();
+var cavm = ee.ImageCollection(CircumpolarArctic).geometry();
 
 Map.setCenter(-5.386895, 75.386895, 2.0);
 
