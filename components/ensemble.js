@@ -19,7 +19,7 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var test = ee.Join.simple(cavm, annualMeanTemp);
+var test = ee.Join.simple.apply(cavm, annualMeanTemp);
 
 Map.addLayer(cavm, aTemp)
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
