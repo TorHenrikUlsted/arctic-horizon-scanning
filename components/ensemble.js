@@ -13,7 +13,7 @@ var visParams = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var cavm = CircumpolarArctic.clip(annualMeanTemp)
+var cavm = cavm.clip(annualMeanTemp)
 
 
 var warmestMonth = bioVars_df.select('bio05');
