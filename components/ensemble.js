@@ -6,7 +6,7 @@ var roi = ee.Geometry.Polygon([[
   [180, 90],
   [-180, 90],
   [-180, -90]
-  ]], null, false)
+  ]], null, false);
 
 Map.setCenter(-5.386895, 75.386895, 2.0);
 
