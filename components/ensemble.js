@@ -29,7 +29,7 @@ var visParamsWarmestMonth = {
 
 
 // Map a function over the Landsat 8 TOA collection to add an NDVI band.
-var withNDVI = l8.map(function(image) {
+var withNDVI = annualMeanTemp.map(function(image) {
   var ndvi = image.normalizedDifference(['B5', 'B4']).rename('NDVI');
   return image.addBands(ndvi);
 });
