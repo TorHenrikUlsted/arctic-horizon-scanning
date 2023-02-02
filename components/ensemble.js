@@ -11,6 +11,8 @@ var visParams = {
   max: 300.0,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
+
+var aTemp = ee.ImageCollection(annualMeanTemp, visParams)
 var warmestMonth = bioVars_df.select('bio05');
 var visParamsWarmestMonth = {
   min: -96,
