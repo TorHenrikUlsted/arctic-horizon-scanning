@@ -8,8 +8,6 @@ Map.centerObject(cavm);
 
 Map.setCenter(-5, 75, 2);
 
-//Map.addLayer(cavm, {bands: "b1"});
-
 var annualMeanTemp = bioClip.select('bio01');
 var visParams = {
   min: -230.0,
@@ -23,6 +21,7 @@ var visParamsWarmestMonth = {
   max: 490,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
+
 Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 
