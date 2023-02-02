@@ -1,7 +1,7 @@
 var bioVars_df = ee.Image("WORLDCLIM/V1/BIO");
 var CircumpolarArctic = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 
-var cavm = 
+
 Map.setCenter(-5.386895, 75.386895, 2.0);
 
 //Map.addLayer(cavm, {bands: "b1"});
@@ -12,6 +12,8 @@ var visParams = {
   max: 300.0,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
+
+var cavm = CircumpolarArctic.clip(annualMeanTemp)
 
 var warmestMonth = bioVars_df.select('bio05');
 var visParamsWarmestMonth = {
