@@ -5,7 +5,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var roi = glonaf.reduceToImage({
-  reducer: ee.Reducer.mean().forEach(properties)
+  reducer: ee.Reducer.mean().forEach(glonaf)
 });
 var bioClip = bioVars.clip(cavm);
 //var gloClip = glonaf.filterBounds(cavm.geometry());
