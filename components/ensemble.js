@@ -27,4 +27,5 @@ var visParamsWarmestMonth = {
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
-Map.addLayer(arcticGlonaf)
+//Map.addLayer(arcticGlonaf)
+Map.addLayer(cavm);
