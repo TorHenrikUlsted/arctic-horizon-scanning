@@ -6,7 +6,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var bioClip = bioVars.clip(cavm)
 Map.centerObject(cavm);
 
-var arcticGlonaf = gloClip.clip(cavm);
+var arcticGlonaf = glonaf.clip(cavm);
 
 Map.setCenter(-5, 75, 2);
 
