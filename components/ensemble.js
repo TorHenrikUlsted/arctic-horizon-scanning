@@ -4,9 +4,9 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
     tif = ee.Image("projects/master-thesis-375622/assets/raster_cavm_v1");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-var cavmv2 = tif.geometry().bind(null);
+var cavmv2 = tif.geometry());
 print(cavmv2);
-
+print(tif);
 //apply bounds
 var cavmv2PolygonBounds = cavmv2.bounds();
 
