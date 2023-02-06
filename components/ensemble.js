@@ -19,8 +19,7 @@ var polygon = ee.Geometry.Polygon(
     [[[-180, -90],
       [180, -90],
       [180, 90],
-      [-180, 90],
-      [-180, -90]]]);
+      [-180, 90]]]);
 
 // Apply the bounds method to the Polygon object.
 var polygonBounds = polygon.bounds();
