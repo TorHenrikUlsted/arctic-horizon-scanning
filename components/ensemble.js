@@ -7,7 +7,6 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bio = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_1");
 var bio = bio.addBands([
-  bio1,
   "projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_2"
   ]);
 var bioClip = bioVars.clip(cavm);
