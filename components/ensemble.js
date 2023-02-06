@@ -2,14 +2,14 @@
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
-    image = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
+    cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm)
 Map.centerObject(cavm);
 
 // Extract geometries from you regions 
 // for more than one region (type: featureCollection), do something like:
-var regionGeom = image.map(function(f) {
+var regionGeom = cavmImg.map(function(f) {
   return f.geometry();
 });
 
