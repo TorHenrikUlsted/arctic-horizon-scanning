@@ -5,17 +5,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
-var gloClip = ee.Filter.intersects({
-  leftField: '.geo',
-  rightField: '.geo',
-  maxError: 10
-});
-
-var joinedClips = ee.Join.saveAll("").apply({
-  primary: bioVars.filterBounds(cavm),
-  secondary: glonaf.filterBounds(cavm),
-  condition: gloClip
-}).filter(ee.Filter.neq("", null));
+var gloClip = glonaf.filterBounds(cavm);
 
 Map.centerObject(cavm);
 
