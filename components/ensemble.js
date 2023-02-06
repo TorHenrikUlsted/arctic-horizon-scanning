@@ -14,7 +14,6 @@ print("cavmv2.bounds(...) = ", cavmv2PolygonBounds);
 
 var bioClip = bioVars.clip(cavmv2PolygonBounds);
 var gloClip = glonaf.filterBounds(cavm);
-var cavmGeo = cavm.geometry();
 
 Map.centerObject(cavm);
 
