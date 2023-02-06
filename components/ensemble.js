@@ -10,7 +10,7 @@ var gloClip = glonaf.filterBounds(cavm);
 var cavmGeo = cavm.geometry();
 
 Map.centerObject(cavm);
-print(imageCollection.min());
+print(test.min());
 
 /*
 // Extract geometries from you regions 
