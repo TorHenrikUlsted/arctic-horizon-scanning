@@ -7,21 +7,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 
-// Define a Polygon object.
-var polygon = ee.Geometry.Polygon(
-    [[[-122.092, 37.424],
-      [-122.086, 37.418],
-      [-122.079, 37.425],
-      [-122.085, 37.423]]]);
-
-// Apply the getInfo method to the Polygon object.
-var polygonGetInfo = polygon.getInfo();
-
-// Print the result to the console.
-print('polygon.getInfo(...) =', polygonGetInfo);
-
-
-
+print(cavm)
 
 Map.centerObject(cavm);
 
