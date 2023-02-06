@@ -10,7 +10,7 @@ Map.centerObject(cavm);
 
 
 
-Map.addLayer(gloCLip);
+Map.addLayer(gloClip);
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
