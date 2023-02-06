@@ -8,7 +8,7 @@ var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var cavmGeo = cavm.geometry();
 
-print(tif.geometry(););
+print(tif.geometry());
 
 Map.centerObject(cavm);
 
