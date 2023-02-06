@@ -4,7 +4,10 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-var roi = glonaf.merge(cavm);
+var roi = glonaf.reduceToImage({
+  properties: properties,
+  reducer: ee.Reducer.mean().forEach(properties)
+});
 var bioClip = bioVars.clip(cavm);
 //var gloClip = glonaf.filterBounds(cavm.geometry());
 Map.centerObject(cavm);
