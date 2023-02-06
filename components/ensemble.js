@@ -23,7 +23,7 @@ var studySitesClip = glonaf.map(function(f) {
 });
 */
 
-Map.addLayer(gloClip);
+//Map.addLayer(gloClip);
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
