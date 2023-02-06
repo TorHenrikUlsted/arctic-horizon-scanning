@@ -7,6 +7,7 @@ var bioClip = bioVars.clip(cavm)
 Map.centerObject(cavm);
 
 var coll = ee.ImageCollection(glonaf).map(bioClip);
+Map.addLayer(coll);
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
