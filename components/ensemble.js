@@ -10,6 +10,13 @@ var gloClip = ee.Filter.intersects({
   rightField: '.geo',
   maxError: 10
 });
+
+var joinedClips = ee.Join.saveAll("").apply({
+  primary: bioVars.filterBounds(cavm),
+  secondary: glonaf.filterBounds(cavm),
+  condition: gloClip
+}).filter(ee.Filter.neq("", null));
+
 Map.centerObject(cavm);
 
 Map.addLayer(cavm, {color: "blue"}, "CAVM");
