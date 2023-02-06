@@ -8,12 +8,6 @@ var bioClip = bioVars.clip(cavm);
 //var gloClip = 
 Map.centerObject(cavm);
 
-var visParams = {
-  min: -230.0,
-  max: 300.0,
-  palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
-};
-
 Map.addLayer(cavm, {palette: ["red"]}, "CAVM");
 Map.addLayer(glonaf, {}, "glonaf");
 
