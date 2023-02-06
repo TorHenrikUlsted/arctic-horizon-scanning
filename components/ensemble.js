@@ -8,7 +8,9 @@ var bioClip = bioVars.clip(cavm);
 //var gloClip = 
 Map.centerObject(cavm);
 
-Map.addLayer(gloClip, {}, "ROI");
+Map.addLayer(cavm, {}, "CAVM");
+Map.addLayer(glonaf, {}, "glonaf");
+
 
 /*
 // Extract geometries from you regions 
