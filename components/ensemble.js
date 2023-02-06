@@ -5,7 +5,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
-var gloClip = glonaf.filter(ee.Filter.eq(cavm));
+var gloClip = ee.FeatureCollection().filter(ee.Filter.eq(cavm));
 Map.centerObject(cavm);
 
 
