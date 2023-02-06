@@ -11,7 +11,7 @@ var bio = bio.addBands([
   "projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_2",
   "projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_3"
   ], [
-    "b2", "b3"
+    "b1", "b1"
     ], overwrite);
 print(bio);
 var bioClip = bioVars.clip(cavm);
