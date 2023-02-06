@@ -6,7 +6,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var roi = glonaf.reduceToImage({
   properties: "system:asset_size",
-  reducer: ee.Reducer.mean().forEach(properties)
+  reducer: ee.Reducer.mean().forEach("system:asset_size")
 });
 var bioClip = bioVars.clip(cavm);
 //var gloClip = glonaf.filterBounds(cavm.geometry());
