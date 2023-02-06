@@ -6,13 +6,13 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var cavmv2 = tif.geometry();
 print(cavmv2);
-print(cavmv2.isUnbounded());
+
 //apply bounds
 var cavmv2PolygonBounds = cavmv2.bounds();
 
 //print results
 print("cavmv2.bounds(...) = ", cavmv2PolygonBounds);
-
+print(cavmv2PolygonBounds.isUnbounded());
 var bioClip = bioVars.clip(cavmv2);
 var gloClip = glonaf.filterBounds(cavm);
 
