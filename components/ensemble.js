@@ -34,7 +34,7 @@ var visParams = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var warmestMonth = bioVars.select('bio05');
+var warmestMonth = bioClip.select('bio05');
 var visParamsWarmestMonth = {
   min: -96,
   max: 490,
