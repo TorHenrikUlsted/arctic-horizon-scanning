@@ -4,7 +4,6 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-var props = ee.List(["GeodAREA", "LAT", "Lon", "OBJIDsic"])
 var roi = glonaf.reduceToImage({
   properties: props,
   reducer: ee.Reducer.mean().forEach(props)
