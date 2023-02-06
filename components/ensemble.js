@@ -5,7 +5,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     test = ee.ImageCollection("projects/master-thesis-375622/assets/worldClimDataCollection"),
     testBio = ee.Image("WORLDCLIM/V1/BIO");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-var bio1 = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_1");
+var bio = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_1");
 var bio = bio.addBands([
   bio1,
   "projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_2"
