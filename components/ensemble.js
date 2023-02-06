@@ -8,8 +8,8 @@ Map.centerObject(cavm);
 
 // Extract geometries from you regions 
 // for more than one region (type: featureCollection), do something like:
-var regionGeom = region.map(function(cavm) {
-  return cavm.geometry();
+var regionGeom = cavm.map(function(f) {
+  return f.geometry();
 });
 
 // Now map over your study sites and use intersect to clip them on the region(s)
