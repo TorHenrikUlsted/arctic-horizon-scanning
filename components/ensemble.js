@@ -11,8 +11,6 @@ var cavmGeo = cavm.geometry();
 
 Map.centerObject(cavm);
 
-Map.addLayer(cavmGeo);
-
 
 /*
 // Extract geometries from you regions 
