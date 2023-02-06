@@ -9,6 +9,7 @@ var bio = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1
 var bio = bio.addBands([
   "projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_2"
   ]);
+print(bio);
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var cavmGeo = cavm.geometry();
