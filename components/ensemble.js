@@ -33,7 +33,7 @@ var studySitesClip = glonaf.map(function(f) {
 
 Map.setCenter(-5, 75, 2);
 
-var annualMeanTemp = bioClip.select('bio01');
+var annualMeanTemp = bioClip.select('b1');
 var visParams = {
   min: -230.0,
   max: 300.0,
