@@ -17,8 +17,7 @@ var stuySitesClip = glonaf.map(function(f) {
   return f.intersection(regionGeom, 1); //1 refers to the maxError argument
 });
 
-var coll = ee.FeatureCollection(glonaf).map(bioClip);
-Map.addLayer(coll);
+Map.addLayer(studySitesClip);
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
