@@ -5,10 +5,21 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
-var gloClip = ee.FeatureCollection().filter(ee.Filter.eq(cavm));
+var gloClip = ee.FeatureCollection("").filter(ee.Filter.eq(cavm));
 Map.centerObject(cavm);
 
+/*
+// Extract geometries from you regions 
+// for more than one region (type: featureCollection), do something like:
+var regionGeom = cavmImg.map(function(f) {
+  return f.geometry();
+});
 
+// Now map over your study sites and use intersect to clip them on the region(s)
+var studySitesClip = glonaf.map(function(f) {
+  return f.intersection(regionGeom, 1); //1 refers to the maxError argument
+});
+*/
 
 Map.addLayer(gloClip);
 
