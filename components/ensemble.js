@@ -12,11 +12,9 @@ var cavmv2PolygonBounds = cavmv2.bounds();
 //print results
 print("cavmv2.bounds(...) = ", cavmv2PolygonBounds);
 
-var bioClip = bioVars.clip(tif.geometry());
+var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var cavmGeo = cavm.geometry();
-
-print(tif.geometry());
 
 Map.centerObject(cavm);
 
