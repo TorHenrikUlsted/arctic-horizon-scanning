@@ -47,6 +47,7 @@ var visParamsWarmestMonth = {
 };
 
 Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+print(annualMeanTemo);
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
 //Map.addLayer(arcticGlonaf)
