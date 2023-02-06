@@ -6,8 +6,10 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var roi = cavm.merge(glonaf);
 var bioClip = bioVars.clip(cavm);
-var gloClip = glonaf.filterBounds(cavm.geometry());
+//var gloClip = glonaf.filterBounds(cavm.geometry());
 Map.centerObject(cavm);
+
+Map.addLayer(roi);
 
 /*
 // Extract geometries from you regions 
@@ -22,7 +24,7 @@ var studySitesClip = glonaf.map(function(f) {
 });
 */
 
-Map.addLayer(gloClip);
+
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
