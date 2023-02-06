@@ -4,35 +4,6 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
     tif = ee.Image("projects/master-thesis-375622/assets/raster_cavm_v1");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-var cavmv2 = tif.geometry();
-
-//apply bounds
-var cavmv2PolygonBounds = cavmv2.bounds();
-
-//print results
-print("cavmv2.bounds(...) = ", cavmv2PolygonBounds);
-print(cavmv2PolygonBounds.isUnbounded());
-Map.addLayer(cavmv2PolygonBounds);
-
-// Define a Polygon object.
-var polygon = ee.Geometry.Polygon(
-    [[[-180, -90],
-      [180, -90],
-      [180, 90],
-      [-180, 90]]]);
-
-// Apply the bounds method to the Polygon object.
-var polygonBounds = polygon.bounds();
-
-// Print the result to the console.
-print('polygon.bounds(...) =', polygonBounds);
-print(polygonBounds.isUnbounded());
-Map.addLayer(polygonBounds, {color: "red"}, "test");
-
-
-
-
-
 var bioClip = bioVars.clip(cavmv2);
 var gloClip = glonaf.filterBounds(cavm);
 
