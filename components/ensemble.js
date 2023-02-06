@@ -16,10 +16,10 @@ Map.addLayer(cavmv2PolygonBounds);
 
 // Define a Polygon object.
 var polygon = ee.Geometry.Polygon(
-    [[[-122.092, 37.424],
-      [-122.086, 37.418],
-      [-122.079, 37.425],
-      [-122.085, 37.423]]]);
+    [[[-180, -90],
+      [180, -90],
+      [180, 90],
+      [-180, 90]]]);
 
 // Apply the bounds method to the Polygon object.
 var polygonBounds = polygon.bounds();
