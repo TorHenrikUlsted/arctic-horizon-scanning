@@ -10,7 +10,7 @@ var cavmGeo = cavm.geometry();
 
 Map.centerObject(cavm);
 
-Map.addLayer(gloClip);
+Map.addLayer(cavmGeo);
 
 
 /*
