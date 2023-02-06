@@ -9,7 +9,7 @@ var gloClip = glonaf.filterBounds(cavm);
 
 Map.centerObject(cavm);
 
-Map.addLayer(gloCLip);
+Map.addLayer(gloClip);
 
 
 /*
