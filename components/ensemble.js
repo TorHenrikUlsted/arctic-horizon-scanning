@@ -24,7 +24,6 @@ var studySitesClip = glonaf.map(function(f) {
   return f.intersection(regionGeom, 1); //1 refers to the maxError argument
 });
 */
-	
 
 
 //var arcticGlonaf = glonaf.clip(cavm);
@@ -33,8 +32,8 @@ Map.setCenter(-5, 75, 2);
 
 var annualMeanTemp = bioClip.select('b1');
 var visParams = {
-  min: -54.72,
-  max: 30.9876,
+  min: -230.0,
+  max: 300.0,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
