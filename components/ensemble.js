@@ -1,9 +1,11 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
-    glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile");
+    glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
+    test = ee.ImageCollection("projects/master-thesis-375622/assets/worldClimDataCollection"),
+    image = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_1");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-var bioVars = ee.ImageCollection("projects/master-thesis-375622/assets/worldClimDataCollection");
-var bioClip = bioVars.clip(cavm);
+
+var bioClip = test.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var cavmGeo = cavm.geometry();
 
@@ -38,7 +40,7 @@ var visParams = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-var warmestMonth = bioVars.select('bio05');
+var warmestMonth = test.select('bio05');
 var visParamsWarmestMonth = {
   min: -96,
   max: 490,
