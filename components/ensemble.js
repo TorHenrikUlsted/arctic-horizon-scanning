@@ -35,8 +35,6 @@ Map.setCenter(-5, 75, 2);
 
 var annualMeanTemp = bioClip.select('b1');
 var visParams = {
-  min: -54.7243537902832,
-  max: 30.987640380859375,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
