@@ -11,7 +11,7 @@ var cavmv2PolygonBounds = cavmv2.bounds();
 
 //print results
 print("cavmv2.bounds(...) = ", cavmv2PolygonBounds);
-print(cavmv2PolygonBounds.isUnbounded());
+print(tif.isUnbounded());
 Map.addLayer(cavmv2PolygonBounds);
 
 var bioClip = bioVars.clip(cavmv2);
