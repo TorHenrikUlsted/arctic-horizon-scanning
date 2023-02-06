@@ -6,7 +6,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var bioClip = bioVars.clip(cavm)
 Map.centerObject(cavm);
 
-var coll = ee.ImageCollection(glonaf).map(cavm);
+var coll = ee.FeatureCollection(glonaf).map(cavm);
 Map.addLayer(coll);
 
 //var arcticGlonaf = glonaf.clip(cavm);
