@@ -8,16 +8,7 @@ var bioClip = bioVars.clip(cavm);
 var gloClip = cavmImg.clip(glonaf);
 Map.centerObject(cavm);
 
-// Extract geometries from you regions 
-// for more than one region (type: featureCollection), do something like:
-var regionGeom = cavmImg.map(function(f) {
-  return f.geometry();
-});
 
-// Now map over your study sites and use intersect to clip them on the region(s)
-var studySitesClip = glonaf.map(function(f) {
-  return f.intersection(regionGeom, 1); //1 refers to the maxError argument
-});
 
 Map.addLayer(gloCLip);
 
