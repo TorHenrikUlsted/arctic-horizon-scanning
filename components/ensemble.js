@@ -27,7 +27,7 @@ var polygonBounds = polygon.bounds();
 // Print the result to the console.
 print('polygon.bounds(...) =', polygonBounds);
 print(polygonBounds.isUnbounded());
-Map.addLayer(polygonBounds, {color: "red", "test"});
+Map.addLayer(polygonBounds, {color: "red"}, "test");
 
 
 
