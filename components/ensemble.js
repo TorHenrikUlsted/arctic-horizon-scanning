@@ -8,7 +8,7 @@ var cavmv2 = tif.geometry();
 print(cavmv2);
 
 //apply bounds
-var cavmv2PolygonBounds = cavmv2.bounds(1);
+var cavmv2PolygonBounds = cavmv2.bounds(0.1);
 
 //print results
 print("cavmv2.bounds(...) = ", cavmv2PolygonBounds);
