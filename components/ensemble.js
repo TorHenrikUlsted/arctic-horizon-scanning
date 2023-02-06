@@ -13,7 +13,7 @@ var bioClip = bioVars.clip(cavm);
 //var gloClip = glonaf.filterBounds(cavm.geometry());
 Map.centerObject(cavm);
 
-Map.addLayer(roi, {color: "red"}, "ROI");
+Map.addLayer(roi, {}, "ROI");
 
 /*
 // Extract geometries from you regions 
