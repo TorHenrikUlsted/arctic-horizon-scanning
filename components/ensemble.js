@@ -31,4 +31,4 @@ var visParamsWarmestMonth = {
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
 //Map.addLayer(arcticGlonaf)
-Map.addLayer(cavm);
+//Map.addLayer(cavm);
