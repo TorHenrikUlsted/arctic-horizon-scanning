@@ -11,8 +11,26 @@ var cavmv2PolygonBounds = cavmv2.bounds();
 
 //print results
 print("cavmv2.bounds(...) = ", cavmv2PolygonBounds);
-print(tif.geometry().isUnbounded());
+print(cavmv2PolygonBounds.isUnbounded());
 Map.addLayer(cavmv2PolygonBounds);
+
+// Define a Polygon object.
+var polygon = ee.Geometry.Polygon(
+    [[[-122.092, 37.424],
+      [-122.086, 37.418],
+      [-122.079, 37.425],
+      [-122.085, 37.423]]]);
+
+// Apply the bounds method to the Polygon object.
+var polygonBounds = polygon.bounds();
+
+// Print the result to the console.
+print('polygon.bounds(...) =', polygonBounds);
+
+
+
+
+
 
 var bioClip = bioVars.clip(cavmv2);
 var gloClip = glonaf.filterBounds(cavm);
