@@ -7,7 +7,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var props = ee.List(["GeodAREA", "LAT", "Lon"])
 var roi = glonaf.reduceToImage({
   properties: props,
-  reducer: ee.Reducer.mean().forEach(props)
+  reducer: ee.Reducer.mean().forEach(properties)
 });
 var bioClip = bioVars.clip(cavm);
 //var gloClip = glonaf.filterBounds(cavm.geometry());
