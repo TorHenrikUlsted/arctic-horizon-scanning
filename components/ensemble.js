@@ -6,6 +6,8 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var bioClip = bioVars.clip(cavm)
 Map.centerObject(cavm);
 
+var arcticGlonaf = bioclip.select('glonaf');
+
 Map.setCenter(-5, 75, 2);
 
 var annualMeanTemp = bioClip.select('bio01');
@@ -24,4 +26,4 @@ var visParamsWarmestMonth = {
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
-Map.addLayer(glonaf)
+//Map.addLayer(glonaf)
