@@ -1,8 +1,8 @@
 /**** Start of imports. If edited, may not auto-convert in the playground. ****/
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
-    bioVars = ee.Image("WORLDCLIM/V1/BIO"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
-    cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap");
+    cavmImg = ee.Image("projects/master-thesis-375622/assets/CAVMmap"),
+    bioVars = ee.ImageCollection("projects/master-thesis-375622/assets/worldClimDataCollection");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
