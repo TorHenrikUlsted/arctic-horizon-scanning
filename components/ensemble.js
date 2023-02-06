@@ -13,7 +13,8 @@ var visParams = {
   max: 300.0,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
-Map.addLayer(cavm, {}, "CAVM");
+
+Map.addLayer(cavm, {palette: ["red"]}, "CAVM");
 Map.addLayer(glonaf, {}, "glonaf");
 
 
