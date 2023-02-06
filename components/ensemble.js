@@ -13,7 +13,7 @@ var regionGeom = cavm.map(function(f) {
 });
 
 // Now map over your study sites and use intersect to clip them on the region(s)
-var stuySitesClip = glonaf.map(function(f) {
+var studySitesClip = glonaf.map(function(f) {
   return f.intersection(regionGeom, 1); //1 refers to the maxError argument
 });
 
