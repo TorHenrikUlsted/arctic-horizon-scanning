@@ -10,10 +10,10 @@ var roi = glonaf.reduceToImage({
   reducer: ee.Reducer.mean().forEach(props)
 });
 var bioClip = bioVars.clip(cavm);
-//var gloClip = glonaf.filterBounds(cavm.geometry());
+var gloClip = roi.clip(cavm);
 Map.centerObject(cavm);
 
-Map.addLayer(roi, {}, "ROI");
+Map.addLayer(gloClip, {}, "ROI");
 
 /*
 // Extract geometries from you regions 
