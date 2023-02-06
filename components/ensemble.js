@@ -5,7 +5,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     test = ee.ImageCollection("projects/master-thesis-375622/assets/worldClimDataCollection");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 
-var bioClip = test.clip(cavm);
+var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var cavmGeo = cavm.geometry();
 
