@@ -2,7 +2,7 @@
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     test = ee.ImageCollection("projects/master-thesis-375622/assets/worldClimDataCollection"),
-    image = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_1");
+    bioVars = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_1");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 
 var bioClip = test.clip(cavm);
