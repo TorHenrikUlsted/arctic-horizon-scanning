@@ -6,7 +6,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var props = ee.List(["GeodAREA", "LAT", "Lon"])
 var roi = glonaf.reduceToImage({
-  properties: "system:asset_size",
+  properties: props,
   reducer: ee.Reducer.mean().forEach("system:asset_size")
 });
 var bioClip = bioVars.clip(cavm);
