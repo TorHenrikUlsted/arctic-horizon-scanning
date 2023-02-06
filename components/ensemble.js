@@ -6,7 +6,9 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = ee.Filter.intersects({
-  
+  leftField: '.geo',
+  rightField: '.geo',
+  maxError: 10
 });
 Map.centerObject(cavm);
 
