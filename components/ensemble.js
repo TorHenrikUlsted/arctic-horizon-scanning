@@ -12,7 +12,7 @@ print(cavm.geometry().type());
 print(tif.geometry().type());
 Map.centerObject(cavm);
 
-Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
+//Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
 /*
 // Extract geometries from you regions 
