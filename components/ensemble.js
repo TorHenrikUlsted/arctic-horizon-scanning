@@ -2,7 +2,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
     tif = ee.Image("projects/master-thesis-375622/assets/raster_cavm_v1");
-
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 
