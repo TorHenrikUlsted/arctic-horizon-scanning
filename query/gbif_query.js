@@ -1,21 +1,18 @@
-var XMLHttpRequest = require('xhr2');
-var request = new XMLHttpRequest();
-var group = "/occurence";
-var searchKey = "/Pan troglodytes";
+const search = async (group, searchTerm) => {
+  const response = await fetch(`https://api.gbif.org/v1/${group}/search?${searchTerm}`)
+  const data = await response.json()
 
-request.open('GET', 'https://api.gbif.org/v1' + {group} + {searchKey}, true)
-request.onload = function () {
-  // Begin accessing JSON data here
-  var data = JSON.parse(this.response)
-
-  if (request.status >= 200 && request.status < 400) {
-    data.forEach((data) => {
-      console.log(data)
-    })
-  } else {
-    console.log('error')
+  if (data.status !== 200) {
+    console.log(this.response)
   }
+  console.log(data)
+
+  
 }
 
-request.send();
+var group = 'occurrence'
+var searchTerm = 'Pan troglodytes'
+
+search(group, searchTerm)
+
 
