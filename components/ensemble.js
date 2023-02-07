@@ -11,7 +11,7 @@ print(cavm.geometry())
 Map.centerObject(cavm);
 
 Export.image.toDrive({
-  image: cavm.clip(geometry),
+  image: cavm.clip(cavm.geometry),
   folder: "test",
   description: 'imageToCOGeoTiffExample2',
   scale: 30,
