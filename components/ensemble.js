@@ -11,15 +11,7 @@ print(cavm.geometry())
 print(cavm.geometry().type());
 Map.centerObject(cavm);
 
-Export.image.toDrive({
-  image: cavm.clip(cavm.geometry()),
-  folder: "test",
-  description: 'imageToCOGeoTiffExample2',
-  scale: 30,
-  region: geometry,
-  fileFormat: 'geotiff',
-  skipEmptyTiles: true
-});
+Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", maxVertices)
 
 /*
 // Extract geometries from you regions 
