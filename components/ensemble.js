@@ -9,9 +9,9 @@ var gloClip = glonaf.filterBounds(cavm);
 
 print(cavm.geometry())
 print(cavm.geometry().type());
-print(tif.geometry().type());
+print(tif.geometry());
 Map.centerObject(cavm);
-
+//Export.table.toAsset(tif, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
 /*
