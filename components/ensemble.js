@@ -10,6 +10,16 @@ var gloClip = glonaf.filterBounds(cavm);
 print(cavm.geometry())
 Map.centerObject(cavm);
 
+Export.image.toDrive({
+  image: cavm.clip(geometry),
+  folder: "test",
+  description: 'imageToCOGeoTiffExample2',
+  scale: 30,
+  region: geometry,
+  fileFormat: 'geotiff',
+  skipEmptyTiles: true
+});
+
 /*
 // Extract geometries from you regions 
 // for more than one region (type: featureCollection), do something like:
