@@ -10,8 +10,8 @@ const search = async (group, searchTerm) => {
   
 }
 
-var group = 'occurrence'
-var searchTerm = 'Pan troglodytes'
+let group = 'occurrence'
+let searchTerm = 'Pan troglodytes'
 
 search(group, searchTerm)
 
