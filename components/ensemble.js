@@ -1,3 +1,5 @@
+import gbif_query.js from "../query/gbif_query.js"
+
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
