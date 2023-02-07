@@ -1,4 +1,4 @@
-var gbif_query = require("projects/master-thesis-375622/scripts/users/torhul/MasterThesis-NaturalizingPlants-Arctic/query/gbif_query.js")
+var gbif_query = require("https://code.earthengine.google.com/?scriptPath=users%2Ftorhul%2FMasterThesis-NaturalizingPlants-Arctic%3Aquery%2Fgbif_query.js")
 
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
