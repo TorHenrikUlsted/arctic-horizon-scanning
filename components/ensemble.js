@@ -25,12 +25,13 @@ var geometry = /* color: #0b4a8b */ee.Geometry.Polygon(
           [-127.48654178341201, 68.34455723602377],
           [-143.658416783412, 66.66390634657031],
           [-161.236541783412, 57.246429488345825],
-          [-175.299041783412, 60.77263076358991]]]);
-/***** End of imports. If edited, may not auto-convert in the playground. *****/
-var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
+          [-175.299041783412, 60.77263076358991]]]),
+    cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
     tif = ee.Image("projects/master-thesis-375622/assets/raster_cavm_v1");
+/***** End of imports. If edited, may not auto-convert in the playground. *****/
+
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
@@ -42,6 +43,7 @@ Map.centerObject(cavm);
 Map.addLayer(tif);
 //Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
+Export.table.toAsset(geometry, "cavmArea", "Earth Engine files")
 
 /*
 // Extract geometries from you regions 
