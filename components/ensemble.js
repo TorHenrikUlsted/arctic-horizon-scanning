@@ -1,4 +1,4 @@
-var gbif_query = fetch("https://code.earthengine.google.com/0169d1f9ff750892fea04ea47f858f79")
+var gbif_query = equirer("https://code.earthengine.google.com/0169d1f9ff750892fea04ea47f858f79")
 
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
