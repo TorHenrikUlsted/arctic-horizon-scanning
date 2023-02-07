@@ -1,16 +1,19 @@
 
 
-// Rename this function to something that makes more sense
-// (I lack the domain knowledge)
+// Gets all occurrences within a given polygon 
 //
-// Add error handling if you want by checking data.status
-// Should be = 200 if the request was OK 
-const search = async (group, searchTerm) => {
-  const response = await fetch(`https://api.gbif.org/v1/${group}/search?${searchTerm}`)
+// Vertices of the polygon is specified as '(x1 y1, x2 y2, x3 y3, ...)'
+// Polygons must have anticlockwise ordering of points, or it will give unpredictable results
+const getOccurrencesInPolygon = async (vertices) => {
+  const response = await fetch(`https://api.gbif.org/v1/occurrences/search?geometry=POLYGON(${vertices})`)
+
+  if(response.status !== 200)
+    return console.log('ERROR OCCURED:', response)
+
   const data = await response.json()
 
   console.log(data)
 }
 
-search('occurrence', 'year=1800,1899')
+getOccurrencesInPolygon('(30.1 10.1, 40 40, 20 40, 10 20, 30.1 10.1)')
 
