@@ -46,8 +46,8 @@ var visParamsWarmestMonth = {
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
 
-Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
-Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
+//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+//Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
 //Map.addLayer(arcticGlonaf)
 //Map.addLayer(cavm);
