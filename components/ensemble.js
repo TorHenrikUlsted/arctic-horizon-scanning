@@ -24,7 +24,7 @@ Map.addLayer(tif);
 //Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
-/*
+
 // Extract geometries from you regions 
 // for more than one region (type: featureCollection), do something like:
 var regionGeom = cavmImg.map(function(f) {
@@ -35,7 +35,7 @@ var regionGeom = cavmImg.map(function(f) {
 var studySitesClip = glonaf.map(function(f) {
   return f.intersection(regionGeom, 1); //1 refers to the maxError argument
 });
-*/
+
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
