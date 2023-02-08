@@ -109,7 +109,7 @@ var getPrincipalComponents = function(centered, scale, region) {
 //var sentbands = ['AREA', 'B2LAKE', 'BCZONE', 'FLOREG', 'LAND', 'PERIMETER', 'SUBCHEM', 'Shape_Area', 'Shape_Leng', 'VEGPHYS'];
 var sentbands = ['B2LAKE'];
 var region = cavmImg.geometry();
-var image =  cavmImg.select(sentbands);
+var image =  cavmImg.geometry().select(sentbands);
 
 // Set some information about the input to be used later.
 var scale = 30;
