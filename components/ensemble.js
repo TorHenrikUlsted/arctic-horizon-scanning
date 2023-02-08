@@ -108,7 +108,7 @@ var getPrincipalComponents = function(centered, scale, region) {
 // Display the input imagery and the region in which to do the PCA.
 //var sentbands = ['AREA', 'B2LAKE', 'BCZONE', 'FLOREG', 'LAND', 'PERIMETER', 'SUBCHEM', 'Shape_Area', 'Shape_Leng', 'VEGPHYS'];
 var sentbands = ['b1'];
-var region = tif.geometry();
+var region = tif;
 var image =  tif.select(sentbands);
 
 // Set some information about the input to be used later.
