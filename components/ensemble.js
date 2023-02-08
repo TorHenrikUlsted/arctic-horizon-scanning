@@ -50,7 +50,7 @@ var visParamsWarmestMonth = {
 
 
 // Principal component analysis
-
+var getPrincipalComponents = function(centered, scale, region);
 
 
 
