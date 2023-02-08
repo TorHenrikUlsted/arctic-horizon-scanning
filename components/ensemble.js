@@ -8,6 +8,11 @@ var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var test = cavm.geometry().geometries();
 
+print(cavm.reduceColumns({
+  reducer: ee.Reducer.mean(),
+  selectors: ['foo'],
+  weightSelectors: ['weight']
+}));
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 10) //doesn't work properly for some reason
 print('CAVM properties', cavmProps)
