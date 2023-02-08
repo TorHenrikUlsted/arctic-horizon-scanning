@@ -64,7 +64,7 @@ var getPrincipalComponents = function(centered, scale, region) {
     reducer: ee.Reducer.centeredCovariance(),
     geometry: region,
     scale: scale,
-    maxPixels: 1e10
+    maxPixels: 1e9
   });
   
   console.log(region);
