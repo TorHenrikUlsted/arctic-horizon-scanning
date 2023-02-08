@@ -141,7 +141,7 @@ return seq.map(function(b) {
 //Map.setCenter(-5, 75, 2);
 Map.centerObject(cavm);
 //Map.addLayer(tif);
-//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
 //Map.addLayer(arcticGlonaf)
