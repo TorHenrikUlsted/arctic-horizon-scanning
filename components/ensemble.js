@@ -104,7 +104,7 @@ var image =  cavm.select(sentbands);
 
 // Set some information about the input to be used later.
 var scale = 30;
-var bandNames = image.bandNames();
+var bandNames = image.coordinates();
 
 // Mean center the data to enable a faster covariance reducer
 // and an SD stretch of the principal components.
