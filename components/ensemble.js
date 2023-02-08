@@ -9,7 +9,7 @@ var gloClip = glonaf.filterBounds(cavm);
 
 print(cavm.geometry())
 print(cavm.geometry().type());
-print(tif.geometry());
+print(tif);
 Map.centerObject(cavm);
 Map.addLayer(tif);
 //Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
