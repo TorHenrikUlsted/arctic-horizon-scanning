@@ -99,7 +99,7 @@ var getPrincipalComponents = function(centered, scale, region) {
            
 // Display the input imagery and the region in which to do the PCA.
 var sentbands = ['b1'];
-var region = tif.geometry();
+var region = cavm.geometry();
 var image =  tif.select(sentbands);
 
 // Set some information about the input to be used later.
