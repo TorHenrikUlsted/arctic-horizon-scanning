@@ -19,9 +19,9 @@ var cavmImg = cavm.reduceToImage({
   reducer: ee.Reducer.firstNonNull().forEach(cavmProps)
   });
 
-print(cavm.geometry())
-print(cavm.geometry().type());
-print(tif);
+//print(cavm.geometry())
+//print(cavm.geometry().type());
+//print(tif);
 
 //Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
