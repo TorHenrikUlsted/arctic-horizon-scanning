@@ -6,6 +6,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
+var cavmImg = cavm.reduceToImage();
 
 print(cavm.geometry())
 print(cavm.geometry().type());
@@ -104,7 +105,7 @@ var image =  cavm.select(sentbands);
 
 // Set some information about the input to be used later.
 var scale = 30;
-var bandNames = image.coordinates();
+var bandNames = image.bandNames();
 
 // Mean center the data to enable a faster covariance reducer
 // and an SD stretch of the principal components.
