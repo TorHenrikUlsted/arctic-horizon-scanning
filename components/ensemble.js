@@ -95,7 +95,7 @@ var getPrincipalComponents = function(centered, scale, region) {
     //Normalize the PCs by their SDs
     .divide(sdImage);
   }
-
+  
   getPrincipalComponents(tif, 1920, cavm.geometry());
 
 
