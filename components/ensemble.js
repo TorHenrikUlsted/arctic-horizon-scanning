@@ -96,7 +96,26 @@ var getPrincipalComponents = function(centered, scale, region) {
     .divide(sdImage);
   }
   
+           
+// Display the input imagery and the region in which to do the PCA.
+var sentbands = ['b1'];
+var region = tif.geometry();
+var image =  tif.select(sentbands);
 
+// Set some information about the input to be used later.
+var scale = 30;
+var bandNames = image.bandNames();
+
+// Mean center the data to enable a faster covariance reducer
+// and an SD stretch of the principal components.
+var meanDict = image.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: region,
+    scale: scale,
+    maxPixels: 1e9
+});
+var means = ee.Image.constant(meanDict.values(bandNames));
+var centered = image.subtract(means);
   
 //helper fuynction for getbandnames
 var getNewBandNames = function(prefix) {
@@ -106,7 +125,7 @@ return seq.map(function(b) {
   });
 };
   
-  getPrincipalComponents(tif, 10, cavm.geometry());
+  getPrincipalComponents(centered, scale, geometry);
 
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
