@@ -15,8 +15,6 @@ Map.addLayer(tif);
 //Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
-tif.mosaic();
-
 /*
 // Extract geometries from you regions 
 // for more than one region (type: featureCollection), do something like:
