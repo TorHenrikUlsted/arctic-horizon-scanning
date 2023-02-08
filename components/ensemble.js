@@ -11,7 +11,7 @@ var test = cavm.geometry().geometries();
 
 print(bioClip.select('bio01'));
 print(image.select('b1'));
-
+print(image.clip(cavm))
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 10) //doesn't work properly for some reason
 print('CAVM properties', cavmProps)
