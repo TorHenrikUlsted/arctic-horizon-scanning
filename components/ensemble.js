@@ -7,6 +7,8 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 
+print(cavm.geometries());
+
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 10) //doesn't work properly for some reason
 print('CAVM properties', cavmProps)
 
