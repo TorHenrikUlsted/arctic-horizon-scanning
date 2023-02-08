@@ -96,14 +96,15 @@ var getPrincipalComponents = function(centered, scale, region) {
     .divide(sdImage);
   }
   
-  //helper fuynction for getbandnames
-  var getNewBandNames = function(prefix) {
-  var seq = ee.List.sequence(1, bandNames.length());
-  return seq.map(function(b) {
-    return ee.String(prefix).cat(ee.Number(b).int());
+
+  
+//helper fuynction for getbandnames
+var getNewBandNames = function(prefix) {
+var seq = ee.List.sequence(1, bandNames.length());
+return seq.map(function(b) {
+  return ee.String(prefix).cat(ee.Number(b).int());
   });
 };
-  var
   
   getPrincipalComponents(tif, 10, cavm.geometry());
 
