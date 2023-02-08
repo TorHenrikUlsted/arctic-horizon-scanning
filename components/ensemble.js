@@ -8,7 +8,7 @@ var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 11) //doesn't work properly for some reason
-print('properties2', cavmProps)
+print('CAVM properties', cavmProps)
 var cavmImg = cavm.reduceToImage({
   properties: cavmProps,
   reducer: ee.Reducer.firstNonNull().forEach(cavmProps)
