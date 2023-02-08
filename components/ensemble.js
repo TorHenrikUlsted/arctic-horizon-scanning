@@ -22,8 +22,7 @@ var cavmImg = cavm.reduceToImage({
 print(cavm.geometry())
 print(cavm.geometry().type());
 print(tif);
-Map.centerObject(cavm);
-Map.addLayer(tif);
+
 //Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
@@ -140,6 +139,8 @@ return seq.map(function(b) {
 //getPrincipalComponents(centered, scale, region);
 
 Map.setCenter(-5, 75, 2);
+//Map.centerObject(cavm);
+Map.addLayer(tif);
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
