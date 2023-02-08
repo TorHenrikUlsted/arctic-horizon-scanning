@@ -108,7 +108,7 @@ var getPrincipalComponents = function(centered, scale, region) {
 // Display the input imagery and the region in which to do the PCA.
 var sentbands = ['b1'];
 var region = cavmImg;
-var image =  cavmIMG.select(sentbands);
+var image =  cavmImg.select(sentbands);
 
 // Set some information about the input to be used later.
 var scale = 30;
