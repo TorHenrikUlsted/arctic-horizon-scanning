@@ -4,8 +4,6 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
     tif = ee.Image("projects/master-thesis-375622/assets/raster_cavm_v1");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-
-/***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 
@@ -49,6 +47,12 @@ var visParamsWarmestMonth = {
   max: 490,
   palette: ['blue', 'purple', 'cyan', 'green', 'yellow', 'red'],
 };
+
+
+// Principal component analysis
+
+
+
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
