@@ -6,8 +6,8 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
-
-print(cavm.geometry().geometries());
+var test = cavm.geometry().geometries();
+Map.addLayer();
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 10) //doesn't work properly for some reason
 print('CAVM properties', cavmProps)
