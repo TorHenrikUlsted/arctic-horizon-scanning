@@ -123,7 +123,8 @@ var meanDict = image.reduceRegion({
     reducer: ee.Reducer.mean(),
     geometry: region,
     scale: scale,
-    maxPixels: 1e10
+    maxPixels: 1e10,
+    bestEffort: true
 });
 var means = ee.Image.constant(meanDict.values(bandNames));
 var centered = image.subtract(means);
