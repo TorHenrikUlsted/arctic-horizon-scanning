@@ -79,7 +79,8 @@ var getPrincipalComponents = function(centered, scale, region) {
   var principalComponents = ee.Image(eigenVectors).matrixMultiply(arrayImage);
 
   //turn the square roots of the Eigenvalues into a P-band image
-  var sdImage = ee.Image(eigenValues.sqrt()).arrayProject([0]).arrayFlatten([getNewBandNames('sd')]);
+   var sdImage = ee.Image(eigenValues.sqrt())
+      .arrayProject([0]).arrayFlatten([getNewBandNames('sd')]);
 
   //Turn the PCs into a P-band image, normalized by SD
   return principalComponents
