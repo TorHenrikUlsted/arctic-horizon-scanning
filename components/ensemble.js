@@ -9,6 +9,7 @@ var gloClip = glonaf.filterBounds(cavm);
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 11) //doesn't work properly for some reason
 print('CAVM properties', cavmProps)
+
 var cavmImg = cavm.reduceToImage({
   properties: cavmProps,
   reducer: ee.Reducer.firstNonNull().forEach(cavmProps)
@@ -106,7 +107,7 @@ var getPrincipalComponents = function(centered, scale, region) {
            
 // Display the input imagery and the region in which to do the PCA.
 var sentbands = ['b1'];
-var region = cavm.geometry();
+var region = cavmImg;
 var image =  cavm.select(sentbands);
 
 // Set some information about the input to be used later.
