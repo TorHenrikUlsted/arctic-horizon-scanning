@@ -125,7 +125,7 @@ return seq.map(function(b) {
   });
 };
   
-  getPrincipalComponents(centered, scale, geometry);
+  getPrincipalComponents(centered, scale, region);
 
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
