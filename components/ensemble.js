@@ -82,6 +82,13 @@ var getPrincipalComponents = function(centered, scale, region) {
 
   //Left multiply the image array by the matrix of eigenvectors
   var principalComponents = ee.Image(eigenVectors).matrixMultiply(arrayImage);
+  
+  var getNewBandNames = function(prefix) {
+  var seq = ee.List.sequence(1, bandNames.length());
+  return seq.map(function(b) {
+    return ee.String(prefix).cat(ee.Number(b).int());
+  });
+};
 
   //turn the square roots of the Eigenvalues into a P-band image
    var sdImage = ee.Image(eigenValues.sqrt())
@@ -97,7 +104,7 @@ var getPrincipalComponents = function(centered, scale, region) {
     .divide(sdImage);
   }
   
-  //getPrincipalComponents(tif, 1920, cavm.geometry());
+  getPrincipalComponents(tif, 10, cavm.geometry());
 
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
