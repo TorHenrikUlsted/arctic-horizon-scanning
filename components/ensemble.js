@@ -96,7 +96,7 @@ var getPrincipalComponents = function(centered, scale, region) {
     .divide(sdImage);
   }
 
-  getPrincipalComponents(tif, 1920, tif);
+  getPrincipalComponents(tif, 1920, tif.geometry());
 
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
