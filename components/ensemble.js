@@ -106,7 +106,8 @@ var getPrincipalComponents = function(centered, scale, region) {
   
            
 // Display the input imagery and the region in which to do the PCA.
-var sentbands = ['AREA', 'B2LAKE', 'BCZONE', 'FLOREG', 'LAND', 'PERIMETER', 'SUBCHEM', 'Shape_Area', 'Shape_Leng', 'VEGPHYS'];
+//var sentbands = ['AREA', 'B2LAKE', 'BCZONE', 'FLOREG', 'LAND', 'PERIMETER', 'SUBCHEM', 'Shape_Area', 'Shape_Leng', 'VEGPHYS'];
+var sentbands = ['B2LAKE'];
 var region = cavmImg;
 var image =  cavmImg.select(sentbands);
 
