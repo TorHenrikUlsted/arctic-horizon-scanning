@@ -59,6 +59,8 @@ var getPrincipalComponents = function(centered, scale, region) {
     scale: scale,
     maxPixels: 1e9
   });
+  
+  console.log(region);
 
   //get arrayCovariance results and cast to an array
   //this represents the band-to-band covariance within the region
