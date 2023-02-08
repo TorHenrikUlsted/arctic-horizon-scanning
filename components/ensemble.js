@@ -138,8 +138,8 @@ return seq.map(function(b) {
   
 //getPrincipalComponents(centered, scale, region);
 
-Map.setCenter(-5, 75, 2);
-//Map.centerObject(cavm);
+//Map.setCenter(-5, 75, 2);
+Map.centerObject(cavm);
 Map.addLayer(tif);
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
