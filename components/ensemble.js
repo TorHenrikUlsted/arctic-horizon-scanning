@@ -140,7 +140,7 @@ return seq.map(function(b) {
 
 
 Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
-//Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
+Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
 //Map.addLayer(arcticGlonaf)
 //Map.addLayer(cavm);
