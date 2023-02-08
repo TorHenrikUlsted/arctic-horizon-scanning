@@ -52,46 +52,46 @@ var visParamsWarmestMonth = {
 var getPrincipalComponents = function(centered, scale, region) {
  var arrays = centered.toArray();
 
-// compute the covariance of the bands within the region
-var covar = arrays.reduceRegion({
-  reducer: ee.Reducer.centeredCovariance(),
-  geometry: region,
-  scale: scale,
-  maxPixels: 1e9
-});
+  // compute the covariance of the bands within the region
+  var covar = arrays.reduceRegion({
+    reducer: ee.Reducer.centeredCovariance(),
+    geometry: region,
+    scale: scale,
+    maxPixels: 1e9
+  });
 
-//get arrayCovariance results and cast to an array
-//this represents the band-to-band covariance within the region
-var covarArray = ee.Array(covar.get('array'));
+  //get arrayCovariance results and cast to an array
+  //this represents the band-to-band covariance within the region
+  var covarArray = ee.Array(covar.get('array'));
 
-//perform an eigen analysis and slice apart the values and vectors
-var eigens = covarArray.eigen();
+  //perform an eigen analysis and slice apart the values and vectors
+  var eigens = covarArray.eigen();
 
-//this is a P-length vector of Eigenvalues
-var eigenValues = eigens.slice(1, 0, 1);
-//This is a PxP matrix with eigenvectors in rows
-var eigenVectors= eigens.slice(1, 1);
+  //this is a P-length vector of Eigenvalues
+  var eigenValues = eigens.slice(1, 0, 1);
+  //This is a PxP matrix with eigenvectors in rows
+  var eigenVectors= eigens.slice(1, 1);
 
-//convert the array image to 2D arrays for matrix computations
-var arrayImage = arrays.toArray(1);
+  //convert the array image to 2D arrays for matrix computations
+  var arrayImage = arrays.toArray(1);
 
-//Left multiply the image array by the matrix of eigenvectors
-var principalComponents = ee.Image(eigenVectors).matrixMultiply(arrayImage);
+  //Left multiply the image array by the matrix of eigenvectors
+  var principalComponents = ee.Image(eigenVectors).matrixMultiply(arrayImage);
 
-//turn the square roots of the Eigenvalues into a P-band image
-var sdImage = ee.Image(eigenValues.sqrt()).arrayProject([0]).arrayFlatten([getNewBandNames('sd')]);
+  //turn the square roots of the Eigenvalues into a P-band image
+  var sdImage = ee.Image(eigenValues.sqrt()).arrayProject([0]).arrayFlatten([getNewBandNames('sd')]);
 
-//Turn the PCs into a P-band image, normalized by SD
-return principalComponents
-  //Throw out an unneeded dimension, [[]] -> []
-  .arrayProject[0]
-  //Make the one band array image a multi-band image, [] -> image
-  .arrayFlatten([getNewBandNames('pc')])
-  //Normalize the PCs by their SDs
-  .divide(sdImage);
-}
+  //Turn the PCs into a P-band image, normalized by SD
+  return principalComponents
+    //Throw out an unneeded dimension, [[]] -> []
+    .arrayProject[0]
+    //Make the one band array image a multi-band image, [] -> image
+    .arrayFlatten([getNewBandNames('pc')])
+    //Normalize the PCs by their SDs
+    .divide(sdImage);
+  }
 
-getPrincipalComponents(cavm, 10, tif);
+  getPrincipalComponents(cavm, 10, tif);
 
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
