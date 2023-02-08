@@ -84,6 +84,12 @@ var sdImage = ee.Image(eigenValues.sqrt()).arrayProject([0]).arrayFlatten([getNe
 
 //Turn the PCs into a P-band image, normalized by SD
 return principalComponents
+  //Throw out an unneeded dimension, [[]] -> []
+  .arrayProject[0]
+  //Make the one band array image a multi-band image, [] -> image
+  .arrayFlatten([getNewBandNames('pc')])
+  //Normalize the PCs by their SDs
+  .divide(sdImage)
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
