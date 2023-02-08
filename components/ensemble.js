@@ -42,8 +42,6 @@ var studySitesClip = glonaf.map(function(f) {
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
-Map.setCenter(-5, 75, 2);
-
 var annualMeanTemp = bioClip.select('bio01');
 var visParams = {
   min: -230.0,
@@ -141,7 +139,7 @@ return seq.map(function(b) {
   
 //getPrincipalComponents(centered, scale, region);
 
-
+Map.setCenter(-5, 75, 2);
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
