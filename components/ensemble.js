@@ -8,7 +8,7 @@ var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 print(cavm.props());
 var cavmImg = cavm.reduceToImage({
-  properties: properties2, reducer: ee.Reducer.firstNonNull().forEach(properties2)
+  properties: properties1, reducer: ee.Reducer.firstNonNull().forEach(properties1)
 });
 
 print(cavm.geometry())
