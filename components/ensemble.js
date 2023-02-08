@@ -7,7 +7,7 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 
-var properties2 = counties.first().propertyNames().sort().slice(0, 2) //doesn't work properly for some reason
+var properties2 = cavm.first().propertyNames().sort().slice(0, 2) //doesn't work properly for some reason
 print('properties2', properties2)
 var cavmImg = cavm.reduceToImage();
 
