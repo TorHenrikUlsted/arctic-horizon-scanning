@@ -50,7 +50,7 @@ var visParamsWarmestMonth = {
 
 
 // Principal component analysis
-var getPrincipalComponents = function(centered, scale, region);
+var getPrincipalComponents = function(centered, scale, region) {
 var arrays = centered.toArray();
 
 // compute the covariance of the bands within the region
@@ -89,7 +89,9 @@ return principalComponents
   //Make the one band array image a multi-band image, [] -> image
   .arrayFlatten([getNewBandNames('pc')])
   //Normalize the PCs by their SDs
-  .divide(sdImage)
+  .divide(sdImage);
+}
+
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
 //Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
