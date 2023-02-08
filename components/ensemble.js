@@ -28,7 +28,6 @@ var studySitesClip = glonaf.map(function(f) {
   return f.intersection(regionGeom, 1); //1 refers to the maxError argument
 });
 */
-var region = tif;
 
 //var arcticGlonaf = glonaf.clip(cavm);
 
@@ -92,6 +91,7 @@ return principalComponents
   .divide(sdImage);
 }
 
+getPrincipalComponents(cavm, 10, tif);
 
 
 //Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
