@@ -2,13 +2,15 @@
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
-    tif = ee.Image("projects/master-thesis-375622/assets/raster_cavm_v1");
+    tif = ee.Image("projects/master-thesis-375622/assets/raster_cavm_v1"),
+    image = ee.Image("projects/master-thesis-375622/assets/WorldClim2-1Files/wc2-1_10m_bio_1");
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var test = cavm.geometry().geometries();
 
 print(bioClip.select('bio01'));
+print(image.select('bio01'));
 
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 10) //doesn't work properly for some reason
