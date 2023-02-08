@@ -51,6 +51,16 @@ var visParamsWarmestMonth = {
 
 // Principal component analysis
 var getPrincipalComponents = function(centered, scale, region);
+var arrays = centered.toArray();
+
+// compute the covariance of the bands within the region
+var covar = arrays.reduceRegion({
+  reducer: ee.Reducer.centeredCovariance(),
+  geometry: region,
+  scale: scale,
+  maxPixels: 1e9
+});
+
 
 
 
