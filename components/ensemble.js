@@ -10,7 +10,7 @@ var gloClip = glonaf.filterBounds(cavm);
 var test = cavm.geometry().geometries();
 
 print(bioClip.select('bio01'));
-print(image.select('bi1'));
+print(image.select('b1'));
 
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 10) //doesn't work properly for some reason
