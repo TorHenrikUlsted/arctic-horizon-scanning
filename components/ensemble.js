@@ -6,6 +6,9 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
+
+var properties2 = counties.first().propertyNames().sort().slice(0, 2) //doesn't work properly for some reason
+print('properties2', properties2)
 var cavmImg = cavm.reduceToImage();
 
 print(cavm.geometry())
