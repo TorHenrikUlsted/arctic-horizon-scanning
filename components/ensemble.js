@@ -11,7 +11,7 @@ var cavmProps = cavm.first().propertyNames().sort().slice(0, 11) //doesn't work 
 print('properties2', cavmProps)
 var cavmImg = cavm.reduceToImage({
   properties: cavmProps,
-  reducer: ee.Reducer.firstNonNull().forEach(properties2)
+  reducer: ee.Reducer.firstNonNull().forEach(cavmProps)
   });
 
 print(cavm.geometry())
