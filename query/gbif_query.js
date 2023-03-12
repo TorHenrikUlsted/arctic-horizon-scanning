@@ -15,5 +15,6 @@ const getOccurrencesInPolygon = async (vertices) => {
   console.log(data)
 }
 
-getOccurrencesInPolygon('(30.1 10.1, 40 40, 20 40, 10 20, 30.1 10.1)')
+let polygon = "(-180 68,180 68,180 90,-180 90,-180 68)"
+getOccurrencesInPolygon(polygon)
 
