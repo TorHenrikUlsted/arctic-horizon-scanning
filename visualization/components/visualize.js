@@ -1,3 +1,5 @@
+var gbif_query = Get("https://code.earthengine.google.com/?scriptPath=users%2Ftorhul%2FMasterThesis-NaturalizingPlants-Arctic%3Aquery%2Fgbif_query.js")
+
 var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003"),
     glonaf = ee.FeatureCollection("projects/master-thesis-375622/assets/257_9_257_2_GloNAF_Shapefile"),
     bioVars = ee.Image("WORLDCLIM/V1/BIO"),
@@ -10,7 +12,8 @@ print(cavm.geometry())
 print(cavm.geometry().type());
 print(tif.geometry());
 Map.centerObject(cavm);
-Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
+Map.addLayer(tif);
+//Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
 /*
