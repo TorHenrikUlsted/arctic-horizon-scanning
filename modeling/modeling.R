@@ -12,7 +12,7 @@ cite_packages(citation.style = "APA7th")
 
 
 #Get bio variables from worldClim
-bioVars = worldclim_global(var="bio", 10, "Ensemble model/resources", version="2.1")
+bioVars = worldclim_global(var="bio", 10, "resources", version="2.1")
 
 #Check bioVars properties 
 bioVars
@@ -32,7 +32,7 @@ plot(bioVars[[1]])
 # CAVM Team. 2003. Circumpolar Arctic Vegetation Map. (1:7,500,000 scale), Conservation of Arctic Flora and Fauna (CAFF) 
 # Map No. 1. U.S. Fish and Wildlife Service, Anchorage, Alaska. ISBN: 0-9767525-0-6, ISBN-13: 978-0-9767525-0-9
 
-cavm = vect("Ensemble model/resources/Cavm2003/aga_circumpolar_geobotanical_2003.shp")
+cavm = vect("resources/Cavm2003/aga_circumpolar_geobotanical_2003.shp")
 crs(cavm, proj = T, describe = T)
 plot(cavm)
 
@@ -115,6 +115,8 @@ fviz_pca_var(gPca,
 
 
 ## ----------------------------------------------- Gbif --------------------------------------------------------------
+#The download from GBIF will be changed at a later date in order to include a whole lot more data
+
 #Check extent of cavm
 plot(cavm)
 lines(ext(cavm))
@@ -141,7 +143,7 @@ occ_download_prep(pred("taxonKey", taxonKey),
                   format = "SIMPLE_CSV"
                   )
 
-#Download the data
+#Download the data 
 vascPlants = occ_download(pred("taxonKey", taxonKey), 
                           pred("hasGeospatialIssue", FALSE),
                           pred("hasCoordinate", TRUE),
@@ -230,4 +232,7 @@ any(cavmSpList == "")
 #write species list to CSV
 write.csv(cavmSpList, "outputs/Species in the CAVM.csv", row.names = F)
 
-#CBVM map
+# ------------------------------------ CBVM shape ------------------------------------------------------------
+cbvm = vect("resources/NABoreal/NABoreal.shp")
+plot(cbvm)
+crs(cbvm)
