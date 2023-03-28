@@ -83,6 +83,9 @@ gPca <- prcomp(bioVarsMask_df, center = TRUE, scale. = TRUE)
 #Use summary to find most important PCs according to proportion of variance
 summary(gPca)
 
+scores = as.data.frame(gPca$x)
+head(scores[1:4])
+
 ##rotation describes which variable accounts for the most information
 #Use rotation to find what bio Variable describes the most important PCs best
 bioVarsLoadings = gPca$rotation
@@ -106,13 +109,49 @@ bioVarsMaxAbsPC = do.call(cbind, lapply(seq_along(bioVarsLoadings), function(i) 
 
 write.csv(bioVarsMaxAbsPC, "outputs/most Important BioVariables.csv", row.names = F)
 
+plot(gPca)
+
 #loadings only
 fviz_pca_var(gPca, 
+             axes = c(1, 2 ),
              col.var = "contrib",
              gradient.cols = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3"),
              repel = T,
              )
 
+
+fviz_pca_var(gPca, 
+             axes = c(3, 4),
+             col.var = "contrib",
+             gradient.cols = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3"),
+             repel = T,
+)
+
+#a test to visualize it simpler
+fviz_pca_var(gPca, labelsize = 4, repel = TRUE,
+             select.var = list(cos2 = 0.75), col.var = "contrib", gradient.cols = c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3"))
+
+#Make it 3D
+
+# Once you have it oriented correctly, run this code:
+M <- par3d("userMatrix")
+dput(M)
+
+# You'll get a structure as output. Then start your R Markdown document with something like this:
+library(rgl)
+options(rgl.useNULL = TRUE)
+M <- structure(...) # Replace the ... with the structure you got as output
+
+# In each code chunk that produces a plot, write code like this:
+plot3d(gPca$rotation[,1:19])
+text3d(gPca$rotation[,1:3], texts=rownames(gPca$rotation), col="red", cex=0.8)
+coords <- NULL
+for (i in 1:nrow(gPca$rotation)) {
+  coords <- rbind(coords, rbind(c(0,0,0), gPca$rotation[i,1:3]))
+}
+lines3d(coords, col="red", lwd=1)
+par3d(userMatrix = M)
+rglwidget()
 
 ## ----------------------------------------------- Gbif --------------------------------------------------------------
 #The download from GBIF will be changed at a later date in order to include a whole lot more data
