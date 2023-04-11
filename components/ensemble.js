@@ -22,7 +22,7 @@ var cavmImg = cavm.reduceToImage({
 //print(cavm.geometry().type());
 //print(tif);
 
-//Export.image.toAsset(tif, "cavmMapPolygon", "Earth Engine files")
+Export.image.toAsset(tif, "annualMeanTemp", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
 
