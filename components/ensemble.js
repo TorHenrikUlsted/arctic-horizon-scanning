@@ -7,8 +7,9 @@ var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circum
 var bioClip = bioVars.clip(cavm);
 var gloClip = glonaf.filterBounds(cavm);
 var test = cavm.geometry().geometries();
+var bioVar1 = bioVars[bio01]
 
-print(bioClip.select('bio01'));
+//print(bioClip.select('bio01'));
 
 var cavmProps = cavm.first().propertyNames().sort().slice(0, 10) //doesn't work properly for some reason
 print('CAVM properties', cavmProps)
@@ -22,7 +23,7 @@ var cavmImg = cavm.reduceToImage({
 //print(cavm.geometry().type());
 //print(tif);
 
-Export.image.toAsset(tif, "annualMeanTemp", "Earth Engine files")
+//Export.image.toAsset(tif, "annualMeanTemp", "Earth Engine files")
 //Export.table.toAsset(cavm, "cavmMapMultipolygon", "https://drive.google.com/drive/u/1/folders/1wTxIM5QenDNmproIueldtahpIxl9zdkQ", 645951)
 
 
@@ -140,8 +141,8 @@ return seq.map(function(b) {
 //Map.setCenter(-5, 75, 2);
 Map.centerObject(cavm);
 //Map.addLayer(tif);
-Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
-Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
+//Map.addLayer(annualMeanTemp, visParams, 'Annual Mean Temperature');
+//Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
 //Map.addLayer(arcticGlonaf)
 //Map.addLayer(cavm);
@@ -152,8 +153,11 @@ var blackImage = ee.Image(0).clip(cavm);
 // Paint the CAVM geometry onto the black image.
 var cavmImage = blackImage.paint(cavm, 1);
 
+// Unmask the areas outside of the CAVM geometry.
+var worldImage = cavmImage.unmask(0);
+
 // Visualize the result.
-Map.addLayer(cavmImage, {palette: ['black', 'white']}, 'CAVM');
+Map.addLayer(bioVar1, {palette: ['black', 'white']}, 'World');
 
 // Export the image to Drive.
 Export.image.toDrive({
