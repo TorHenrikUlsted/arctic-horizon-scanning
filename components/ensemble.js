@@ -145,3 +145,20 @@ Map.addLayer(warmestMonth, visParamsWarmestMonth, 'Warmest Month');
 //Map.addLayer(glonaf);
 //Map.addLayer(arcticGlonaf)
 //Map.addLayer(cavm);
+
+// Create a black image with the same dimensions as the CAVM geometry.
+var blackImage = ee.Image(0).clip(cavm);
+
+// Paint the CAVM geometry onto the black image.
+var cavmImage = blackImage.paint(cavm, 1);
+
+// Visualize the result.
+Map.addLayer(cavmImage, {palette: ['black', 'white']}, 'CAVM');
+
+// Export the image to Drive.
+Export.image.toDrive({
+  image: cavmImage,
+  description: 'CAVM',
+  scale: 30,
+  region: cavm
+});
