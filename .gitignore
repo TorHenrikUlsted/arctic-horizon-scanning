@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .Rproj.user
 .Rhistory
 .RData
@@ -6,3 +7,10 @@
 /modeling/resources/wc2.1_10m_bio/
 /modeling/resources/NABoreal/
 /modeling/resources/TDWGLevel3/
+=======
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+/modeling
+>>>>>>> master
