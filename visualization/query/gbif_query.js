@@ -1,19 +1,17 @@
-var cavm = ee.FeatureCollection("projects/master-thesis-375622/assets/aga_circumpolar_geobotanical_2003")
-let search = async (group, searchTerm) => {
-  let response = await fetch(`https://api.gbif.org/v1/${group}/search?${searchTerm}`)
-  let data = await response.json()
+// Gets all occurrences within a given polygon 
+//
+// Vertices of the polygon is specified as '(x1 y1, x2 y2, x3 y3, ...)'
+// Polygons must have anticlockwise ordering of points, or it will give unpredictable results
+const getOccurrencesInPolygon = async (vertices) => {
+  const response = await fetch(`https://api.gbif.org/v1/occurrence/search?geometry=POLYGON(${vertices})`)
 
-  if (data.status !== 200) {
-    console.log(this.response)
-  }
+  if(response.status !== 200)
+    return console.log('ERROR OCCURED:', response)
+
+  const data = await response.json()
+
   console.log(data)
-
-  
 }
 
-let group = 'occurrence'
-let searchTerm = 'Pan troglodytes'
-
-search(group, searchTerm)
-
-
+let polygon = "(-180 68,180 68,180 90,-180 90,-180 68)"
+getOccurrencesInPolygon(polygon)
