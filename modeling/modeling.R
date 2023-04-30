@@ -41,6 +41,18 @@ cavm = terra::project(cavm, "+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +d
 crs(cavm, proj = T, describe = T)
 plot(cavm)
 
+##Separate Arctic into regions level 3 by TDWG
+tdwgl3 = vect("resources/TDWGLevel3/level3.shp")
+crs(tdwgl3, proj = T, describe = T)
+plot(tdwgl3)
+
+#Crop Regions into Arctic
+cropAR = crop(tdwgl3, cavm)
+plot(cropAR)
+cavmRegions = mask(cropAR, cavm)
+plot(cavmRegions)
+plot(cavm, add =T) #Here it seems some information is lost
+
 #Crop WorldClim data to Arctic CAVM
 crop = crop(bioVars, cavm)
 #plot(crop)
