@@ -42,7 +42,7 @@ crs(cavm, proj = T, describe = T)
 plot(cavm)
 
 ##Separate Arctic into regions level 3 by TDWG
-tdwgl3 = vect("resources/TDWGLevel3/level3.shp")
+tdwgl3 = vect("resources/tdwgLvl3/level3.shp")
 crs(tdwgl3, proj = T, describe = T)
 plot(tdwgl3)
 
@@ -167,6 +167,7 @@ rglwidget()
 
 ## ----------------------------------------------- Gbif --------------------------------------------------------------
 #The download from GBIF will be changed at a later date in order to include a whole lot more data
+library(rgbif)
 
 #Check extent of cavm
 plot(cavm)
@@ -210,6 +211,9 @@ occ_download_wait(vascPlants)
 vascPlants_file = occ_download_get(vascPlants, path = "resources", overwrite = T)
 vascPlants_df = occ_download_import(vascPlants_file, path = "resources" )
 
+#USE THIS IF ALREADY DOWNLOADED
+vascPlants_df = occ_download_import(as.download("resources/0083144-230224095556074.zip"))
+
 
 ## test to see which branch includes NA
 gbif_test_na_branch = vascPlants_df %>% 
@@ -236,7 +240,7 @@ plot(cavm)
 plot(sp_occ, add=T, col="red")
 
 #Crop GBIF points to Arctic CAVM
-#take time
+#take time -> Expected to take 43 minutes
 startTime = Sys.time()
 
 cropGBIF = crop(sp_occ, cavm)
@@ -247,7 +251,7 @@ plot(sp_occMask)
 #Check endTime
 endTime = Sys.time()
 #print the time it took to complete the function
-print(ednTime - startTime)
+print(endTime - startTime)
 
 #plot cropped data
 plot(cavm)
@@ -287,3 +291,27 @@ write.csv(cavmSpList, "outputs/Species in the CAVM.csv", row.names = F)
 cbvm = vect("resources/NABoreal/NABoreal.shp")
 plot(cbvm)
 crs(cbvm)
+
+# ------------------------------------ Cross reference taxa synonyms ------------------------------------------------------------
+library(WorldFlora)
+
+#Download and remember data
+WFO.download(save.dir = "resources", WFO.remember = T)
+
+# matching also includes synonyms
+wfoArcticMatch = WFO.match(spec.data = sp_occMask, WFO.data = WFO.data,
+                        Genus = "genus",
+                        Species = "species",
+                        Infraspecific.rank = "taxonRank", 
+                        Infraspecific = "infraspecificEpithet",
+                        Authorship = "verbatimScientificNameAuthorship",
+                        )
+# Check for gender differences
+WFO.acceptable.match(wfoArcticMatch)
+# Ignore differences in vowels
+WFO.acceptable.match(wfoArcticMatch, no.vowels = T)
+
+# Outputs
+accepted.cases = WFO.acceptable.match(wfoArcticMatch, no.vowels = T)
+wfoArcticMatch.accepted = wfoArcticMatch[accepted.cases == T, ]
+wfoArcticMatch.denied = wfoArcticMatch[accepted.cases == F, ]
