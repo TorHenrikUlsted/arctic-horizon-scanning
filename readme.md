@@ -25,7 +25,3 @@ R Core Team. (2022). R: A Language and Environment for Statistical Computing. R 
 Rodríguez-Sánchez, F., Jackson, C. P., & Hutchins, S. D. (2022). grateful: Facilitate citation of R packages. https://github.com/Pakillo/grateful  
 
 Wickham, H., Averick, M., Bryan, J., Chang, W., McGowan, L. D., François, R., Grolemund, G., Hayes, A., Henry, L., Hester, J., Kuhn, M., Pedersen, T. L., Miller, E., Bache, S. M., Müller, K., Ooms, J., Robinson, D., Seidel, D. P., Spinu, V., … Yutani, H. (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686. https://doi.org/10.21105/joss.01686  
-=======
-# Horizon scanning of potential naturalizing vascular plant species and their distribution across the Arctic in a changing climate
-This project is a part of a master thesis at the Norwegian University of Science and Technology.
-The project will use horizon scanning to identify potential naturalizing vascular plant species and their distribution across the Arctic in present and future climate scenarios.
