@@ -1,7 +1,7 @@
 library(dplyr)
 
 # read CSV file
-ABA_preformat = read.csv("modeling/resources/ABA_2013.csv", header = F)
+ABA_preformat = read.csv("resources/ABA_2013.csv", header = F)
 ncol(ABA_preformat)
 
 ## format the ABA CSV file
@@ -128,11 +128,11 @@ c1 = ifelse(ABA_formatted$Borderline == 1, TRUE, FALSE)
 c2 = apply(ABA_formatted[, 7:32], 1, function(x) all(x %in% c("-", "?", "**")))
 
 ## use conditions to create a new dataset by choosing only those satisfying the conditions from the ABA_formatted dataset
-arctic_absent = ABA_formatted[c1 | c2, ]
+aba_arctic_absent = ABA_formatted[c1 | c2, ]
 ## remove the rows with empty cell from column 7 to 33.
-arctic_absent = arctic_absent[!apply(arctic_absent[, 7:33], 1, function(x) any(x == "")), ]
+aba_arctic_absent = aba_arctic_absent[!apply(aba_arctic_absent[, 7:33], 1, function(x) any(x == "")), ]
 
 ## use the !conditions to get species present in the Arctic
-arctic_present = ABA_formatted[!(c1 | c2), ]
+aba_arctic_present = ABA_formatted[!(c1 | c2), ]
 ## remove the rows with empty cell from column 7 to 33.
-arctic_present = arctic_present[!apply(arctic_present[, 7:33], 1, function(x) any(x == "")), ]
+aba_arctic_present = aba_arctic_present[!apply(aba_arctic_present[, 7:33], 1, function(x) any(x == "")), ]
