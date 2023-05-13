@@ -6,7 +6,7 @@ library(terra)
 ### Map No. 1. U.S. Fish and Wildlife Service, Anchorage, Alaska. ISBN: 0-9767525-0-6, ISBN-13: 978-0-9767525-0-9
 
 ## Write SpatVector file of cavm shape
-cavm = vect("modeling/resources/Cavm2003/aga_circumpolar_geobotanical_2003.shp")
+cavm = vect("resources/Cavm2003/aga_circumpolar_geobotanical_2003.shp")
 crs(cavm, proj = T, describe = T)
 plot(cavm)
 
@@ -15,9 +15,14 @@ cavm = terra::project(cavm, "+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +d
 crs(cavm, proj = T, describe = T)
 plot(cavm)
 
+## Create WKT which is counter-clockwise as per GBIF standard
+cavmWKT = sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))", ext(cavm)[1], ext(cavm)[3], ext(cavm)[2], ext(cavm)[3], 
+                  ext(cavm)[2], ext(cavm)[4], ext(cavm)[1], ext(cavm)[4], ext(cavm)[1], ext(cavm)[3])
+cavmWKT
+
 # WWF Ecoregions --> Boreal
 ## read shapefile of ecoregions
-wwfecoRegions = vect("modeling/resources/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp")
+wwfecoRegions = vect("resources/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp")
 ## check projection
 crs(wwfecoRegions, proj = T, describe = T)
 ## Check plot
@@ -31,3 +36,22 @@ boreal_biome = wwfecoRegions[wwfecoRegions$BIOME == 6, ]
 plot(boreal_biome)
 ## check summary
 boreal_biome
+
+borealWKT = sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))", ext(boreal_biome)[1], ext(boreal_biome)[3], ext(boreal_biome)[2], ext(boreal_biome)[3], 
+                    ext(boreal_biome)[2], ext(boreal_biome)[4], ext(boreal_biome)[1], ext(boreal_biome)[4], ext(boreal_biome)[1], ext(boreal_biome)[3])
+borealWKT
+
+# Combine WKT to download GBIF data from all regions
+library(sf)
+
+## Convert the WKT strings to sfc objects
+cavm_sfc = st_as_sfc(cavmWKT)
+boreal_sfc = st_as_sfc(borealWKT)
+## Use st_union to combine the sfc objects into a single sfc object
+combined_sfc = st_union(cavm_sfc, boreal_sfc)
+
+#combined_sfc = c(cavm_sfc, boreal_sfc)
+## Convert the combined sfc object back to a WKT string
+combined_WKT = st_as_text(combined_sfc)
+
+combined_WKT

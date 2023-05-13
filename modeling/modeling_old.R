@@ -169,18 +169,6 @@ rglwidget()
 #The download from GBIF will be changed at a later date in order to include a whole lot more data
 library(rgbif)
 
-#Check extent of cavm
-plot(cavm)
-lines(ext(cavm))
-
-#convert cavm extent to WKT string
-ext(cavm)[1]
-ext(cavm)[3]
-cavmWKT = sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))", ext(cavm)[1], ext(cavm)[3], ext(cavm)[1], ext(cavm)[4], 
-                  ext(cavm)[2], ext(cavm)[4], ext(cavm)[2], ext(cavm)[3], ext(cavm)[1], ext(cavm)[3])
-cavmWKT
-#Make it counter-clockwise as per GBIF standard.
-cavmWKT = "POLYGON((-169.50929 55.79623,172.06954 55.79623,172.06954 83.62742,-169.50929 83.62742,-169.50929 55.79623))"
 #Prepare GBIF keys
 taxonName = "Tracheophyta"
 taxonKey = name_backbone(taxonName)$usageKey

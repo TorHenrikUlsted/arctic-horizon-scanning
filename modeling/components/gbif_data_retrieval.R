@@ -1,52 +1,51 @@
 library(rgbif)
+source("components/regions_data_import.R")
 
-# 1. Download list of unique species names in the Arctic region --> make it into one download of both boreal and Arctic regions
+## Set parameteres
+tracheophyta = name_backbone(name = "Tracheophyta", rank = "phylum")
 
-## ----------------------------------------------- Arctic Data --------------------------------------------------------------
+## Search for unique species names within the tracheophyta phylum and the given geometry
+gbif_unique_species = occ_search(geometry = combined_WKT, taxonKey = tracheophyta$usageKey, limit = 5000)
+message("gbif_unique_species is done searching")
 
-## Use the WKT polygon created from the CAVM region
-cavmWKT = "POLYGON((-169.50929 55.79623,172.06954 55.79623,172.06954 83.62742,-169.50929 83.62742,-169.50929 55.79623))"
+## Extract the unique_species and make them into a dataframe
+gbif_unique_species = unique(data.frame(gbif_unique_species$data$species))
 
-## Download data from GBIF for the specified area using occ_search, this is only for testing purposes
-arcticUniqueSpecies = unique(occ_search(geometry = cavmWKT, limit = 1000)$data$species)
-
-
-## This is for the real download event
-## Prepare GBIF keys
-taxonName = "Tracheophyta"
-taxonKey = name_backbone(taxonName)$usageKey
+# Download the full dataset
+taxonKey = name_backbone(name = "Tracheophyta")$usageKey
 ## Test data download
 occ_download_prep(pred("taxonKey", taxonKey), 
                   pred("hasGeospatialIssue", FALSE),
                   pred("hasCoordinate", TRUE),
-                  pred("geometry", cavmWKT),
-                  pred("occurrenceStatus","PRESENT"), #could there be a point to also include absent? then use some filter in here as well.
-                  pred_notin("basisOfRecord", c("LIVING_SPECIMEN", "PRESERVED_SPECIMEN", "FOSSIL_SPECIMEN")),
+                  pred("geometry", combined_WKT),
+                  pred("occurrenceStatus","PRESENT"),
+                  pred_in("basisOfRecord", c("OBSERVATION", "MACHINE_OBSERVATION", "HUMAN_OBSERVATION", "MATERIAL_SAMPLE", "OCCURENCE")),
                   format = "SIMPLE_CSV"
 )
 
 ## Download the data 
-vascPlants = occ_download(pred("taxonKey", taxonKey), 
-                          pred("hasGeospatialIssue", FALSE),
-                          pred("hasCoordinate", TRUE),
-                          pred("geometry", cavmWKT),
-                          pred("occurrenceStatus","PRESENT"),
-                          pred_notin("basisOfRecord", c("LIVING_SPECIMEN", "PRESERVED_SPECIMEN", "FOSSIL_SPECIMEN")),
-                          format = "SIMPLE_CSV"
+gbif_species = occ_download(pred("taxonKey", taxonKey), 
+                               pred("hasGeospatialIssue", FALSE),
+                               pred("hasCoordinate", TRUE),
+                               pred("geometry", combined_WKT),
+                               pred("occurrenceStatus","PRESENT"),
+                               pred_in("basisOfRecord", c("OBSERVATION", "MACHINE_OBSERVATION", "HUMAN_OBSERVATION", "MATERIAL_SAMPLE", "OCCURENCE")),
+                               format = "SIMPLE_CSV"
 )
+
 ## check status
-occ_download_wait(vascPlants)
+occ_download_wait(gbif_species)
 
 ## get the download Data and import to create dataframe
-vascPlants_file = occ_download_get(vascPlants, path = "resources", overwrite = T)
-vascPlants_df = occ_download_import(vascPlants_file, path = "resources" )
+gbif_species_file = occ_download_get(gbif_species, path = "resources", overwrite = T)
+gbif_species_df = occ_download_import(gbif_species, path = "resources" )
 
 ## USE THIS IF ALREADY DOWNLOADED
-vascPlants_df = occ_download_import(as.download("resources/0083144-230224095556074.zip"))
+gbif_species_df = occ_download_import(as.download("resources/0083144-230224095556074.zip"))
 
 
 ## test to see which branch includes NA
-gbif_test_na_branch = vascPlants_df %>% 
+gbif_test_na_branch = gbif_species_df %>% 
   group_by(kingdom, phylum, class, order, family, genus) %>% 
   summarise(species = species)
 
@@ -55,14 +54,15 @@ apply(gbif_test_na_branch, 2, function(x)
 )
 
 ## check if any lat or long are NA
-with(vascPlants_df, any(is.na(decimalLatitude)))
-with(vascPlants_df, any(is.na(decimalLongitude)))
-with(vascPlants_df, any(decimalLongitude < -169.50929 | decimalLongitude > 172.06954))
-with(vascPlants_df, any(decimalLatitude < 55.79623 | decimalLatitude > 83.62742))
+with(gbif_species_df, any(is.na(decimalLatitude)))
+with(gbif_species_df, any(is.na(decimalLongitude)))
+## this has changed
+with(gbif_species_df, any(decimalLongitude < -169.50929 | decimalLongitude > 172.06954))
+with(gbif_species_df, any(decimalLatitude < 55.79623 | decimalLatitude > 83.62742))
 
 #Make into spatial points
-vascPlantsLongLat = cbind(vascPlants_df$decimalLongitude, vascPlants_df$decimalLatitude)
-sp_occ = vect(vascPlantsLongLat, vascPlants_df, type="points", crs = "+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84 +no_defs +units=m")
+gbif_species_df_LongLat = cbind(gbif_species_df$decimalLongitude, gbif_species_df$decimalLatitude)
+sp_occ = vect(gbif_species_df_LongLat, gbif_species_df, type="points", crs = "+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84 +no_defs +units=m")
 sp_occ
 
 #test plot
@@ -86,6 +86,9 @@ message("Cropping GBIF data to the Arctic complete. Elapsed time: ", endTime - s
 #plot cropped data
 plot(cavm)
 plot(sp_occMask, add=T, col="red")
+
+
+# ----------- old code ------------ #
 
 #Make corpped data into dataframe from 41 900 entries to 10 096 entries
 sp_occCavm_df = as.data.frame(sp_occMask)
@@ -116,10 +119,3 @@ any(cavmSpList == "")
 
 #write species list to CSV
 write.csv(cavmSpList, "outputs/Species in the CAVM.csv", row.names = F)
-
-# 2. Download list of unique species names in the Boreal region
-
-## ----------------------------------------------- Boreal Data --------------------------------------------------------------
-
-
-
