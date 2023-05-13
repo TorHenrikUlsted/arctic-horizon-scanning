@@ -1,6 +1,6 @@
 library(rgbif)
 
-# 1. Download list of unique species names in the Arctic region
+# 1. Download list of unique species names in the Arctic region --> make it into one download of both boreal and Arctic regions
 
 ## ----------------------------------------------- Arctic Data --------------------------------------------------------------
 
@@ -20,7 +20,7 @@ occ_download_prep(pred("taxonKey", taxonKey),
                   pred("hasGeospatialIssue", FALSE),
                   pred("hasCoordinate", TRUE),
                   pred("geometry", cavmWKT),
-                  pred("occurrenceStatus","PRESENT"), #could there be a point to also include absent? then use some filterin here as well.
+                  pred("occurrenceStatus","PRESENT"), #could there be a point to also include absent? then use some filter in here as well.
                   pred_notin("basisOfRecord", c("LIVING_SPECIMEN", "PRESERVED_SPECIMEN", "FOSSIL_SPECIMEN")),
                   format = "SIMPLE_CSV"
 )
