@@ -2,11 +2,15 @@
 .Rhistory
 .RData
 .Ruserdata
+/modeling/.Rproj.user
+/modeling/.Rhistory
+/modeling/.RData
+/modeling/.Ruserdata
 /modeling/resources/Cavm2003/
 /modeling/resources/wc2.1_10m/
 /modeling/resources/NABoreal.zip
 /modeling/resources/tdwgLvl3/
 /modeling/resources/WFO_Backbone.zip
-/modeling/resources/wfo_classification.csv
+/modeling/resources/classification.csv
 /modeling/resources/wwfTerrestrialEcoRegions
-/modeling/outputs/Species Occurence in cavm.svg
+/modeling/resources/Taxon.tsv

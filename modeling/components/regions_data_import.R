@@ -55,3 +55,5 @@ combined_sfc = st_union(cavm_sfc, boreal_sfc)
 combined_WKT = st_as_text(combined_sfc)
 
 combined_WKT
+
+cat("CAVM and Boreal ecoregions loading completed")
