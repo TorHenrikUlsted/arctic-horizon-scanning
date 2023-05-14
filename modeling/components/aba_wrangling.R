@@ -111,9 +111,9 @@ ABA_formatted = ABA_formatted[, -1]
 ## Remove empty rows and rows with all columns NA
 ABA_formatted = ABA_formatted[!apply(ABA_formatted, 1, function(x) all(is.na(x) | x == "")),]
 ## Create new column with Genus and species Combined
-ABA_formatted$GenusSpecies = with(ABA_formatted, paste (Genus, Species, sep = " "))
+ABA_formatted$Species_SubSpecies = with(ABA_formatted, paste (Genus, Species, Subspecies, sep = " "))
 ## Move the new columns to be the first four columns of the data frame
-ABA_formatted = ABA_formatted[,c("Class", "Family", "Genus", "Species", "Subspecies", "GenusSpecies", setdiff(colnames(ABA_formatted), c("Class", "Family", "Genus", "Species", "Subspecies", "GenusSpecies")))]
+ABA_formatted = ABA_formatted[,c("Class", "Family", "Genus", "Species", "Subspecies", "Species_SubSpecies", setdiff(colnames(ABA_formatted), c("Class", "Family", "Genus", "Species", "Subspecies", "Species_SubSpecies")))]
 ## Change to lowercase in class and family for cleaner look
 ABA_formatted$Class = toupper(substr(ABA_formatted$Class, 1, 1)) %>% paste0(tolower(substr(ABA_formatted$Class, 2, nchar(ABA_formatted$Class))))
 ABA_formatted$Family = toupper(substr(ABA_formatted$Family, 1, 1)) %>% paste0(tolower(substr(ABA_formatted$Family, 2, nchar(ABA_formatted$Family))))
@@ -131,8 +131,12 @@ c2 = apply(ABA_formatted[, 7:32], 1, function(x) all(x %in% c("-", "?", "**")))
 aba_arctic_absent = ABA_formatted[c1 | c2, ]
 ## remove the rows with empty cell from column 7 to 33.
 aba_arctic_absent = aba_arctic_absent[!apply(aba_arctic_absent[, 7:33], 1, function(x) any(x == "")), ]
+## select only the species with subspecies name
+aba_arctic_absent = select(aba_arctic_absent, Species_SubSpecies)
 
 ## use the !conditions to get species present in the Arctic
 aba_arctic_present = ABA_formatted[!(c1 | c2), ]
 ## remove the rows with empty cell from column 7 to 33.
 aba_arctic_present = aba_arctic_present[!apply(aba_arctic_present[, 7:33], 1, function(x) any(x == "")), ]
+## Select only the species_SubSpecies column
+aba_arctic_present = select(aba_arctic_present, Species_SubSpecies)

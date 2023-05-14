@@ -24,14 +24,14 @@ occ_download_prep(pred("taxonKey", taxonKey),
 )
 
 ## Download the data 
-gbif_species = occ_download(pred("taxonKey", taxonKey), 
-                               pred("hasGeospatialIssue", FALSE),
-                               pred("hasCoordinate", TRUE),
-                               pred("geometry", combined_WKT),
-                               pred("occurrenceStatus","PRESENT"),
-                               pred_in("basisOfRecord", c("OBSERVATION", "MACHINE_OBSERVATION", "HUMAN_OBSERVATION", "MATERIAL_SAMPLE", "OCCURENCE")),
-                               format = "SIMPLE_CSV"
-)
+# gbif_species = occ_download(pred("taxonKey", taxonKey), 
+#                                pred("hasGeospatialIssue", FALSE),
+#                                pred("hasCoordinate", TRUE),
+#                                pred("geometry", combined_WKT),
+#                                pred("occurrenceStatus","PRESENT"),
+#                                pred_in("basisOfRecord", c("OBSERVATION", "MACHINE_OBSERVATION", "HUMAN_OBSERVATION", "MATERIAL_SAMPLE", "OCCURENCE")),
+#                                format = "SIMPLE_CSV"
+# )
 
 ## check status
 occ_download_wait(gbif_species)
