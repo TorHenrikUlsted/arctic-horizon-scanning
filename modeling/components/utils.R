@@ -5,6 +5,7 @@ library(WorldFlora)
 ## Download and remember data
 if (!file.exists("resources/classification.csv")) {
   WFO.download(save.dir = "resources", WFO.remember = TRUE)
+  WFO_file = "resources/classification.csv"
 } else {
   WFO_file = "resources/classification.csv"
 }

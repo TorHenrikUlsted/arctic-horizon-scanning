@@ -168,7 +168,7 @@ if (abaAmbioList_response == "y") {
   ## Synonym check for Arctic absent species
   ### Take time
   start_time = Sys.time()
-  wfo_aba_arctic_absent = WFO.match(spec.data = ambio_arctic_absent, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
+  wfo_aba_arctic_absent = WFO.match(spec.data = aba_arctic_absent, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
   end_time = Sys.time()
   ### Calculate the time
   formatted_elapsed_time = format_elapsed_time(start_time, end_time)
