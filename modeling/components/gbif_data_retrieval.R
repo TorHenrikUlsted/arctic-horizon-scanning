@@ -18,6 +18,10 @@ gbif_tracheophyta_species = subset(gbif_species, phylum == "Tracheophyta")
 gbif_tracheophyta_species = select(gbif_tracheophyta_species, Species = scientificName)
 
 
+
+?occ_data
+occ_data(taxonKey = 7707728,geometry = combined_WKT,limit=0)$meta
+
 # Run WFO synonym check
 
 

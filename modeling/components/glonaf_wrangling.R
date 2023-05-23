@@ -1,5 +1,4 @@
 # Here we wrangle with the GloNAF data to remove unecessary columns for the end list
-library(dplyr)
 ## Read file
 glonaf_preformatted = read.csv("resources/glonaf.csv", header = T)
 
@@ -11,3 +10,8 @@ unique(glonaf_formatted$status)
 
 ## get a list of all unique names
 glonaf_species = data.frame(standardized_name = unique(glonaf_formatted$standardized_name))
+
+# Run a synonym check
+
+
+# Remove duplicates
