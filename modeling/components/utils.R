@@ -1,8 +1,19 @@
-# Libraries
-library(dplyr)
-## Get WorldFlora Library and load classification material
-library(WorldFlora)
-## Download and remember data
+# Load packages
+## Add packages
+packages = c(
+  "rgbif",
+  "dplyr",
+  "WorldFlora"
+)
+## Install packages if necessary and load them
+for (package in packages) {
+  if (!require(package, character.only = T)) {
+    install.packages(package)
+    library(package, character.only = T)
+  }
+}
+
+## Download and remember WFO data if already downloaded, load file
 if (!file.exists("resources/classification.csv")) {
   WFO.download(save.dir = "resources", WFO.remember = TRUE)
   WFO_file = "resources/classification.csv"

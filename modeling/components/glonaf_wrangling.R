@@ -10,8 +10,3 @@ unique(glonaf_formatted$status)
 
 ## get a list of all unique names
 glonaf_species = data.frame(standardized_name = unique(glonaf_formatted$standardized_name))
-
-# Run a synonym check
-
-
-# Remove duplicates

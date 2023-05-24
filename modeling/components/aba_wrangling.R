@@ -139,48 +139,4 @@ aba_arctic_absent = aba_arctic_absent[!apply(aba_arctic_absent[, 7:33], 1, funct
 ## select only the species with subspecies name
 aba_arctic_absent = select(aba_arctic_absent, Species_SubSpecies)
 
-# Check if response is "y"
-if (abaAmbioList_response == "y") {
-  # Do not run this part of the script
-  cat("Skipping the WFO synonym check for the ABA list. \n")
-} else {
-  # Run this part of the script
-  cat("Running the WFO synonym check for the ABA list.\n")
-  
-  # Conduct WFO synonym matching
-  ## Synonym check for the Arctic present species
-  ### take the time
-  start_time = Sys.time()
-  wfo_aba_arctic_present = WFO.match(spec.data = aba_arctic_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
-  end_time = Sys.time()
-  ### Calculate the time
-  formatted_elapsed_time = format_elapsed_time(start_time, end_time)
-  ## Print message with elapsed time
-  cat("WFO completed the match for aba_present species in ", formatted_elapsed_time, "\n")
-  ## write it into a CSV file
-  cat("Creating CSV file of the output \n")
-  write.csv(wfo_aba_arctic_present, "outputs/wfo_aba_arctic_present.csv")
-  ## Choose the scientifically accepted name 
-  aba_arctic_present = select(wfo_aba_arctic_present, scientificName)
-  ## Remove duplicates
-  aba_arctic_present = distinct(aba_arctic_present)
-  
-  ## Synonym check for Arctic absent species
-  ### Take time
-  start_time = Sys.time()
-  wfo_aba_arctic_absent = WFO.match(spec.data = aba_arctic_absent, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
-  end_time = Sys.time()
-  ### Calculate the time
-  formatted_elapsed_time = format_elapsed_time(start_time, end_time)
-  ## Print message with elapsed time
-  cat("WFO completed the match for aba_absent species in ", formatted_elapsed_time, "\n")
-  ## write it into a CSV file
-  cat("Creating CSV file of the output \n")
-  write.csv(wfo_aba_arctic_absent, "outputs/wfo_aba_arctic_absent.csv")
-  ## Choose the scientifically accepted name 
-  aba_arctic_absent = select(wfo_aba_arctic_absent, scientificName)
-  ## Remove duplicates
-  aba_arctic_absent = distinct(aba_arctic_absent)
-}
-
 cat("ABA data wrangling complete \n")
