@@ -1,5 +1,3 @@
-library(terra)
-
 # Arctic CAVM
 ## Citation:
 ### CAVM Team. 2003. Circumpolar Arctic Vegetation Map. (1:7,500,000 scale), Conservation of Arctic Flora and Fauna (CAFF) 
@@ -42,7 +40,6 @@ borealWKT = sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))", ext(boreal_
 borealWKT
 
 # Combine WKT to download GBIF data from all regions
-library(sf)
 
 ## Convert the WKT strings to sfc objects
 cavm_sfc = st_as_sfc(cavmWKT)

@@ -3,7 +3,9 @@
 packages = c(
   "rgbif",
   "dplyr",
-  "WorldFlora"
+  "WorldFlora",
+  "terra",
+  "sf"
 )
 ## Install packages if necessary and load them
 for (package in packages) {
