@@ -1,34 +1,29 @@
 # Check for synonyms using the World Flora Online package
 ## create the possible commands
-cmdSynonymCheck = c("aba", "ambio", "gbif", "glonaf", "all", "none")
-
+local_validCommands = c("aba", "ambio", "gbif", "glonaf")
+global_validCommands = c("all", "none")
 ## create an empty string of the input
-inputSynonymCheck = ""
+inputString <<- ""
+## specify the prompt message
+promptMessage = paste("Which lists do you want to run a synonym check on? The possible commands are: \n Single lists: ", paste(local_validCommands, collapse = ", "), "\n Multilists: ", paste(global_validCommands, collapse = ", "), "\n")
+## Run the command line input check
+inputString = checkInputCommands(inputString, local_validCommands, global_validCommands, promptMessage)
 
-## Use a while loop to keep the user in the loop until a command is written correctly
-while (!inputSynonymCheck %in% cmdSynonymCheck) {
-  ## commandCheck for which lists to run checks on
-  inputSynonymCheck = readline("Which lists do you want to run a synonym check on? The possible commands are: 'aba', 'ambio', 'glonaf', 'gbif', 'all', 'none' \n")
-  ## make them lowercase
-  inputSynonymCheck = tolower(inputSynonymCheck)
-  ## Error message
-  if (!inputSynonymCheck %in% cmdSynonymCheck) {
-    message("Invalid input. Please enter one of the following commands: ", paste(cmdSynonymCheck, collapse = ", "), "\n")
-  }
-}
+## Split input into individual commands
+inputCommands = strsplit(inputString, ",")[[1]]
 
 
 ##check typed in commands and execute
-if (inputSynonymCheck %in% cmdSynonymCheck) { # main if statement
+if (any(inputCommands %in% global_validCommands || inputCommands %in% local_validCommands)) { # main if statement
        
-    if (inputSynonymCheck == "none") {
+    if ("none" %in% inputCommands) {
     cat("None of the lists will be checked for synonyms. Moving on... \n")
     
   } else { #start of all list if statements
     
     # -------------------- ABA -------------------- #
 
-    if (inputSynonymCheck == "aba" || inputSynonymCheck == "all") {
+    if ("aba" %in% inputCommands || "all" %in% inputCommands) {
       cat("Running the WFO synonym check for the ABA list.\n")
       # Conduct WFO synonym matching
       ## Synonym check for the Arctic present species
@@ -66,7 +61,7 @@ if (inputSynonymCheck %in% cmdSynonymCheck) { # main if statement
     
     # -------------------- AMBIO -------------------- #
     
-    if (inputSynonymCheck == "ambio" || inputSynonymCheck == "all") {
+    if ("ambio" %in% inputCommands || "all" %in% inputCommands) {
       cat("Running the WFO synonym check for the AMBIO list.\n")
 
         ## Synonym check for the Arctic present species
@@ -105,7 +100,7 @@ if (inputSynonymCheck %in% cmdSynonymCheck) { # main if statement
     
     # -------------------- GBIF -------------------- #
     
-    if (inputSynonymCheck == "gbif" || inputSynonymCheck == "all") {
+    if ("gbif" %in% inputCommands || "all" %in% inputCommands) {
       cat("Running the WFO synonym check for the GBIF list.\n")
       
       ## Synonym check for GBIF
@@ -127,7 +122,7 @@ if (inputSynonymCheck %in% cmdSynonymCheck) { # main if statement
     
     # -------------------- GloNAF -------------------- #
     
-    if (inputSynonymCheck == "glonaf" || inputSynonymCheck == "all") {
+    if ("glonaf" %in% inputCommands || "all" %in% inputCommands) {
       cat("Running the WFO synonym check for the GloNAF species list.\n")
       
       ## Synonym check for GloNAF
@@ -146,5 +141,6 @@ if (inputSynonymCheck %in% cmdSynonymCheck) { # main if statement
     } else {
       cat("Skipping the WFO synonym check for the GloNAF list. \n")
     }
+    cat("Finished the synonym checks")
   } # end of all list if statements
 } # end of main if statement
