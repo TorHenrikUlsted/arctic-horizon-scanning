@@ -1,20 +1,6 @@
 # Check for synonyms using the World Flora Online package
-## create the possible commands
-local_validCommands = c("aba", "ambio", "gbif", "glonaf")
-global_validCommands = c("all", "none")
-## create an empty string of the input
-inputString <<- ""
-## specify the prompt message
-promptMessage = paste("Which lists do you want to run a synonym check on? The possible commands are: \n Single lists: ", paste(local_validCommands, collapse = ", "), "\n Multilists: ", paste(global_validCommands, collapse = ", "), "\n")
-## Run the command line input check
-inputString = checkInputCommands(inputString, local_validCommands, global_validCommands, promptMessage)
-
-## Split input into individual commands
-inputCommands = strsplit(inputString, ",")[[1]]
-
-
 ##check typed in commands and execute
-if (any(inputCommands %in% global_validCommands || inputCommands %in% local_validCommands)) { # main if statement
+if (any(inputCommands %in% multiListNames || inputCommands %in% singleListNames)) { # main if statement
        
     if ("none" %in% inputCommands) {
     cat("None of the lists will be checked for synonyms. Moving on... \n")
@@ -29,11 +15,11 @@ if (any(inputCommands %in% global_validCommands || inputCommands %in% local_vali
       ## Synonym check for the Arctic present species
       cat("Starting synonym check for ABA present species \n")
       ### take the time
-      start_time = Sys.time()
+      startTime = Sys.time()
       wfo_aba_arctic_present = WFO.match(spec.data = aba_arctic_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
-      end_time = Sys.time()
+      endTime = Sys.time()
       ### Calculate the time
-      formatted_elapsed_time = format_elapsed_time(start_time, end_time)
+      formatted_elapsed_time = format_elapse(startTime, endTime)
       ## Print message with elapsed time
       cat("WFO completed the match for aba_present species in ", formatted_elapsed_time, "\n")
       ## write it into a CSV file
@@ -43,11 +29,11 @@ if (any(inputCommands %in% global_validCommands || inputCommands %in% local_vali
       ## Synonym check for Arctic absent species
       cat("Starting synonym check for ABA absent species \n")
       ### Take time
-      start_time = Sys.time()
+      startTime = Sys.time()
       wfo_aba_arctic_absent = WFO.match(spec.data = aba_arctic_absent, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
-      end_time = Sys.time()
+      endTime = Sys.time()
       ### Calculate the time
-      formatted_elapsed_time = format_elapsed_time(start_time, end_time)
+      formatted_elapsed_time = format_elapsed_time(startTime, endTime)
       ## Print message with elapsed time
       cat("WFO completed the match for aba_absent species in ", formatted_elapsed_time, "\n")
       ## write it into a CSV file
@@ -67,11 +53,11 @@ if (any(inputCommands %in% global_validCommands || inputCommands %in% local_vali
         ## Synonym check for the Arctic present species
       cat("Starting synonym check for AMBIO present species \n")
         ### Take the time
-        start_time = Sys.time()
+        startTime = Sys.time()
         wfo_ambio_arctic_present = WFO.match(spec.data = ambio_arctic_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
-        end_time = Sys.time()
+        endTime = Sys.time()
         ### Calculate the time
-        formatted_elapsed_time = format_elapsed_time(start_time, end_time)
+        formatted_elapsed_time = format_elapsed_time(startTime, endTime)
         ## Print message with elapsed time
         cat("WFO completed the match for ambio_present species in ", formatted_elapsed_time, "\n")
         ## write it into a CSV file
@@ -82,11 +68,11 @@ if (any(inputCommands %in% global_validCommands || inputCommands %in% local_vali
         ## Synonym check for Arctic absent species
         cat("Starting synonym check for AMBIO absent species \n")
         ### Take the time
-        start_time = Sys.time()
+        startTime = Sys.time()
         wfo_ambio_arctic_absent = WFO.match(spec.data = ambio_arctic_absent, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
-        end_time = Sys.time()
+        endTime = Sys.time()
         ### Calculate the time
-        formatted_elapsed_time = format_elapsed_time(start_time, end_time)
+        formatted_elapsed_time = format_elapsed_time(startTime, endTime)
         ## Print message with elapsed time
         cat("WFO completed the match for ambio_absent species in ", formatted_elapsed_time, "\n")
         ## write it into a CSV file
@@ -105,11 +91,11 @@ if (any(inputCommands %in% global_validCommands || inputCommands %in% local_vali
       
       ## Synonym check for GBIF
       ### Take the time
-      start_time = Sys.time()
+      startTime = Sys.time()
       wfo_gbif_species = WFO.match(spec.data = gbif_species, spec.name = "gbif_species", WFO.file = WFO_file, verbose = T, counter = 500)
-      end_time = Sys.time()
+      endTime = Sys.time()
       ### Calculate the time
-      formatted_elapsed_time = format_elapsed_time(start_time, end_time)
+      formatted_elapsed_time = format_elapsed_time(startTime, endTime)
       ## Print message with elapsed time
       cat("WFO completed the match for the GBIF species in ", formatted_elapsed_time, "\n")
       ## write it into a CSV file
@@ -127,11 +113,11 @@ if (any(inputCommands %in% global_validCommands || inputCommands %in% local_vali
       
       ## Synonym check for GloNAF
       ### Take the time
-      start_time = Sys.time()
+      startTime = Sys.time()
       wfo_glonaf_species = WFO.match(spec.data = glonaf_species, spec.name = "standardized_name", WFO.file = WFO_file, verbose = T, counter = 500)
-      end_time = Sys.time()
+      endTime = Sys.time()
       ### Calculate the time
-      formatted_elapsed_time = format_elapsed_time(start_time, end_time)
+      formatted_elapsed_time = format_elapsed_time(startTime, endTime)
       ## Print message with elapsed time
       cat("WFO completed the match for the GloNAF species in ", formatted_elapsed_time, "\n")
       ## write it into a CSV file

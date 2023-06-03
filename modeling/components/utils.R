@@ -6,7 +6,9 @@ packages = c(
   "WorldFlora",
   "terra",
   "sf",
-  "stringdist"
+  "stringdist",
+  "httr",
+  "rvest"
 )
 ## Install packages if necessary and load them
 for (package in packages) {
@@ -18,23 +20,61 @@ for (package in packages) {
 
 ## Download and remember WFO data if already downloaded, load file
 if (!file.exists("resources/classification.csv")) {
+  message("A progress window pops up here, check your taskbar")
   WFO.download(save.dir = "resources", WFO.remember = TRUE)
   WFO_file = "resources/classification.csv"
 } else {
   WFO_file = "resources/classification.csv"
 }
 
+##Download wwf Ecoregions of the World
+if(!file.exists("resources/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp")) {
+  downld_url = "https://files.worldwildlife.org/wwfcmsprod/files/Publication/file/6kcchn7e3u_official_teow.zip"
+  fallbck_url = "https://www.worldwildlife.org/publications/terrestrial-ecoregions-of-the-world"
+  paper_url = "https://doi.org/10.1641/0006-3568(2001)051[0933:TEOTWA]2.0.CO;2"
+  zip_file = "resources/wwfTerrestrialEcoRegions.zip"
+  dest_dir = "resources/wwfTerrestrialEcoRegions"
+  official_dir = file.path("resources/wwfTerrestrialEcoRegions", "official")
+  
+  
+  message("WWF Terrestrial EcoRegions does not exist. trying to download...")
+  
+  tryCatch({
+    ## Try to download the file from the primary URL, direct download
+    download.file(downld_url, zip_file)
+    ## Unzip the downloaded file
+    unzip(zip_file, exdir = dest_dir)
+    ## move the files to the desired directory
+    files = list.files(official_dir, full.names = TRUE)
+    file.rename(files, file.path(dest_dir, basename(files)))
+    ## Clean up
+    unlink(official_dir, recursive = TRUE)
+    file.remove(zip_file)
+  }, error = function(e) {
+    message("Could not find the download file. trying to open website")
+    tryCatch({
+      ## Open the file in your default web browser
+      browseURL(fallbck_url)
+    }, error = function(e) {
+      message("WebBrowser also failed, trying last resort. Opening the scientific paper.")
+      browseURL(paper_url)
+    })
+  })
+}
+
 ## Time tracker
 format_elapsed_time = function(start_time, end_time) {
-  ### Calculate elapsed time in hours and minutes
+  ### Calculate elapsed time in hours, minutes and seconds
   elapsed_time_hours = as.numeric(difftime(end_time, start_time, units = "hours"))
   elapsed_time_minutes = as.numeric(difftime(end_time, start_time, units = "mins"))
+  elapsed_time_seconds = as.numeric(difftime(end_time, start_time, units = "secs"))
   
   ### Format elapsed time
-  formatted_elapsed_time = paste(round(elapsed_time_hours, 2), "hours (", round(elapsed_time_minutes, 2), "minutes)")
+  formatted_elapsed_time = paste(floor(elapsed_time_hours), "h", floor(elapsed_time_minutes) %% 60, "m", round(elapsed_time_seconds) %% 60, "s")
   
   return(formatted_elapsed_time)
 }
+
 
 ## Define a function to find similar strings
 similarity_check = function(df, colname1, colname2, method, threshold) {
@@ -64,7 +104,7 @@ similarity_check = function(df, colname1, colname2, method, threshold) {
     
     # Remove duplicate pairs of similar names
     result_df <- unique(t(apply(result_df, 1, function(x) sort(x))))
-    colnames(result_df) <- c("Name", "Similar Name")
+    colnames(result_df) <- c("name", "similarName")
   }, error = function(e) {
     # Print an error message if an error occurs
     message(paste("An error occurred:", e))
@@ -112,4 +152,18 @@ checkInputCommands = function(inputString, local_validCommands, global_validComm
     }
   }
   return(inputString)
+}
+
+## remove text that are not identical after a certain word
+## "!" negates the result in order to keep the result in the resulting dataframe instead of removing it
+filter_rows_after_split_text = function(df, col1, col2, split_text) {
+  df %>% rowwise() %>% filter(!grepl(split_text, !!sym(col1)) | 
+                                !grepl(split_text, !!sym(col2)) | 
+                                strsplit(!!sym(col1), split_text)[[1]][2] == 
+                                strsplit(!!sym(col2), split_text)[[1]][2])
+}
+
+## remove text that have a certain input in the middle
+filter_rows_around_split_text <- function(df, col1, col2, split_text) {
+  df %>% filter(!grepl(split_text, !!sym(col1)) & !grepl(split_text, !!sym(col2)))
 }

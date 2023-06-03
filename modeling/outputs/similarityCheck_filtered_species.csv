@@ -1,57 +1,65 @@
-"","Name","Similar Name"
-"1","Ledum decumbens","Sedum decumbens"
-"2","Ligusticum scothicum subsp. hultenii","Ligusticum scoticum  subsp. hultenii"
-"3","Anthoxanthum odoratum var. laxum","Anthoxanthum odoratum var. nanum"
-"4","Potentilla nivalis","Potentilla rivalis"
-"5","Geum macranthum","Geum x macranthum"
-"6","Euphorbia hirsuta","Euphorbia hirta"
-"7","Salix fragilis","Salix x fragilis"
-"8","Reseda lutea","Reseda luteola"
-"9","Hypericum perfoliatum","Hypericum perforatum"
-"10","Trifolium patens","Trifolium pratense"
-"11","Bromus racemosus","Bromus ramosus"
-"12","Mentha rotundifolia","Mentha x rotundifolia"
-"13","Erechtites valerianifolia","Erechtites valerianifolius"
-"14","Lycium barbarum","Lycium barbatum"
-"15","Aponogeton distachyos","Aponogeton distachyus"
-"16","Proboscidea louisiana","Proboscidea louisianica"
-"17","Rosa rubiginosa","Rosa rubignosa"
-"18","Trifolium striatum","Trifolium strictum"
-"19","Verbascum thapsum","Verbascum thapsus"
-"20","Potentilla erecta","Potentilla recta"
-"21","Croton setiger","Croton setigerus"
-"22","Lythrum hyssopifolia","Lythrum hyssopifolium"
-"23","Linum striatum","Linum strictum"
-"24","Fragaria ananassa","Fragaria x ananassa"
-"25","Gladiolus colvillei","Gladiolus colvillii"
-"26","Myriophyllum crispatum","Myriophyllum spicatum"
-"27","Symphytum uplandicum","Symphytum x uplandicum"
-"28","Salvia aurea","Salvia azurea"
-"29","Tribolium echinatum","Trifolium echinatum"
-"30","Acer saccharinum","Acer saccharum"
-"31","Sisymbrium volgense","Sisymbrium wolgense"
-"32","Plantago afra","Plantago cafra"
-"33","Leymus racemosus","Leymus ramosus"
-"34","Artemisia sieversiana","Artemisia siversiana"
-"35","Cyperus alterniflorus","Cyperus alternifolius"
-"36","Phyllostachys dulcis","Phyllostachys edulis"
-"37","Erechtites hieraciifolia","Erechtites hieraciifolius"
-"38","Mentha verticillata","Mentha x verticillata"
-"39","Astragalus glycyphylloides","Astragalus glycyphyllos"
-"40","Chenopodium berlandieri  var. bushianum","Chenopodium berlandieri  var. sinuatum"
-"41","Aremonia agrimonioides","Aremonia agrimonoides"
-"42","Erechtites hieracifolia","Erechtites hieraciifolia"
-"43","Medicago varia","Medicago x varia"
-"44","Solanum incanum","Solanum insanum"
-"45","Chrysanthemum morifolium","Chrysanthemum x morifolium"
-"46","Crotalaria agatiflora  subsp. engleri","Crotalaria agatiflora  subsp. erlangeri"
-"47","Begonia hirsuta","Begonia hirta"
-"48","Echinops banaticus","Echinops bannaticus"
-"49","Narcissus pseudonarcissus  subsp. bicolor","Narcissus pseudonarcissus  subsp. minor"
-"50","Phedimus stolonifer","Phedimus stoloniferus"
-"51","Carthamus oxyacantha","Carthamus oxyacanthus"
-"52","Rumex hastatulus","Rumex hastatus"
-"53","Symphyotrichum ciliatum","Symphyotrichum ciliolatum"
-"54","Acacia implexa","Acacia simplex"
-"55","Juncus flavidus","Juncus validus"
-"56","Cissus alata","Cissus palmata"
+"","scientificName","speciesKey"
+"1","Myriophyllum crispatum",5555442
+"2","Potentilla nivalis",5366085
+"3","Euphorbia hirsuta",3065519
+"4","Reseda lutea",3040252
+"5","Hypericum perfoliatum",7678225
+"6","Bromus racemosus",2703764
+"7","Erechtites valerianifolia",8199967
+"8","Lycium barbarum",2928835
+"9","Aponogeton distachyos",5328593
+"10","Proboscidea louisiana",5415100
+"11","Rosa rubiginosa",8215581
+"12","Trifolium striatum",5359185
+"13","Verbascum thapsum",3171949
+"14","Croton setiger",4930695
+"15","Lythrum hyssopifolia",3188732
+"16","Linum striatum",2873857
+"17","Gladiolus colvillei",4270380
+"18","Tribolium echinatum",5674861
+"19","Acer saccharinum",3189837
+"20","Sisymbrium volgense",3046744
+"21","Plantago afra",7303104
+"22","Leymus racemosus",2706374
+"23","Artemisia sieversiana",7807853
+"24","Phyllostachys dulcis",5290166
+"25","Erechtites hieraciifolia",4221994
+"26","Aremonia agrimonioides",2988625
+"27","Erechtites hieracifolia",4221994
+"28","Solanum incanum",2929691
+"29","Echinops banaticus",5698180
+"30","Phedimus stolonifer",7768495
+"31","Juncus flavidus",2701984
+"32","Cissus alata",7293851
+"33","Myriophyllum spicatum",5361760
+"34","Potentilla rivalis",7469771
+"35","Euphorbia hirta",3068937
+"36","Reseda luteola",3040251
+"37","Hypericum perforatum",10304384
+"38","Bromus ramosus",2703766
+"39","Erechtites valerianifolius",8199967
+"40","Lycium barbatum",2928835
+"41","Aponogeton distachyus",5328593
+"42","Proboscidea louisianica",5415100
+"43","Rosa rubignosa",8089235
+"44","Trifolium strictum",5359475
+"45","Verbascum thapsus",7456410
+"46","Croton setigerus",3058111
+"47","Lythrum hyssopifolium",7667380
+"48","Linum strictum",7426242
+"49","Gladiolus colvillii",3586232
+"50","Trifolium echinatum",5359345
+"51","Acer saccharum",3189859
+"52","Sisymbrium wolgense",3046744
+"53","Plantago cafra",4155643
+"54","Leymus ramosus",4129814
+"55","Artemisia siversiana",3121370
+"56","Phyllostachys edulis",5290168
+"57","Erechtites hieraciifolius",4221994
+"58","Aremonia agrimonoides",2988624
+"59","Erechtites hieraciifolia",4221994
+"60","Solanum insanum",2930642
+"61","Echinops bannaticus",10122418
+"62","Phedimus stoloniferus",9527245
+"63","Juncus validus",2701636
+"64","Cissus palmata",7293832
