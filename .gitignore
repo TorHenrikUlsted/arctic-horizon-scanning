@@ -3,7 +3,6 @@
 .RData
 .Ruserdata
 /modeling/.Rproj.user
-/modeling/.Rproj.user/shared/notebooks
 /modeling/.Rhistory
 /modeling/.RData
 /modeling/.Ruserdata
@@ -14,4 +13,3 @@
 /modeling/resources/WFO_Backbone.zip
 /modeling/resources/classification.csv
 /modeling/resources/wwfTerrestrialEcoRegions
-/modeling/resources/Taxon.tsv
