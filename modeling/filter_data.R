@@ -1,4 +1,8 @@
 # Filter all species lists
+
+## Get and Set working directory
+getwd()
+setwd("modeling")
 ### Start filter script timer
 start_filterScript_time = Sys.time()
 ## Source scripts ETC 10 min without the synonym check
@@ -12,7 +16,8 @@ multiListNames = c("all", "none")
 ## create an empty string of the input
 inputString <<- ""
 ## specify the prompt message
-wfoPromptMessage = paste("Which lists do you want to run a synonym check on? The possible commands are: \n lists names: ", paste(simpleListNames, collapse = ", "), "\n multi-action: ", paste(multiListNames, collapse = ", "), "\n")
+wfoPromptMessage = paste("Which lists do you want to run a synonym check on? The possible commands are: \n lists names: ",
+                         paste(simpleListNames, collapse = ", "), "\n multi-action: ", paste(multiListNames, collapse = ", "), "\n")
 ## Run the command line input check
 inputString = checkInputCommands(inputString, simpleListNames, multiListNames, wfoPromptMessage)
 
@@ -35,10 +40,8 @@ if ("glonaf" %in% inputCommands || "all" %in% inputCommands) source("components/
 if (!"glonaf" %in% inputCommands || "none" %in% inputCommands) cat("Skipping the sourcing of the GloNAF list")
 
 endTime = Sys.time()
-### Calculate the time
-formatted_elapsed_time = format_elapsed_time(starTime, endTime)
 ## Print message with elapsed time
-cat("Sourcing scripts finished in ", formatted_elapsed_time, "\n")
+cat("Sourcing scripts finished in ", format_elapsed_time(startTime, endTime), "\n")
 
 ## Source the synonym check
 source("components/synonym_check.R")
@@ -47,28 +50,26 @@ cat("sourcing completed. \n")
 ## If synonym_check is not conducted,load files
 if (!"aba" %in% inputCommands || "none" %in% inputCommands) {
   ### Load ABA
-  wfo_aba_arctic_present = read.csv("outputs/wfo_aba_arctic_present.csv")
-  wfo_aba_arctic_absent = read.csv("outputs/wfo_aba_arctic_absent.csv")
+  aba_arctic_present = read.csv("outputs/wfo_one_aba_arctic_present.csv")
+  aba_arctic_absent = read.csv("outputs/wfo_one_aba_arctic_absent.csv")
 }
 if (!"ambio" %in% inputCommands || "none" %in% inputCommands) {
   ### Load AMBIO
-  wfo_ambio_arctic_present = read.csv("outputs/wfo_ambio_arctic_present.csv")
-  wfo_ambio_arctic_absent = read.csv("outputs/wfo_ambio_arctic_absent.csv")
+  ambio_arctic_present = read.csv("outputs/wfo_one_ambio_arctic_present.csv")
+  ambio_arctic_absent = read.csv("outputs/wfo_one_ambio_arctic_absent.csv")
 }
 if (!"gbif" %in% inputCommands || "none" %in% inputCommands) {
   ### Load GBIF
-  wfo_gbif_species = read.csv("outputs/wfo_gbif_species.csv")
+  gbif_species = read.csv("outputs/wfo_one_gbif_species.csv")
 }
 if (!"glonaf" %in% inputCommands || "none" %in% inputCommands) {
   ### Load GloNAF
-  wfo_glonaf_species = read.csv("outputs/wfo_glonaf_species.csv")
+  glonaf_species = read.csv("outputs/wfo_one_glonaf_species.csv")
 }
 
 # choose Scientifically accepted names
 message("---------- Selecting and removing duplicates from the ABA list ----------")
 ## ABA Arctic present
-## Use WFO.one to remove synonyms of the same species to only be left with one name of the same species
-aba_arctic_present = WFO.one(wfo_aba_arctic_present)
 ### Select the scientific names and remove NA
 aba_arctic_present = aba_arctic_present %>% 
   select(scientificName) %>% 
@@ -79,8 +80,6 @@ aba_arctic_present = distinct(aba_arctic_present)
 cat("All aba_arctic_present are distinct:", any(!duplicated(aba_arctic_present)))
 
 ## ABA Arctic absent
-## Use WFO.one to remove synonyms of the same species to only be left with one name of the same species
-aba_arctic_absent = WFO.one(wfo_aba_arctic_absent)
 ##Select the scientific names
 aba_arctic_absent = aba_arctic_absent %>% 
   select(scientificName) %>% 
@@ -92,8 +91,6 @@ cat("All aba_arctic_absent are distinct:", any(!duplicated(aba_arctic_absent)))
 
 message("---------- Selecting and removing duplicates from the AMBIO list ----------")
 ## AMBIO Arctic present
-## Use WFO.one to remove synonyms of the same species to only be left with one name of the same species
-ambio_arctic_present = WFO.one(wfo_ambio_arctic_present)
 ### Select the scientific names and remove NA
 ambio_arctic_present = ambio_arctic_present %>% 
   select(scientificName) %>% 
@@ -104,7 +101,6 @@ ambio_arctic_present = distinct(ambio_arctic_present)
 cat("All ambio_arctic_present are distinct:", any(!duplicated(ambio_arctic_present)))
 
 ## ambio Arctic absent
-ambio_arctic_absent = WFO.one(wfo_ambio_arctic_absent)
 ambio_arctic_absent = ambio_arctic_absent %>% 
   select(scientificName) %>% 
   filter(!is.na(scientificName))
@@ -137,7 +133,6 @@ cat("Merging of ABA and AMBIO finished")
 message("------ Selecting and removing duplicates from the GBIF list ------")
 
 ## GBIF species
-gbif_species = WFO.one(wfo_gbif_species)
 gbif_species = gbif_species %>% 
   select(scientificName) %>% 
   filter(!is.na(scientificName))
@@ -175,7 +170,6 @@ cat("gbif_arctic_present and gbif_arctic_absent lists have been made")
 # Merge filtered species with the GloNAF list
 message("------ Selecting and removing duplicates from the GloNAF list ------")
 ## Glonaf species
-glonaf_species = WFO.one(wfo_glonaf_species)
 glonaf_species = glonaf_species %>% 
   select(scientificName) %>% 
   filter(!is.na(scientificName))
@@ -277,4 +271,4 @@ end_filterScript_time = Sys.time()
 ### Calculate the time
 formatted_elapsed_time = format_elapsed_time(start_filterScript_time, end_filterScript_time)
 ## Print message with elapsed time
-message("Sourcing scripts finished in ", formatted_elapsed_time, "\n")
+message("Filtering script finished in ", formatted_elapsed_time, "\n")

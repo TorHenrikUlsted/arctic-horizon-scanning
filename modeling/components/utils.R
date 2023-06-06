@@ -6,9 +6,7 @@ packages = c(
   "WorldFlora",
   "terra",
   "sf",
-  "stringdist",
-  "httr",
-  "rvest"
+  "stringdist"
 )
 ## Install packages if necessary and load them
 for (package in packages) {
