@@ -1,24 +1,38 @@
 # Load packages
-## Add packages
-packages = c(
+pkgs = c(
   "rgbif",
   "dplyr",
   "WorldFlora",
   "terra",
   "sf",
-  "stringdist",
-  "httr",
-  "rvest"
+  "stringdist"
 )
-## Install packages if necessary and load them
-for (package in packages) {
-  if (!require(package, character.only = T)) {
-    install.packages(package)
-    library(package, character.only = T)
+
+# Check for outdated packages without considering dependencies
+outdated = intersect(old.packages()[, "Package"], pkgs)
+if (length(outdated) > 0) {
+  ## Ask the user if they want to update the outdated packages
+  update = readline(prompt = "Outdated packages found, do you want to update the outdated packages? [y/n] ")
+  if (tolower(update) == "y") {
+    ## Update outdated packages
+    update.packages(oldPkgs = outdated, ask = FALSE)
+  } else {
+    cat("Packages not updated.\n")
+  }
+} else {
+  cat("All specified packages are up to date.\n")
+}
+
+# Install packages if necessary and load them
+for (pkg in pkgs) {
+  if (!require(pkg, character.only = T)) {
+    install.packages(pkg)
+    library(pkg, character.only = T)
   }
 }
 
-## Download and remember WFO data if already downloaded, load file
+
+# Download and remember WFO data if already downloaded, load file
 if (!file.exists("resources/classification.csv")) {
   message("A progress window pops up here, check your taskbar")
   WFO.download(save.dir = "resources", WFO.remember = TRUE)
@@ -62,7 +76,7 @@ if(!file.exists("resources/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp")) {
   })
 }
 
-## Time tracker
+# Time tracker
 format_elapsed_time = function(start_time, end_time) {
   ### Calculate elapsed time in hours, minutes and seconds
   elapsed_time_hours = as.numeric(difftime(end_time, start_time, units = "hours"))
@@ -76,7 +90,7 @@ format_elapsed_time = function(start_time, end_time) {
 }
 
 
-## Define a function to find similar strings
+# Define a function to find similar strings
 similarity_check = function(df, colname1, colname2, method, threshold) {
   # Initialize the result_df variable to NULL
   result_df = NULL
@@ -123,7 +137,7 @@ similarity_check = function(df, colname1, colname2, method, threshold) {
 }
 
 
-## Check for allowed command line inputs
+# Check for allowed command line inputs
 checkInputCommands = function(inputString, local_validCommands, global_validCommands = c(), promptMessage) {
   ## Use a while loop to keep the user in the loop until a command is written correctly
   while (length(unlist(lapply(strsplit(inputString, ","), trimws))) == 0 || 
@@ -145,7 +159,7 @@ checkInputCommands = function(inputString, local_validCommands, global_validComm
       cat("while loop condition:", !any(unlist(lapply(strsplit(inputString, ","), trimws)) %in% local_validCommands), "\n")
       invalidInputs = unlist(lapply(strsplit(inputString, ","), trimws))[!unlist(lapply(strsplit(inputString, ","), trimws)) %in% c(local_validCommands, global_validCommands)]
       if (any(global_validCommands %in% unlist(lapply(strsplit(inputString, ","), trimws))) && length(unlist(lapply(strsplit(inputString, ","), trimws))) > 1) {
-        message("The commands '", paste(global_validCommands, collapse = "', '"), "' are not allowed together or combined with ", paste(local_validCommands, collapse = ", "), ". Please enter valid inputs separated by commas. \n local_validCommands: ", paste(setdiff(local_validCommands, global_validCommands), collapse = ", "), "\n global_validCommands: ", paste(global_validCommands, collapse = ", "), "\n")
+        message("The commands '", paste(global_validCommands, collapse = "', '"), "' are not allowed together or combined with ", paste(local_validCommands, collapse = ", "), ". Please enter valid inputs separated by commas. \n list names: ", paste(setdiff(local_validCommands, global_validCommands), collapse = ", "), "\n multi-action: ", paste(global_validCommands, collapse = ", "), "\n")
       } else {
         message("Invalid input(s): ", paste(invalidInputs, collapse = ", "), "\n", "Please enter one or more of the following commands separated by commas: ", paste(local_validCommands, collapse = ", "), "\n or: ",paste(global_validCommands, collapse = ", "))
       }

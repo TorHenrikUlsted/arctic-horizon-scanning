@@ -1,3 +1,4 @@
+message("Initiating ABA wrangling")
 # read CSV file
 ABA_preformat = read.csv("resources/ABA.csv", header = F)
 ncol(ABA_preformat)
@@ -139,4 +140,4 @@ aba_arctic_absent = aba_arctic_absent[!apply(aba_arctic_absent[, 7:33], 1, funct
 ## select only the species with subspecies name
 aba_arctic_absent = select(aba_arctic_absent, Species_SubSpecies)
 
-cat("ABA data wrangling complete \n")
+cat("ABA data wrangling completed \n")

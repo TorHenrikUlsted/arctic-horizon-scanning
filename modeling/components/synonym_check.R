@@ -1,11 +1,16 @@
 # Check for synonyms using the World Flora Online package
 ##check typed in commands and execute
-if (any(inputCommands %in% multiListNames || inputCommands %in% singleListNames)) { # main if statement
+if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)) { # main if statement
        
     if ("none" %in% inputCommands) {
     cat("None of the lists will be checked for synonyms. Moving on... \n")
     
   } else { #start of all list if statements
+    
+    if ("test" %in% inputCommands) {
+      message("Running WFO Synonym Check [TEST]... \n")
+      Sys.sleep(2)
+    }
     
     # -------------------- ABA -------------------- #
 

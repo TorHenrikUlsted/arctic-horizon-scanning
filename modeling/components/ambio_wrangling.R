@@ -1,3 +1,4 @@
+message("Initiating AMBIO wrangling")
 # Here we wrangle with the AMBIO data to make it more R friendly
 ## Read file
 ambio_preformatted = read.csv("resources/AMBIO.csv", header = F)
@@ -27,4 +28,4 @@ ambio_arctic_absent = subset(ambio_formatted, subset = !condition1)
 ambio_arctic_present = select(ambio_arctic_present, Species_SubSpecies)
 ambio_arctic_absent = select(ambio_arctic_absent, Species_SubSpecies)
 
-cat("AMBIO data wrangling complete \n")
+cat("AMBIO data wrangling completed \n")

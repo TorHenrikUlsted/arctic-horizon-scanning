@@ -1,3 +1,4 @@
+message("Initiating region import")
 # Arctic CAVM
 ## Citation:
 ### CAVM Team. 2003. Circumpolar Arctic Vegetation Map. (1:7,500,000 scale), Conservation of Arctic Flora and Fauna (CAFF) 
@@ -53,4 +54,4 @@ combined_WKT = st_as_text(combined_sfc)
 
 combined_WKT
 
-cat("CAVM and Boreal ecoregions loading completed")
+cat("CAVM and Boreal ecoregions imported \n")

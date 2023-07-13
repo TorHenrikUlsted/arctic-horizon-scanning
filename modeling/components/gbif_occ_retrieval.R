@@ -1,3 +1,4 @@
+message("Initiating GBIF Occurrence retrieval")
  # Download the full dataset
  taxonKey = name_backbone(name = "Tracheophyta")$usageKey
  ## Test data download
@@ -29,3 +30,4 @@ gbif_species_df = occ_download_import(gbif_species, path = "resources" )
 
 ## USE THIS IF ALREADY DOWNLOADED
 gbif_species_df = occ_download_import(as.download("resources/0083144-230224095556074.zip"))
+cat("Retrieved GBIF occurrences \n")

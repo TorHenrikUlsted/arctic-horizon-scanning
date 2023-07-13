@@ -1,3 +1,4 @@
+message("Initiating GBIF Species Retrieval")
 # Retrieve all species names within the Tracheophyta phylum
 ## get taxonomykey for tracheophyta
 tracheophytaTaxonKey = name_backbone("Tracheophyta")$usageKey
@@ -24,3 +25,5 @@ gbif_species = sapply(gbif_species_count, FUN = function(x) {
 ## Make the species names into strings
 gbif_species = as.character(do.call(c, gbif_species))
 gbif_species = as.data.frame(gbif_species)
+
+cat("Retrieved GBIF Species \n")
