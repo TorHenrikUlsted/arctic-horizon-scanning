@@ -2,7 +2,7 @@
 ##check typed in commands and execute
 if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)) { # main if statement
        
-    if ("none" %in% inputCommands) {
+    if ("n" %in% inputCommands) {
     cat("None of the lists will be checked for synonyms. Moving on... \n")
     
   } else { #start of all list if statements
@@ -14,7 +14,7 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
     
     # -------------------- ABA -------------------- #
 
-    if ("aba" %in% inputCommands || "all" %in% inputCommands) {
+    if ("aba" %in% inputCommands || "a" %in% inputCommands) {
       cat("Running the WFO synonym check for the ABA list.\n")
       # Conduct WFO synonym matching
       ## Synonym check for the Arctic present species
@@ -54,7 +54,7 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
     
     # -------------------- AMBIO -------------------- #
     
-    if ("ambio" %in% inputCommands || "all" %in% inputCommands) {
+    if ("ambio" %in% inputCommands || "a" %in% inputCommands) {
       cat("Running the WFO synonym check for the AMBIO list.\n")
 
         ## Synonym check for the Arctic present species
@@ -95,7 +95,7 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
     
     # -------------------- GBIF -------------------- #
     
-    if ("gbif" %in% inputCommands || "all" %in% inputCommands) {
+    if ("gbif" %in% inputCommands || "a" %in% inputCommands) {
       cat("Running the WFO synonym check for the GBIF list.\n")
       
       ## Synonym check for GBIF
@@ -117,7 +117,7 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
     
     # -------------------- GloNAF -------------------- #
     
-    if ("glonaf" %in% inputCommands || "all" %in% inputCommands) {
+    if ("glonaf" %in% inputCommands || "a" %in% inputCommands) {
       cat("Running the WFO synonym check for the GloNAF species list.\n")
       
       ## Synonym check for GloNAF

@@ -4,7 +4,7 @@
     tryCatch({
       setwd("modeling")
     }, error = function(e) {
-      cat("Working directory: ", getwd())
+      cat("Working directory: ", getwd(), "\n")
     })
     
     ## Start filter script timer
@@ -15,11 +15,11 @@
     source("components/utils.R")
     ## create the possible commands
     simpleListNames <<- c("aba", "ambio", "gbif", "glonaf", "test")
-    multiListNames <<- c("all", "none")
+    multiListNames <<- c("a", "n")
     ## create an empty string of the input
     inputString = ""
     ## specify the prompt message
-    wfoPromptMessage = paste("Which lists do you want to wrangle? Only for specific purposes, else load pre-wrangled files with 'none'. The possible commands are: \n list names: ", paste(simpleListNames, collapse = ", "), "\n multi-action: ", paste(multiListNames, collapse = ", "), "\n")
+    wfoPromptMessage = paste("Which lists do you want to wrangle? Only for specific purposes, else load pre-wrangled files with 'none'. The possible commands are: \n list names: ", paste(simpleListNames, collapse = ", "), "\n multi-action(all, none): ", paste(multiListNames, collapse = ", "), "\n")
     ## Run the command line input check
     inputString = checkInputCommands(inputString, simpleListNames, multiListNames, wfoPromptMessage)
     ## Split input into individual commands
@@ -54,9 +54,9 @@
     )
     
     ## Handle "all" and "none" commands
-    if ("all" %in% inputCommands) {
+    if ("a" %in% inputCommands) {
       inputCommands = names(components)
-    } else if ("none" %in% inputCommands) {
+    } else if ("n" %in% inputCommands) {
       inputCommands = character(0)
     }
     
@@ -259,10 +259,10 @@
     
     # Remove identical var and subsp copies
     ## Define the prefixes you want to search for
-    prefixes = c("var", "subsp.")
+    #prefixes = c("var", "subsp.")
     
     # Apply the extract_name function to the scientificName column of the data frame
-    filtered_species$name_after_prefix = sapply(filtered_species$scientificName, extract_name, prefixes)
+    #filtered_species$name_after_prefix = sapply(filtered_species$scientificName, extract_name, prefixes)
     
     # Make into dataframea again
     filtered_species <<- data.frame(filtered_species)
@@ -272,6 +272,7 @@
     
     # Unlist filtered_species to make it a vector
     filtered_species$scientificName <<- unlist(filtered_species$scientificName)
+    
     
   }
   
@@ -307,7 +308,7 @@
       }
     }
     ## Use the filtered species list with all the names
-    if (a == "y") scientific_names <<- unlist(filtered_species)
+    if (a == "y") scientific_names <<- unlist(filtered_species$scientificName)
     
     ## combine the two columns into one
     if (a == "n") {
@@ -346,8 +347,6 @@
     
     # Close the progress bar
     close(pb)
-    
-    
     
     cat("Calculating and comparing species keys \n")
     ## Find the maximum number of speciesKey values
@@ -398,7 +397,7 @@
   }
   
   write_lists = function() {
-    message("---- writing out lists ---- \n")
+    message("---- writing out lists ----")
     
     ## Write out names with species keys for manual checkup
     write.csv(speciesKeys_unique, "outputs/similarityCheck_filtered_species.csv", fileEncoding = "UTF-8")
@@ -425,5 +424,3 @@ filter_species = function() {
 }
 # Run the script
 filter_species()
-
-
