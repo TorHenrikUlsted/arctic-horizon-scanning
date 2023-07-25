@@ -5,7 +5,8 @@ pkgs = c(
   "WorldFlora",
   "terra",
   "sf",
-  "stringdist"
+  "stringdist",
+  "stringr"
 )
 
 # Check for outdated packages without considering dependencies
@@ -89,6 +90,18 @@ format_elapsed_time = function(start_time, end_time) {
   return(formatted_elapsed_time)
 }
 
+#Time estimator
+etc = function(start_time, total_time, current_index, total_count) {
+  # Calculate the average time per item
+  avg_time = total_time / current_index
+  
+  # Estimate the remaining time
+  remaining_time = avg_time * (total_count - current_index)
+  
+  # Display the estimated remaining time
+  cat("Estimated time remaining: ", round(remaining_time, 1), " seconds\n")
+  flush.console()
+}
 
 # Define a function to find similar strings
 similarity_check = function(df, colname1, colname2, method, threshold) {
@@ -180,4 +193,14 @@ filter_rows_after_split_text = function(df, col1, col2, split_text) {
 ## remove text that have a certain input in the middle
 filter_rows_around_split_text <- function(df, col1, col2, split_text) {
   df %>% filter(!grepl(split_text, !!sym(col1)) & !grepl(split_text, !!sym(col2)))
+}
+  
+extract_name <- function(x, prefixes = c("var", "subsp.")) {
+  
+  # Create a regular expression pattern to match the specified prefixes
+  prefix_pattern <- paste0(prefixes, collapse = "|")
+    
+  # Use str_extract to extract the name after the specified prefixes
+  name <- str_extract(x, paste0("(?<=", prefix_pattern, ")\\s*\\S+"))
+  return(name)
 }

@@ -22,28 +22,30 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
       ### take the time
       startTime = Sys.time()
       wfo_aba_arctic_present = WFO.match(spec.data = aba_arctic_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
+      ## Use WFO.one to remove synonyms of the same species to only be left with one name of the same species
+      wfo_one_aba_arctic_present = WFO.one(wfo_aba_arctic_present)
       endTime = Sys.time()
-      ### Calculate the time
-      formatted_elapsed_time = format_elapse(startTime, endTime)
       ## Print message with elapsed time
-      cat("WFO completed the match for aba_present species in ", formatted_elapsed_time, "\n")
+      cat("WFO completed the match for aba_present species in ", format_elapse(startTime, endTime), "\n")
       ## write it into a CSV file
       cat("Creating CSV file of the output \n")
       write.csv(wfo_aba_arctic_present, "outputs/wfo_aba_arctic_present.csv")
+      write.csv(wfo_one_aba_arctic_present, "outputs/wfo_one_aba_arctic_present.csv")
       
       ## Synonym check for Arctic absent species
       cat("Starting synonym check for ABA absent species \n")
       ### Take time
       startTime = Sys.time()
       wfo_aba_arctic_absent = WFO.match(spec.data = aba_arctic_absent, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
+      ## Use WFO.one to remove synonyms of the same species to only be left with one name of the same species
+      wfo_one_aba_arctic_absent = WFO.one(wfo_aba_arctic_absent)
       endTime = Sys.time()
-      ### Calculate the time
-      formatted_elapsed_time = format_elapsed_time(startTime, endTime)
       ## Print message with elapsed time
-      cat("WFO completed the match for aba_absent species in ", formatted_elapsed_time, "\n")
+      cat("WFO completed the match for aba_absent species in ", format_elapse(startTime, endTime), "\n")
       ## write it into a CSV file
       cat("Creating CSV file of the output \n")
       write.csv(wfo_aba_arctic_absent, "outputs/wfo_aba_arctic_absent.csv")
+      write.csv(wfo_one_aba_arctic_absent, "outputs/wfo_one_aba_arctic_absent.csv")
       
     } else {
       ## Do not run the synonym check for this list
@@ -60,14 +62,15 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
         ### Take the time
         startTime = Sys.time()
         wfo_ambio_arctic_present = WFO.match(spec.data = ambio_arctic_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
+        ## Use WFO.one to remove synonyms of the same species to only be left with one name of the same species
+        wfo_one_ambio_arctic_present = WFO.one(wfo_ambio_arctic_present)
         endTime = Sys.time()
-        ### Calculate the time
-        formatted_elapsed_time = format_elapsed_time(startTime, endTime)
         ## Print message with elapsed time
-        cat("WFO completed the match for ambio_present species in ", formatted_elapsed_time, "\n")
+        cat("WFO completed the match for ambio_present species in ", format_elapse(startTime, endTime), "\n")
         ## write it into a CSV file
         cat("Creating CSV file of the output \n")
         write.csv(wfo_ambio_arctic_present, "outputs/wfo_ambio_arctic_present.csv")
+        write.csv(wfo_one_ambio_arctic_present, "outputs/wfo_one_ambio_arctic_present.csv")
         
         
         ## Synonym check for Arctic absent species
@@ -75,14 +78,15 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
         ### Take the time
         startTime = Sys.time()
         wfo_ambio_arctic_absent = WFO.match(spec.data = ambio_arctic_absent, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
+        ## Use WFO.one to remove synonyms of the same species to only be left with one name of the same species
+        wfo_one_ambio_arctic_absent = WFO.one(wfo_ambio_arctic_absent)
         endTime = Sys.time()
-        ### Calculate the time
-        formatted_elapsed_time = format_elapsed_time(startTime, endTime)
         ## Print message with elapsed time
-        cat("WFO completed the match for ambio_absent species in ", formatted_elapsed_time, "\n")
+        cat("WFO completed the match for ambio_absent species in ", format_elapse(startTime, endTime), "\n")
         ## write it into a CSV file
         cat("Creating CSV file of the output \n")
         write.csv(wfo_ambio_arctic_absent, "outputs/wfo_ambio_arctic_absent.csv")
+        write.csv(wfo_one_ambio_arctic_absent, "outputs/wfo_one_ambio_arctic_absent.csv")
         
       
     } else {
@@ -98,14 +102,14 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
       ### Take the time
       startTime = Sys.time()
       wfo_gbif_species = WFO.match(spec.data = gbif_species, spec.name = "gbif_species", WFO.file = WFO_file, verbose = T, counter = 500)
+      wfo_one_gbif_species = WFO.one(wfo_gbif_species)
       endTime = Sys.time()
-      ### Calculate the time
-      formatted_elapsed_time = format_elapsed_time(startTime, endTime)
       ## Print message with elapsed time
-      cat("WFO completed the match for the GBIF species in ", formatted_elapsed_time, "\n")
+      cat("WFO completed the match for the GBIF species in ", format_elapse(startTime, endTime), "\n")
       ## write it into a CSV file
       cat("Creating CSV file of the output \n")
       write.csv(wfo_gbif_species, "outputs/wfo_gbif_species.csv")
+      write.csv(wfo_one_gbif_species, "outputs/wfo_one_gbif_species.csv")
       
     } else {
       cat("Skipping the WFO synonym check for the GBIF list. \n")
@@ -120,14 +124,14 @@ if (any(inputCommands %in% multiListNames || inputCommands %in% simpleListNames)
       ### Take the time
       startTime = Sys.time()
       wfo_glonaf_species = WFO.match(spec.data = glonaf_species, spec.name = "standardized_name", WFO.file = WFO_file, verbose = T, counter = 500)
+      wfo_one_glonaf_species = WFO.one(wfo_glonaf_species)
       endTime = Sys.time()
-      ### Calculate the time
-      formatted_elapsed_time = format_elapsed_time(startTime, endTime)
       ## Print message with elapsed time
-      cat("WFO completed the match for the GloNAF species in ", formatted_elapsed_time, "\n")
+      cat("WFO completed the match for the GloNAF species in ", format_elapse(startTime, endTime), "\n")
       ## write it into a CSV file
       cat("Creating CSV file of the output \n")
       write.csv(wfo_glonaf_species, "outputs/wfo_glonaf_species.csv")
+      write.csv(wfo_one_glonaf_species, "outputs/wfo_one_glonaf_species.csv")
       
     } else {
       cat("Skipping the WFO synonym check for the GloNAF list. \n")
