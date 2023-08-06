@@ -70,9 +70,9 @@
       } else {
         ## Load data from files
         for (field in setdiff(names(components[[component]]), "source")) {
-          file <- components[[component]][[field]]
+          file = components[[component]][[field]]
           tryCatch({
-            var_name <- paste0("wfo_", component, "_", field)
+            var_name = paste0("wfo_", component, "_", field)
             assign(var_name, read.csv(file), envir = .GlobalEnv)
           }, warning = function(w) {
             print(paste("Warning:", w))
@@ -237,7 +237,7 @@
     # Merge the filtered list with the GloNAF list
     message("------ Merging the gbif_arctic_absent list with the glonaf_arctic_absent list ------")
     ## Remove the glonaf species from the filtered_list. This is to avoid duplicates when merging
-    filtered_species <<- anti_join(glonaf_arctic_absent, 
+    filtered_species = anti_join(glonaf_arctic_absent, 
                                  gbif_arctic_absent,
                                  by = "scientificName"
     )
@@ -246,7 +246,7 @@
     cat("Number of rows in gbif_arctic_absent that are similar to the glonaf_arctic_absent list: ", nrow(merge(glonaf_arctic_absent, gbif_arctic_absent)), "\n")
     
     ## Merge filtered_species from glonaf with the gbif_species
-    filtered_species <<- bind_rows(gbif_arctic_absent, filtered_species)
+    filtered_species = bind_rows(gbif_arctic_absent, filtered_species)
     
     ## Check for NAs and duplications
     cat("All filtered_species NAs removed:", any(!is.na(filtered_species)), "\n")
@@ -254,7 +254,7 @@
     
     ## Filter out only Genus names
     # Remove rows where the scientificName column contains only a single word
-    filtered_species <<- filtered_species %>%
+    filtered_species = filtered_species %>%
       filter(!str_detect(scientificName, "^\\S+$"))
     
     # Remove identical var and subsp copies
@@ -265,15 +265,15 @@
     #filtered_species$name_after_prefix = sapply(filtered_species$scientificName, extract_name, prefixes)
     
     # Make into dataframea again
-    filtered_species <<- data.frame(filtered_species)
+    filtered_species = data.frame(filtered_species)
     
     # Replace odd multiplication sign with x in order to better display the final list
-    filtered_species$scientificName <<- lapply(filtered_species$scientificName, function(x) gsub("(\\w) × (\\w)", "\\1 x \\2", x))
+    filtered_species$scientificName = lapply(filtered_species$scientificName, function(x) gsub("(\\w) × (\\w)", "\\1 x \\2", x))
     
     # Unlist filtered_species to make it a vector
-    filtered_species$scientificName <<- unlist(filtered_species$scientificName)
+    filtered_species$scientificName = unlist(filtered_species$scientificName)
     
-    
+    return(filtered_species)
   }
   
   
@@ -281,7 +281,7 @@
     message("------ Running Jaro-Winkler similarity check ------")
     
     ## Run a similarity check to find possible missed duplications
-    simCheck_filt_sp <<- similarity_check(filtered_species, "scientificName", "scientificName", "jw", 0.05)
+    simCheck_filt_sp = similarity_check(filtered_species, "scientificName", "scientificName", "jw", 0.05)
     simCheck_filt_sp = data.frame(simCheck_filt_sp)
     
     cat("Removing 'var.', 'x', 'susp.' from the jaro-Winkler result \n")
@@ -292,7 +292,7 @@
     ## Filter out different subspecies
     simCheck_filt_sp = filter_rows_after_split_text(simCheck_filt_sp, "name", "similarName", "subsp.")
     
-   
+    return(simCheck_filt_sp)
   }
   
   # Further use rgbif to check the similar names
@@ -301,19 +301,20 @@
     
     a = ""
     while(a != "y" && a != "n") {
-     a = readline(prompt = "Do you want to run a similarity check on the entire list (slow) [y], or do you want to check the 95% similar names (fast) [n]? ")
+     a = readline(prompt = "Do you want to run a similarity check on the entire list (slow: ETC 30 min) [y], or do you want to check the 95% similar names (fast) [n]? ")
       
       if (a != "y" && a != "n") {
         cat("Invalid response. Please enter 'y' or 'n'.\n")
       }
     }
     ## Use the filtered species list with all the names
-    if (a == "y") scientific_names <<- unlist(filtered_species$scientificName)
+    if (a == "y") scientific_names = unlist(filtered_species$scientificName)
     
     ## combine the two columns into one
     if (a == "n") {
-      jw_similarity_check()
-      scientific_names <<- c(simCheck_filt_sp[ ,"name", drop = TRUE], simCheck_filt_sp[ ,"similarName", drop = TRUE])
+      simCheck_filt_sp = jw_similarity_check()
+      scientific_names = c(simCheck_filt_sp[ ,"name", drop = TRUE], simCheck_filt_sp[ ,"similarName", drop = TRUE])
+      scientific_names = scientific_names[!duplicated(scientific_names)]
     }
     
     cat("Using the name lookup method \n")
@@ -322,17 +323,19 @@
     higherTaxonKey = name_backbone(name = "Tracheophyta")$usageKey
     
     # Initialize variables to track progress
-    pb = txtProgressBar(min = 0, max = length(scientific_names), style = 3, char="=")
+    ##pb = txtProgressBar(min = 0, max = length(scientific_names), style = 3, char="=")
     current_index = 0
     
     speciesKeys = lapply(scientific_names, function(x) {
       # Update the progress bar
-      setTxtProgressBar(pb, which(scientific_names == x))
+      ##setTxtProgressBar(pb, which(scientific_names == x))
       # Update the current index
       current_index <<- current_index + 1
       
       # Display the current progress
-      cat("\rProgress: ", current_index, " / ", length(scientific_names), sep = "")
+      cat("\rProgress: ", current_index, " / ", length(scientific_names))
+      
+      # Flush the output buffer
       flush.console()
       
       # Measure the time it takes to process this scientific name
@@ -346,7 +349,7 @@
     })
     
     # Close the progress bar
-    close(pb)
+    #close(pb)
     
     cat("Calculating and comparing species keys \n")
     ## Find the maximum number of speciesKey values
@@ -374,13 +377,13 @@
     }
     
     ## Convert matrix to data frame
-    speciesKeys_unique <<- as.data.frame(mat, stringAsFactors = FALSE)
+    speciesKeys_unique = as.data.frame(mat, stringAsFactors = FALSE)
     ## Convert the value columns to numeric
-    speciesKeys_unique[, -1] <<- lapply(speciesKeys_unique[, -1], as.numeric)
+    speciesKeys_unique[, -1] = lapply(speciesKeys_unique[, -1], as.numeric)
     ## Set the column names
-    colnames(speciesKeys_unique) <<- c("scientificName", "speciesKey")
+    colnames(speciesKeys_unique) = c("scientificName", "speciesKey")
     ## remove all other columns to only keep one value
-    speciesKeys_unique <<- speciesKeys_unique[, c(1, 2)]
+    speciesKeys_unique = speciesKeys_unique[, c(1, 2)]
     ## Get duplicated species
     duplicate_species = speciesKeys_unique[duplicated(speciesKeys_unique$speciesKey), ]
     ## Filter duplicated species
@@ -389,10 +392,19 @@
     message("Filter out species")
     cat("Filtering out", nrow(duplicate_species), "Species from the filtered_species list: \n", paste(duplicate_species$scientificName, collapse = "\n"), "\n")
     
-    # Final excess filtering
+    # Final filtering
     
     ## Remove the duplications from the GBIF check
-    filtered_species_final <<- anti_join(filtered_species, duplicate_species, by = "scientificName")
+    filtered_species_final = anti_join(filtered_species, duplicate_species, by = "scientificName")
+    
+    return(
+      list(
+        scientific_names = scientific_names,
+        filtered_duplicate_species = filtered_duplicate_species,
+        speciesKeys_unique = speciesKeys_unique,
+        filtered_species_final = filtered_species_final
+      )
+    )
     
   }
   
@@ -408,19 +420,17 @@
     cat("outputs/filtered_species_final.csv \n")
   }
 
-
-filter_species = function() {
   initiate()
-  remove_duplicates()
-  rgbif_simliarity_check()
-  write_lists()
+  filtered_species = remove_duplicates()
+  rgbif_sim_obj = rgbif_simliarity_check()
   
+  speciesKeys_unique = rgbif_sim_obj$speciesKeys_unique
+  filtered_species_final = rgbif_sim_obj$filtered_species_final
+  write_lists()
+
   # Stop the filter script timer
   end_filterScript_time = Sys.time()
   ### Calculate the time
   el_time_filter = format_elapsed_time(start_filterScript_time, end_filterScript_time)
   # Print message with elapsed time
   message("Script finished in ", el_time_filter)
-}
-# Run the script
-filter_species()

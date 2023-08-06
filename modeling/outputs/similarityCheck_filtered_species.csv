@@ -76,7 +76,7 @@
 "75","Luzula multiflora  subsp. sibirica",2700934
 "76","Androsace bungeana",4007406
 "77","Androsace lehmanniana",4007406
-"78","Sedum decumbens",5688090
+"78","Sedum decumbens",2985865
 "79","Poa alpigena",2704178
 "80","Arnica griscomii  subsp. frigida",5406023
 "81","Pedicularis refracta",7333108
@@ -235,7 +235,7 @@
 "234","Callitriche palustris  subsp. palustris",5372484
 "235","Callitriche palustris  subsp. subanceps",5372484
 "236","Epilobium ciliatum subsp. glandulosum",9188840
-"237","Epilobium glandulosum",10313534
+"237","Epilobium glandulosum",9939161
 "238","Platanthera dilatata  var. albiflora",2797036
 "239","Potentilla stipularis var. groenlandica",5365423
 "240","Ligusticum scoticum  subsp. hultenii",3034798
@@ -250,9 +250,9 @@
 "249","Carex borealipolaris",8105384
 "250","Antennaria dioiciformis",5385616
 "251","Carex marina  subsp. marina",2727003
-"252","Anaphalis margaritacea",4926336
+"252","Anaphalis margaritacea",6291651
 "253","Polygonum ochreatum",9020499
-"254","Polygonum riparium",9187457
+"254","Polygonum riparium",6390957
 "255","Lycopodium lagopus",2688387
 "256","Physaria arctica",3048910
 "257","Bromus sitchensis  var. aleutensis",2703698
@@ -304,7 +304,7 @@
 "303","Sibirotrisetum sibiricum",10954057
 "304","Bromus berteroanus",4108966
 "305","Veronica grandiflora",7332250
-"306","Erigeron acris  subsp. politus",10409029
+"306","Erigeron acris  subsp. politus",10106862
 "307","Taraxacum officinale",5394016
 "308","Polemonium campanulatum",7429716
 "309","Polemonium chinense",4056486
@@ -327,13 +327,13 @@
 "326","Papaver minutiflorum",3603845
 "327","Campanula dasyantha  subsp. chamissonis",5410843
 "328","Thelypteris limbosperma",2651495
-"329","Juncus falcatus",2701753
+"329","Juncus falcatus",2701591
 "330","Juncus falcatus  subsp. sitchensis",2701591
 "331","Odontarrhena americana",3044773
 "332","Tanacetum vulgare  subsp. vulgare",3118274
 "333","Stellaria crispa",7982078
 "334","Taraxacum uschakovii",5393972
-"335","Fragaria chiloensis",7363489
+"335","Fragaria chiloensis",7698222
 "336","Neottia convallarioides",2816287
 "337","Galium spurium",2913556
 "338","Persicaria laxmannii",8979611
@@ -343,7 +343,7 @@
 "342","Saxifraga aleutica",3032839
 "343","Artemisia laciniata  subsp. laciniata",3120923
 "344","Artemisia laciniata",3120878
-"345","Ranunculus hyperboreus subsp. tricrenatus",3033354
+"345","Ranunculus hyperboreus subsp. tricrenatus",3922495
 "346","Ranunculus tricrenatus",7663610
 "347","Menyanthes trifoliata  var. minor",5341511
 "348","Potentilla tikhomirovii",5365843
@@ -378,7 +378,7 @@
 "377","Potentilla borealis",5367826
 "378","Antennaria pseudoarenicola",5385557
 "379","Pinguicula macroceras",5415060
-"380","Huperzia continentalis",10392391
+"380","Huperzia continentalis",10543923
 "381","Poa stenantha",4114150
 "382","Carex canescens  subsp. canescens",2722942
 "383","Romanzoffia unalaschcensis  var. glabriuscula",2928044
@@ -449,7 +449,7 @@
 "448","Stellaria radians",7268265
 "449","Fimbripetalum radians",7268265
 "450","Artemisia aleutica",9130088
-"451","Polystichum braunii",9886963
+"451","Polystichum braunii",2651092
 "452","Luzula campestris",10012283
 "453","Avena sativa",2705290
 "454","Carex sordida",2726061
@@ -457,7 +457,7 @@
 "456","Hedysarum truncatum",2960841
 "457","Saxifraga chrysantha",3754195
 "458","Ranunculus flammula  var. ovalis",3033312
-"459","Ranunculus flammula",3033312
+"459","Ranunculus flammula",10031465
 "460","Sagina decumbens  subsp. occidentalis",3085399
 "461","Picris hieracioides  subsp. kamtschatica",3093276
 "462","Picris hieracioides var. kamtschatica",3093276
@@ -476,7 +476,7 @@
 "475","Thymus pulegioides  subsp. montanus",5341443
 "476","Urtica dioica  subsp. gracilis",6414539
 "477","Lomatogonium carinthiacum  var. cordifolium",7408221
-"478","Arnica intermedia",5406004
+"478","Arnica intermedia",7516767
 "479","Saxifraga ursina",7726513
 "480","Lychnis ajanensis",8375029
 "481","Sieversia pusilla",8257969
@@ -487,9 +487,9 @@
 "486","Platanthera unalascensis",2797023
 "487","Cypripedium x alaskanum",2820348
 "488","Oreomecon alpina",2888456
-"489","Solanum tuberosum",2930262
+"489","Solanum tuberosum",12113881
 "490","Melilotus suaveolens",2971041
-"491","Rubus idaeus  subsp. strigosus",2993094
+"491","Rubus idaeus  subsp. strigosus",2995606
 "492","Ranunculus aquatilis var. lobbii",3033361
 "493","Draba praealta",3049599
 "494","Leontopodium ochroleucum",3140712
@@ -576,7 +576,7 @@
 "575","Epilobium x treleasianum",3189151
 "576","Epilobium clavatum",3189160
 "577","Papaver stubendorfii",3601941
-"578","Pleurospermum uralense",3632864
+"578","Pleurospermum uralense",3632000
 "579","Botrychium yaaxudakeit",3659355
 "580","Pedicularis kolymensis",3742076
 "581","Saxifraga x cochleariifolia",3753968
@@ -651,7 +651,7 @@
 "650","Swertia perennis",5595494
 "651","Huperzia miyoshiana",2688461
 "652","Equisetum hyemale",2687927
-"653","Equisetum variegatum",7740925
+"653","Equisetum variegatum",7758330
 "654","Botrychium virginianum",7917024
 "655","Asplenium septentrionale",2650720
 "656","Onoclea struthiopteris",2650999
@@ -664,7 +664,7 @@
 "663","Sagittaria natans",5329151
 "664","Scheuchzeria palustris",2865260
 "665","Potamogeton epihydrus",5301148
-"666","Potamogeton lucens",9668359
+"666","Potamogeton lucens",9900373
 "667","Potamogeton compressus",7689610
 "668","Potamogeton foliosus",5301191
 "669","Potamogeton sibiricus",7289613
@@ -675,7 +675,7 @@
 "674","Goodyera repens",2840931
 "675","Allium strictum",2856145
 "676","Juncus minutulus",7414128
-"677","Juncus tenuis",7762429
+"677","Juncus tenuis",2702084
 "678","Luzula piperi",2701040
 "679","Schoenoplectus tabernaemontani",2711157
 "680","Schoenoplectus pungens",2711190
@@ -717,7 +717,7 @@
 "716","Phedimus middendorffianus",4201668
 "717","Ribes hirtellum",2986164
 "718","Leptarrhena pyrolifolia",3032880
-"719","Chrysosplenium alternifolium",7339185
+"719","Chrysosplenium alternifolium",7339315
 "720","Saxifraga lactea",3032796
 "721","Micranthes ferruginea",5567699
 "722","Circaea alpina",10583560
@@ -726,7 +726,7 @@
 "725","Euphorbia esula",8203538
 "726","Viola uniflora",5664365
 "727","Viola tricolor",10411573
-"728","Salix pentandra",5582592
+"728","Salix pentandra",5372604
 "729","Salix pseudopentandra",5581908
 "730","Salix serissima",5372979
 "731","Alnus incana",9148577
@@ -802,7 +802,7 @@
 "801","Artemisia jacutica",3120801
 "802","Astragalus alpinus  subsp. alpinus",5345014
 "803","Atriplex hortensis",3083761
-"804","Atriplex prostrata",3755721
+"804","Atriplex prostrata",3760561
 "805","Atriplex sagittata",3760099
 "806","Avena fatua",10637000
 "807","Avena nuda",8174035
@@ -898,7 +898,7 @@
 "897","Potentilla supina  var. ternata",5366090
 "898","Potentilla thuringiaca",7960595
 "899","Prunus spinosa",3023221
-"900","Raphanus raphanistrum",10441906
+"900","Raphanus raphanistrum",3040983
 "901","Raphanus raphanistrum  subsp. sativus",7678610
 "902","Reseda lutea var. lutea",3040252
 "903","Rheum rhabarbarum",2888867
@@ -921,10 +921,10 @@
 "920","Silene noctiflora",5384834
 "921","Sinapis alba",3047621
 "922","Sisymbrium altissimum",3046736
-"923","Sisymbrium loeselii",3046875
+"923","Sisymbrium loeselii",10544262
 "924","Sisymbrium polymorphum",3046830
 "925","Symphytum asperum",2926066
-"926","Tragopogon orientalis",5386936
+"926","Tragopogon orientalis",5386903
 "927","Trifolium arvense",5359246
 "928","Trifolium lupinaster",5358944
 "929","Trifolium montanum",5359047
@@ -950,7 +950,7 @@
 "949","Kalanchoe daigremontiana",2985936
 "950","Cryptostegia grandiflora",3170473
 "951","Cleome gynandra",3054227
-"952","Tabebuia heterophylla",3172526
+"952","Tabebuia heterophylla",3172527
 "953","Parthenium hysterophorus",7854136
 "954","Azadirachta indica",3190474
 "955","Lawsonia inermis",5420912
@@ -983,13 +983,13 @@
 "982","Funtumia africana",3169842
 "983","Senna alata",2956947
 "984","Populus alba",3040233
-"985","Ipomoea alba",2928552
+"985","Ipomoea alba",2928631
 "986","Phyllanthus amarus",5382589
 "987","Dysphania ambrosioides",5568446
 "988","Schwenckia americana",7391817
 "989","Solanum americanum",2930222
 "990","Physalis angulata",7918037
-"991","Mercurialis annua",8209802
+"991","Mercurialis annua",3062975
 "992","Capsicum annuum",2932944
 "993","Khaya anthotheca",3852095
 "994","Hexasepalum apiculatum",8976534
@@ -1002,7 +1002,7 @@
 "1001","Achyranthes aspera  var. sicula",7626296
 "1002","Macroptilium atropurpureum",2945047
 "1003","Citrus aurantiifolia",3831655
-"1004","Citrus x aurantium",7455714
+"1004","Citrus x aurantium",9259452
 "1005","Melia azedarach",7509518
 "1006","Capsicum baccatum",2932938
 "1007","Ocimum basilicum",2927096
@@ -1016,7 +1016,7 @@
 "1015","Cinnamomum burmanni",3033985
 "1016","Cajanus cajan",2960273
 "1017","Pityrogramma calomelanos",2651790
-"1018","Eucalyptus camaldulensis",11869920
+"1018","Eucalyptus camaldulensis",12077928
 "1019","Lantana camara",2925303
 "1020","Haematoxylum campechianum",2950903
 "1021","Persicaria capitata",2889304
@@ -1057,7 +1057,7 @@
 "1056","Inga edulis",5357677
 "1057","Passiflora edulis",2874190
 "1058","Afrohybanthus enneaspermus",11446635
-"1059","Canavalia ensiformis",2962082
+"1059","Canavalia ensiformis",2962141
 "1060","Boerhavia erecta",3086281
 "1061","Duranta erecta",6398066
 "1062","Cassia eremophila",5357055
@@ -1110,7 +1110,7 @@
 "1109","Nephelium lappaceum",5421126
 "1110","Olyra latifolia",5290105
 "1111","Persicaria limbata",4034594
-"1112","Corrigiola litoralis",5576579
+"1112","Corrigiola litoralis",5384680
 "1113","Aristolochia littoralis",2874004
 "1114","Hymenocallis littoralis",2860119
 "1115","Urena lobata",3152253
@@ -1118,7 +1118,7 @@
 "1117","Glinus lotoides",3084616
 "1118","Phaseolus lunatus",5350438
 "1119","Helichrysum luteoalbum",3131229
-"1120","Phyllanthus maderaspatensis",5381097
+"1120","Phyllanthus maderaspatensis",5381104
 "1121","Solanum mauritianum",2931469
 "1122","Cucurbita maxima",2874515
 "1123","Spergularia media",10790895
@@ -1126,7 +1126,7 @@
 "1125","Cucumis melo",2874570
 "1126","Solanum melongena",2930617
 "1127","Datura metel",2928747
-"1128","Argemone mexicana",2888485
+"1128","Argemone mexicana",7315184
 "1129","Dichondra micrantha",2928666
 "1130","Tagetes minuta",3088481
 "1131","Schinus molle",3190642
@@ -1139,7 +1139,7 @@
 "1138","Calopogonium mucunoides",2959433
 "1139","Jatropha multifida",3072985
 "1140","Vigna mungo",2982533
-"1141","Fumaria muralis",7315151
+"1141","Fumaria muralis",7315286
 "1142","Rumex nepalensis",7291884
 "1143","Vachellia nilotica  subsp. indica",3974744
 "1144","Synedrella nodiflora",5404991
@@ -1155,7 +1155,7 @@
 "1154","Neptunia prostrata",5353534
 "1155","Portulaca oleracea",3084719
 "1156","Corchorus olitorius",3152084
-"1157","Chenopodium opulifolium",8357729
+"1157","Chenopodium opulifolium",8995846
 "1158","Bixa orellana",2874863
 "1159","Sidastrum paniculatum",3152803
 "1160","Carica papaya",2874484
@@ -1176,7 +1176,7 @@
 "1175","Sicyos polyacanthos",3623631
 "1176","Gnaphalium polycaulon",5390831
 "1177","Tridax procumbens",3149462
-"1178","Eclipta prostrata",5384950
+"1178","Eclipta prostrata",5385687
 "1179","Mucuna pruriens  var. utilis",2951499
 "1180","Centrosema pubescens",2964904
 "1181","Caesalpinia pulcherrima",8078816
@@ -1223,7 +1223,7 @@
 "1222","Oenothera tetraptera",3188815
 "1223","Cascabela thevetia",3169652
 "1224","Millettia thonningii",5355788
-"1225","Desmodium tortuosum",2967327
+"1225","Desmodium tortuosum",2967217
 "1226","Solanum torvum",2932389
 "1227","Amaranthus tricolor",5384397
 "1228","Corchorus tridens",3152090
@@ -1242,7 +1242,7 @@
 "1241","Vitis vinifera",10880324
 "1242","Eragrostis virescens",7666844
 "1243","Desmanthus virgatus",5360097
-"1244","Amaranthus viridis",8088335
+"1244","Amaranthus viridis",5384396
 "1245","Pseudoconyza viscosa",3086704
 "1246","Foeniculum vulgare",3034922
 "1247","Phaseolus vulgaris",5350452
@@ -1268,7 +1268,7 @@
 "1267","Thunbergia fragrans",5415458
 "1268","Punica granatum",5420901
 "1269","Ocimum gratissimum",2927094
-"1270","Sorghum halepense",4108497
+"1270","Sorghum halepense",4124327
 "1271","Stylosanthes hamata",2975756
 "1272","Abutilon hirtum",3152619
 "1273","Tamarindus indica",2975768
@@ -1288,7 +1288,7 @@
 "1287","Cenchrus setaceus",5828232
 "1288","Xanthium strumarium",3089154
 "1289","Thymophylla tenuiloba",3144442
-"1290","Indigofera tinctoria",2972043
+"1290","Indigofera tinctoria",2971765
 "1291","Sphagneticola trilobata",3116842
 "1292","Erythrina variegata",5349581
 "1293","Crotalaria verrucosa",2942654
@@ -1307,7 +1307,7 @@
 "1306","Cycloloma atriplicifolium",11715681
 "1307","Salix babylonica",5372638
 "1308","Impatiens balfourii",2891783
-"1309","Oenothera biennis",10111556
+"1309","Oenothera biennis",3188924
 "1310","Amaranthus blitoides",5384395
 "1311","Lepidium bonariense",5376925
 "1312","Cuscuta campestris",3610757
@@ -1323,7 +1323,7 @@
 "1322","Paspalum distichum",2702529
 "1323","Prunus domestica",10265757
 "1324","Prunus domestica  subsp. insititia",9871293
-"1325","Prunus dulcis",3022502
+"1325","Prunus dulcis",3020791
 "1326","Carpobrotus edulis",3084842
 "1327","Oenothera fallax",7915783
 "1328","Azolla filiculoides",2650107
@@ -1340,7 +1340,7 @@
 "1339","Cyclospermum leptophyllum",8350395
 "1340","Euphorbia maculata",3067119
 "1341","Antirrhinum majus",NA
-"1342","Lemna minuta",2867614
+"1342","Lemna minuta",2867612
 "1343","Dysphania multifida",5568361
 "1344","Cymbalaria muralis",8200663
 "1345","Erucastrum nasturtiifolium",5375555
@@ -1368,7 +1368,7 @@
 "1367","Symphyotrichum subulatum  var. squamatum",3151764
 "1368","Halophila stipulacea",5329631
 "1369","Oxalis stricta",9823072
-"1370","Mentha suaveolens",7443035
+"1370","Mentha suaveolens",2927190
 "1371","Abutilon theophrasti",3152614
 "1372","Rubia tinctorum",2892272
 "1373","Helianthus tuberosus",3119175
@@ -1412,13 +1412,13 @@
 "1411","Panicum capillare",2705162
 "1412","Crepis capillaris",5403304
 "1413","Fumaria capreolata",5334218
-"1414","Chenopodium carinatum",5568424
+"1414","Chenopodium carinatum",10190517
 "1415","Geranium carolinianum",2890623
 "1416","Daucus carota",3034742
 "1417","Aira caryophyllea",4143080
 "1418","Agrostis castellana",8403886
 "1419","Nepeta cataria",5341499
-"1420","Rhamnus cathartica",3874904
+"1420","Rhamnus cathartica",3039491
 "1421","Amaranthus celosioides",5547995
 "1422","Matricaria chamomilla",7397509
 "1423","Euphorbia characias",3067353
@@ -1428,7 +1428,7 @@
 "1427","Lapsana communis",3134857
 "1428","Allium commutatum",2855802
 "1429","Bromus commutatus",2703778
-"1430","Rumex conglomeratus",10102403
+"1430","Rumex conglomeratus",2888963
 "1431","Cotula coronopifolia",3112110
 "1432","Anthemis cotula",5384955
 "1433","Cynoglossum creticum",4064467
@@ -1466,7 +1466,7 @@
 "1465","Trifolium fragiferum",5358935
 "1466","Gaudinia fragilis",4149013
 "1467","Salix x fragilis",5372512
-"1468","Dipsacus fullonum",2888814
+"1468","Dipsacus fullonum",8435025
 "1469","Silene gallica",5384848
 "1470","Tamarix gallica",2874706
 "1471","Chloris gayana",5289618
@@ -1527,8 +1527,8 @@
 "1526","Panicum maximum",7562245
 "1527","Centaurea melitensis",3128091
 "1528","Melilotus siculus",10773250
-"1529","Viola japonica",5663504
-"1530","Atriplex micrantha",3083680
+"1529","Viola japonica",5663524
+"1530","Atriplex micrantha",3760099
 "1531","Salvia microphylla",2927045
 "1532","Lysimachia minima",7939955
 "1533","Medicago minima",8073758
@@ -1555,7 +1555,7 @@
 "1554","Agrostis nebulosa",2706457
 "1555","Ballota nigra  subsp. foetida",2926894
 "1556","Ballota nigra",2926894
-"1557","Brassica nigra",8010384
+"1557","Brassica nigra",7509066
 "1558","Centaurea nigrescens",3128228
 "1559","Apium nodiflorum",3631293
 "1560","Torilis nodosa",3632893
@@ -1622,14 +1622,14 @@
 "1621","Lactuca saligna",3140467
 "1622","Lactuca sativa",7403263
 "1623","Pastinaca sativa",8262702
-"1624","Dipsacus sativus",7387929
+"1624","Dipsacus sativus",2888816
 "1625","Leontodon saxatilis",3137536
 "1626","Humulus scandens",2984537
 "1627","Cytisus scoparius",5354656
 "1628","Medicago scutellata",2965299
 "1629","Atriplex semibaccata",6035812
 "1630","Arenaria serpyllifolia",5585118
-"1631","Croton serpyllifolius",6373931
+"1631","Croton serpyllifolius",3058476
 "1632","Crepis setosa",4245384
 "1633","Leonurus sibiricus",5341392
 "1634","Salsola soda",3083956
@@ -1697,7 +1697,7 @@
 "1696","Chenopodium vulvaria",3083932
 "1697","Pyracantha angustifolia",2988222
 "1698","Pimpinella anisum",8080300
-"1699","Silene armeria",3812573
+"1699","Silene armeria",7738796
 "1700","Fumaria densiflora",5530883
 "1701","Lepidium draba  subsp. chalepense",5376514
 "1702","Coreopsis lanceolata",3133938
@@ -1734,14 +1734,14 @@
 "1733","Tithonia rotundifolia",5396551
 "1734","Malcolmia africana",8139063
 "1735","Colutea arborescens",7844167
-"1736","Caucalis platycarpos",3034523
+"1736","Caucalis platycarpos",3638303
 "1737","Cylindropuntia tunicata",7282418
 "1738","Artemisia douglasiana",3121695
 "1739","Eriochloa pseudoacrotricha",2702519
 "1740","Ranunculus falcatus",5371698
 "1741","Apium graveolens",5371879
 "1742","Eragrostis lehmanniana",2705378
-"1743","Persicaria minor",6391150
+"1743","Persicaria minor",10120535
 "1744","Medicago monspeliaca",2965434
 "1745","Sphaerophysa salsula",5353525
 "1746","Montanoa bipinnatifida",5406093
@@ -1751,7 +1751,7 @@
 "1750","Eriobotrya japonica",10794683
 "1751","Cynodon plectostachyus",5289798
 "1752","Artemisia abrotanum",8042568
-"1753","Iberis amara",7993638
+"1753","Iberis amara",5377163
 "1754","Lepidium appelianum",5376811
 "1755","Lupinus arboreus",2963807
 "1756","Aphanes arvensis",5365013
@@ -1766,7 +1766,7 @@
 "1765","Amaranthus powellii  subsp. bouchonii",5384359
 "1766","Linaria purpurea",5415012
 "1767","Rubus radicans",2988751
-"1768","Echium vulgare",2925892
+"1768","Echium vulgare",4067965
 "1769","Suaeda altissima",3757066
 "1770","Polygonum arenarium",5334430
 "1771","Anthriscus caucalis",5371743
@@ -1774,7 +1774,7 @@
 "1773","Zygophyllum fabago",3189902
 "1774","Rosa micrantha",3002154
 "1775","Claytonia perfoliata",7736011
-"1776","Lepidium pinnatifidum",5376503
+"1776","Lepidium pinnatifidum",11226917
 "1777","Cardamine africana",7784030
 "1778","Persea americana",3034046
 "1779","Clerodendrum chinense",2925357
@@ -1815,7 +1815,7 @@
 "1814","Urochloa glumaris",4150566
 "1815","Oplismenus hirtellus",2705737
 "1816","Digitaria horizontalis",5289958
-"1817","Euphorbia hypericifolia",8020843
+"1817","Euphorbia hypericifolia",3066321
 "1818","Ludwigia hyssopifolia",8924323
 "1819","Desmodium incanum",2967060
 "1820","Bischofia javanica",5383085
@@ -1873,7 +1873,7 @@
 "1872","Pilea microphylla",5361819
 "1873","Atuna excelsa  subsp. racemosa",3745558
 "1874","Boerhavia repens",3086288
-"1875","Eleutheranthera ruderalis",3119915
+"1875","Eleutheranthera ruderalis",8404035
 "1876","Syzygium samarangense",3183180
 "1877","Clerodendrum speciosissimum",2925356
 "1878","Stictocardia tiliifolia",7693655
@@ -1893,10 +1893,10 @@
 "1892","Phaleria disperma",5524374
 "1893","Sorghum x drummondii",2705184
 "1894","Endiandra elaeocarpa",3034010
-"1895","Castilla elastica",7531920
+"1895","Castilla elastica",2984558
 "1896","Flueggea flexuosa",5382874
 "1897","Pluchea indica",3132728
-"1898","Cyperus involucratus",2714233
+"1898","Cyperus involucratus",2714156
 "1899","Stachytarpheta jamaicensis",2925463
 "1900","Dioscorea pentaphylla",2754423
 "1901","Cyathula prostrata",5384314
@@ -1929,7 +1929,7 @@
 "1928","Melinis minutiflora",2702503
 "1929","Syzygium neurocalyx",3184083
 "1930","Crotalaria pallida",8260433
-"1931","Paspalum paniculatum",2705587
+"1931","Paspalum paniculatum",4154741
 "1932","Lemna perpusilla",2867616
 "1933","Passiflora quadrangularis",2874183
 "1934","Chloris radiata",5679687
@@ -1950,7 +1950,7 @@
 "1949","Dioscorea alata",2754476
 "1950","Plectranthus amboinicus",5341313
 "1951","Coffea arabica",8014550
-"1952","Maranta arundinacea",2761352
+"1952","Maranta arundinacea",5302997
 "1953","Barringtonia asiatica",7561644
 "1954","Achyranthes aspera  var. pubescens",3085168
 "1955","Plumbago auriculata",3082283
@@ -2028,7 +2028,7 @@
 "2027","Chrysopogon zizanioides",5677150
 "2028","Basella alba",3083504
 "2029","Nekemias arborea",8099353
-"2030","Amaranthus cruentus",5384390
+"2030","Amaranthus cruentus",6109611
 "2031","Ursinia anthemoides",3089033
 "2032","Mesembryanthemum crystallinum",3084839
 "2033","Bromus diandrus",2703760
@@ -2053,13 +2053,13 @@
 "2052","Petrorhagia dubia",3085625
 "2053","Centaurium erythraea",5414457
 "2054","Parapholis incurva",5290069
-"2055","Euphorbia terracina",3064472
+"2055","Euphorbia terracina",7673368
 "2056","Reichardia tingitana",5385648
 "2057","Triticum aestivum",7795888
 "2058","Guizotia abyssinica",8584304
 "2059","Papaver aculeatum",3603350
 "2060","Juncus acuminatus",2701798
-"2061","Sida acuta",7279613
+"2061","Sida acuta",3933670
 "2062","Juncus acutus",2701632
 "2063","Salvinia molesta",5274863
 "2064","Digitaria aequiglumis",5676646
@@ -2076,7 +2076,7 @@
 "2075","Cyperus aggregatus",2713662
 "2076","Rhamnus alaternus",6371424
 "2077","Pseudofumaria alba",7315063
-"2078","Salix alba",5582592
+"2078","Salix alba",5372513
 "2079","Salix alba var. vitellina",10268297
 "2080","Hypochaeris albiflora",3093899
 "2081","Cyperus albostriatus",2715443
@@ -2091,7 +2091,7 @@
 "2090","Veronica anagallis-aquatica",10603903
 "2091","Hypericum androsaemum",3189525
 "2092","Rubus grabowskii",2989267
-"2093","Phalaris angusta",5289753
+"2093","Phalaris angusta",5289760
 "2094","Trifolium angustifolium",5359341
 "2095","Lupinus angustifolius",2964025
 "2096","Lotus angustissimus",5356931
@@ -2117,7 +2117,7 @@
 "2116","Asparagus asparagoides",2768717
 "2117","Pelargonium asperum",2891608
 "2118","Opuntia aurantiaca",5384186
-"2119","Cestrum aurantiacum",2928790
+"2119","Cestrum aurantiacum",7485013
 "2120","Phyllostachys aurea",5290167
 "2121","Phlebodium aureum",2650483
 "2122","Acanthospermum australe",3100364
@@ -2144,7 +2144,7 @@
 "2143","Erodium brachycarpum",2891617
 "2144","Rosa bracteata",3004659
 "2145","Paronychia brasiliana var. pubescens",7314281
-"2146","Oxalis brasiliensis",7435932
+"2146","Oxalis brasiliensis",3627259
 "2147","Richardia brasiliensis",5337499
 "2148","Verbena brasiliensis",2925518
 "2149","Bromus brevis",2703731
@@ -2187,7 +2187,7 @@
 "2186","Solanum chrysotrichum",2929617
 "2187","Calandrinia ciliata",3084693
 "2188","Plectranthus ciliatus",3905482
-"2189","Salix cinerea",10611439
+"2189","Salix cinerea",10004844
 "2190","Corymbia citriodora",5418431
 "2191","Gamochaeta coarctata",3103272
 "2192","Salvia coccinea",9278365
@@ -2265,7 +2265,7 @@
 "2264","Cyrtomium falcatum",4038895
 "2265","Asparagus falcatus",2768780
 "2266","Convolvulus farinosus",3679569
-"2267","Festuca fasciculata",4124456
+"2267","Festuca fasciculata",4120555
 "2268","Cestrum fasciculatum",2928794
 "2269","Sporobolus fertilis",4150275
 "2270","Passiflora filamentosa",3587664
@@ -2277,7 +2277,7 @@
 "2276","Cardamine flexuosa",10268786
 "2277","Ixia flexuosa",5296907
 "2278","Chasmanthe floribunda",2744155
-"2279","Tradescantia fluminensis",2765160
+"2279","Tradescantia fluminensis",2765156
 "2280","Paederia foetida",7525805
 "2281","Lilium formosanum",2753371
 "2282","Callisia fragrans",5303453
@@ -2329,7 +2329,7 @@
 "2328","Ipomoea indica",2928598
 "2329","Rhaphiolepis indica",5371542
 "2330","Potentilla indica",5365717
-"2331","Medicago intertexta",7373959
+"2331","Medicago intertexta",2965405
 "2332","Cyperus iria",2715729
 "2333","Digitaria ischaemum",5290003
 "2334","Setaria italica",8086373
@@ -2368,7 +2368,7 @@
 "2367","Solanum linnaeanum",2929062
 "2368","Verbena litoralis",2925494
 "2369","Rubus loganobaccus",2990630
-"2370","Oenothera longiflora",8340805
+"2370","Oenothera longiflora",3188867
 "2371","Ludwigia longifolia",5421003
 "2372","Physalis longifolia",5341818
 "2373","Paraserianthes lophantha",2943719
@@ -2408,7 +2408,7 @@
 "2407","Tetragonia microptera",7649728
 "2408","Panicum miliaceum",2705090
 "2409","Piptatherum miliaceum",8149531
-"2410","Sanguisorba minor",7817383
+"2410","Sanguisorba minor",5364245
 "2411","Sanguisorba minor  subsp. balearica",7817383
 "2412","Eleocharis minuta",2717752
 "2413","Amaranthus mitchellii",7323810
@@ -2433,7 +2433,7 @@
 "2432","Plantago myosuros",7303024
 "2433","Cucumis myriocarpus",7885624
 "2434","Cucumis myriocarpus  subsp. leptodermis",7885624
-"2435","Polygala myrtifolia",3191402
+"2435","Polygala myrtifolia",4051803
 "2436","Allium neapolitanum",2856348
 "2437","Nassella neesiana",5289831
 "2438","Malva neglecta",3152373
@@ -2455,7 +2455,7 @@
 "2454","Phytolacca octandra",3084023
 "2455","Kyllinga odorata",3583416
 "2456","Asparagus officinalis",2768885
-"2457","Verbena officinalis",2925515
+"2457","Verbena officinalis",2925529
 "2458","Nerium oleander",3169756
 "2459","Allium oleraceum",2857071
 "2460","Medicago orbicularis",2965299
@@ -2467,7 +2467,7 @@
 "2466","Ludwigia palustris",5421025
 "2467","Eryngium pandanifolium",6026300
 "2468","Pogonatherum paniceum",4105523
-"2469","Talinum paniculatum",4023117
+"2469","Talinum paniculatum",3084672
 "2470","Cotoneaster pannosus",3025572
 "2471","Tetrapanax papyrifer",3035275
 "2472","Cyperus papyrus",2716311
@@ -2529,7 +2529,7 @@
 "2528","Pinus radiata",5285727
 "2529","Solanum radicans",4937445
 "2530","Epidendrum radicans",5320619
-"2531","Tamarix ramosissima",3612967
+"2531","Tamarix ramosissima",2874700
 "2532","Cyperus reflexus",2714722
 "2533","Heteranthera reniformis",2766151
 "2534","Callisia repens",5303420
@@ -2538,7 +2538,7 @@
 "2537","Coprosma repens",2911618
 "2538","Facelis retusa",3110293
 "2539","Gazania rigens",3112455
-"2540","Cyperus rigens",2713519
+"2540","Cyperus rigens",2716738
 "2541","Verbena rigida",2925496
 "2542","Ageratina riparia",5400790
 "2543","Geranium robertianum",2890668
@@ -2552,7 +2552,7 @@
 "2551","Valeriana rubra",2888740
 "2552","Rosa rubiginosa",8215581
 "2553","Hyparrhenia rufa",2703246
-"2554","Rubus rugosus",7477197
+"2554","Rubus rugosus",2999703
 "2555","Rumex sagittatus",4036585
 "2556","Crassula sarmentosa",7334661
 "2557","Vicia sativa  subsp. nigra",2975014
@@ -2621,7 +2621,7 @@
 "2620","Crassula tetragona",7172747
 "2621","Crassula tetragona  subsp. robusta",7172747
 "2622","Nuttallanthus texanus",3172129
-"2623","Verbascum thapsus",7456410
+"2623","Verbascum thapsus",3171949
 "2624","Selago canescens",8245540
 "2625","Carthamus tinctorius",3138327
 "2626","Lathyrus tingitanus",5356578
@@ -2679,7 +2679,7 @@
 "2678","Anthemis arvensis",3102781
 "2679","Linaria arvensis",5562956
 "2680","Cordyline australis",2766411
-"2681","Celtis australis",4159612
+"2681","Celtis australis",2984492
 "2682","Dianthus barbatus",3085421
 "2683","Hypericum bellum",7330377
 "2684","Poa bulbosa",8086756
@@ -2735,7 +2735,7 @@
 "2734","Clematis montana",6376216
 "2735","Sclerolaena muricata  var. semiglabra",7933495
 "2736","Onopordum myriacanthum",3094925
-"2737","Sambucus nigra",9663159
+"2737","Sambucus nigra",8809587
 "2738","Pinus nigra  subsp. laricio",5284809
 "2739","Hyacinthoides non-scripta",5304283
 "2740","Carduus nutans",8185959
@@ -2756,7 +2756,7 @@
 "2755","Centromadia pungens  subsp. pungens",3141046
 "2756","Linanthus pungens",4056786
 "2757","Pittosporum ralphii",4161958
-"2758","Potentilla recta",8301395
+"2758","Potentilla recta",7814236
 "2759","Ajuga reptans",2927078
 "2760","Juniperus rigida  var. conferta",2684517
 "2761","Pyracantha rogersiana",2988224
@@ -2803,7 +2803,7 @@
 "2802","Opuntia elata",7388512
 "2803","Cichorium endivia",5392243
 "2804","Berula erecta",3034699
-"2805","Sparganium erectum",7679536
+"2805","Sparganium erectum",2702261
 "2806","Euphorbia falcata",3068845
 "2807","Nerine filifolia",5326933
 "2808","Lessertia frutescens",5633333
@@ -2846,8 +2846,8 @@
 "2845","Zinnia peruviana",9193953
 "2846","Solanum rostratum",2929800
 "2847","Ornithopus sativus",5358266
-"2848","Cerastium semidecandrum",3085434
-"2849","Moraea setifolia",7396233
+"2848","Cerastium semidecandrum",3085439
+"2849","Moraea setifolia",2744657
 "2850","Croton setigerus",3058111
 "2851","Limonium sinuatum",3082297
 "2852","Verbascum sinuatum",3171946
@@ -2873,12 +2873,12 @@
 "2872","Casuarina glauca",7417428
 "2873","Guilandina major",2958773
 "2874","Araucaria heterophylla",2684969
-"2875","Gladiolus hortulanus",3586046
+"2875","Gladiolus hortulanus",11235408
 "2876","Petunia hybrida",2928859
 "2877","Lythrum hyssopifolia",3188732
 "2878","Hibiscus mutabilis",3152555
 "2879","Juncus pallidus",2701564
-"2880","Ranunculus parviflorus",11011124
+"2880","Ranunculus parviflorus",3033434
 "2881","Lobelia purpurascens",5408220
 "2882","Papaver rhoeas",2888443
 "2883","Pleioblastus simonii",2705962
@@ -2912,7 +2912,7 @@
 "2911","Stachytarpheta cayennensis",2925454
 "2912","Carpesium cernuum",3094841
 "2913","Polypogon chilensis",5679952
-"2914","Ethulia conyzoides",11334913
+"2914","Ethulia conyzoides",3091122
 "2915","Glebionis coronaria",7627205
 "2916","Nigella damascena",5371702
 "2917","Urochloa eminii",4150772
@@ -2922,7 +2922,7 @@
 "2921","Crotalaria distans",2942970
 "2922","Crotalaria distans  subsp. macaulayae",NA
 "2923","Athertonia diversifolia",5636603
-"2924","Cleome dodecandra",9778787
+"2924","Cleome dodecandra",3054274
 "2925","Leptochloa dubia",7549853
 "2926","Scoparia dulcis",3171787
 "2927","Sicyos edulis",2874612
@@ -2947,7 +2947,7 @@
 "2946","Rosa laevigata",3002751
 "2947","Eschenbachia leucantha",9338724
 "2948","Salvia leucantha",6411750
-"2949","Eupatorium lindleyanum",5402831
+"2949","Eupatorium lindleyanum",5402943
 "2950","Acroceras macrum",2705725
 "2951","Drimiopsis maculata",2776471
 "2952","Lagarosiphon major",2865565
@@ -3059,7 +3059,7 @@
 "3058","Salix reichardtii",5583586
 "3059","Bulbostylis striatella",5292292
 "3060","Allium vineale",7792960
-"3061","Nymphaea alba",8058740
+"3061","Nymphaea alba",9603058
 "3062","Plagiobothrys canescens",2925706
 "3063","Alloteropsis cimicina",2703273
 "3064","Sporobolus coromandelianus",2704750
@@ -3081,7 +3081,7 @@
 "3080","Ranunculus trilobus",3033460
 "3081","Orbea variegata",9534856
 "3082","Acacia williamsonii",2981009
-"3083","Salvia aethiopis",2927030
+"3083","Salvia aethiopis",7798373
 "3084","Ischaemum afrum",4144035
 "3085","Fraxinus angustifolia",8281834
 "3086","Capsicum annuum  var. glabriusculum",2932944
@@ -3161,7 +3161,7 @@
 "3160","Leersia oryzoides",8045704
 "3161","Cleretum papulosum",7329479
 "3162","Eleocharis parodii",2716927
-"3163","Spergula pentandra",3085814
+"3163","Spergula pentandra",3085811
 "3164","Salmonopuntia schickendantzii",10675147
 "3165","Osteospermum spinescens",4252828
 "3166","Parapholis strigosa",5290068
@@ -3248,7 +3248,7 @@
 "3247","Desmodium scorpiurus",8224320
 "3248","Khaya senegalensis",3190508
 "3249","Dalbergia sissoo",2968532
-"3250","Cyperus sphacelatus",2715182
+"3250","Cyperus sphacelatus",7901587
 "3251","Saccharum spontaneum",2703935
 "3252","Kyllinga squamulata",2718837
 "3253","Gossypium sturtianum",3152671
@@ -3368,7 +3368,7 @@
 "3367","Bacopa lanigera",7332783
 "3368","Zornia latifolia",5355240
 "3369","Clitoria laurifolia",2946665
-"3370","Passiflora laurifolia",2874210
+"3370","Passiflora laurifolia",9729538
 "3371","Citrus limon",3190164
 "3372","Hippobroma longiflora",3168943
 "3373","Vigna luteola",2982573
@@ -3402,7 +3402,7 @@
 "3401","Arachis pintoi",5353826
 "3402","Neptunia plena",5353534
 "3403","Kyllinga polyphylla",2718810
-"3404","Spermacoce prostrata",2911930
+"3404","Spermacoce prostrata",2911935
 "3405","Solanum pseudolulo",2930827
 "3406","Heliconia psittacorum",2760669
 "3407","Bauhinia purpurea",2953871
@@ -3426,7 +3426,7 @@
 "3425","Barleria strigosa",3770457
 "3426","Chukrasia tabularis",4934732
 "3427","Clerodendrum thomsoniae",3889087
-"3428","Tephrosia tinctoria",5342323
+"3428","Tephrosia tinctoria",8225899
 "3429","Euphorbia tithymaloides  subsp. smallii",3069168
 "3430","Distimake tuberosus",9636531
 "3431","Selaginella umbrosa",3710342
@@ -3471,7 +3471,7 @@
 "3470","Zephyranthes drummondii",2859902
 "3471","Bauhinia galpinii",2953703
 "3472","Dactyloctenium giganteum",4149875
-"3473","Synedrellopsis grisebachii",7541822
+"3473","Synedrellopsis grisebachii",3093485
 "3474","Eriochloa meyeriana",4134240
 "3475","Crotalaria micans",2941831
 "3476","Canna orchiodes",5602660
@@ -3486,7 +3486,7 @@
 "3485","Helenium amarum",5401836
 "3486","Browallia americana",2932934
 "3487","Heptapleurum arboricola",3038724
-"3488","Indigofera arrecta",2972067
+"3488","Indigofera arrecta",2972436
 "3489","Brunfelsia australis",3800200
 "3490","Kalanchoe beauverdii",2985929
 "3491","Ficus benghalensis",5361919
@@ -3523,7 +3523,7 @@
 "3522","Epidendrum obrienianum",5541947
 "3523","Ipomoea ochracea",2928568
 "3524","Eragrostis paniciformis",4143439
-"3525","Vigna parkeri",2982717
+"3525","Vigna parkeri",2982515
 "3526","Mimosa pudica  var. tetrandra",2969284
 "3527","Gaillardia pulchella",5387821
 "3528","Ficus religiosa",7559595
@@ -3567,7 +3567,7 @@
 "3566","Polypogon maritimus",5289913
 "3567","Tribolium acutiflorum",5674866
 "3568","Suaeda aegyptiaca",3757104
-"3569","Plantago albicans",7303085
+"3569","Plantago albicans",8424834
 "3570","Solanum aviculare",2930210
 "3571","Anthyllis barba-jovis",5352463
 "3572","Plantago bellardii",4156114
@@ -3628,10 +3628,10 @@
 "3627","Gomphocarpus cancellatus",7401024
 "3628","Narcissus jonquilla",2858555
 "3629","Scorzonera laciniata",10793401
-"3630","Cupressus macrocarpa",2684070
+"3630","Cupressus macrocarpa",7553217
 "3631","Watsonia marginata",5297748
 "3632","Melaleuca microphylla",5415814
-"3633","Periballia minuta",4121830
+"3633","Periballia minuta",4148696
 "3634","Trifolium pilulare",5359489
 "3635","Opuntia polyacantha  var. hystricina",5384095
 "3636","Petrosedum sediforme",4201784
@@ -3711,15 +3711,15 @@
 "3710","Narcissus medio-luteus",2858896
 "3711","Ulmus minor",5361865
 "3712","Trifolium nigrescens",5358774
-"3713","Iris orientalis",2748312
-"3714","Allium paniculatum",2856288
+"3713","Iris orientalis",5298821
+"3714","Allium paniculatum",2856230
 "3715","Pholiurus pannonicus",4138669
 "3716","Hypecoum pendulum",2888559
 "3717","Reseda phyteuma",7275932
 "3718","Polycarena rariflora",5560028
 "3719","Medicago rugosa",2965584
 "3720","Crataegus sinaica",3015045
-"3721","Platycapnos spicatus",7315275
+"3721","Platycapnos spicatus",7390166
 "3722","Bifora testiculata",5371869
 "3723","Spergularia villosa",3813377
 "3724","Gladiolus watsonius",2750471
@@ -3729,7 +3729,7 @@
 "3728","Erica baccans",5682818
 "3729","Echium candicans",8370180
 "3730","Melianthus comosus",3845268
-"3731","Crataegus crus-galli",3013404
+"3731","Crataegus crus-galli",3013866
 "3732","Hakea drupacea",3995995
 "3733","Lobelia erinus",5408087
 "3734","Valeriana eriocarpa",2888773
@@ -3887,7 +3887,7 @@
 "3886","Potentilla anglica",9686484
 "3887","Sporobolus anglicus",9398259
 "3888","Medicago arborea",2965379
-"3889","Salix atrocinerea",5582546
+"3889","Salix atrocinerea",10515692
 "3890","Atriplex australasica",3756350
 "3891","Pittosporum bicolor",4161697
 "3892","Linum bienne",2873896
@@ -3901,7 +3901,7 @@
 "3900","Hesperantha coccinea",2746005
 "3901","Gladiolus colvillii",3586232
 "3902","Luzula congesta",9974459
-"3903","Juncus conglomeratus",10074597
+"3903","Juncus conglomeratus",10167727
 "3904","Silene conica",5384848
 "3905","Alnus cordata",2876607
 "3906","Sulla coronaria",5928735
@@ -3933,7 +3933,7 @@
 "3932","Hypericum humifusum",3189543
 "3933","Taraxacum kok-saghyz",5394473
 "3934","Griselinia littoralis",5581563
-"3935","Silene longicaulis",7667038
+"3935","Silene longicaulis",7425371
 "3936","Nonea lutea",2926042
 "3937","Bothriochloa macra",4136695
 "3938","Cenchrus caudatus",7618730
@@ -3961,7 +3961,7 @@
 "3960","Hypericum pulchrum",8634955
 "3961","Raphanus raphanistrum  subsp. landra",3040983
 "3962","Lupinus regalis",2964309
-"3963","Potentilla reptans",5368749
+"3963","Potentilla reptans",8755494
 "3964","Acacia retinodes",2979408
 "3965","Austroderia richardii",6067827
 "3966","Valeriana rimosa",4095539
@@ -3989,7 +3989,7 @@
 "3988","Carex testacea",2725001
 "3989","Hypericum tetrapterum",6436469
 "3990","Cladium tetraquetrum var. planifolium",9283672
-"3991","Cota tinctoria",10087701
+"3991","Cota tinctoria",5390618
 "3992","Trifolium uniflorum",5359468
 "3993","Symphytum uplandicum",2926068
 "3994","Gastridium ventricosum",5289764
@@ -3997,7 +3997,7 @@
 "3996","Carex viridula  subsp. oedocarpa",2725414
 "3997","Carex viridula  subsp. brachyrrhyncha",2725388
 "3998","Xerochrysum viscosum",3102863
-"3999","Aquilegia vulgaris",3033191
+"3999","Aquilegia vulgaris",3930143
 "4000","Polygala vulgaris",7989450
 "4001","Pinus wallichiana",5285074
 "4002","Geranium yeoi",2890038
@@ -4039,7 +4039,7 @@
 "4038","Sagittaria brevirostra",5329149
 "4039","Ixia campanulata",2743851
 "4040","Populus deltoides  subsp. monilifera",3040232
-"4041","Hypericum canariense",3189481
+"4041","Hypericum canariense",6436603
 "4042","Populus x canescens",3040185
 "4043","Spiraea cantoniensis",3026906
 "4044","Pauridia capensis",9530226
@@ -4197,7 +4197,7 @@
 "4196","Picea pungens",5284871
 "4197","Triphysaria pusilla",3171833
 "4198","Solanum quadriloculatum",2931842
-"4199","Myosotis ramosissima",7589756
+"4199","Myosotis ramosissima",7294855
 "4200","Lotus rectus",5632022
 "4201","Taraxacum retzii",5695736
 "4202","Aizoon rigidum",7955384
@@ -4252,7 +4252,7 @@
 "4251","Dodonaea viscosa",7585074
 "4252","Arisarum vulgare",2867495
 "4253","Clinopodium vulgare",2926945
-"4254","Lysimachia vulgaris",4005441
+"4254","Lysimachia vulgaris",3169386
 "4255","Anthyllis vulneraria",5352367
 "4256","Eucalyptus woodwardii",3176456
 "4257","Populus yunnanensis",7266406
@@ -4298,7 +4298,7 @@
 "4297","Helianthus petiolaris  var. canescens",3119225
 "4298","Launaea sarmentosa",3144718
 "4299","Ipomoea carnea",3681537
-"4300","Paspalum fasciculatum",8093205
+"4300","Paspalum fasciculatum",5289995
 "4301","Cyperus imbricatus",2714233
 "4302","Physalis minima",5581251
 "4303","Pennisetum pedicellatum",5828233
@@ -4357,7 +4357,7 @@
 "4356","Tribolium echinatum",5674861
 "4357","Albuca flaccida",2772325
 "4358","Puccinellia gigantea",4148420
-"4359","Coreopsis grandiflora",7796711
+"4359","Coreopsis grandiflora",9302027
 "4360","Dietes grandiflora",2742427
 "4361","Sparaxis grandiflora",2745809
 "4362","Aristolochia grandiflora",2874014
@@ -4443,7 +4443,7 @@
 "4442","Echinochloa elliptica",2702827
 "4443","Spirodela polyrhiza",4097481
 "4444","Alternanthera ramosissima",3084934
-"4445","Phoenix roebelenii",11365673
+"4445","Phoenix roebelenii",5293153
 "4446","Cyperus surinamensis",2715295
 "4447","Vigna trilobata",2982455
 "4448","Pelargonium alchemilloides",8588196
@@ -4451,7 +4451,7 @@
 "4450","Eucalyptus microcorys",3176755
 "4451","Eucalyptus muelleriana",3177184
 "4452","Pinus palustris",5285816
-"4453","Rubus parviflorus",7463552
+"4453","Rubus parviflorus",7872219
 "4454","Callitris rhomboidea",7525646
 "4455","Rubus ursinus",2990646
 "4456","Hibiscus acetosella",7802717
@@ -4581,7 +4581,7 @@
 "4580","Arabidopsis halleri",3052528
 "4581","Crassula helmsii",5362054
 "4582","Myriophyllum heterophyllum",5361762
-"4583","Lathyrus heterophyllus",5356517
+"4583","Lathyrus heterophyllus",5356541
 "4584","Hedera hibernica",8168344
 "4585","Symphytum hidcotense",4067281
 "4586","Aesculus hippocastanum",3189815
@@ -4592,7 +4592,7 @@
 "4591","Equisetum praealtum",2687927
 "4592","Eranthis hyemalis",3033227
 "4593","Senecio inaequidens",3109086
-"4594","Potentilla inclinata",10519098
+"4594","Potentilla inclinata",5365888
 "4595","Silene italica",8055234
 "4596","Populus x jackii",3040241
 "4597","Spiraea japonica",3026546
@@ -4606,7 +4606,7 @@
 "4605","Amelanchier lamarckii",3024109
 "4606","Campanula latifolia",5411408
 "4607","Sagittaria latifolia",5328909
-"4608","Euonymus latifolius",3790832
+"4608","Euonymus latifolius",3169121
 "4609","Lonicera ligustrina  var. yunnanensis",5598915
 "4610","Lonicera ligustrina  var. pileata",5598915
 "4611","Scilla luciliae",2767271
@@ -4635,7 +4635,7 @@
 "4634","Lathyrus niger",5356662
 "4635","Galanthus nivalis",2855356
 "4636","Hepatica nobilis",5371699
-"4637","Achillea nobilis",3120024
+"4637","Achillea nobilis",8059665
 "4638","Geranium nodosum",2890287
 "4639","Hydrocotyle novae-zeelandiae",3636471
 "4640","Elodea nuttallii",5329212
@@ -4652,13 +4652,13 @@
 "4651","Allium paradoxum",2857017
 "4652","Impatiens parviflora",2891782
 "4653","Rumex patientia",8305386
-"4654","Lobelia pedunculata",5408678
+"4654","Lobelia pedunculata",5408682
 "4655","Pimpinella peregrina",5538946
 "4656","Geranium phaeum",2891390
 "4657","Pilosella piloselloides",8288930
 "4658","Symphyotrichum pilosum",3151755
 "4659","Staphylea pinnata",3686235
-"4660","Epimedium pinnatum",8044946
+"4660","Epimedium pinnatum",7300414
 "4661","Doronicum plantagineum  subsp. emarginatum",8340385
 "4662","Narcissus poeticus",7826140
 "4663","Campanula portenschlagiana",5410411
@@ -4676,12 +4676,12 @@
 "4675","Clematis recta",3033543
 "4676","Cotoneaster rehderi",3026294
 "4677","Campanula rhomboidalis",5410480
-"4678","Potentilla rivalis",5367186
+"4678","Potentilla rivalis",7469771
 "4679","Cirsium rivulare",10158840
 "4680","Spiraea x rosalba",3027332
 "4681","Saxifraga rotundifolia",7339396
 "4682","Smilax rotundifolia",5295375
-"4683","Quercus rubra",2879826
+"4683","Quercus rubra",8030923
 "4684","Sarracenia rubra",5421394
 "4685","Acer rufinerve",7263145
 "4686","Rosa rugosa",7602081
@@ -4705,7 +4705,7 @@
 "4704","Verbascum speciosum",3171952
 "4705","Hylotelephium spectabile",10177662
 "4706","Phedimus spurius",4201607
-"4707","Senecio squalidus",3109117
+"4707","Senecio squalidus",9993928
 "4708","Cotoneaster sternianus",3026162
 "4709","Cytisus striatus",5354707
 "4710","Dipsacus strigosus",7443846
@@ -4730,7 +4730,7 @@
 "4729","Euphorbia vermiculata",3069300
 "4730","Omphalodes verna",2926048
 "4731","Scrophularia vernalis",3738504
-"4732","Crocus vernus",8360213
+"4732","Crocus vernus",2747704
 "4733","Euphorbia verrucosa",7679515
 "4734","Salvia verticillata",2926995
 "4735","Setaria verticillata  var. ambigua",5289686
@@ -4748,7 +4748,7 @@
 "4747","Spigelia anthelmia",5414391
 "4748","Ipomoea arborescens",7391455
 "4749","Terminalia arjuna",3699548
-"4750","Ammannia baccifera",3188716
+"4750","Ammannia baccifera",7482453
 "4751","Impatiens balsamina",2891773
 "4752","Caladium bicolor",2868390
 "4753","Capraria biflora",3171842
@@ -4846,8 +4846,8 @@
 "4845","Plantago afra",7303104
 "4846","Vitex agnus-castus",7573255
 "4847","Euphorbia agraria",3065725
-"4848","Artemisia alba",3121650
-"4849","Bryonia alba",2874497
+"4848","Artemisia alba",3121088
+"4849","Bryonia alba",8394526
 "4850","Lupinus albus  subsp. graecus",2964167
 "4851","Malva alcea",3152365
 "4852","Euphorbia aleppica",3067011
@@ -4917,7 +4917,7 @@
 "4916","Aethusa cynapium",5371825
 "4917","Allium cyrilli",2856340
 "4918","Orlaya daucorlaya",3638293
-"4919","Populus deltoides",3040232
+"4919","Populus deltoides",3040241
 "4920","Valeriana dentata",2888789
 "4921","Melilotus dentatus",8349589
 "4922","Rumex dentatus  subsp. halacsyi",2889038
@@ -4935,7 +4935,7 @@
 "4934","Avena eriantha",4154168
 "4935","Bunias erucago",3050357
 "4936","Schoenus ferrugineus",9961158
-"4937","Chenopodium ficifolium",10528907
+"4937","Chenopodium ficifolium",3083862
 "4938","Adonis flammea",8246651
 "4939","Pycreus flavidus",2730773
 "4940","Montia fontana  subsp. chondrosperma",7357900
@@ -5139,7 +5139,7 @@
 "5138","Alyssum rostratum",3044823
 "5139","Crepis sancta",5403605
 "5140","Seriphidium schrenkianum",3121389
-"5141","Artemisia scoparia",3120722
+"5141","Artemisia scoparia",8006589
 "5142","Gypsophila scorzonerifolia",5384465
 "5143","Sisyrinchium septentrionale",5296031
 "5144","Elymus sibiricus",5673028
@@ -5147,7 +5147,7 @@
 "5146","Heracleum sosnowskyi",3628608
 "5147","Hordeum spontaneum",2706075
 "5148","Festuca subverticillata",2704976
-"5149","Gnaphalium supinum",3104537
+"5149","Gnaphalium supinum",3103058
 "5150","Ambrosia trifida",3110588
 "5151","Eremopyrum triticeum",2704661
 "5152","Aegilops triuncialis",5289793
@@ -5183,7 +5183,7 @@
 "5182","Ardisia guianensis",5558301
 "5183","Furcraea hexapetala",2769812
 "5184","Valantia hispida",2894034
-"5185","Oxalis intermedia",3626212
+"5185","Oxalis intermedia",7622825
 "5186","Lantana involucrata",2925313
 "5187","Sporobolus junceus",2704776
 "5188","Pteris longifolia",5275398
@@ -5243,7 +5243,7 @@
 "5242","Ipomoea pinifolia",8133073
 "5243","Pteris propinqua",5614441
 "5244","Linum prostratum",7293229
-"5245","Physalis pruinosa",5341792
+"5245","Physalis pruinosa",6402729
 "5246","Capsicum pubescens",2932944
 "5247","Vasconcellea pubescens",3838768
 "5248","Sambucus racemosa",2888723
@@ -5308,7 +5308,7 @@
 "5307","Grevillea banksii",2891792
 "5308","Alternanthera bettzickiana",8160803
 "5309","Cardamine bonariensis",3045965
-"5310","Panicum brevifolium",8414319
+"5310","Panicum brevifolium",2705141
 "5311","Pilea cadierei",5671157
 "5312","Mimosa caesalpiniifolia",2970230
 "5313","Enneapogon cenchroides",8669627
@@ -5400,7 +5400,7 @@
 "5399","Cerastium commersonianum",3812688
 "5400","Lobelia fervens",5408802
 "5401","Pinus glabra",5285140
-"5402","Clinopodium gracile",8174220
+"5402","Clinopodium gracile",8373686
 "5403","Ligustrum japonicum",7877969
 "5404","Lilium longiflorum",2753336
 "5405","Senna macranthera",2957977
@@ -5408,7 +5408,7 @@
 "5407","Eryngium mesopotamicum",3629478
 "5408","Scrophularia peregrina",3170862
 "5409","Apium prostratum",5371881
-"5410","Pinus pseudostrobus",5285261
+"5410","Pinus pseudostrobus",5285280
 "5411","Cardionema ramosissimum",7741639
 "5412","Bidens rubicundula",5392180
 "5413","Eryngium stenophyllum",6027322
@@ -5436,7 +5436,7 @@
 "5435","Rubus rosifolius",8234521
 "5436","Cerastium selloi",3808104
 "5437","Paronychia setigera",5528745
-"5438","Cyperus strigosus",8292493
+"5438","Cyperus strigosus",2716719
 "5439","Senecio viravira",3107244
 "5440","Brachylaena discolor",3140959
 "5441","Arenaria groenlandica",8414592
@@ -5464,7 +5464,7 @@
 "5463","Cassia grandis",5357158
 "5464","Vincetoxicum indicum",10787822
 "5465","Ipomoea mauritiana",4927144
-"5466","Cassia moschata",5357153
+"5466","Cassia moschata",5357122
 "5467","Garcia nutans",8413987
 "5468","Aristolochia odoratissima",3588528
 "5469","Tabernaemontana pandacaqui",7792065
@@ -5480,7 +5480,7 @@
 "5479","Sonchus dregeanus",3105721
 "5480","Dactyloctenium geminatum",4149888
 "5481","Acanthospermum glabratum",3100376
-"5482","Aeschynomene indica",2970648
+"5482","Aeschynomene indica",2949102
 "5483","Sacciolepis interrupta",4133083
 "5484","Cereus jamacaru",8406848
 "5485","Pupalia lappacea  var. velutina",7323604
@@ -5536,7 +5536,7 @@
 "5535","Zizania palustris",2703230
 "5536","Gypsophila paniculata",5384458
 "5537","Dyssodia papposa",5405417
-"5538","Verbascum phlomoides",10254607
+"5538","Verbascum phlomoides",3171948
 "5539","Linaria pinifolia",5415007
 "5540","Eryngium planum",7318448
 "5541","Dianthus plumarius",3085412
@@ -5578,7 +5578,7 @@
 "5577","Euphorbia boissieriana",3064279
 "5578","Hypericum boreale",3189503
 "5579","Muscari botryoides",2772094
-"5580","Wolffia brasiliensis",5330080
+"5580","Wolffia brasiliensis",5330087
 "5581","Ammophila breviligulata",9432066
 "5582","Bromus briziformis",2703700
 "5583","Amaranthus x budensis",8202428
@@ -5715,7 +5715,7 @@
 "5714","Campanula prenanthoides",5411538
 "5715","Euphorbia pseudoesula",3068528
 "5716","Euphorbia x pseudolucida",3068244
-"5717","Thymus pulegioides",5341443
+"5717","Thymus pulegioides",10224322
 "5718","Ulmus pumila",5361877
 "5719","Cerastium pumilum  var. glutinosum",6364084
 "5720","Juncus pylaei",2701388
@@ -5728,7 +5728,7 @@
 "5727","Ribes rubrum",2986129
 "5728","Solidago rugosa var. rugosa",5388967
 "5729","Spergularia rupicola",7730859
-"5730","Hieracium sabaudum",8412221
+"5730","Hieracium sabaudum",3136606
 "5731","Reynoutria sachalinensis",2889088
 "5732","Centaurea scabiosa",8087525
 "5733","Penthorum sedoides",2985709
@@ -5739,7 +5739,7 @@
 "5738","Cotoneaster x suecicus",3026040
 "5739","Carex swanii",2723557
 "5740","Carex sylvatica",2722602
-"5741","Lathyrus sylvestris",5356623
+"5741","Lathyrus sylvestris",5356517
 "5742","Nepeta tenuifolia",5609573
 "5743","Lysimachia terrestris",3169365
 "5744","Hypericum tetrapetalum",3189532
@@ -5801,7 +5801,7 @@
 "5800","Rorippa curvisiliqua",7583850
 "5801","Rosa damascena",7390572
 "5802","Monarda didyma",5341407
-"5803","Penstemon digitalis",3171415
+"5803","Penstemon digitalis",3171613
 "5804","Phlox drummondii",2927767
 "5805","Rosa ferruginea",9499630
 "5806","Helianthus giganteus",3119240
@@ -5819,11 +5819,11 @@
 "5818","Taraxacum latilobum",5394413
 "5819","Hemerocallis lilioasphodelus",2781103
 "5820","Radiola linoides",2873844
-"5821","Atriplex littoralis",3083696
+"5821","Atriplex littoralis",10270306
 "5822","Artemisia ludoviciana",3120950
 "5823","Convallaria majalis",7459480
 "5824","Trifolium medium",5358812
-"5825","Arnoseris minima",3087403
+"5825","Arnoseris minima",8292065
 "5826","Arctium x mixtum",5393120
 "5827","Euonymus nanus",3791072
 "5828","Prunus nigra",3021170
@@ -5842,7 +5842,7 @@
 "5841","Filipendula rubra",2988113
 "5842","Leucanthemella serotina",3088405
 "5843","Euphorbia serpyllifolia",3063756
-"5844","Rosa spinosissima",7628233
+"5844","Rosa spinosissima",7849564
 "5845","Phlox subulata",2927727
 "5846","Lonicera morrowii",5334275
 "5847","Geum urbanum",5369652
@@ -5879,7 +5879,7 @@
 "5878","Helenium flexuosum",5401838
 "5879","Oenothera fruticosa",3189369
 "5880","Oenothera tetragona",7884360
-"5881","Physalis heterophylla",5341819
+"5881","Physalis heterophylla",5341783
 "5882","Potentilla hippiana",5365568
 "5883","Rubus illecebrosus",2995508
 "5884","Chaenomeles japonica",10243007
@@ -5898,7 +5898,7 @@
 "5897","Crataegus punctata",3014805
 "5898","Elymus pycnanthus",10731495
 "5899","Muhlenbergia racemosa",2703956
-"5900","Lonicera reticulata",5334271
+"5900","Lonicera reticulata",5598698
 "5901","Pinus rigida",8182218
 "5902","Persicaria robustior",2889144
 "5903","Pulmonaria saccharata",5660579
@@ -5933,10 +5933,10 @@
 "5932","Lespedeza bicolor",2955759
 "5933","Catalpa bignonioides",3172615
 "5934","Teucrium botrys",2926903
-"5935","Rubus caesius",2995209
+"5935","Rubus caesius",10120558
 "5936","Acer campestre",3189863
 "5937","Erysimum capitatum",3048540
-"5938","Spiraea chamaedrifolia",3026935
+"5938","Spiraea chamaedrifolia",3026906
 "5939","Lycium chinense",2928809
 "5940","Dianthus chinensis",3085418
 "5941","Tanacetum coccineum",3118616
@@ -5946,7 +5946,7 @@
 "5945","Eriochloa contracta",2702515
 "5946","Tragopogon crantzii",5386855
 "5947","Bromus danthoniae",2703704
-"5948","Rosa dumetorum",7878176
+"5948","Rosa dumetorum",8135060
 "5949","Aralia elata",3036892
 "5950","Iris ensata",5298900
 "5951","Euphorbia epithymoides",3066112
@@ -5955,7 +5955,7 @@
 "5954","Salix euxina",7580239
 "5955","Pityopsis falcata",3094316
 "5956","Symphyotrichum falcatum  var. commutatum",3151675
-"5957","Yucca flaccida",2775530
+"5957","Yucca flaccida",2775497
 "5958","Tridens flavus",5289648
 "5959","Perilla frutescens",8044136
 "5960","Caragana frutex",2943316
@@ -6006,13 +6006,13 @@
 "6005","Najas minor",5329434
 "6006","Tragopogon mirabilis",5709400
 "6007","Tragopogon mirus",5386951
-"6008","Ribes missouriense",7993713
+"6008","Ribes missouriense",2986133
 "6009","Helianthus mollis",4250836
 "6010","Hydrocharis morsus-ranae",5329266
 "6011","Amelanchier neglecta",9311350
 "6012","Vincetoxicum nigrum",5414551
 "6013","Ornithogalum nutans",2773281
-"6014","Oenothera nuttallii",7744278
+"6014","Oenothera nuttallii",7732613
 "6015","Ellisia nyctelea",2928303
 "6016","Symphoricarpos occidentalis",2888632
 "6017","Pluchea odorata",3132710
@@ -6020,9 +6020,9 @@
 "6019","Paeonia officinalis",7371154
 "6020","Carduus x orthocephalus",3114536
 "6021","Berberis ottawensis",3033898
-"6022","Amaranthus x ozanonii",8079858
+"6022","Amaranthus x ozanonii",7720079
 "6023","Alcea biennis",5617600
-"6024","Penstemon pallidus",3171608
+"6024","Penstemon pallidus",3171507
 "6025","Sonchus palustris",3105650
 "6026","Hydrangea paniculata",2985986
 "6027","Carex parryana",2728897
@@ -6098,7 +6098,7 @@
 "6097","Euonymus atropurpureus",3169121
 "6098","Agoseris aurantiaca",3092928
 "6099","Veronica bachofenii",3172103
-"6100","Verbena bipinnatifida",7699885
+"6100","Verbena bipinnatifida",6398618
 "6101","Nepeta camphorata",6412515
 "6102","Teucrium canadense  var. occidentale",2926899
 "6103","Polygonum careyi",2889216
@@ -6118,7 +6118,7 @@
 "6117","Digitalis lutea",5414990
 "6118","Cerinthe major",2926108
 "6119","Hordeum montanense",2705883
-"6120","Juglans nigra",3054366
+"6120","Juglans nigra",3054357
 "6121","Silene nivea",7936925
 "6122","Thuja occidentalis",2684178
 "6123","Trifolium pannonicum",5359067
@@ -6130,7 +6130,7 @@
 "6129","Liatris pycnostachya  var. pycnostachya",3104293
 "6130","Cotoneaster racemiflorus",3025697
 "6131","Plantago rugelii",3189781
-"6132","Nicotiana x sanderae",10800318
+"6132","Nicotiana x sanderae",3799170
 "6133","Polygala sanguinea",7770023
 "6134","Cirsium scariosum",3113127
 "6135","Elymus smithii",5290148
@@ -6142,7 +6142,7 @@
 "6141","Pycnanthemum tenuifolium",2927347
 "6142","Potentilla tundricola",8244106
 "6143","Polygala verticillata",3191386
-"6144","Pycnanthemum verticillatum",2927363
+"6144","Pycnanthemum verticillatum",8214465
 "6145","Eriochloa villosa",2702529
 "6146","Syringa villosa",6433135
 "6147","Physalis virginiana",5341786
@@ -6175,7 +6175,7 @@
 "6174","Phytolacca esculenta",3084022
 "6175","Tulipa gesneriana",5299675
 "6176","Linum narbonense",4048802
-"6177","Viola cucullata",5331355
+"6177","Viola cucullata",8188689
 "6178","Sarracenia purpurea",5421389
 "6179","Muhlenbergia schreberi",2704002
 "6180","Geranium sibiricum",2891583
@@ -6186,7 +6186,7 @@
 "6185","Erica tetralix",5681888
 "6186","Oplismenus undulatifolius",7745203
 "6187","Aldrovanda vesiculosa",3190715
-"6188","Erysimum virgatum",7579258
+"6188","Erysimum virgatum",3048674
 "6189","Carex vulpinoidea",8392562
 "6190","Daucus pusillus",3034741
 "6191","Malva assurgentiflora",3935047
@@ -6236,7 +6236,7 @@
 "6235","Porophyllum ruderale",3103948
 "6236","Ambrosia arborescens",7925984
 "6237","Senegalia pennata",8381471
-"6238","Sium latifolium",3639466
+"6238","Sium latifolium",3034530
 "6239","Deschampsia setacea",7352296
 "6240","Calendula tripterocarpa",5391464
 "6241","Acmella glaberrima",5386736
@@ -6278,7 +6278,7 @@
 "6277","Pinus thunbergii",11092882
 "6278","Kalanchoe tubiflora",2985940
 "6279","Sporobolus pyramidatus",2704755
-"6280","Cuscuta australis",3681603
+"6280","Cuscuta australis",7323876
 "6281","Glebionis carinata",3091999
 "6282","Mikania cordata",5398552
 "6283","Trigonella foenum-graecum",5360475
@@ -6289,7 +6289,7 @@
 "6288","Dianthus sylvestris",3085419
 "6289","Aegilops tauschii",5289779
 "6290","Hydrocotyle vulgaris",3034606
-"6291","Lilium hansonii",2753520
+"6291","Lilium hansonii",7604758
 "6292","Vicia venosa",2974962
 "6293","Justicia adhatoda",3173105
 "6294","Musa basjoo",7449288
@@ -6355,7 +6355,7 @@
 "6354","Cissampelopsis volubilis",3115100
 "6355","Decalobanthus boisianus",9590157
 "6356","Zephyranthes minuta",2859919
-"6357","Cinchona pubescens",2901294
+"6357","Cinchona pubescens",2906341
 "6358","Euphorbia antiquorum",3069535
 "6359","Tribulus cistoides",5421117
 "6360","Piper betle",4189104
@@ -6375,7 +6375,7 @@
 "6374","Cereus repandus",5621964
 "6375","Dianthera comata",3173082
 "6376","Sanvitalia procumbens",3104106
-"6377","Linum striatum",2873857
+"6377","Linum striatum",2873936
 "6378","Solanum wrightii",2931500
 "6379","Cleome rutidosperma  var. burmanni",9778787
 "6380","Trifolium eximium",7399996
@@ -6406,7 +6406,7 @@
 "6405","Artabotrys hainanensis",3154878
 "6406","Crepis hypochoeridea",5403452
 "6407","Dillenia indica",5383898
-"6408","Pleopeltis macrocarpa",7914726
+"6408","Pleopeltis macrocarpa",7290349
 "6409","Piper nigrum",3086357
 "6410","Biancaea sappan",2958871
 "6411","Cleome spinosa",3872463
@@ -6495,7 +6495,7 @@
 "6494","Calophyllum inophyllum",9531830
 "6495","Passiflora rubra",2874212
 "6496","Plectranthus scutellarioides",5341492
-"6497","Triumfetta semitriloba",3152069
+"6497","Triumfetta semitriloba",3152072
 "6498","Ficus tinctoria",3767426
 "6499","Phyllostachys bissetii",4137244
 "6500","Araucaria columnaris",2684921
@@ -6544,7 +6544,7 @@
 "6543","Chaptalia exscapa",3090320
 "6544","Drymaria gracilis",5384507
 "6545","Cyperus haspan",2715828
-"6546","Salvia hispanica",7604468
+"6546","Salvia hispanica",2926992
 "6547","Indigofera subulata  var. scabra",2971660
 "6548","Streptosolen jamesonii",5341821
 "6549","Cruciata laevipes",5338920
@@ -6601,7 +6601,7 @@
 "6600","Senna aculeata",2957319
 "6601","Reimarochloa acuta",9401750
 "6602","Orobanche aegyptiaca",3728880
-"6603","Corchorus aestuans",3152092
+"6603","Corchorus aestuans",4259450
 "6604","Kigelia africana",3172561
 "6605","Hyptis alata",2926817
 "6606","Brosimum alicastrum",2984660
@@ -6753,7 +6753,7 @@
 "6752","Bassia indica",5568213
 "6753","Albizia julibrissin",2973088
 "6754","Cistus ladanifer",6438085
-"6755","Acacia ligulata",7810872
+"6755","Acacia ligulata",2981177
 "6756","Corylus maxima",2876049
 "6757","Lathyrus ochrus",5356441
 "6758","Hyacinthus orientalis",2772666
@@ -6775,7 +6775,7 @@
 "6774","Crambe maritima",5373533
 "6775","Hesperis matronalis  subsp. nivea",3042291
 "6776","Salix melanopsis",5373018
-"6777","Fragaria moschata",8350369
+"6777","Fragaria moschata",9691015
 "6778","Petrosedum ochroleucum",7863397
 "6779","Rubus odoratus",2994912
 "6780","Cymbalaria pallida",5559837
@@ -6875,7 +6875,7 @@
 "6874","Astragalus boeticus",5344663
 "6875","Solanum bonariense",2929628
 "6876","Crepis bursifolia",5403605
-"6877","Astragalus caprinus",5342797
+"6877","Astragalus caprinus",5344548
 "6878","Commelina chamissonis",2764158
 "6879","Roella ciliata",3166956
 "6880","Vicia ervilia",2974887
@@ -6969,7 +6969,7 @@
 "6968","Cedrus atlantica",10152153
 "6969","Lilaeopsis attenuata",10850644
 "6970","Crepis bellidifolia",7455538
-"6971","Cyperus bellus",2714120
+"6971","Cyperus bellus",2716341
 "6972","Erigeron blakei",3146841
 "6973","Medicago blancheana",2965473
 "6974","Eleocharis bonariensis",2717329
@@ -6990,7 +6990,7 @@
 "6989","Fimbristylis ferruginea",2708137
 "6990","Eleocharis flavescens",2717421
 "6991","Leptochloa fusca  subsp. fascicularis",8010581
-"6992","Allium fuscum",2856288
+"6992","Allium fuscum",2855968
 "6993","Sequoiadendron giganteum",2684120
 "6994","Najas gracillima",5329454
 "6995","Periploca graeca",5414545
@@ -7040,17 +7040,17 @@
 "7039","Malope trifida",3935421
 "7040","Lemna valdiviana",2867612
 "7041","Spartina versicolor",9637373
-"7042","Hydrocotyle verticillata",3034602
+"7042","Hydrocotyle verticillata",3640515
 "7043","Allocasuarina verticillata",2891902
 "7044","Pelargonium zonale",9609002
-"7045","Lonicera alpigena",7272731
+"7045","Lonicera alpigena",5599098
 "7046","Abies balsamea  var. phanerolepis",2685383
 "7047","Abies fraseri",7662200
 "7048","Gagea lutea",5300245
 "7049","Gagea minima",5300136
 "7050","Thuja plicata",10619371
 "7051","Lonicera ruprechtiana",5334254
-"7052","Abies sibirica",2685654
+"7052","Abies sibirica",7516072
 "7053","Acer tataricum",3189843
 "7054","Lippia abyssinica",4086591
 "7055","Crotalaria agatiflora  subsp. erlangeri",2942820
@@ -7077,7 +7077,7 @@
 "7076","Vigna unguiculata  subsp. letouzeyi",2982583
 "7077","Amelanchier alnifolia",3023964
 "7078","Rorippa x armoracioides",3693336
-"7079","Poa chaixii",2704211
+"7079","Poa chaixii",9974872
 "7080","Sempervivum globiferum",8091002
 "7081","Amelanchier laevis",3023832
 "7082","Gratiola neglecta",3171919
@@ -7088,7 +7088,7 @@
 "7087","Derris montana",5350229
 "7088","Cyperus cyperinus",2715877
 "7089","Ficus adenosperma",7262893
-"7090","Rosa sempervirens",7932679
+"7090","Rosa sempervirens",8015580
 "7091","Proiphys amboinensis",2858034
 "7092","Anthurium andraeanum",7768208
 "7093","Elaeocarpus angustifolius",7426040
@@ -7106,7 +7106,7 @@
 "7105","Strongylodon lucidus",2981503
 "7106","Endospermum macrophyllum",3063627
 "7107","Heliconia marginata",2760843
-"7108","Chrysanthemum morifolium",7598400
+"7108","Chrysanthemum morifolium",9252578
 "7109","Gaillardia pulchella  var. drummondii",5387821
 "7110","Alocasia sanderiana",5329946
 "7111","Hibiscus schizopetalus",9064581
@@ -7133,7 +7133,7 @@
 "7132","Scilla hyacinthoides",2767320
 "7133","Kickxia lanigera",7663935
 "7134","Cistus laurifolius  subsp. atlanticus",3596501
-"7135","Diospyros lotus",3032980
+"7135","Diospyros lotus",7295808
 "7136","Pimpinella lutea",5539193
 "7137","Malope malacoides",7278926
 "7138","Hylotelephium maximum",7334631
@@ -7171,7 +7171,7 @@
 "7170","Geranium berteroanum",2890477
 "7171","Ulex breoganii",3975311
 "7172","Haplophyllum buxbaumii",7754513
-"7173","Maihuenia poeppigii",3952375
+"7173","Maihuenia poeppigii",3952403
 "7174","Hypericum canadense",3189526
 "7175","Quercus canariensis",10448839
 "7176","Artemisia capillaris",3120722
@@ -7232,7 +7232,7 @@
 "7231","Hibiscus moscheutos",3152596
 "7232","Cryptolepis sinensis",6021960
 "7233","Marrubium peregrinum",8155500
-"7234","Verbascum phoeniceum",3171951
+"7234","Verbascum phoeniceum",10134638
 "7235","Hechtia pitcairniifolia",2696014
 "7236","Ceratostigma plumbaginoides",3082279
 "7237","Tropaeolum polyphyllum",4162392
@@ -7266,7 +7266,7 @@
 "7265","Salvia viridis",3883959
 "7266","Viola wittrockiana",8176318
 "7267","Phleum bertolonii",2706009
-"7268","Solanum anguivi",8250284
+"7268","Solanum anguivi",2931542
 "7269","Ipomoea pileata",7829065
 "7270","Solanum rudepannum",8384763
 "7271","Dianthera secunda",3173080
@@ -7315,7 +7315,7 @@
 "7314","Rosa arvensis",3007054
 "7315","Anagallis arvensis  subsp. foemina",8368021
 "7316","Gentiana asclepiadea",7270381
-"7317","Primula auricula",8084274
+"7317","Primula auricula",10988314
 "7318","Eriolarynx australis",10214759
 "7319","Olearia avicenniifolia",5404996
 "7320","Silene baccifera",7267309
@@ -7337,7 +7337,7 @@
 "7336","Spiraea brachybotrys",3027138
 "7337","Veronica brachysiphon",3733590
 "7338","Cotoneaster bradyi",7756070
-"7339","Oenothera x fallax",7915783
+"7339","Oenothera x fallax",7943353
 "7340","Epilobium brunnescens",7322764
 "7341","Carex buchananii",9611745
 "7342","Narcissus bulbocodium",2858846
@@ -7353,14 +7353,14 @@
 "7352","Spiraea canescens",3027138
 "7353","Geranium cantabrigiense",2890995
 "7354","Phygelius capensis",3727761
-"7355","Valeriana carinata",7298917
+"7355","Valeriana carinata",2888769
 "7356","Allium carinatum",7583249
 "7357","Ochagavia carnea",2696031
 "7358","Reineckea carnea",2772865
 "7359","Silene catholica",8993502
 "7360","Abies cephalonica",2685326
 "7361","Oemleria cerasiformis",2988485
-"7362","Verbascum chaixii",10098989
+"7362","Verbascum chaixii",8949622
 "7363","Euphorbia characias  subsp. wulfenii",3067353
 "7364","Corydalis cheilanthifolia",5530829
 "7365","Calceolaria chelidonioides",3172127
@@ -7413,7 +7413,7 @@
 "7412","Holodiscus discolor",2987780
 "7413","Phymatosorus pustulatus  subsp. pustulatus",NA
 "7414","Linaria dominii",8159267
-"7415","Senecio doria",4236705
+"7415","Senecio doria",3108191
 "7416","Spiraea douglasii  subsp. menziesii",3027159
 "7417","Papaver dubium  subsp. lecoqii",10315090
 "7418","Euphorbia dulcis",7621717
@@ -7472,7 +7472,7 @@
 "7471","Geranium himalayense",2891124
 "7472","Hypericum hircinum",6436603
 "7473","Chaerophyllum hirsutum",6027328
-"7474","Aristolochia hirta",7497322
+"7474","Aristolochia hirta",3588730
 "7475","Genista hispanica",8187052
 "7476","Cotoneaster hissaricus",3025794
 "7477","Rosa hollandica",3003244
@@ -7544,7 +7544,7 @@
 "7543","Salix meyeriana",7580239
 "7544","Berberis microphylla",7300375
 "7545","Erechtites minima",4933577
-"7546","Allium moly",4928333
+"7546","Allium moly",8003602
 "7547","Hieracium monacense",4207663
 "7548","Narcissus monochromus",4014301
 "7549","Satureja montana",2926884
@@ -7582,7 +7582,7 @@
 "7581","Eucalyptus pauciflora  subsp. niphophila",3176368
 "7582","Rosa paui",3004370
 "7583","Spartina pectinata",9592414
-"7584","Crataegus pedicellata",3015623
+"7584","Crataegus pedicellata",7790614
 "7585","Epilobium pedunculare",3667399
 "7586","Darmera peltata",3032611
 "7587","Allium pendulinum",2856456
@@ -7597,7 +7597,7 @@
 "7596","Cicerbita plumieri",3140260
 "7597","Rodgersia podophylla",3754587
 "7598","Narcissus poeticus  subsp. radiiflorus",2858581
-"7599","Saxifraga polita",3032812
+"7599","Saxifraga polita",3752678
 "7600","Crocosmia pottsii",2747959
 "7601","Crinum powellii",4013963
 "7602","Kniphofia praecox",5305162
@@ -7620,7 +7620,7 @@
 "7619","Malus x purpurea",3001270
 "7620","Campanula pyramidalis",5410661
 "7621","Verbascum pyramidatum",3736698
-"7622","Pyrus pyraster",5362445
+"7622","Pyrus pyraster",7524392
 "7623","Valeriana pyrenaica",4095186
 "7624","Lilium pyrenaicum",2753026
 "7625","Chimonobambusa quadrangularis",4154003
@@ -7643,7 +7643,7 @@
 "7642","Pulmonaria rubra",5660450
 "7643","Escallonia rubra  var. macrantha",8405971
 "7644","Solidago rugosa",5388967
-"7645","Rumex salicifolius",2888990
+"7645","Rumex salicifolius",11328185
 "7646","Heuchera sanguinea",3032653
 "7647","Viburnum sargentii",2888607
 "7648","Tulipa saxatilis",5299458
@@ -7703,7 +7703,7 @@
 "7702","Mentha villosa-nervata",7740342
 "7703","Eucalyptus viminalis",5418427
 "7704","Philadelphus virginalis",3645346
-"7705","Rosa virginiana",3006171
+"7705","Rosa virginiana",3002333
 "7706","Anthyllis vulneraria  subsp. polyphylla",5352367
 "7707","Anthyllis vulneraria  subsp. carpatica",5352367
 "7708","Aconitum vulparia",3033675
@@ -7768,7 +7768,7 @@
 "7767","Thlaspi huetii",3052750
 "7768","Pseudosasa humilis",4151004
 "7769","Setaria intermedia",5673943
-"7770","Lespedeza juncea",8114276
+"7770","Lespedeza juncea",2955791
 "7771","Solidago juncea",5389083
 "7772","Cyperus badius",8190771
 "7773","Papaver macrostomum",7315294
@@ -7796,7 +7796,7 @@
 "7795","Pentapetes phoenicea",3152140
 "7796","Schoenoplectiella praelongata",2710735
 "7797","Mimosa quadrivalvis",2969669
-"7798","Roystonea regia",2733772
+"7798","Roystonea regia",2733766
 "7799","Cecropia schreberiana",2984475
 "7800","Biophytum sensitivum",3628231
 "7801","Cyanthillium stelluliferum",3124790
@@ -8009,7 +8009,7 @@
 "8008","Clerodendrum quadriloculare",3890217
 "8009","Drynaria quercifolia",7126715
 "8010","Colvillea racemosa",5358255
-"8011","Thrinax radiata",2735268
+"8011","Thrinax radiata",8124500
 "8012","Strelitzia reginae",2763116
 "8013","Procris repens",7916114
 "8014","Dentella repens  var. serpyllifolia",2900952
@@ -8024,7 +8024,7 @@
 "8023","Meterostachys sikokianus",4197607
 "8024","Bolusanthus speciosus",2952355
 "8025","Philodendron squamiferum",2870698
-"8026","Adiantum tenerum",2651816
+"8026","Adiantum tenerum",2651835
 "8027","Triumfetta tomentosa",4261913
 "8028","Oxalis triangularis",7156971
 "8029","Xylobium undulatum",2850769
@@ -8063,7 +8063,7 @@
 "8062","Verbesina alata",3147905
 "8063","Fimbristylis alboviridis",2708461
 "8064","Bergia ammannioides",8339627
-"8065","Fimbristylis aphylla",5292190
+"8065","Fimbristylis aphylla",2719171
 "8066","Fuchsia arborescens",5938223
 "8067","Schoenoplectiella articulata",2710683
 "8068","Eleocharis atropurpurea",2717771
@@ -8086,7 +8086,7 @@
 "8085","Cullen corylifolium",2948930
 "8086","Fuchsia corymbiflora",6028976
 "8087","Rhynchospora corymbosa",7462465
-"8088","Eriocaulon decangulare",8219795
+"8088","Eriocaulon decangulare",2690647
 "8089","Fimbristylis dichotoma  subsp. podocarpa",2708808
 "8090","Scleromitrion diffusum",9264048
 "8091","Cyperus distans",2713460
@@ -8148,7 +8148,7 @@
 "8147","Setaria plicata",4114513
 "8148","Euphorbia plumerioides",3067726
 "8149","Pseudechinolaena polystachya",4152303
-"8150","Cyperus procerus",8119380
+"8150","Cyperus procerus",7646036
 "8151","Moringa pterygosperma",3054181
 "8152","Bulbostylis puberula",8261035
 "8153","Phyllanthus pulcher",8346483
@@ -8174,7 +8174,7 @@
 "8173","Ruscus aculeatus",2769766
 "8174","Viscum album",2889828
 "8175","Hieracium argenteum",3136415
-"8176","Crocus adamii",9571189
+"8176","Crocus adamii",3586112
 "8177","Polypodium cambricum",5274944
 "8178","Oxalis decaphylla",2891652
 "8179","Oenanthe fistulosa",5371890
@@ -8221,7 +8221,7 @@
 "8220","Indigofera trita",4271745
 "8221","Senna uniflora",2957498
 "8222","Agave vera-cruz",2766994
-"8223","Alisma gramineum",2865152
+"8223","Alisma gramineum",8124044
 "8224","Cipura paludosa",2744102
 "8225","Viola thomsonii",5663493
 "8226","Lobelia chinensis",5407898
@@ -8300,14 +8300,14 @@
 "8299","Callistephus chinensis",3092946
 "8300","Dioscorea communis",2755063
 "8301","Groenlandia densa",4009380
-"8302","Verbascum densiflorum",10339728
+"8302","Verbascum densiflorum",10117549
 "8303","Amomyrtus luma",3186044
 "8304","Gonocarpus micranthus",7329731
 "8305","Juncus planifolius",2701447
 "8306","Ribes pallidum",4194842
 "8307","Pinus brutia",5285710
 "8308","Euphorbia lasiocarpa",3065443
-"8309","Atriplex muelleri",7339833
+"8309","Atriplex muelleri",3083773
 "8310","Acacia sclerosperma",2978492
 "8311","Acacia victoriae",2979105
 "8312","Sorghum virgatum",4105502
@@ -8332,10 +8332,10 @@
 "8331","Erodium glaucophyllum",7268543
 "8332","Capsella grandiflora",5375387
 "8333","Senecio grisebachii",3107977
-"8334","Spiraea hypericifolia",8024061
+"8334","Spiraea hypericifolia",3026431
 "8335","Rotala indica",3188674
 "8336","Lycium shawii",7300058
-"8337","Oenanthe javanica",5540171
+"8337","Oenanthe javanica",5371886
 "8338","Limnophila x ludoviciana",5415002
 "8339","Rumex lunaria",4032398
 "8340","Mazus miquelii",3171302
@@ -8376,7 +8376,7 @@
 "8375","Dianthus hyssopifolius  subsp. gallicus",3812449
 "8376","Sisyrinchium laxum",5296365
 "8377","Taraxacum lucidum",5394406
-"8378","Nuphar lutea",9732491
+"8378","Nuphar lutea",7551339
 "8379","Pimpinella major",7622278
 "8380","Arenaria montana",6363863
 "8381","Angelica pachycarpa",5537578
@@ -8547,7 +8547,7 @@
 "8546","Sagittaria graminea",5329038
 "8547","Orlaya grandiflora",3638282
 "8548","Campsis grandiflora",4094511
-"8549","Cerastium grandiflorum",3811439
+"8549","Cerastium grandiflorum",7947159
 "8550","Begonia grandis",2874716
 "8551","Oenothera grandis",7776230
 "8552","Carex gravida",2726524
@@ -8555,7 +8555,7 @@
 "8554","Rumex hastatulus",2889025
 "8555","Scirpus hattorianus",2720130
 "8556","Indigofera hendecaphylla",2971634
-"8557","Plantago heterophylla",7303022
+"8557","Plantago heterophylla",3189760
 "8558","Agalinis heterophylla",3171238
 "8559","Potentilla heynii",5366090
 "8560","Pseudosasa hindsii",7397939
@@ -8697,7 +8697,7 @@
 "8696","Tetradium ruticarpum",5594365
 "8697","Eriocapitella japonica",3931133
 "8698","Nierembergia scoparia",2928991
-"8699","Panicum scoparium",2702562
+"8699","Panicum scoparium",4126183
 "8700","Solidago mexicana",5389038
 "8701","Polygala senega",7746286
 "8702","Smithia sensitiva",5351153
@@ -8769,7 +8769,7 @@
 "8768","Chaerophyllum villosum",7823761
 "8769","Orychophragmus violaceus",3041285
 "8770","Albuca virens",8704606
-"8771","Pterocaulon virgatum",5392200
+"8771","Pterocaulon virgatum",5392236
 "8772","Diodia virginiana",2908579
 "8773","Aeschynomene virginica",2949101
 "8774","Salicornia virginica",8128443
@@ -8829,7 +8829,7 @@
 "8828","Artocarpus integer",2984566
 "8829","Dioscorea japonica",8278960
 "8830","Cunninghamia lanceolata",5284278
-"8831","Aspidistra lurida",2769933
+"8831","Aspidistra lurida",2765872
 "8832","Aglaia malaccensis",5597458
 "8833","Abelmoschus manihot  var. pungens",3152706
 "8834","Chloroleucon mangense  var. mangense",2943053
@@ -8853,7 +8853,7 @@
 "8852","Typhonium trilobatum",2869559
 "8853","Curcuma zanthorrhiza",2757547
 "8854","Petrosedum montanum",4201870
-"8855","Buxus sempervirens",2984671
+"8855","Buxus sempervirens",4939125
 "8856","Erucastrum abyssinicum",5375552
 "8857","Acalypha amentacea",3057201
 "8858","Baccharoides anthelmintica",3087253
@@ -8910,7 +8910,7 @@
 "8909","Carex glomerata",2724451
 "8910","Taraxacum hamatiforme",5394049
 "8911","Lappula heteracantha",8312798
-"8912","Erythrina humeana",5349601
+"8912","Erythrina humeana",5349581
 "8913","Salix lasiandra",5372604
 "8914","Eucalyptus lehmannii",3176602
 "8915","Eucalyptus melliodora",3176794
@@ -8937,22 +8937,22 @@
 "8936","Salix alba  subsp. micans",5372513
 "8937","Corispermum algidum",3760051
 "8938","Robinia ambigua",6405501
-"8939","Carpinus betulus",11093066
+"8939","Carpinus betulus",11109332
 "8940","Prunus cerasifera var. cerasifera",3021730
 "8941","Abies concolor",2685580
-"8942","Crataegus douglasii",3014211
+"8942","Crataegus douglasii",3013580
 "8943","Crataegus flabellata",3013974
 "8944","Potentilla fruticosa var. tenuiloba",5370380
 "8945","Cruciata glabra",5338929
 "8946","Rosa glabrifolia",3010499
 "8947","Rosa gorenkensis",3004747
 "8948","Ranunculus illyricus",7277455
-"8949","Cotoneaster multiflorus",3025939
+"8949","Cotoneaster multiflorus",8031421
 "8950","Robinia neomexicana",5352212
 "8951","Chamaecytisus ratisbonensis",5354685
 "8952","Malus mandshurica",10671140
 "8953","Viola tricolor  subsp. subalpina",5331347
-"8954","Crataegus uhrovae",3013716
+"8954","Crataegus uhrovae",3013688
 "8955","Oenothera x polgarii",3666929
 "8956","Anagallis arvensis  var. parviflora",9329267
 "8957","Scorzoneroides atlantica",3133497
@@ -8977,7 +8977,7 @@
 "8976","Wissadula amplissima",3152300
 "8977","Soliva anthemidifolia",3092690
 "8978","Alsophila speciosa",5529648
-"8979","Aeschynomene aspera",2949102
+"8979","Aeschynomene aspera",2949250
 "8980","Oxygonum atriplicifolium",4038306
 "8981","Persicaria barbata",7291589
 "8982","Dalbergia baronii",2968511
@@ -9035,7 +9035,7 @@
 "9034","Paspalum nutans",4106554
 "9035","Vigna oblongifolia",2982652
 "9036","Elaeodendron orientale",3791348
-"9037","Desmodium ospriostreblum",2967221
+"9037","Desmodium ospriostreblum",2967217
 "9038","Sesbania pachycarpa",2970716
 "9039","Sporobolus paniculatus",4148283
 "9040","Perotis patens",5678853
@@ -9224,7 +9224,7 @@
 "9223","Pseudovigna argentea",2945113
 "9224","Asparagus asiaticus",2768528
 "9225","Albizia coriaria",7908722
-"9226","Abrus fruticulosus",5348699
+"9226","Abrus fruticulosus",7531250
 "9227","Sorghastrum incompletum",4108929
 "9228","Pycreus macrostachyos",2730317
 "9229","Aeschynomene sensitiva",2949250
@@ -9316,7 +9316,7 @@
 "9315","Virola surinamensis",3152848
 "9316","Odontocarya tamoides",7268771
 "9317","Phlogacanthus turgidus",3775530
-"9318","Pandanus utilis",5327557
+"9318","Pandanus utilis",5328062
 "9319","Ehretia acuminata",7132425
 "9320","Santalum album",2889781
 "9321","Platycerium alcicorne",7289981
@@ -9383,13 +9383,13 @@
 "9382","Kyllinga odorata  subsp. cylindrica",3583416
 "9383","Trema orientalis",7141659
 "9384","Decalobanthus peltatus",9413254
-"9385","Boehmeria penduliflora",6414592
+"9385","Boehmeria penduliflora",7769607
 "9386","Pogostemon plectrantoides",4931163
 "9387","Acalypha poiretii",3056633
 "9388","Basilicum polystachyon",3882375
 "9389","Juncus prismatocarpus",2701743
 "9390","Crotalaria pulchra",2942102
-"9391","Asparagus racemosus",2768391
+"9391","Asparagus racemosus",2768632
 "9392","Hippeastrum reginae",2854474
 "9393","Breynia retusa",5383065
 "9394","Entada rheedii",2976236
@@ -9460,8 +9460,8 @@
 "9459","Erythrina caffra",5349601
 "9460","Plantago debilis",3189776
 "9461","Eucalyptus fibrosa",3176876
-"9462","Rubus fruticosus",8109312
-"9463","Cyperus gracilis",2715482
+"9462","Rubus fruticosus",8436459
+"9463","Cyperus gracilis",2713996
 "9464","Citrus jambhiri",3190176
 "9465","Metrosideros kermadecensis",3185314
 "9466","Linum marginale",7293158
@@ -9680,7 +9680,7 @@
 "9679","Tetracera volubilis",8420425
 "9680","Cymbopogon winterianus",2705273
 "9681","Chamaecrista zygophylloides var. deamii",2950513
-"9682","Corispermum intermedium",3759655
+"9682","Corispermum intermedium",3759530
 "9683","Aronia x prunifolia",5364001
 "9684","Micropyrum tenellum",4121799
 "9685","Carlina acaulis",3105419
@@ -9693,7 +9693,7 @@
 "9692","Dianthus carthusianorum",8400876
 "9693","Pinus cembra",5285589
 "9694","Anacyclus clavatus",3148589
-"9695","Cytisus decumbens",5349071
+"9695","Cytisus decumbens",5354676
 "9696","Androsace elongata",3169328
 "9697","Pentanema ensifolium",10697698
 "9698","Cuscuta europaea",2927493
@@ -9723,7 +9723,7 @@
 "9722","Crataegus sanguinea",3013580
 "9723","Alchemilla sarmatica",3028392
 "9724","Puschkinia scilloides",2767428
-"9725","Nepeta sibirica",5609695
+"9725","Nepeta sibirica",7540389
 "9726","Myosotis sparsiflora",5341182
 "9727","Lamprocapnos spectabilis",2888564
 "9728","Rhododendron sutchuenense",4164276
@@ -9783,7 +9783,7 @@
 "9782","Geitonoplesium cymosum",2781147
 "9783","Pultenaea daphnoides",2956339
 "9784","Callianthe darwinii",7389382
-"9785","Galium debile",7466214
+"9785","Galium debile",2913727
 "9786","Eremophila debilis",5565789
 "9787","Daucus decipiens",9244277
 "9788","Eucalyptus delegatensis",3176597
@@ -9853,7 +9853,7 @@
 "9852","Scutellaria minor",5341345
 "9853","Passiflora mixta",8368994
 "9854","Selaginella moellendorffii",5836522
-"9855","Hypericum montanum",7678225
+"9855","Hypericum montanum",3714477
 "9856","Rubus mucronulatus",2998714
 "9857","Stuartina muelleri",3125765
 "9858","Bomarea multiflora",2754207
@@ -10124,7 +10124,7 @@
 "10123","Ficus drupacea",5361914
 "10124","Caloncoba echinata",2874147
 "10125","Funtumia elastica",11265438
-"10126","Hibiscus elatus",7115794
+"10126","Hibiscus elatus",3937039
 "10127","Stylosanthes erecta",2975724
 "10128","Aeschynomene evenia",2949168
 "10129","Aechmea fasciata",2698346
@@ -10214,8 +10214,8 @@
 "10213","Paphiopedilum insigne",2825576
 "10214","Farfugium japonicum",3101212
 "10215","Encephalartos lehmannii",2683786
-"10216","Plantago loeflingii",4156439
-"10217","Campanula lusitanica",5411432
+"10216","Plantago loeflingii",7727786
+"10217","Campanula lusitanica",9081766
 "10218","Markhamia lutea",5668625
 "10219","Erythrina lysistemon",5349556
 "10220","Sobralia macrantha",2797517
@@ -10229,7 +10229,7 @@
 "10228","Clivia nobilis",5326276
 "10229","Chrysojasminum odoratissimum",9275304
 "10230","Lotus ornithopodioides",5357035
-"10231","Doryanthes palmeri",5303639
+"10231","Doryanthes palmeri",8004821
 "10232","Abutilon permolle",3152600
 "10233","Rubus pinnatus",2995015
 "10234","Microlepia platyphylla",3605149
@@ -10314,7 +10314,7 @@
 "10313","Achimenes grandiflora",9036864
 "10314","Cissus discolor",4054691
 "10315","Anodendron parviflorum",9483249
-"10316","Begonia peltata",2874720
+"10316","Begonia peltata",8306059
 "10317","Dichorisandra reginae",8126923
 "10318","Acacia spirorbis",2979347
 "10319","Heterocentron subtriplinervium",7896318
@@ -10376,7 +10376,7 @@
 "10375","Nonea rossica",4060361
 "10376","Periploca sepium",5526185
 "10377","Rhinanthus serotinus subsp. aestivalis",3172044
-"10378","Achillea setacea",7717744
+"10378","Achillea setacea",3120173
 "10379","Brunnera sibirica",4062274
 "10380","Atriplex sibirica",3083763
 "10381","Populus simonii",3040231
@@ -10404,7 +10404,7 @@
 "10403","Achillea pannonica",3120129
 "10404","Campanula sibirica",5410717
 "10405","Phyteuma spicatum",3166841
-"10406","Pyrus ussuriensis",5362387
+"10406","Pyrus ussuriensis",8017230
 "10407","Polygonatum verticillatum",9088408
 "10408","Erysimum canescens",3048673
 "10409","Crataegus horrida",3015853
@@ -10476,7 +10476,7 @@
 "10475","Aesculus glabra",3189806
 "10476","Ampelopsis glandulosa  var. brevipedunculata",3039180
 "10477","Leonurus glaucescens",7307558
-"10478","Geranium gracile",2890354
+"10478","Geranium gracile",2890370
 "10479","Tulipa greigi",5299454
 "10480","Podophyllum hexandrum",3981186
 "10481","Adenocaulon himalaicum",3092973
@@ -10525,7 +10525,7 @@
 "10524","Xanthogalum purpurascens",3639900
 "10525","Leymus ramosus",4129814
 "10526","Campanula rapunculoides  subsp. cordifolia",5410436
-"10527","Crataegus rhipidophylla",9047268
+"10527","Crataegus rhipidophylla",9024019
 "10528","Echinops ritro",5392883
 "10529","Crataegus rivularis",3015454
 "10530","Malus robusta",7372018
@@ -10543,7 +10543,7 @@
 "10542","Flueggea suffruticosa",5382858
 "10543","Pseudoheterocaryum szovitsianum",9428904
 "10544","Acer tegmentosum",7263128
-"10545","Puccinellia tenuissima",7645646
+"10545","Puccinellia tenuissima",4146328
 "10546","Isopyrum thalictroides",5615962
 "10547","Populus tristis",3040184
 "10548","Nepeta ucranica",7308802
@@ -10640,7 +10640,7 @@
 "10639","Fuchsia coccinea",7443030
 "10640","Elaeodendron croceum",3792084
 "10641","Diospyros dichrophylla",4070410
-"10642","Afrocarpus falcatus",8017974
+"10642","Afrocarpus falcatus",2687632
 "10643","Austroeupatorium inulaefolium",5831200
 "10644","Exomis microphylla  var. axyrioides",7939690
 "10645","Afrocanthium mundianum",2900896
@@ -10680,7 +10680,7 @@
 "10679","Erigeron acer subsp. brachycephalus",3147080
 "10680","Erigeron acer",3147223
 "10681","Hieracium acriserratum",4237696
-"10682","Polystichum aculeatum",9742492
+"10682","Polystichum aculeatum",10614458
 "10683","Hieracium adventicium",4237093
 "10684","Hieracium aemulans",4237072
 "10685","Hieracium aequialtum",4237024
@@ -10788,7 +10788,7 @@
 "10787","Hieracium issenii",4214632
 "10788","Hieracium koehleri",3136556
 "10789","Ranunculus lanuginosus",7826351
-"10790","Abies lasiocarpa",2685361
+"10790","Abies lasiocarpa",2685313
 "10791","Cotoneaster latifolius",3026234
 "10792","Hieracium laxilimbatum",4211983
 "10793","Senecio leucanthemifolius",7624085
@@ -10859,7 +10859,7 @@
 "10858","Hieracium semiornatum",4244518
 "10859","Rubus senticosus",8645348
 "10860","Hieracium seriflorum",4244351
-"10861","Aster sibiricus",5396081
+"10861","Aster sibiricus",3151742
 "10862","Saxifraga sibthorpii",3032781
 "10863","Crocus sieberi",2747530
 "10864","Rubus siekensis",2990513
@@ -10919,7 +10919,7 @@
 "10918","Gamochaeta spiciformis",3139652
 "10919","Pycnostachys urticifolia",10390320
 "10920","Rumex usambarensis",4034949
-"10921","Salvadora angustifolia",5580748
+"10921","Salvadora angustifolia",5580744
 "10922","Eugenia aschersoniana",9401078
 "10923","Justicia congestiflora",3769060
 "10924","Phyllanthus casticum",5381327
@@ -10974,7 +10974,7 @@
 "10973","Copernicia prunifera",2738262
 "10974","Dracaena reflexa",5304436
 "10975","Cassia javanica  subsp. renigera",5357125
-"10976","Ligustrum robustum",7826614
+"10976","Ligustrum robustum",7615394
 "10977","Solanum stramoniifolium",10818253
 "10978","Hydrocotyle umbellata",3034614
 "10979","Hyophorbe verschaffeltii",2735589
@@ -10990,7 +10990,7 @@
 "10989","Acacia dodonaeifolia",2979547
 "10990","Portulaca macrantha",4022910
 "10991","Semiaquilegia adoxoides",7276576
-"10992","Aster arenarius",3093945
+"10992","Aster arenarius",3094080
 "10993","Acalypha alopecuroides",3056763
 "10994","Sisyrinchium atlanticum",5296111
 "10995","Sedum bulbiferum",5690559
@@ -11007,7 +11007,7 @@
 "11006","Dopatrium junceum",3172223
 "11007","Alsophila lepifera",7936045
 "11008","Hydrocotyle leucocephala",6026968
-"11009","Crotalaria linifolia",2942058
+"11009","Crotalaria linifolia",2942259
 "11010","Cayratia maritima",11189797
 "11011","Erica muscari",5681960
 "11012","Anthoxanthum odoratum  subsp. nipponicum",4133640
@@ -11089,7 +11089,7 @@
 "11088","Lonicera standishii",5334222
 "11089","Secale sylvestre",4121040
 "11090","Melilotus tauricus",2971103
-"11091","Bufonia tenuifolia",7267943
+"11091","Bufonia tenuifolia",8218420
 "11092","Neotorularia torulosa",3047352
 "11093","Dianthus trifasciculatus  subsp. pseudobarbatus",8352580
 "11094","Valeriana uncinata",4095264
@@ -11125,7 +11125,7 @@
 "11124","Senecio brasiliensis",4217420
 "11125","Selaginella braunii",2688218
 "11126","Ammoselinum butleri",3034504
-"11127","Verbena canescens",2925489
+"11127","Verbena canescens",2925532
 "11128","Dysphania carinata",10190517
 "11129","Commelina caroliniana",7819512
 "11130","Prunus cerasoides",3021409
@@ -11154,7 +11154,7 @@
 "11153","Pyracantha fortuneana",2988224
 "11154","Wedelia fruticosa",5386547
 "11155","Deutzia gracilis",2985964
-"11156","Lonicera heckrottii",7469426
+"11156","Lonicera heckrottii",5334243
 "11157","Croton heptalon",5833331
 "11158","Plantago hookeriana",3189719
 "11159","Acanthospermum humile",3100377
@@ -11184,7 +11184,7 @@
 "11183","Gypsophila oldhamiana",5384467
 "11184","Paspalum eglume",9397821
 "11185","Leptochloa panicoides",5673385
-"11186","Gladiolus papilio",2749902
+"11186","Gladiolus papilio",2750197
 "11187","Rumex paraguayensis",2888972
 "11188","Indigastrum parviflorum",2966643
 "11189","Pyrrhopappus pauciflorus",3145243
@@ -11290,7 +11290,7 @@
 "11289","Euryops multifidus",5394996
 "11290","Bismarckia nobilis",2733941
 "11291","Zea perennis",5290054
-"11292","Houstonia pusilla",5338866
+"11292","Houstonia pusilla",5338804
 "11293","Chenopodium quinoa",3083935
 "11294","Dactyloctenium radulans",2706190
 "11295","Dermatophyllum secundiflorum",7594161
@@ -11328,7 +11328,7 @@
 "11327","Rumex britannica",6391465
 "11328","Elymus canadensis",5290282
 "11329","Cirsium canescens",3112906
-"11330","Crotalaria capensis",7685557
+"11330","Crotalaria capensis",2942741
 "11331","Solanum cardiophyllum",2929226
 "11332","Oxalis magellanica",3626991
 "11333","Lithraea caustica",3660323
@@ -11434,7 +11434,7 @@
 "11433","Spergularia platensis",8343978
 "11434","Schinus polygama",4928873
 "11435","Moraea polystachya",2744685
-"11436","Geranium potentilloides",2890438
+"11436","Geranium potentilloides",2891031
 "11437","Centaurea calcitrapa  subsp. calcitrapa",3128483
 "11438","Limonium preauxii",4088489
 "11439","Sisyrinchium pruinosum",5296158
@@ -11449,7 +11449,7 @@
 "11448","Tomostima reptans",7839918
 "11449","Rytidosperma richardsonii",4135740
 "11450","Euphorbia rigida",3066151
-"11451","Mimulus ringens",9905492
+"11451","Mimulus ringens",6070732
 "11452","Pseudognaphalium roseum",3101075
 "11453","Crepis rubra",5403562
 "11454","Porophyllum ruderale  var. macrocephalum",3103948
@@ -11512,7 +11512,7 @@
 "11511","Verbascum x pterocaulon",8132715
 "11512","Aquilegia pubescens",3033192
 "11513","Scutellaria resinosa",5341368
-"11514","Ulmus rubra",8002521
+"11514","Ulmus rubra",5361867
 "11515","Fallopia scandens",5652201
 "11516","Laennecia schiedeana",3111846
 "11517","Pseudognaphalium stramineum",3100970
@@ -11532,7 +11532,7 @@
 "11531","Sabatia campestris",5414501
 "11532","Halesia carolina",5371655
 "11533","Rhododendron carolinianum",2883074
-"11534","Rhododendron catawbiense",10261589
+"11534","Rhododendron catawbiense",2883047
 "11535","Lappula fremontii",2925756
 "11536","Glossostigma cleistanthum",3730174
 "11537","Monarda clinopodia",5341398
@@ -11544,7 +11544,7 @@
 "11543","Viburnum dilatatum",2888584
 "11544","Rumex dissimilis",4923880
 "11545","Campanula divaricata",5410780
-"11546","Phlox divaricata",2927730
+"11546","Phlox divaricata",2927760
 "11547","Helianthus x divariserratus",3119188
 "11548","Hypericum dolabriforme",3189516
 "11549","Persicaria extremiorientalis",8629566
@@ -11568,7 +11568,7 @@
 "11567","Rhododendron molle  subsp. japonicum",2883092
 "11568","Penstemon laevigatus",3171542
 "11569","Grindelia lanceolata",3146268
-"11570","Hosta lancifolia",2771235
+"11570","Hosta lancifolia",2771309
 "11571","Strophostyles leiosperma",2981481
 "11572","Glycyrrhiza lepidota",2965778
 "11573","Liatris ligulistylis",3104285
@@ -11621,7 +11621,7 @@
 "11620","Magnolia macrophylla",3153783
 "11621","Deutzia magnifica",3645706
 "11622","Aesculus parviflora",3189828
-"11623","Viola patrinii",5331226
+"11623","Viola patrinii",7390250
 "11624","Malus spectabilis",3001102
 "11625","Prunus subhirtella",8081553
 "11626","Ligustrum tschonoskii",6432927
@@ -11650,7 +11650,7 @@
 "11649","Carex oklahomensis",2727219
 "11650","Rubus parvifolius",2991373
 "11651","Ludwigia peploides  subsp. glabrescens",5420991
-"11652","Eryngium prostratum",3034424
+"11652","Eryngium prostratum",3034419
 "11653","Cyrilla racemiflora",5333448
 "11654","Picea rubens",5284717
 "11655","Acer saccharum  subsp. nigrum",3189854
@@ -11722,7 +11722,7 @@
 "11721","Commelina forskaolii",4270425
 "11722","Volkameria glabra",6111581
 "11723","Sapium glandulosum",5379918
-"11724","Richardia grandiflora",5337460
+"11724","Richardia grandiflora",8411347
 "11725","Pteris grandifolia",5275402
 "11726","Philodendron hederaceum",2871003
 "11727","Philodendron hederaceum  var. oxycardium",2871003
@@ -11752,7 +11752,7 @@
 "11751","Sorindeia madagascariensis",7625849
 "11752","Paspalum malacophyllum",2705649
 "11753","Diospyros maritima",3032994
-"11754","Aristolochia maxima",7313713
+"11754","Aristolochia maxima",2873997
 "11755","Lygodium microphyllum",2650436
 "11756","Scoparia montevidensis",5414975
 "11757","Leucospora multifida",3171908
@@ -11772,7 +11772,7 @@
 "11771","Lygodium palmatum",2650432
 "11772","Celastrus paniculatus",7265565
 "11773","Stellaria parva",10888186
-"11774","Plectranthus parviflorus",10030768
+"11774","Plectranthus parviflorus",3882375
 "11775","Ophioglossum pendulum",7321401
 "11776","Pittosporum pentandrum",2986294
 "11777","Luziola peruviana",4125447
@@ -11847,7 +11847,7 @@
 "11846","Deutzia parviflora",2985967
 "11847","Eustachys paspaloides",4131412
 "11848","Arachis prostrata",5353784
-"11849","Ilex rotunda",7154501
+"11849","Ilex rotunda",7939105
 "11850","Zelkova serrata",2984532
 "11851","Tamarix tetragyna",2874698
 "11852","Carya texana",8391621
@@ -11859,12 +11859,12 @@
 "11858","Frankenia salina",2874688
 "11859","Garnotia acutigluma",5290099
 "11860","Fimbristylis aestivalis",2708266
-"11861","Eucalyptus albens",11403964
+"11861","Eucalyptus albens",7908015
 "11862","Archontophoenix alexandrae",2732609
 "11863","Eucalyptus amygdalina",3177099
 "11864","Schoenus apogon",2709863
 "11865","Blechnum appendiculatum",4078397
-"11866","Heteromeles arbutifolia",8016355
+"11866","Heteromeles arbutifolia",5370154
 "11867","Torenia asiatica",3172204
 "11868","Pseudognaphalium attenuatum",3101029
 "11869","Miconia bicolor",3858919
@@ -11914,7 +11914,7 @@
 "11913","Cordia lutea",5661644
 "11914","Ficus macrophylla",7460131
 "11915","Medinilla magnifica",3868468
-"11916","Rhizophora mangle",3086528
+"11916","Rhizophora mangle",3086527
 "11917","Macaranga mappa",3074290
 "11918","Eucalyptus marginata",3177197
 "11919","Batis maritima",5414196
@@ -11955,7 +11955,7 @@
 "11954","Macaranga tanarius",3074251
 "11955","Dichanthium tenue",2702449
 "11956","Sophora tomentosa",8243557
-"11957","Causonis trifolia",10995009
+"11957","Causonis trifolia",10805605
 "11958","Cyperus trinervis",2715801
 "11959","Leymus triticoides",2706379
 "11960","Rubus ulmifolius  f. inermis",2996929
@@ -11967,7 +11967,7 @@
 "11966","Lepidium oblongum",5376554
 "11967","Malachra alceifolia",3152767
 "11968","Harrisia bonplandii",5384195
-"11969","Selenicereus costaricensis",10988919
+"11969","Selenicereus costaricensis",12045520
 "11970","Ruellia devosiana",5574778
 "11971","Stachytarpheta frantzii",7297130
 "11972","Begonia fusca",4158417
@@ -11988,14 +11988,14 @@
 "11987","Eleocharis schaffneri",2717979
 "11988","Schizachyrium scoparium",2704432
 "11989","Inga sertulifera  subsp. leptopus",5357619
-"11990","Rhynchospora tenuis",2721634
+"11990","Rhynchospora tenuis",2721057
 "11991","Ixophorus unisetus",2705806
 "11992","Paspalum unispicatum",2705658
 "11993","Acacia aneura",2979485
 "11994","Hyparrhenia dregeana",2703242
 "11995","Gahnia lacera",2710193
 "11996","Sideroxylon persimile",2886860
-"11997","Cissus alata",7760485
+"11997","Cissus alata",7293851
 "11998","Paspalum arundinaceum",2705572
 "11999","Palafoxia callosa",3121697
 "12000","Tillandsia caput-medusae",2695451
@@ -12013,7 +12013,7 @@
 "12012","Leptospermum morrisonii",3181893
 "12013","Crotalaria pumila",7389231
 "12014","Eriochloa punctata",2702522
-"12015","Eucalyptus punctata",3176271
+"12015","Eucalyptus punctata",3176683
 "12016","Eucalyptus raveretiana",3176592
 "12017","Zornia reticulata",5355297
 "12018","Habenaria rodeiensis",2829461
@@ -12028,7 +12028,7 @@
 "12027","Eragrostis dielsii",4113766
 "12028","Bidens gardneri",5391782
 "12029","Stylosanthes montevidensis",2975701
-"12030","Paspalum pilosum",4105541
+"12030","Paspalum pilosum",2705571
 "12031","Leptochloa virgata",4132178
 "12032","Paspalidium distans",5674209
 "12033","Euphorbia albomarginata",3067191
@@ -12177,7 +12177,7 @@
 "12176","Aristida lanosa",2706283
 "12177","Tidestromia lanuginosa",8298716
 "12178","Croton lindheimerianus",3059564
-"12179","Calamovilfa longifolia",8285613
+"12179","Calamovilfa longifolia",9278137
 "12180","Elymus longifolius",5672395
 "12181","Thelesperma megapotamicum",8209518
 "12182","Pelecyphora missouriensis",11426715
@@ -12222,7 +12222,7 @@
 "12221","Acer pensylvanicum",3189836
 "12222","Nemophila phacelioides",7771136
 "12223","Euphorbia pubentissima",3067381
-"12224","Pinus resinosa",5285053
+"12224","Pinus resinosa",5285067
 "12225","Allium textile",2855724
 "12226","Eucommia ulmoides",3723584
 "12227","Potamogeton undulatus",5301144
@@ -12361,7 +12361,7 @@
 "12360","Lithospermum latifolium",2926085
 "12361","Quercus laxa",2879566
 "12362","Navarretia leucocephala",2927680
-"12363","Malus magdeburgensis",7532497
+"12363","Malus magdeburgensis",7476561
 "12364","Robinia margarettae",5611451
 "12365","Sphaeralcea mendocina",7959780
 "12366","Euphrasia micrantha",9972303
@@ -12376,7 +12376,7 @@
 "12375","Perezia multiflora",5391359
 "12376","Heliomeris multiflora",3099317
 "12377","Berteroa mutabilis",3053517
-"12378","Chelone obliqua",5414932
+"12378","Chelone obliqua",7655908
 "12379","Androsace occidentalis",3169321
 "12380","Helianthus occidentalis",3119248
 "12381","Nymphaea odorata  subsp. tuberosa",2882412
@@ -12392,7 +12392,7 @@
 "12391","Castanea pumila",5333212
 "12392","Monarda punctata  var. villicaulis",5341413
 "12393","Chorizanthe pungens",2888909
-"12394","Trifolium purpureum",7657181
+"12394","Trifolium purpureum",5359526
 "12395","Nicotiana quadrivalvis",2928770
 "12396","Bouteloua repens",5289863
 "12397","Plagiobothrys reticulatus",2925747
@@ -12474,9 +12474,9 @@
 "12473","Picradeniopsis schaffneri",9618338
 "12474","Camassia scilloides",2769112
 "12475","Eupatorium semiserratum",5403078
-"12476","Melampodium sericeum",7733780
+"12476","Melampodium sericeum",3138992
 "12477","Doellingeria sericocarpoides",3148242
-"12478","Diplotaxis siifolia",7874802
+"12478","Diplotaxis siifolia",5376324
 "12479","Fimbristylis squarrosa",2708463
 "12480","Prunus susquehanae",3853672
 "12481","Desmodium tenuifolium",2967408
@@ -12505,11 +12505,11 @@
 "12504","Chondrosum simplex",5289848
 "12505","Phedimus stoloniferus",9527245
 "12506","Lepidium alyssoides",5377012
-"12507","Sericocarpus asteroides",3088830
+"12507","Sericocarpus asteroides",11124394
 "12508","Carex bushii",2726467
 "12509","Sisyrinchium campestre",5296152
 "12510","Aquilegia chrysantha",3033196
-"12511","Pyrus cordata",7564074
+"12511","Pyrus cordata",7374516
 "12512","Coelorachis cylindrica",4123347
 "12513","Trifolium depauperatum",5358858
 "12514","Lepidium eastwoodiae",5376991
@@ -12523,7 +12523,7 @@
 "12522","Viburnum lantanoides",2888601
 "12523","Chamaelirium luteum",2741647
 "12524","Quercus marilandica",2881630
-"12525","Lepidium montanum",9128300
+"12525","Lepidium montanum",5376844
 "12526","Picradeniopsis multiflora",9433727
 "12527","Phlox nivalis",8149274
 "12528","Mimosa quadrivalvis  var. nuttallii",2969669
@@ -12532,7 +12532,7 @@
 "12531","Oenothera rhombipetala",3188826
 "12532","Gillenia stipulata",7557273
 "12533","Clarkia unguiculata",5420957
-"12534","Galium verrucosum",2914754
+"12534","Galium verrucosum",8192534
 "12535","Corispermum villosum",3083980
 "12536","Ambrosia acanthicarpa",3110626
 "12537","Spiraea x bumalda",3027068
@@ -12641,7 +12641,7 @@
 "12640","Argemone hispida",2888495
 "12641","Ranunculus carolinianus",3033479
 "12642","Solanum jamesii",2929192
-"12643","Vernonia marginata",7510812
+"12643","Vernonia marginata",7407174
 "12644","Verbena simplex",2925500
 "12645","Aristida tuberculosa",2706285
 "12646","Physostegia virginiana  subsp. praemorsa",2926572
@@ -12771,7 +12771,7 @@
 "12770","Allium sphaerocephalon",2857616
 "12771","Verbascum x thapsi",3735474
 "12772","Chaenactis stevioides",3114835
-"12773","Nicotiana suaveolens",3800423
+"12773","Nicotiana suaveolens",7660899
 "12774","Tradescantia subaspera",2765298
 "12775","Amsonia tabernaemontana  var. salicifolia",3169689
 "12776","Symplocos tinctoria",3032999
@@ -12792,7 +12792,7 @@
 "12791","Paspalum floridanum",2705642
 "12792","Eragrostis hirsuta",2705442
 "12793","Hydrangea hydrangeoides",8637348
-"12794","Panicum malacophyllum",2705649
+"12794","Panicum malacophyllum",2702600
 "12795","Rosa nitida",3011247
 "12796","Aesculus pavia",3189807
 "12797","Quercus x riparia",2879544
@@ -12851,7 +12851,7 @@
 "12850","Pieris japonica",2882631
 "12851","Acer japonicum",3768561
 "12852","Teucrium orientale",2926897
-"12853","Photinia parvifolia",3000446
+"12853","Photinia parvifolia",11205586
 "12854","Phyllanthus polygonoides",5382613
 "12855","Patellifolia procumbens",5383919
 "12856","Croton punctatus",3057499
@@ -12928,7 +12928,7 @@
 "12927","Verbena elegans",6398070
 "12928","Muhlenbergia filiformis",2703943
 "12929","Photinia x fraseri",5363854
-"12930","Liriope graminifolia",7975948
+"12930","Liriope graminifolia",3685274
 "12931","Asclepias incarnata  subsp. pulchra",3170266
 "12932","Prosopis laevigata",5358498
 "12933","Schinus longifolius",7412160
@@ -13091,7 +13091,7 @@
 "13090","Eucalyptus diversicolor",3176934
 "13091","Myrtillocactus geometrizans",7279778
 "13092","Bromus hordeaceus  subsp. ferronii",4124881
-"13093","Rubus immixtus",2995559
+"13093","Rubus immixtus",11892760
 "13094","Myoporum montanum",7335194
 "13095","Heimia myrtifolia",10693096
 "13096","Carduus nutans  subsp. macrocephalus",3114551
@@ -13148,7 +13148,7 @@
 "13147","Dorstenia zanzibarica",3762590
 "13148","Hibiscus subdariffa",3152582
 "13149","Trigonella laciniata",7719601
-"13150","Lupinus mexicanus",2964374
+"13150","Lupinus mexicanus",2964688
 "13151","Harpachne schimperi",8127214
 "13152","Bidens campylotheca",5392125
 "13153","Oldenlandia capensis",2916000
@@ -13225,7 +13225,7 @@
 "13224","Penstemon rupicola",3171547
 "13225","Quercus serrata",8105190
 "13226","Clematis serratifolia",7277777
-"13227","Prunus sibirica",9513587
+"13227","Prunus sibirica",3021111
 "13228","Malus sieversii",3001162
 "13229","Picea smithiana",5284834
 "13230","Fraxinus sogdiana",3684116
@@ -13239,7 +13239,7 @@
 "13238","Fraxinus velutina",3172325
 "13239","Syringa villosa  subsp. wolfii",5415037
 "13240","Clematis virginiana",3033541
-"13241","Pyrus austriaca",8151172
+"13241","Pyrus austriaca",9251540
 "13242","Crocus heuffelianus",8844020
 "13243","Petrosedum orientale",4201862
 "13244","Pyrus nivalis",5362560
@@ -13294,7 +13294,7 @@
 "13293","Najas madagascariensis",5329430
 "13294","Rhynchosia malacophylla",5350866
 "13295","Dracaena zebra",10682017
-"13296","Bridelia micrantha",3076142
+"13296","Bridelia micrantha",3076157
 "13297","Polysphaeria multiflora",2901915
 "13298","Cocculus orbiculatus",3033943
 "13299","Heptapleurum ellipticum  var. ellipticum",NA
@@ -13397,7 +13397,7 @@
 "13396","Verbascum thapsus  subsp. crassifolium",3171949
 "13397","Blechnum parrisiae",5665919
 "13398","Begonia herbacea",7303229
-"13399","Frankenia laevis",2874692
+"13399","Frankenia laevis",7273498
 "13400","Curio talinoides  var. aizoides",6064795
 "13401","Sisymbrella aspera",3047402
 "13402","Carex debilis",2729014
@@ -13541,7 +13541,7 @@
 "13540","Aphanopetalum resinosum",3613622
 "13541","Myriophyllum simulans",5555409
 "13542","Lobelia speciosa",5408828
-"13543","Sesleria albicans",8402430
+"13543","Sesleria albicans",4119767
 "13544","Isolepis australiensis",2713011
 "13545","Sesleria autumnalis",4119703
 "13546","Vestia foetida",5581284
@@ -13564,7 +13564,7 @@
 "13563","Carlina acanthifolia",3105419
 "13564","Oenothera heiniana",3665611
 "13565","Aremonia agrimonoides",2988624
-"13566","Astragalus arenarius",5342838
+"13566","Astragalus arenarius",5342618
 "13567","Jacobaea arenaria",10487667
 "13568","Sempervivum globiferum  subsp. arenarium",8091002
 "13569","Herniaria incana",3594155
@@ -13574,10 +13574,10 @@
 "13573","Vicia villosa  subsp. ambigua",9182154
 "13574","Origanum vulgare  subsp. hirtum",2926612
 "13575","Pilosella densiflora",3122958
-"13576","Valeriana excelsa",8188719
+"13576","Valeriana excelsa",7937900
 "13577","Hieracium glaucinum  subsp. heteroschistum",9689880
 "13578","Carex polyphylla",3583930
-"13579","Galium pusillum",2913079
+"13579","Galium pusillum",2913084
 "13580","Vaccinium atlanticum",2882934
 "13581","Oenothera editicaulis",3666916
 "13582","Rorippa pyrenaica",3053399
@@ -13588,7 +13588,7 @@
 "13587","Hieracium guthnikianum",3123405
 "13588","Eriophyllum lanatum",3130472
 "13589","Rosa lucida",3006171
-"13590","Lonicera nigra",5334240
+"13590","Lonicera nigra",7768870
 "13591","Hieracium racemosum",11173106
 "13592","Digitalis ferruginea",5414991
 "13593","Thymus praecox  subsp. britannicus",5341449
@@ -13597,7 +13597,7 @@
 "13596","Laser trilobum",3630079
 "13597","Stachys alpina",7306931
 "13598","Hieracium bocconei",4232111
-"13599","Hieracium chlorocephalum",3136557
+"13599","Hieracium chlorocephalum",8668809
 "13600","Asplenium clermontae",10390164
 "13601","Salix dunensis",9148812
 "13602","Seseli longifolium",6026439
@@ -13613,35 +13613,35 @@
 "13612","Scilla ingridiae",2767242
 "13613","Schlagintweitia intybacea",3115482
 "13614","Luzula luzulina",7893447
-"13615","Geum montanum",10471091
+"13615","Geum montanum",5369806
 "13616","Mutellina purpurea",7318319
 "13617","Centaurea nigrescens  subsp. transalpina",3128228
 "13618","Centaurea nigrescens  subsp. vochinensis",3128461
 "13619","Gentiana pannonica",7440277
 "13620","Hieracium picroides",3136030
 "13621","Gentiana punctata",7793491
-"13622","Crocus sativus",8140595
+"13622","Crocus sativus",2747430
 "13623","Centaurea scabiosa  subsp. fritschii",8087525
 "13624","Campanula scheuchzeri",5410225
 "13625","Spergularia segetalis",3811644
 "13626","Cytisophyllum sessilifolium",2940408
 "13627","Stipa splendens",10088756
-"13628","Carex strigosa",2723315
+"13628","Carex strigosa",2722602
 "13629","Goniolimon tataricum",7298043
 "13630","Scilla tmoli",3647528
 "13631","Veronica urticifolia",8242995
 "13632","Sempervivum arachnoideum",4201709
 "13633","Angelica archangelica  subsp. litoralis",5371808
 "13634","Viola collina",9992725
-"13635","Epilobium denticulatum",3666407
+"13635","Epilobium denticulatum",3666422
 "13636","Amelanchier embergeri",8093727
 "13637","Sempervivum funckii",4200522
 "13638","Rubus goniophorus",2998559
 "13639","Spiraea japonica  f. albiflora",8297653
 "13640","Toxicodendron pubescens",3190629
 "13641","Hesperis sylvestris",3042328
-"13642","Hieracium bauhini",4232779
-"13643","Galeopsis pubescens",5341310
+"13642","Hieracium bauhini",6300805
+"13643","Galeopsis pubescens",5341305
 "13644","Jacobaea alpina",10646752
 "13645","Impatiens edgeworthii",4936345
 "13646","Aposeris foetida",3094355
@@ -13651,7 +13651,7 @@
 "13650","Hepatica transsilvanica",5616025
 "13651","Catoferia spicata",3897272
 "13652","Crinum ornatum",2853725
-"13653","Fraxinus nigra",7928074
+"13653","Fraxinus nigra",8407418
 "13654","Helenium aromaticum",5401861
 "13655","Justicia aurea",8410331
 "13656","Mimosa velloziana",2969958
