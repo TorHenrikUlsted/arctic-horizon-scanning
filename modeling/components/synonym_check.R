@@ -57,9 +57,7 @@ synonym_check =  function() {
     cat("Number of species to analyse: ",nrow(ambio_present), "\n")
       
     startTime = Sys.time()
-    cat(yellow("chackeKey: ", cacheKey))
-    cat(yellow(".rs.WorkingDataEnv: ", .rs.WorkingDataEnv))
-      wfo_ambio_arctic_present = WFO.match(spec.data = ambio_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 500)
+      wfo_ambio_arctic_present = WFO.match(spec.data = ambio_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 1)
       wfo_one_ambio_arctic_present = WFO.one(WFO.result = wfo_ambio_arctic_present, priority = "Accepted", spec.name = "Species")
     endTime = Sys.time()
       

@@ -11,13 +11,12 @@ filtering = function() {
     cat("Working directory: ", getwd(), "\n")
   })
   
-  getwd()
   source("components/utils.R")
   source("components/list_collector.R")
-  source("components/synonym_check.R")
-  source("components/list_merger.R")
   
   collector()
+  
+  source("components/synonym_check.R")
   
   # Ask if wanting to conduct synonym check
   synonym_check_input = readline(prompt = "Run synonym check (hours of waiting time)? 'n' loads pre-checked files. [y/n] ")
@@ -29,6 +28,7 @@ filtering = function() {
     cat("Skipping synonym Check \n")
   }
   
+  source("components/list_merger.R")
   merger()
   
   a = ""
