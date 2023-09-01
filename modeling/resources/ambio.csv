@@ -1,0 +1,344 @@
+﻿species name,West Chukotka (CW),Wrangler Island (WI),South Chukotka (CS),East Chukotka (CE),North Alaska - Yukon Territory (AN),Western Alaska (AW),Central Canada (CC),Hudson Bay - Labrador (HL),Ellesmere Land-Northern Greenland (EP),Western Greenland (GW),Eastern Greenland (GE),North Iceland (NI),Jan Mayen (JM),North Fennoscandia (FN),Svalbard (SF),Franz Joseph Land (FJL),Kanin-Pechora (KP),Polar Ural-Novaya Zemlya (UN),Yamal-Gydan (YG),Anabar-Olenyok (AO),Taimyr-Severnaya Zemlya (Tm),Kharaulakh (Kh),Yana-Kolyma (YK),
+,CW,WI,CS,CE,AN,AW,CC,HL,EP,GW,GE,NI,JM,FN,SF,FJL,KP,UN,YG,AO,Tm,Kh,YK,
+Naturalized,12,0,12,23,22,24,3,5,0,52,4,34,1,5,18,0,82,37,18,2,11,14,6,● = naturalised alien
+Invasive,0,0,0,0,9,6,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,IT = Invasive Transformer
+Transformer,0,0,0,0,3,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,IR = Rapidly spreading
+Rapidly spreading,0,0,0,0,6,12,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,○ = casual alien
+Casual,1,1,5,11,2,21,1,5,0,25,4,62,2,1,77,0,79,22,5,0,1,15,0,? = presence uncertain
+Excluded,5,0,3,6,3,9,25,31,0,3,0,4,0,71,0,0,4,3,1,0,30,2,1,× = excluded (although present on previous lists)
+Total non-native taxa,13,1,17,34,24,45,4,10,0,77,8,96,3,6,95,0,161,59,23,2,12,29,6,
+Achillea alpina subsp. multiflora (Hook.) D.F. Murray & Elven,,,,,,,×,,,,,,,,,,,,,,,,,Asteraceae
+Achillea millefolium subsp. lanulosa (Nutt.) Piper,,,,,,,,,,●,,,,,,,,,,,,,,Asteraceae
+Achillea millefolium subsp. millefolium L.,,,,,,,,,,●,●,,,,●,,,,,,,●,,Asteraceae
+Achillea ptarmica L.,,,,,,,,,,●,,×,,×,○,,●,,,,,,,Asteraceae
+Aconitum napellus subsp. lusitanicum Rouy,,,,,,,,,,,,,,×,,,,,,,,,,Ranunculaceae
+Aconitum stoerkianum Rchb.,,,,,,,,,,,,,,×,,,,,,,,,,Ranunculaceae
+Aegopodium podagraria L.,,,,,,,,,,,,●,,×,,,,,,,,,,Apiaceae
+Agropyron cristatum subsp. pectinatum (M.Bieb.) Tzvelev,,,,,,,×,,,,,,,,,,,,,,,,,Poaceae
+Agrostemma githago L.,,,,,,,,,,,,○,,,○,,○,,,,,,,Caryophyllaceae
+Agrostis canina L.,,,,,,,,,,,,,,,,,○,,,,,,,Poaceae
+Agrostis capillaris L.,,,,●,,,,,,●,,,,,○,,●,,,,,,,Poaceae
+Agrostis gigantea Roth,,,,,,,,,,,,,,,,,●,,,,,,●,Poaceae
+Agrostis clavata Trin.,×,,,×,,,,,,,,,,,,,×,,×,,,,,Poaceae
+Agrostis stolonifera L.,,,,,,○,,×,,,●,,,,,,,,,,,,,Poaceae
+Alchemilla acutiloba Opiz,,,,,,,,,,,,,,×,,,●,×,,,,,,Rosaceae
+Alchemilla baltica Sam. ex Juz.,,,,,,,,,,,,,,,,,×,,,,,,,Rosaceae
+Alchemilla mollis (Buser) Rothm.,,,,,,,,,,,,●,,,,,,,,,,,,Rosaceae
+Alchemilla monticola Opiz,,,,,,,,,,,,,,,,,●,,,,,,,Rosaceae
+Alchemilla subcrenata Buser,,,,,,,,,,○,,,,,●,,,,,,,,,Rosaceae
+Alchemilla wichurae (Buser) Stefansson,,,,,,,,,,,,,,,○,,,,,,,,,Rosaceae
+Allium angulosum L.,,,,,,,,,,,,,,,,,●,,,,,,,Amaryllidaceae
+Allium cepa L.,,,,,,,,,,,,,,,○,,,,,,,,,Amaryllidaceae
+Allium schoenoprasum L.,,,,,,,,,,,,○,,,,,,,,,,,,Amaryllidaceae
+Alopecurus geniculatus L.,,,,,,,,,,●,,,,×,○,,,,,,,,,Poaceae
+Alopecurus pratensis subsp. pratensis L.,,,○,,,○,,,,●,,●,,×,○,,●,,,,×,○,,Poaceae
+Amaranthus retroflexus L.,,,,,,○,,,,,,,,,,,○,,,,,,,Amaranthaceae
+Amsinckia lycopsoides Lehm.,,,,,,×,,,,,,,,,,,,,,,,,,Boraginaceae
+Anemone nemorosa L.,,,,,,,,,,,,,,×,,,,,,,,,,Ranunculaceae
+Anethum graveolens L.,,,,,,,,,,,,,,,,,○,,,,,,,Apiaceae
+Anthoxanthum odoratum L.,,,,,,,,,,●,,,,×,,,,,,,,,,Poaceae
+Anthriscus sylvestris subsp. sylvestris (L.) Hoffm.,,,,,,,,,,●,,IR,,,●,,●,●,,,,,,Apiaceae
+Arabidopsis arenosa subsp. arenosa (L.) Lawalrée,,,,,,,,,,○,,,,×,,,,,,,,,,Brassicaceae
+Arctium tomentosum Mill.,,,,,,,,,,,,,,,,,●,,,,,,,Asteraceae
+Arctopoa subfastigiata (Trin.) Prob.,,,,●,,,,,,,,,,,,,,,,,,,,Poaceae
+Argentina anserina subsp. anserina Rydb.,,,,,,,,,,,,,,,,,,,●,,,,,Rosaceae
+Armoracia sisymbrioides (DC.) Cajander,,,,,,,,,,,,,,,,,,,,,,●,,Brassicaceae
+Artemisia absinthium L.,,,,,,,,,,,,,,,○,,○,,,,,,,Asteraceae
+Artemisia canadensis Michx.,,,,,,×,,,,,,,,,,,,,,,,,,Asteraceae
+Artemisia jacutica Drobov,,,,,,,,,,,,,,,,,,,,,,×,,Asteraceae
+Artemisia vulgaris L.,,,,,,,,,,○,,,,×,,,●,●,●,,×,●,,Asteraceae
+Asperugo procumbens L.,,,,,,○,,,,●,,,,,,,○,,,,×,,,Boraginaceae
+Astragalus alpinus subsp. alpinus L.,,,,,,,,,,,○,,,,,,,,,,,,,Fabaceae
+Astragalus danicus Retz.,,,,,,,,,,,,,,,,,●,,,,,,,Fabaceae
+Atriplex hortensis L.,,,,,,,,,,,,,,,○,,,,,,,,,Amaranthaceae
+Atriplex prostrata subsp. prostrata Boucher ex DC.,,,,,,,,,,○,,,,,,,○,,,,,,,Amaranthaceae
+Atriplex sagittata Bkh.,,,,,,,,,,,,,,,○,,,,,,,,,Amaranthaceae
+Avena fatua L.,,,,,,,,,,,,,,,,,○,,,,,,,Poaceae
+Avena sativa L.,,,,,,,,,,,,○,,,,,○,,,,,○,,Poaceae
+Avenula pubescens (Huds.) Dumort.,,,,,,,,,,,,○,,,,,,,,,,,,Poaceae
+Axyris amaranthoides L.,○,,,○,,,,,,,,,,,○,,○,,,,,,,Amaranthaceae
+Barbarea stricta Andrz.,,,,,,,,,,●,,,,,○,,●,●,,,,,●,Brassicaceae
+Barbarea vulgaris W.T. Aiton,,,,●,,×,,×,,●,,●,,●,●,,●,●,,,×,,,Brassicaceae
+Beckmannia eruciformis subsp. borealis Tzvelev,,,,,,,,,,,,,,,,,○,,,,,○,,Poaceae
+Beckmannia syzigachne (Steud.) Fernald,,,,,,,,,,×,,,,,,,,,●,,○,,,Poaceae
+Bellis perennis L.,,,,,,,,,,,,●,,,,,,,,,,,,Asteraceae
+Berteroa incana (L.) DC.,,,,,,,,,,,,,,,,,●,,,,,,,Brassicaceae
+Bistorta officinalis Raf.,,,,,,,,,,,,○,,,,,,,,,,,,Polygonaceae
+Brassica juncea (L.) Czern.,,,,,,,,,,,,,,,,,○,,,,,,,Brassicaceae
+Brassica napus subsp. rapifera Metzg. ex Sinskaya,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Brassica oleracea L.,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Brassica rapa L.,,,,,○,,×,,,,,,,,,,,,,,,,,Brassicaceae
+Brassica rapa subsp. campestris (L.) A.R. Clapham,×,,,○,,○,,×,,○,○,○,,×,,,○,,,,●,○,,Brassicaceae
+Bromus arvensis L.,,,,,,,,,,,,,,,,,●,,,,,,,Poaceae
+Bromus hordeaceus L.,,,,,,○,,,,,,,,,,,○,,,,,,,Poaceae
+Bromus inermis Leyss.,,,●,●,●,IR,×,,,○,,●,,●,,,●,●,,,×,,,Poaceae
+Buglossoides arvensis (L.) I. M. Johnst. ,,,,,,,,,,,,,,,○,,○,,,,,,,Boraginaceae
+Bunias orientalis L.,,,,,,,,,,,,,,,,,○,,,,,,,Brassicaceae
+Calamagrostis epigejos (L.) Roth,,,,,,,,,,,,,,,,,●,,,,,,,Poaceae
+Camelina microcarpa Andrz. ex DC. ,,,,,,,,,,,,○,,,,,○,,,,,,,Brassicaceae
+Camelina sativa (L.) Crantz,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Campanula glomerata L.,,,,,,,,,,,,●,,●,,,●,,,,×,×,,Campanulaceae
+Campanula rotundifolia L.,,,,×,,×,,,,,,,,,,,,,,,,,,Campanulaceae
+Cannabis sativa L.,,,,,,,,,,,,,,,,,○,,,,,,,Cannabaceae
+Capsella bursa-pastoris (L.) Medik.,,,,,●,○,×,×,,,,,,,●,,●,●,,,●,,,Brassicaceae
+Caragana arborescens Lam. ,,,,,,IR,×,,,,,,,,,,,,,,,,,Fabaceae
+Carduus crispus L.,,,,,,,,,,○,,,,,,,●,●,,,,,,Asteraceae
+Carum carvi L.,,,,,,,,×,,○,,,,×,○,,●,●,,,,,,Apiaceae
+Cenolophium denudatum (Fisch. & Hornem.) Tutin,,,,,,,,,,,,,,,,,,×,,,,,,Apiaceae
+Centaurea cyanus L.,,,,,,,,,,,,○,,,,,○,○,,,,,,Asteraceae
+Centaurea jacea L.,,,,,,,,,,,,,,,,,●,○,,,,,,Asteraceae
+Centaurea montana L.,,,,,,,,,,,,●,,×,,,,,,,,,,Asteraceae
+Centaurea triumfettii All.,,,,,,,,,,,,○,,,,,,,,,,,,Asteraceae
+Cerastium fontanum subsp. vulgare (Hartman) Greuter & Burdet,,,,,,●,,×,,●,,○,,,○,,●,●,,,×,,,Caryophyllaceae
+Ceratocephala orthoceras DC.,,,,,,,,,,,,,,,,,○,,,,,,,Ranunculaceae
+Chaerophyllum prescottii DC.,,,,,,,,,,,,,,,,,○,,●,,,,,Apiaceae
+Chenopodium album L.,●,,●,●,●,IR,×,○,,●,,○,,×,○,,●,○,,,,○,●,Amaranthaceae
+Chenopodium capitatum (L.) Ambrosi,,,,,,,×,×,,,,,,,,,,,,,,,,Amaranthaceae
+Chenopodium prostratum Bunge ex Herder,●,,●,●,,,,,,,,,,,,,,,,,,,,Amaranthaceae
+Chenopodium suecicum J. Murr,,,,,,,,,,,,,,,,,○,,,,,,,Amaranthaceae
+Chorispora tenella (Pall.) DC.,,,,,,,,,,,,,,,,,○,,,,,,,Brassicaceae
+Cirsium arvense (L.) Scop.,,,,,IR,,,,,●,,×,,×,,,,,,,,,,Asteraceae
+Cirsium arvense subsp. setosum (Willd.) Iljin,,,,,,,,,,,,,,,,,●,●,,,,,,Asteraceae
+Conringia orientalis (L.) Dumort.,,,,,,,,,,,,○,,,○,,○,,,,,,,Brassicaceae
+Consolida regalis S. F. Gray,,,,,,,,,,,,,,,,,○,,,,,,,Ranunculaceae
+Convolvulus arvensis L.,,,,,,,,,,,,○,,,,,○,,,,,,,Convolvulaceae
+Crepis tectorum L.,,,,,IR,IR,×,,,○,,,,,,,,,,,,,,Asteraceae
+Dactylis glomerata L.,,,,,,,,,,●,,●,,×,○,,●,,,,,,,Poaceae
+Deschampsia cespitosa subsp. beringensis (Hultén) W.E.Lawr.,,,,,,,,,,,,●,,,,,,,,,,,,Poaceae
+Deschampsia cespitosa subsp. cespitosa (L.) P. Beauv.,,,,,,×,,,,×,,,,,●,,,●,,,,,,Poaceae
+Descurainia incana L. ,,,,,,,,×,,,,,,,,,,,,,,,,Brassicaceae
+Descurainia sophia (L.) Webb,,,,,×,×,,,,○,,,,×,○,,●,●,,,,,,Brassicaceae
+Draba nemorosa L.,●,,,,,,,,,,,,,,,,●,×,●,●,×,●,,Brassicaceae
+Draba verna L.,,,,,,,,,,○,,,,×,,,,,,,,,,Brassicaceae
+Dracocephalum parviflorum Nutt.,,,,,,,,×,,,,,,,,,,,,,,,,Lamiaceae
+Echinochloa crus-galli (L.) P.Beauv.,,,,○,,,,,,,,,,,,,,,,,,,,Poaceae
+Elymus repens (L.) Gould,,,●,,●,●,×,×,,●,,,,×,○,,●,●,,,,,,Poaceae
+Epilobium ciliatum subsp. ciliatum  Rafin.,,,,,,,,,,,,●,,,,,,,,,,,,Onagraceae
+Erodium cicutarium (L.) L'Hér.,,,,,,,,,,,,,,,○,,○,○,,,,,,Geraniaceae
+Erysimum cheiranthoides L.,,,,,,,,,,,,,,,○,,,,●,,,,,Brassicaceae
+"Erysimum strictum P. Gaertn., B. Mey. & Scherb.",,,,,,,,,,,,,,,○,,,,,,,,,Brassicaceae
+Erythranthe guttata (DC.) G.L.Nesom,,,,,,,,,,,,○,,,,,,,,,,,,Phrymaceae
+Euphrasia parviflora Schag.,,,,,,,,,,,,,,,,,●,,,,,,,Orobanchaceae
+Fagopyrum esculentum Moench,,,,,,,,,,,,○,,,○,,○,,,,,,,Polygonaceae
+Fagopyrum tataricum (L.) Gaertn.,,,,,,,,,,,,,,,,,○,,,,,,,Polygonaceae
+Fallopia convolvulus (L.) A. Löve,,,,,,○,,,,,,○,,,○,,○,○,,,,○,,Polygonaceae
+Festuca ovina L.,,,,,,,,,,,,○,,,,,,,,,,,,Poaceae
+Festuca rubra subsp. megastachya Gaudin,,,,,,,,,,,,,,,○,,,,,,,,,Poaceae
+Festuca rubra subsp. rubra L.,,,,,,,●,●,,,,,,,●,,,,,,,,,Poaceae
+Fumaria officinalis L.,,,,,,,,,,,,,,,,,○,,,,,,,Papaveraceae
+Galeopsis bifida Boenn.,,,,,,,,×,,,,,,,,,●,●,,,×,,,Lamiaceae
+Galeopsis ladanum L.,,,,,,,,,,,,,,,,,○,○,,,,,,Lamiaceae
+Galeopsis speciosa Mill.,,,,,,,,,,,,,,,,,●,,,,,,,Lamiaceae
+Galeopsis tetrahit L.,,,,,,○,,,,,,●,,,○,,●,,,,,,,Lamiaceae
+Galium aparine L.,,,,,,,○,,,○,,○,,,○,,○,,,,,,,Rubiaceae
+Galium mollugo subsp. erectum Syme,,,,,,,,,,○,,○,,×,○,,●,,,,,,,Rubiaceae
+Galium spurium subsp. vaillantii (DC.) Gaudin. ,,,,●,,,,,,,,,,×,,,,,,,×,,,Rubiaceae
+Galium verum L.,●,,×,●,,,,,,,,,,×,,,,,,,,,,Rubiaceae
+Glechoma hederacea L.,,,,,,,,,,,,,,×,,,○,●,●,,,,,Lamiaceae
+Gnaphalium sylvaticum L.,,,,,,,,,,,,,,×,,,,,,,,,,Asteraceae
+Gnaphalium uliginosum L.,,,,,,○,,,,●,,,,,,,,,,,,,,Asteraceae
+Helianthus annuus L.,,,,,,,,,,,,,,,○,,,,,,,,,Asteraceae
+Heracleum persicum Desf.,,,,,,,,,,,,○,,●,,,,,,,,,,Apiaceae
+Heracleum sphondylium subsp. sibiricum (L.) Simonk.,,,,,,,,,,,,,,×,,,,,,,,,,Apiaceae
+Hesperis matronalis L.,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Hieracium vulgatum R.E. Fr.,,,,,,,,,,,,,,,○,,,,,,,,,Asteraceae
+Hordeum brachyantherum Nevski,,,,,,×,,,,,,,,,,,,,,,,,,Poaceae
+Hordeum brevisubulatum (Trin.) Link,,,,,,,,,,,,,,,,,,,,,,○,,Poaceae
+Hordeum jubatum L.,●,○,●,●,IR,IR,,×,,●,,○,,,,,,,,,,,●,Poaceae
+Hordeum vulgare L.,,,,,,×,,,,,,○,,,○,,,,,,,,,Poaceae
+Hyoscyamus niger L.,,,,,,,,,,,,,,,,,●,,,,,,,Solanaceae
+Iris pseudacorus L.,,,,,,,,,,,,○,,,,,,,,,,,,Iridaceae
+Impatiens noli-tangere L.,,,,,,,,,,,,,,,,,,,,,×,,,Balsaminaceae
+Jacobaea erucifolia Gaertn. Mey. & Scherb.,,,,,,,,,,,,,,,,,○,,,,,,,Asteraceae
+Juncus bufonius L.,,,○,○,,×,×,×,,×,,,,×,,,●,,●,,●,,,Juncaceae
+Juncus compressus Jacq.,,,,,,,,,,,,,,,,,○,,,,,,,Juncaceae
+Juncus nodosus L.,,,,,,,,×,,,,,,,,,,,,,,,,Juncaceae
+Lactuca tatarica (L.) C. A. Meyer,,,,,,,,,,,,,,,,,○,,,,,,,Asteraceae
+Lamium album L.,,,,,,,,,,,,●,,,,,,,,,,,,Lamiaceae
+Lamium purpureum L.,,,,,,,,,,●,,●,,,,,○,,,,,,,Lamiaceae
+Lappula marginata (M. Bieb.) Gürke,,,,,,,,,,,,○,,,,,,,,,,,,Boraginaceae
+Lappula occidentalis (S. Watson) Greene,,,,,●,,×,,,,,,,,,,,,,,,,,Boraginaceae
+Lappula patula (Lehm.) Gürke,,,,,,,,,,,,,,,,,○,,,,,,,Boraginaceae
+Lappula squarrosa (Retz.) Dumort.,,,,,,,×,,,,,,,×,○,,●,○,,,×,,×,Boraginaceae
+Lapsana communis L.,,,,,,,,,,,,○,,,○,,,,,,,,,Asteraceae
+Lathyrus pratensis L.,,,,,,,,,,●,,,,×,○,,,,○,,,,,Fabaceae
+Leontodon hispidus L.,,,,,,,,,,,,,,,,,●,,,,,,,Asteraceae
+Lepidium campestre (L.) W.T. Aiton,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Lepidium densiflorum Schrad.,,,,,●,,,,,,,○,,,○,,,,,,,,,Brassicaceae
+Lepidium heterophyllum Benth.,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Lepidium perfoliatum L.,,,,,,,,,,,,,,,,,○,,,,,,,Brassicaceae
+Lepidium ramosissimum A. Nelson,,,,,●,,,,,,,,,,,,,,,,,,,Brassicaceae
+Lepidium ruderale L.,,,,,,,,,,,,,,,,,○,○,,,,,,Brassicaceae
+Lepidium sativum L.,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Lepidotheca suaveolens (Pursh) Nutt.,,,,●,●,●,×,×,,●,,●,,×,○,,●,●,,,,,,Asteraceae
+Leptopyrum fumarioides (L.) Rchb. ,,,,,,,,,,,,,,,,,,,,,,○,,Ranunculaceae
+Leucanthemum vulgare Lam.,,,,,IR,IR,,×,,○,,●,,×,,,●,,,,,,,Asteraceae
+Linaria vulgaris Mill.,,,,,IR,,,×,,●,,,,×,,,●,,,,,,,Plantaginaceae
+Lolium multiflorum Lam. ,,,,,,,,,,,,○,,,,,,,,,,,,Poaceae
+Lolium perenne L.,,,,,,○,●,●,,○,,○,,×,,,,,,,,,,Poaceae
+Lotus corniculatus L.,,,,,,,,,,,,,,,,,,,,,,,,Fabaceae
+Lupinus nootkatensis Donn ex Sims,,,,,,,,,,●,,IT,,○,,,,,,,,,,Fabaceae
+Lupinus polyphyllus Lindl.,,,,,,,,,,,,○,,,,,,,,,,,,Fabaceae
+Luzula luzuloides (Lam.) Dandy & Wilmott,,,,,,,,,,,,,,×,,,,,,,,,,Juncaceae
+Luzula multiflora subsp. multiflora (Ehrh.) Lej.,,,,,,,,,,●,,,,×,,,,,,,,,,Juncaceae
+Luzula pallescens Sw.,,,,,,,,,,,,,,×,,,,,,,,,,Juncaceae
+Lycopsis arvensis subsp. arvensis,,,,,,,,,,,,○,,,,,,,,,,,,Boraginaceae
+Lysimachia arvensis U.Manns & Anderb.,,,,,,,,,,,,,,,,,○,,,,,,,Primulaceae
+Malus pumila Mill. ,,,,,,,,,,,,,○,×,○,,,,,,,,,Rosaceae
+Malva pusilla Sm.,,,,,,,,,,,,,,,,,○,,,,,,,Malvaceae
+Matricaria recutita L.,,,,×,,,,,,○,,,,×,,,○,,,,,,,Asteraceae
+Medicago lupulina L.,,,,,,,,,,,,,,,○,,○,○,,,,○,,Fabaceae
+Medicago falcata L.,,,,,,,,,,,,,,,,,,,,,,○,,Fabaceae
+Medicago polymorpha L.,,,,,,,,,,,,,,,○,,,,,,,,,Fabaceae
+Medicago sativa subsp. varia (Martyn)Arcang.,,,,,,,×,,,,,,,,,,,,,,,,,Fabaceae
+Melilotus albus Medik.,,,,,IT,,×,×,,○,,○,,,,,○,●,,,,,,Fabaceae
+Melilotus officinalis (L.)Pall.,,,,,,,,,,,,○,,,○,,●,,,,,,,Fabaceae
+Mentha arvensis L.,,,,,,,,,,,,,,,,,×,,,,,,,Lamiaceae
+Myosotis arvensis (L.) Hill,,,,,,,,,,●,,,,×,○,,○,,,,×,,,Boraginaceae
+Myosotis laxa subsp. caespitosa (C.F.Schultz) Nordh.,,,,,,,,,,,,,,×,,,●,,●,,●,,,Boraginaceae
+Myosotis scorpioides L.,,,,,,○,,,,,,●,,,,,,,,,,,,Boraginaceae
+Myrrhis odorata (L.) Scop.,,,,,,,,,,,,●,,,,,,,,,,,,Apiaceae
+Neslia paniculata (L.) Desv.,,,,,,,,,,,,,,,,,○,○,,,,,,Brassicaceae
+"Oxybasis glauca S.Fuentes, Uotila & Borsch",,,,,,,,,,,,,,,,,○,,,,,,,Amaranthaceae
+"Oxybasis rubra (L.) S.Fuentes, Uotila & Borsch",,,,,,,,,,,,,,,,,○,○,,,,,,Amaranthaceae
+Papaver croceum Ledeb.,,,,,○,○,,○,,●,,●,,×,,,,,,,,,,Papaveraceae
+Papaver somniferum L.,,,,,,,,,,,,○,,,,,○,,,,,,,Papaveraceae
+Pedicularis adunca M. Bieb. ex Steven,,,×,,,,,,,,,,,,,,,,,,,,,Orobanchaceae
+Persicaria lapathifolia (L.) S.F.Gray,,,,,,,,,,,,○,,,,,●,,,,,,,Polygonaceae
+Phleum pratense subsp. pratense L.,,,,,,●,,○,,●,,●,,×,○,,●,●,,,,○,,Poaceae
+Pilosella aurantiaca F. Schultz & Sch. Bip. ,,,,,,,,,,,,●,,×,,,,,,,,,,Asteraceae
+Pilosella onegensis Norrl.,,,,,,,,,,,,,,×,,,,,,,,,,Asteraceae
+Pimpinella saxifraga L. ,,,,,,,,,,,,,,×,,,,,,,,,,Apiaceae
+Pisum sativum L.,,,,,,,,,,,,,,,○,,,,,,,,,Fabaceae
+Plantago canescens subsp. canescens Adams ,,,,,,,,,,,,,,,,,,,,,,●,,Plantaginaceae
+Plantago depressa Willd.,×,,,●,,,,,,,,,,,,,,,,,,●,,Plantaginaceae
+Plantago lanceolata L.,,,,○,,,,,,○,,,,,,,●,○,,,×,,,Plantaginaceae
+Plantago major L.,●,,,●,●,IR,×,×,,○,,,,×,○,,●,,○,,●,●,,Plantaginaceae
+Plantago media L.,,,,○,,,,,,,,,,,○,,●,●,,,,,,Plantaginaceae
+Plantago salsa Pall.,,,,○,,,,,,,,,,,,,,,,,,,,Plantaginaceae
+Poa annua L.,,,,,,IR,,×,,,,,,,●,,●,●,,,●,,,Poaceae
+Poa compressa L.,,,,●,,○,×,×,,,,,,×,,,,,,,,,,Poaceae
+Poa nemoralis subsp. nemoralis L. ,,,,,,,,×,,,,,,,,,,,,,,,,Poaceae
+Poa palustris L.,,,,,,,,,,○,,,,×,○,,,,,,,,,Poaceae
+Poa pratensis subsp. angustifolia (L.) Gaudin,,,●,,,,,,,●,,,,,○,,●,,,,,,,Poaceae
+Poa pratensis subsp. irrigata (Lindm.) H. Lindb.,,,,,,,,●,,,,,,,●,,,,,,,,,Poaceae
+Poa pratensis subsp. pratensis L.,,,,,●,●,●,●,,●,●,○,,×,●,,,,,,,,,Poaceae
+Poa supina Schrad.,,,,,,,,,,,,,,,,,●,●,,,●,,,Poaceae
+Poa trivialis subsp. trivialis L.,,,,●,,,,,,●,,,,,○,,×,,,,,,,Poaceae
+Polemonium caeruleum L.,,,,,,,,,,,,○,,,,,,,,,,,,Polemoniaceae
+Polygonum aviculare L. ,,,●,,●,IR,×,○,,,○,,,×,○,,●,●,,,×,○,,Polygonaceae
+Polygonum boreale (Lange) Small,,,,,,,,,,,●,,,,,,,,○,,,,,Polygonaceae
+Polygonum convolvulus L.,●,,●,●,,,,,,●,,,,,,,,,,,,,,Polygonaceae
+Potentilla argentea L.,,,,,,,,,,,,,,×,,,○,,,,,,,Rosaceae
+Potentilla erecta (L.) Räuschel,,,,,,,,,,,,●,,,,,,,,,,,,Rosaceae
+Potentilla intermedia L.,,,,,,,,,,,,,,×,,,,,,,,,,Rosaceae
+Potentilla intermedia L.,,,,,,,,,,,,,,,,,○,,,,,,,Rosaceae
+Potentilla norvegica L.,,,,●,,,,,,●,,,,×,,,●,,,,×,,,Rosaceae
+Potentilla pensylvanica L.,,,,×,,,,,,,,,,,,,,,,,,,,Rosaceae
+Potentilla supina L.,,,,,,,,,,,,,,,,,○,,,,,,,Rosaceae
+Potentilla tergemina Soják,,,,●,,,,,,,,,,,,,,,,,,,,Rosaceae
+Potentilla thuringiaca Bernh. ex Link,,,,,,,,,,,,,,×,,,,,,,,,,Rosaceae
+Primula elatior (L.) L.,,,,,,,,,,,,,,●,,,,,,,,,,Primulaceae
+Prunella vulgaris L.,,,,,,,,,,,,,,×,,,●,,,,,,,Lamiaceae
+Prunus domestica L.,,,,,,,,,,,,,,,○,,,,,,,,,Rosaceae
+Prunus padus L.,,,,,IR,,,,,,,,,,,,,,,,,,,Rosaceae
+Puccinellia distans (Jacq.) Parl.,,,,,,,,,,,,,,,,,●,●,●,,,●,,Poaceae
+Puccinellia hauptiana (Trin. ex V.I. Krecz.) Kitag.,●,,●,●,,,,,,,,,,,,,●,●,●,●,●,●,●,Poaceae
+Ranunculus acris L. ,,,,,,○,,×,,,,,,,○,,●,●,,,●,,,Ranunculaceae
+Ranunculus acris subsp. friesianus (Jordan) Syme,,,,,,,,,,,,,,,●,,,,,,,,,Ranunculaceae
+Ranunculus auricomus agg.,,,,,,,,,,,,,,,○,,,,,,●,,,Ranunculaceae
+Ranunculus polyanthemos L.,,,,,,,,,,,,,,,,,●,,,,,,,Ranunculaceae
+Ranunculus repens L.,,,,,,●,,,,●,,,,,●,,,,,,,,,Ranunculaceae
+Ranunculus sceleratus subsp. sceleratus L.,,,,,,,,,,,,,,,,,●,,●,,,,,Ranunculaceae
+Ranunculus subborealis subsp. villosus (Drabble) Elven,,,,,,,,,,,,,,,●,,,,,,,,,Ranunculaceae
+Raphanus raphanistrum L.,,,,○,,,,,,,,○,,,○,,○,○,,,,○,,Brassicaceae
+Raphanus sativus L.,,,,,,,,,,,,○,,,,,,,,,,,,Brassicaceae
+Reseda lutea L.,,,,,,,,,,,,,,,,,○,,,,,,,Resedaceae
+Rheum rhabarbarum L.,,,,,,○,,,,,,○,,,,,,,,,,,,Polygonaceae
+Rhinanthus alectorolophus (Scop.) Pollich,,,,,,,,,,,,,,,,,○,○,,,,,,Orobanchaceae
+Rhinanthus angustifolius C. C. Gmelin,,,,,,,,,,,,○,,,,,,,,,,,,Orobanchaceae
+Rhinanthus minor L.,,,,,,,,,,,,,,,,,●,,,,,,,Orobanchaceae
+Ribes × pallidum Otto & F. Dietr.,,,,,,,,,,,,●,,,,,,,,,,,,Grossulariaceae
+Ribes dikuscha Fisch. ex Turcz.,,,,×,,,,,,,,,,,,,,,,,,,,Grossulariaceae
+Rorippa barbareifolia (DC.) Kitag.,●,,●,●,,,,,,,,,,,,,,,,,,,,Brassicaceae
+Rorippa palustris subsp. palustris (L.) Besser,,,,,,,,,,●,,,,,○,,,,,,,,,Brassicaceae
+Rorippa sylvestris subsp. sylvestris (L.) Besser,,,,,,,,,,,,○,,,○,,,,,,,,,Brassicaceae
+Rubus idaeus subsp. idaeus L.,,,,,,,,,,●,,,,,,,,,,,,,,Rosaceae
+Rumex acetosa L.,,,,,,,,,,,,,●,,●,,●,,,,×,,,Polygonaceae
+Rumex acetosella L. ,,,,,,○,,×,,○,○,,,,○,,,●,●,,×,●,,Polygonaceae
+Rumex aquaticus L.,●,,,,,,,,,,,,,,,,,,,,×,,,Polygonaceae
+Rumex confertus Willd.,,,,,,,,,,,,,,×,,,●,●,,,,,,Polygonaceae
+Rumex crispus L.,,,,,,●,,,,,,,,,○,,○,,,,,,,Polygonaceae
+Rumex longifolius DC.,,,,●,,,,,,●,,×,○,,○,,●,,●,,×,,,Polygonaceae
+Rumex maritimus L.,,,,,,,,,,,,,,,,,○,,,,×,,,Polygonaceae
+Rumex obtusifolius subsp. sylvestris (Lam.) Celak.,,,,,,,,,,,,○,,,,,,,,,,,,Polygonaceae
+Rumex obtusifolius subsp. obtusifolius L.,,,,,,,,,,○,,,,,,,,,,,,,,Polygonaceae
+Rumex thyrsiflorus Fingerh.,,,,,,,,,,,,,,,,,,○,,,,,,Polygonaceae
+Rumex ucranicus Fisch.,,,,,,,,,,,,,,,,,○,,,,,,,Polygonaceae
+Sagina procumbens L. ,,,,,,,,×,,,,,,,,,●,●,,,,,,Caryophyllaceae
+Salix alaxensis (Anderss.) Coville,,,,,,,,,,,,●,,,,,,,,,,,,Salicaceae
+Salix myrsinifolia subsp. borealis (Flod.) A.K.Skvortsov,,,,,,,,,,,,●,,,,,,,,,,,,Salicaceae
+Sanguisorba alpina Bunge,,,,,,,,,,,,●,,,,,,,,,,,,Rosaceae
+Sanguisorba officinalis L.,,,,,,,,,,,,,,,○,,,,,,,,,Rosaceae
+Saussurea alpina (L.) DC.,,,,,,,,,,,,,,,○,,,,,,,,,Asteraceae
+Saxifraga hypnoides L.,,,,,,,,,,,,,,×,,,,,,,,,,Saxifragaceae
+Saxifraga umbrosa L.,,,,,,,,,,,,○,,,,,,,,,,,,Saxifragaceae
+Schedonorus pratensis (Huds.) P. Beauv.,×,,○,,,IR,,,,●,,,,×,,,○,●,,,×,,,Poaceae
+Scorzoneroides autumnalis Moench,,,,,,IR,,,,●,,,,×,,,●,●,,,×,,,Asteraceae
+Secale cereale L.,,,,,,,,,,,,○,,,○,,○,,,,,,,Poaceae
+Senecio pseudoarnica Less.,,,,,,,,,,,,●,,,,,,,,,,,,Asteraceae
+Senecio vernalis Waldst. & Kit.,,,,,,,,,,,,○,,,,,,,,,,,,Asteraceae
+Senecio viscosus L.,,,,,,,,,,,,,,,,,●,,,,,,,Asteraceae
+Senecio vulgaris L.,,,,○,×,○,,×,,●,,×,,,○,,●,,,,,,,Asteraceae
+Silene dioica subsp. dioica (L.) Clairv. ,,,,,,,,,,,,●,,,,,,,,,,,,Caryophyllaceae
+Silene flos-cuculi (L.) Greuter & Burdet,,,,,,,,,,,,,,,,,○,○,,,,,,Caryophyllaceae
+Silene latifolia subsp. alba (Miller) Greuter & Burdet,,,,,,,,,,,,,,,○,,○,●,,,,,,Caryophyllaceae
+Silene noctiflora L.,,,,,,○,,,,,,,,,,,,,,,,,,Caryophyllaceae
+Silene vulgaris subsp. vulgaris (Moench) Garcke,,,,,,,,,,○,,,,×,,,●,●,,,×,,,Caryophyllaceae
+Sinapis alba L.,,,,,,,,,,,,○,,,,,○,,,,,,,Brassicaceae
+Sinapis arvensis L.,,,○,○,,,,,,,,○,,,○,,●,,,,,○,,Brassicaceae
+Sisymbrium altissimum L.,,,,,,,,,,,,○,,,○,,○,,,,,,,Brassicaceae
+Sisymbrium loeselii L.,,,,,,,,,,,,,,,,,○,,,,,,,Brassicaceae
+Sisymbrium polymorphum (Murray) Roth,,,,,,,,,,,,,,,,,○,,,,,,,Brassicaceae
+Sisyrinchium montanum Greene,,,,,,,,,,●,,,,,,,,,,,,,,Iridaceae
+Sonchus arvensis L.,,,,●,,,×,×,,,,,,,,,○,,,,×,,,Asteraceae
+Sonchus oleraceus L.,,,,,,,,,,,,,,,○,,●,,,,,,,Asteraceae
+Spergularia rubra (L.) J. Presl & C. Presl,,,,,,,,,,●,,,,×,,,,,,,,,,Caryophyllaceae
+Sphallerocarpus gracilis (Besser ex Trevir.) Koso-Pol.,,,×,●,,,,,,,,,,,,,,,,,,,,Apiaceae
+Stellaria graminea L.,,,,,,,,,,●,,●,,,○,,,,,,,,,Caryophyllaceae
+Stellaria holostea L.,,,,,,,,,,,,,,,,,,○,,,,,,Caryophyllaceae
+Stellaria media (L.) Vill.,●,,●,●,●,●,×,×,,,,,,,●,,●,○,●,,●,,,Caryophyllaceae
+Symphytum asperum Lepechin,,,,,,,,,,,,,,×,,,○,,,,,,,Boraginaceae
+Tanacetum vulgare ,,,,,,,×,,,○,,○,,×,○,,●,,,,×,●,,Asteraceae
+Taraxacum ruderalia agg.,,,,,IR,IR,×,●,,●,,,,,●,,●,●,,,,,,Asteraceae
+Thlaspi arvense L.,,,,○,,○,×,○,,●,,○,,×,○,,●,○,,,×,,,Brassicaceae
+Tragopogon orientalis L.,,,,,,,,,,,,,,,,,○,,,,,,,Asteraceae
+Trifolium arvense L.,,,,,,,,,,,,,,,,,○,,,,,,,Fabaceae
+Trifolium hybridum L.,,,,,IT,IR,,×,,●,,●,,×,○,,●,●,,,×,,,Fabaceae
+Trifolium lupinaster L.,×,,○,,,,,,,,,,,,,,,,,,,,,Fabaceae
+Trifolium montanum L.,,,,,,,,,,,,,,×,,,,,,,,,,Fabaceae
+Trifolium pratense L.,,,●,×,,,,,,●,,●,,×,○,,●,●,●,,×,,,Fabaceae
+Trifolium repens L.,,,,,×,IR,,×,,●,,,,,●,,●,●,●,,×,●,,Fabaceae
+Trifolium spadiceum L.,,,,,,,,,,,,,,,,,○,○,,,,,,Fabaceae
+Trifolium variegatum Torr. & A.Gray,,,,,,○,,,,,,,,,,,,,,,,,,Fabaceae
+Tripleurospermum inodorum (L.) Sch.-Bip,,,,,,IR,×,,,○,,○,,×,○,,●,○,○,,,●,,Asteraceae
+Tripleurospermum maritimum subsp. subpolare (Pobed.) Hämet-Ahti,,,,,,,,,,●,,,,,●,,,,,,,,,Asteraceae
+Tripleurospermum tetragonospermum (F. Schmidt) Pobed.,●,,,,,,,,,,,,,,,,,,,,,,,Asteraceae
+Triticum aestivum L.,,,,,,,,,,,,○,,,,,○,,,,,,,Poaceae
+Tussilago farfara L.,,,,,,,,,,,,,,,○,,,,,,,,,Asteraceae
+Urtica dioica subsp. dioica L. ,,,,,,,,,,●,,●,,,○,,●,●,●,,,,●,Urticaceae
+Urtica urens L.,,,,,,,,,,●,,,,,,,○,,○,,,,,Urticaceae
+Valeriana officinalis L.,,,,,,,,,,,,○,,,,,○,,,,,,,Caprifoliaceae
+Veronica chamaedrys L.,,,,,,,,,,,,,,×,,,,,,,,,,Plantaginaceae
+Veronica gentianoides Vahl,,,,,,,,,,,,○,,,,,,,,,,,,Plantaginaceae
+Veronica longifolia L.,,,,,,,,,,,,,,,○,,,,,,,,,Plantaginaceae
+Veronica serpyllifolia subsp. serpyllifolia L.,,,,,,,,,,●,,,,,,,●,,,,,,,Plantaginaceae
+Vicia angustifolia L.,,,,,,,,,,,,,,,,,○,,,,,,,Fabaceae
+Vicia cracca L.,,,,,IT,IT,,×,,,,,,,,,,,,,,,,Fabaceae
+Vicia hirsuta (L.)Gray,,,,,,,,,,,,,,,,,●,○,,,,●,,Fabaceae
+Vicia sativa L.,,,,,,,,,,,,○,,,○,,○,,,,,,,Fabaceae
+Vicia sepium L.,,,,,,,,,,●,,,,×,,,,,,,,,,Fabaceae
+Vicia tenuifolia Roth,,,,,,,,,,,,,,,,,●,,,,,,,Fabaceae
+Vicia tetrasperma (L.)Schreb.,,,,,,,,,,,,,,,,,,,,,,○,,Fabaceae
+Viola arvensis Murray,,,,,,,,,,,,,,,,,○,,,,,,,Violaceae 
+Viola tricolor L. ,,,,,,,,,,,,,,×,,,,,,,,,,Violaceae 

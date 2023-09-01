@@ -1,6 +1,6 @@
 message("Initiating ABA wrangling")
 # read CSV file
-ABA_preformat = read.csv("resources/ABA.csv", header = F)
+ABA_preformat = read.csv("resources/aba.csv", header = F)
 ncol(ABA_preformat)
 
 ## format the ABA CSV file
@@ -127,17 +127,24 @@ c1 = ifelse(ABA_formatted$Borderline == 1, TRUE, FALSE)
 c2 = apply(ABA_formatted[, 7:32], 1, function(x) all(x %in% c("-", "?", "**")))
 
 ## use the !conditions to get species present in the Arctic
-aba_arctic_present = ABA_formatted[!(c1 | c2), ]
+aba_present = ABA_formatted[!(c1 | c2), ]
 ## remove the rows with empty cell from column 7 to 33.
-aba_arctic_present = aba_arctic_present[!apply(aba_arctic_present[, 7:33], 1, function(x) any(x == "")), ]
+aba_present = aba_present[!apply(aba_present[, 7:33], 1, function(x) any(x == "")), ]
 ## Select only the species_SubSpecies column
-aba_arctic_present = select(aba_arctic_present, Species_SubSpecies)
+aba_present = select(aba_present, Species_SubSpecies)
+aba_present$Species_SubSpecies = trimws(aba_present$Species_SubSpecies)
 
 ## use conditions to create a new dataset by choosing only those satisfying the conditions from the ABA_formatted dataset
-aba_arctic_absent = ABA_formatted[c1 | c2, ]
+aba_absent = ABA_formatted[c1 | c2, ]
 ## remove the rows with empty cell from column 7 to 33.
-aba_arctic_absent = aba_arctic_absent[!apply(aba_arctic_absent[, 7:33], 1, function(x) any(x == "")), ]
+aba_absent = aba_absent[!apply(aba_absent[, 7:33], 1, function(x) any(x == "")), ]
 ## select only the species with subspecies name
-aba_arctic_absent = select(aba_arctic_absent, Species_SubSpecies)
+aba_absent = select(aba_absent, Species_SubSpecies)
+aba_absent$Species_SubSpecies = trimws(aba_absent$Species_SubSpecies)
+
+write.csv(ABA_preformat, "outputs/origin_lists/aba_preformat.csv", row.names = F, fileEncoding = "UTF-8")
+write.csv(ABA_formatted, "outputs/wrangling_outputs/aba/aba_formatted.csv", row.names = F, fileEncoding = "UTF-8")
+write.csv(aba_present, "outputs/wrangling_outputs/aba/aba_arctic_present.csv", row.names = F, fileEncoding = "UTF-8")
+write.csv(aba_absent, "outputs/wrangling_outputs/aba/aba_arctic_absent.csv", row.names = F, fileEncoding = "UTF-8")
 
 cat("ABA data wrangling completed \n")
