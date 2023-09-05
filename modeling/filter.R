@@ -14,7 +14,7 @@ filtering = function() {
   source("components/utils.R")
   source("components/list_collector.R")
   
-  collector()
+  components = collector()
   
   source("components/synonym_check.R")
   
@@ -23,7 +23,15 @@ filtering = function() {
   
   # Source the synonym check if wanted
   if(tolower(synonym_check_input) == "y") {
-    synonym_check()
+    wfo_one_dfs = synonym_check(
+      components$test_species,
+      components$aba_present,
+      components$aba_absent,
+      components$ambio_present,
+      components$ambio_absent,
+      components$gbif_species,
+      components$glonaf_species
+      )
   } else {
     cat("Skipping synonym Check \n")
   }

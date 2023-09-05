@@ -5,22 +5,24 @@ merger = function() {
   ## Define components and their associated file paths
   components = list(
     aba = list(
-      present = "wfo_one_aba_present",
-      absent = "wfo_one_aba_absent"
+      present = "outputs/wfo_one_outputs/wfo_one_aba_arctic_present.csv",
+      absent = "outputs/wfo_one_outputs/wfo_one_aba_arctic_absent.csv"
     ),
     ambio = list(
-      present = "wfo_one_ambio_present",
-      absent = "wfo_one_ambio_absent"
+      present = "outputs/wfo_one_outputs/wfo_one_ambio_arctic_present.csv",
+      absent = "outputs/wfo_one_outputs/wfo_one_ambio_arctic_absent.csv"
     ),
-    gbif = list(species = "wfo_one_gbif_species"),
-    glonaf = list(species = "wfo_one_glonaf_species")
+    gbif = list(species = "outputs/wfo_one_outputs/wfo_one_gbif_species.csv"),
+    glonaf = list(species = "outputs/wfo_one_outputs/wfo_one_glonaf_species.csv")
   )
   
   ## Iterate over components
   for (component in names(components)) {
     if (component != "gbif" && component != "glonaf") {
-      present_data = get(components[[component]]$present)
-      absent_data = get(components[[component]]$absent)
+      present_data = read.csv(components[[component]]$present)
+      absent_data = read.csv(components[[component]]$absent)
+      
+      print(present_data)
       
       ## Select the scientific names and remove NA
       present_data = present_data %>% 
@@ -42,11 +44,11 @@ merger = function() {
       absent_data = distinct(absent_data)
       cat(paste0("All ", component, "_arctic_absent are distinct: ", any(!duplicated(absent_data)), "\n"))
       
-      ## Assign data to global environment
-      assign(paste0(component, "_arctic_present"), present_data, envir = .GlobalEnv)
-      assign(paste0(component, "_arctic_absent"), absent_data, envir = .GlobalEnv)
+      # store the results in a list
+      results[[paste0(component, "_arctic_present")]] = present_data
+      results[[paste0(component, "_arctic_absent")]] = absent_data
     } else {
-      species_data = get(components[[component]]$species)
+      species_data = read.csv(components[[component]]$species)
       species_data = species_data %>% 
         select(scientificName) %>% 
         filter(!is.na(scientificName))
@@ -54,10 +56,10 @@ merger = function() {
       ## Remove duplicates
       species_data = distinct(species_data)
       
-      ## Assign data to global environment
-      assign(paste0(component, "_species"), species_data, envir = .GlobalEnv)
+      results[[paste0(component, "_species")]] = species_data
     }
   }
+  print(names(results))
   
   aba_ambio = function() {
     present = function() {

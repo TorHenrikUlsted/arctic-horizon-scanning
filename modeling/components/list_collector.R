@@ -2,6 +2,7 @@ collector = function() {
   ## Source scripts ETC 10 min without the synonym check
   startTime = Sys.time()
   
+  
   ## Define components and their associated file paths
   components = list(
     aba = list(
@@ -21,9 +22,12 @@ collector = function() {
     glonaf = list(
       source = "components/glonaf_wrangling.R",
       species = "outputs/wrangling_outputs/glonaf/glonaf_species_names.csv"
-    )
+    ),
+    test = list(
+      source = "components/test.R",
+      species = "outputs/wrangling_outputs/test/test_species.csv"
+    ) 
   )
-  
   
   
   missing_source_files = character(0)  # Initialize an empty vector to store missing source file names
@@ -67,7 +71,7 @@ collector = function() {
   
   
   # Create command line
-  simpleListNames = c("aba", "ambio", "gbif", "glonaf")
+  simpleListNames = c("aba", "ambio", "gbif", "glonaf", "test")
   multiListNames = c("a", "n")
   inputString = ""
   wranglePromptMessage = paste("Which lists do you want to wrangle? load pre-wrangled files with 'n'. The possible commands are: \n list names: ", 
@@ -89,7 +93,9 @@ collector = function() {
     inputCommands = character(0)
   }
   
-  ## Iterate over components
+  # Create an empty list to store the data frames
+  data_frames = list()
+  
   for (component in names(components)) {
     if (component %in% inputCommands) {
       ## Source component files
@@ -102,7 +108,8 @@ collector = function() {
         tryCatch({
           var_name = paste0(component, "_", field)
           data_frame = read.csv(file)
-          assign(var_name, data_frame, envir = .GlobalEnv)
+          # Store the data frame in the list
+          data_frames[[var_name]] = data_frame
         }, warning = function(w) {
           print(paste("Warning:", w))
         }, error = function(e) {
@@ -112,6 +119,8 @@ collector = function() {
     }
   }
   
+  # Return the list of data frames
+  return(data_frames)
   
   # Stop sourcing timer
   endTime = Sys.time()
