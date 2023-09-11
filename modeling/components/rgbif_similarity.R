@@ -1,7 +1,9 @@
 rgbif_simliarity_check = function(scientific_names) {
   message("------ Checking duplicates against GBIF database ------")
   
-  cat("Using the name lookup method \n")
+  cc = custom_colors()
+  
+  cat(cc$paleTurquoise("Using the name lookup method \n"))
   
   ## Only look in the vascular plants
   higherTaxonKey = name_backbone(name = "Tracheophyta")$usageKey
@@ -35,7 +37,7 @@ rgbif_simliarity_check = function(scientific_names) {
   # Close the progress bar
   #close(pb)
   
-  cat("Calculating and comparing species keys \n")
+  cat("\n Calculating and comparing species keys \n")
   ## Find the maximum number of speciesKey values
   max_speciesKeys = max(sapply(speciesKeys, function(x) length(unique(x))))
   ## Create matrix
@@ -43,13 +45,13 @@ rgbif_simliarity_check = function(scientific_names) {
   mat[, 1] = scientific_names
   
   ## Error handling
-  cat("Actual matrix dimensions: ", dim(mat), "\n")
-  cat("Expected dimensions: ", length(speciesKeys), max_speciesKeys + 1, "\n")
+  cat("Actual matrix dimensions: ", cc$paleTurquoise(dim(mat)), "\n")
+  cat("Expected dimensions: ", cc$paleTurquoise(length(speciesKeys), max_speciesKeys + 1), "\n")
   dim_check = dim(mat) - c(length(speciesKeys), max_speciesKeys + 1)
   if (all(dim_check == 0)) {
-    cat("The dimensions of the matrix are correct \n")
+    cat("The dimensions of the matrix are ", green("correct"), "\n")
   } else {
-    cat("The dimensions of the matrix are incorrect \n")
+    cat("The dimensions of the matrix are ", red("incorrect"), "\n")
   }
   
   # Add the species keys to the matrix
@@ -71,15 +73,13 @@ rgbif_simliarity_check = function(scientific_names) {
   ## Get duplicated species
   duplicate_species = speciesKeys_unique[duplicated(speciesKeys_unique$speciesKey), ]
   ## Filter duplicated species
-  filtered_duplicate_species = speciesKeys_unique[!duplicated(speciesKeys_unique$speciesKey), ]
+  filt_dup_sp_rgbifCodes = speciesKeys_unique[!duplicated(speciesKeys_unique$speciesKey), ]
+  ## Keep only the scientific names
+  filt_dup_sp_rgbifCodes = filt_dup_sp_rgbifCodes$scientificName
   
-  message("Filter out species")
-  cat("Filtering out", nrow(duplicate_species), "Species from the filtered_species list: \n", paste(duplicate_species$scientificName, collapse = "\n"), "\n")
+  cat(cc$lightSteelBlue("Filtering out", nrow(duplicate_species), "duplicated species based off of the rgbif speciesKeys \n"))
   
+  cat(yellow("Wrinting csv files to: \n", "outputs/similarity_check_outputs/similarityCheck_species_keys.csv \n", "outputs/similarity_check_outputs/filtered_species_rgbifCodes.csv \n"))
   write.csv(speciesKeys_unique, "outputs/similarity_check_outputs/similarityCheck_species_keys.csv", row.names = F, fileEncoding = "UTF-8")
-  write.csv(filtered_duplicate_species, "outputs/similarity_check_outputs/filtered_duplicate_species.csv", row.names = F, fileEncoding = "UTF-8")
-  
-  return(
-    filtered_duplicate_species
-  )
+  write.csv(filt_dup_sp_rgbifCodes, "outputs/similarity_check_outputs/filtered_species_rgbifCodes.csv", row.names = F, fileEncoding = "UTF-8")
 }

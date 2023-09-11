@@ -187,9 +187,12 @@
   filter_rows_after_split_text = function(df, col1, col2, split_text) {
     df %>% rowwise() %>% filter(!grepl(split_text, !!sym(col1)) | 
                                   !grepl(split_text, !!sym(col2)) | 
-                                  strsplit(!!sym(col1), split_text)[[1]][2] == 
-                                  strsplit(!!sym(col2), split_text)[[1]][2])
+                                  (length(strsplit(!!sym(col1), split_text)[[1]]) > 1 && 
+                                     length(strsplit(!!sym(col2), split_text)[[1]]) > 1 && 
+                                     strsplit(!!sym(col1), split_text)[[1]][2] == 
+                                     strsplit(!!sym(col2), split_text)[[1]][2]))
   }
+  
   
   ## remove text that have a certain input in the middle
   filter_rows_around_split_text = function(df, col1, col2, split_text) {
@@ -205,3 +208,18 @@
     name = str_extract(x, paste0("(?<=", prefix_pattern, ")\\s*\\S+"))
     return(name)
   } 
+  
+  custom_colors = function() {
+    paleTurquoise = make_style("#AFEEEE")
+    aquamarine = make_style("#7FFFD4")
+    lightSteelBlue = make_style("#B0C4DE")
+    
+    
+    return(
+      list(
+        paleTurquoise = paleTurquoise,
+        aquamarine = aquamarine,
+        lightSteelBlue = lightSteelBlue
+      )
+    )
+  }

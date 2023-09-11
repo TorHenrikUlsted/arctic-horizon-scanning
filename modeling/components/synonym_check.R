@@ -143,7 +143,7 @@ synonym_check = function(test_species, aba_present, aba_absent, ambio_present, a
       wfo_glonaf_species = WFO.match(spec.data = glonaf_species, spec.name = "standardized_name", WFO.file = WFO_file, verbose = T, counter = 1)
       write.csv(wfo_glonaf_species, "outputs/wfo_outputs/wfo_glonaf_species.csv", row.names = F, fileEncoding = "UTF-8")
       
-      wfo_one_glonaf_species = WFO.one(WFo.result = wfo_glonaf_species, priority = "Accepted", spec.name = "scientificName")
+      wfo_one_glonaf_species = WFO.one(WFO.result = wfo_glonaf_species, priority = "Accepted", spec.name = "scientificName")
       write.csv(wfo_one_glonaf_species, "outputs/wfo_one_outputs/wfo_one_glonaf_species.csv", row.names = F, fileEncoding = "UTF-8")
       
       return(wfo_one_glonaf_species)

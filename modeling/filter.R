@@ -37,7 +37,7 @@ filtering = function() {
   }
   
   source("components/list_merger.R")
-  merger()
+  filtered_species = merger()
   
   a = ""
   while(a != "y" && a != "n") {
@@ -49,24 +49,26 @@ filtering = function() {
   }
   ## Use the filtered species list with all the names
   if (a == "y") {
+    source("components/rgbif_similarity.R")
     scientific_names = unlist(filtered_species$scientificName)
-    duplicate_species = rgbif_similarity(scientific_names)
+    rgbif_simliarity_check(scientific_names)
   } 
   
   ## combine the two columns into one
   if (a == "n") {
-    simCheck_filt_sp = jw_similarity_check()
+    source("components/jw_similarity.R")
+    simCheck_filt_sp = jw_similarity_check(filtered_species)
     scientific_names = c(simCheck_filt_sp[ ,"name", drop = TRUE], simCheck_filt_sp[ ,"similarName", drop = TRUE])
-    scientific_names = scientific_names[!duplicated(scientific_names)]
+    duplicate_species = scientific_names[!duplicated(scientific_names)]
+    
+    duplicate_species = data.frame(duplicate_species)
+    names(duplicate_species)[names(duplicate_species) == 'duplicate_species'] = 'scientificName'
+    filtered_species_jw = anti_join(filtered_species, duplicate_species, by = "scientificName") #Double check if this is the correct way to do it
+    
+    cat(yellow("Writing csv to: \n", "outputs/filtered_species_jw.csv \n"))
+    write.csv(filtered_species_final, "outputs/filtered_species_jw.csv", row.names = F, fileEncoding = "UTF-8")
   }
   
-  
-  # Further use rgbif to check the similar names
-  #duplicate_species = rgbif_similarity(filtered_species$scientificName)
-  
-  ## Remove the duplications from the GBIF check
-  filtered_species_final = anti_join(filtered_species, duplicate_species, by = "scientificName") #Double check if this is the correct way to do it
-  write.csv(filtered_species_final, "outputs/filtered_species_final.csv", row.names = F, fileEncoding = "UTF-8")
   
   # Stop the filter script timer
   end_filter_time = Sys.time()
