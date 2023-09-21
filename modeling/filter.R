@@ -12,6 +12,7 @@ filtering = function() {
   })
   
   source("components/utils.R")
+  source("components/rgbif_similarity.R")
   source("components/list_collector.R")
   
   components = collector()
@@ -49,7 +50,6 @@ filtering = function() {
   }
   ## Use the filtered species list with all the names
   if (a == "y") {
-    source("components/rgbif_similarity.R")
     scientific_names = unlist(filtered_species$scientificName)
     rgbif_simliarity_check(scientific_names)
   } 
@@ -67,6 +67,18 @@ filtering = function() {
     
     cat(yellow("Writing csv to: \n", "outputs/filtered_species_jw.csv \n"))
     write.csv(filtered_species_final, "outputs/filtered_species_jw.csv", row.names = F, fileEncoding = "UTF-8")
+  }
+  
+  b = ""
+  while(b != "y" && b != "n") {
+    if (file.exists("resources/gbif_occ_zip.zip") == T) {
+      
+    }
+    a = readline(prompt = "Do you want to download GBIF occurences? ")
+    
+    if (b != "y" && b != "n") {
+      cat("Invalid response. Please enter 'y' or 'n'.\n")
+    }
   }
   
   

@@ -17,7 +17,9 @@ collector = function() {
     ),
     gbif = list(
       source = c("components/regions_data_import.R", "components/gbif_species_retrieval.R"),
-      species = "outputs/gbif_retrieval_process/gbif_species_names.csv"
+      species = "outputs/gbif_retrieval_process/gbif_species_check.csv"
+      #present = "outputs/gbif_retrieval_process/gbif_cavm_species.csv",
+      #absent = "outputs/gbif_retrieval_process/gbif_boreal_species.csv"
     ),
     glonaf = list(
       source = "components/glonaf_wrangling.R",
@@ -66,7 +68,7 @@ collector = function() {
   }
   
   if (length(missing_source_files) == 0 && length(missing_check_files) == 0) {
-    cat(green("All files needed to run the script already exist. No need to run any extra checks. \n"))
+    cat(green("All files needed to run the script already exist. No need to run any extra checks. \n", "Run lists you have edited \n"))
   }
   
   
@@ -96,6 +98,14 @@ collector = function() {
   # Create an empty list to store the data frames
   data_frames = list()
   
+  if ("gbif" %in% inputCommands) {
+    for (component in components[["gbif"]]$source) {
+      source(component)
+    }
+    species_occ = sp_retrieve()
+    data_frames[["species_occ"]] = species_occ
+  }
+  
   for (component in names(components)) {
     if (component %in% inputCommands) {
       ## Source component files
@@ -118,6 +128,8 @@ collector = function() {
       }
     }
   }
+  
+
   
   # Return the list of data frames
   return(data_frames)

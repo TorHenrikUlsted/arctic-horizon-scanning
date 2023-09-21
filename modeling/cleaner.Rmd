@@ -1,0 +1,108 @@
+---
+title: "cleaner"
+output: html_document
+date: "2023-09-14"
+---
+
+```{r, eval=FALSE, include=FALSE, echo = FALSE}
+library(reticulate)
+# Create a new Python environment and install pandas
+virtualenv_create("python_environment")
+virtualenv_install("python_environment", "pandas")
+use_python("/usr/bin/python3")
+#reticulate::install_python()
+py_install("pandas")
+Sys.setenv(RETICULATE_PYTHON = "/home/shomec/t/torhul/.virtualenvs/r-reticulate/bin/python")
+py_config()
+```
+
+```{python, eval=FALSE, include=FALSE}
+import os
+import pandas as pd
+
+df_chunked = pd.read_csv("resources/0016665-230828120925497.csv", chunksize=10000, sep = "\t")
+```
+
+```{python, eval=FALSE, include=FALSE}
+for chunk in df_chunked:
+  uniques = chunk['species'].unique().tolist()
+  for val in uniques:
+     df_to_write = chunk[chunk['species'] == val]
+     if os.path.isfile('./outputs/vaccinium/{}.csv'.format(val)):
+       df_to_write.to_csv('./outputs/vaccinium/{}.csv'.format(val), mode='a', index=False,
+header=False)
+     else:
+         df_to_write.to_csv('./outputs/vaccinium/{}.csv'.format(val), index=False)
+```
+
+```{r}
+csv_species = list.files(path = "outputs/vaccinium/", pattern = "*.csv", full.names = T)
+```
+
+```{r}
+raster = rast("resources/wc2.1_10m/wc2.1_10m_bio_1.tif")
+resolution = res(raster)[1]
+
+ex= ext(raster)
+
+```
+
+``` {r, eval=FALSE, include=FALSE}
+for(i in csv_species) {
+  n <- gsub("outputs/vaccinium/", replacement = "", i)
+  nn <- gsub(".csv", replacement = "", n)
+  nnn <- gsub(" ", replacement = "-", nn)
+  nnn <- tolower(nnn)
+  print(nnn)
+  Species <- read.csv(i)
+  sp_time <- subset(Species,year >= 1981 & year <= 2023) #Omit records pre-1981 (CHELSA years)
+  sp_certain <- subset(sp_time, coordinateUncertaintyInMeters <= 2500) #keep records with coordinate uncertainty smaller than 1 km
+  sp_present <-subset(sp_certain, occurrenceStatus="PRESENT") #Omit species absences
+  sp_type <- subset(sp_present, basisOfRecord=c("HUMAN_OBSERVATION","PRESERVED_SPECIMEN")) #Omit fossils and machine observations
+  if (nrow(sp_type) == 0) next
+  flags <- clean_coordinates(x = sp_certain, 
+                             lon = "decimalLongitude", 
+                             lat  = "decimalLatitude",
+                             species = "species",
+                             tests = c("capitals", "centroids",
+                                       "equal","gbif", "institutions",
+                                       "zeros")) #flag erroneous records
+  write.csv(flags, file = paste0("outputs/cleanReports/",nnn,"_cleanReport.csv"))
+  sp_cl <- sp_certain[flags$.summary,] #delete erroneous records from flag csv's
+  sp_cl$X_round <- round((sp_cl$decimalLongitude - ex[1])/resolution)*resolution + resolution/2 + ex[1] #1: substract extent (so start is at 0)
+  #2: Divide by resolution
+  #3: Round
+  #4: Multiply by resolution 
+  #5: Add half of resolution to position coordinates in middle of each cell
+  #6: Add extent again to get back to projection
+  sp_cl$Y_round <- round((sp_cl$decimalLatitude - ex[3])/resolution)*resolution + resolution/2 + ex[3] #idem
+  print(summary(sp_cl))
+  write.csv(sp_cl, file = paste0("outputs/cleaned_records/",nnn,".csv"))
+  }
+```
+
+``` {r}
+library(spThin)
+for (i in agri_species) {
+  p <- gsub("./GloNAF_species_aggregate/", replacement = "", i)
+  pp <- gsub(".csv", replacement = "", p)
+  print(pp)
+  aggr.sp <- read.csv(i)
+  thin.sp <- spThin::thin(aggr.sp, lat.col = "Y_round", long.col = "X_round", spec.col = "species", thin.par = 1, reps = 1, 
+                          locs.thinned.list.return = FALSE, write.files = TRUE, out.dir = "E:/R PROJECT - SDM/GloNAF_species_thin", 
+                          out.base = paste0(pp), write.log.file = TRUE, 
+                          log.file = paste0("E:/R PROJECT - SDM/GloNAF_species_thinReports/",pp,".txt"), verbose = TRUE)
+}
+```
+
+```{r}
+library(dplyr)
+for (i in unthinned) {
+   unt.sp <- read.csv(paste0("E:/R PROJECT - SDM/GloNAF_species_aggregate/",i,".csv"))
+  unt.sp$X_round10 <- round((unt.sp$X_round - ex.10[1])/resolution.10)*resolution.10 + resolution.10/2 + ex.10[1] 
+  unt.sp$Y_round10 <- round((unt.sp$Y_round - ex.10[3])/resolution.10)*resolution.10 + resolution.10/2 + ex.10[3]
+  print(summary(unt.sp))
+  data_mod <- unt.sp %>% group_by(X_round10,Y_round10) %>% sample_n(1) %>%  as.data.frame()
+  write.csv(data_mod, file = paste0("E:/R PROJECT - SDM/GloNAF_species_thin_all/",i,"_thin1.csv"))
+}
+```

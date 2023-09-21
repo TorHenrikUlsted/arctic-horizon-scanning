@@ -5,16 +5,22 @@
     "WorldFlora",
     "terra",
     "sf",
+    "sp",
+    "CoordinateCleaner",
+    "reticulate",
     "stringdist",
     "stringr",
+    "parallel",
+    "progressr",
     "crayon"
   )
   
   # Check for outdated packages without considering dependencies
   outdated = intersect(old.packages()[, "Package"], pkgs)
   if (length(outdated) > 0) {
+    outdated_packages = paste(outdated, collapse = ", ")
     ## Ask the user if they want to update the outdated packages
-    update = readline(prompt = "Outdated packages found, do you want to update the outdated packages? [y/n] ")
+    update = readline(prompt = paste("Outdated packages found: \n", outdated_packages, "\nDo you want to update the outdated packages? [y/n] "))
     if (tolower(update) == "y") {
       ## Update outdated packages
       update.packages(oldPkgs = outdated, ask = FALSE)

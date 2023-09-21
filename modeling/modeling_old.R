@@ -216,57 +216,8 @@ message("Comparison of dataframes complete")
 
 
 ## ---------------------------- GBIF crop to map -------------------------------
-## check if any lat or long are NA
-with(gbif_species_df, any(is.na(decimalLatitude)))
-with(gbif_species_df, any(is.na(decimalLongitude)))
-## this has changed Check for points outside the geometry
-with(gbif_species_df, any(decimalLongitude < -169.50929 | decimalLongitude > 172.06954))
-with(gbif_species_df, any(decimalLatitude < 55.79623 | decimalLatitude > 83.62742))
 
-#Make into spatial points
-gbif_species_df_LongLat = cbind(gbif_species_df$decimalLongitude, gbif_species_df$decimalLatitude)
-sp_occ = vect(gbif_species_df_LongLat, gbif_species_df, type="points", crs = "+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84 +no_defs +units=m")
-sp_occ
 
-#test plot
-plot(cavm)
-plot(sp_occ, add=T, col="red")
-
-#Crop GBIF points to Arctic CAVM
-#take time -> ETC 43 minutes
-startTime = Sys.time()
-
-cropGBIF = crop(sp_occ, cavm)
-plot(cropGBIF)
-sp_occMask = mask(cropGBIF, cavm)
-plot(sp_occMask)
-
-#Check endTime
-endTime = Sys.time()
-#print the time it took to complete the function
-message("Cropping GBIF data to the Arctic complete. Elapsed time: ", endTime - startTime)
-
-#plot cropped data
-plot(cavm)
-plot(sp_occMask, add=T, col="red")
-
-#Make corpped data into dataframe from 41 900 entries to 10 096 entries
-sp_occCavm_df = as.data.frame(sp_occMask)
-
-#uniqe number of classes
-n_distinct(sp_occCavm_df$class)
-#uniqe number of orders
-n_distinct(sp_occCavm_df$order)
-#uniqe number of families
-n_distinct(sp_occCavm_df$family)
-#uniqe number of genuses
-n_distinct(sp_occCavm_df$genus)
-#uniqe number of species
-n_distinct(sp_occCavm_df$species)
-
-#check for empty strings or NA
-any(unique(sp_occCavm_df$species == ""))
-any(is.na(unique(sp_occCavm_df$species)))
 
 #List of species occurrences in the CAVM
 cavmSpList = as.data.frame(unique(sp_occCavm_df$species))

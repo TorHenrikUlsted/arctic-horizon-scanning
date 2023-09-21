@@ -74,7 +74,6 @@ synonym_check = function(test_species, aba_present, aba_absent, ambio_present, a
     cat("WFO completed the match for aba_absent species in ", format_elapsed_time(startTime, endTime), "\n")
   }
 
-  
     
   ambio_p = function(ambio_present) {
     cat("Running the WFO synonym check AMBIO present species \n")
@@ -83,12 +82,13 @@ synonym_check = function(test_species, aba_present, aba_absent, ambio_present, a
     cat(yellow("Expected waiting time in minutes: ", round(((nrow(ambio_present) * 8.45) / 60), digits = 2), "minutes \n"))
       
     startTime = Sys.time()
+
       wfo_ambio_arctic_present = WFO.match(spec.data = ambio_present, spec.name = "Species_SubSpecies", WFO.file = WFO_file, verbose = T, counter = 1)
       write.csv(wfo_ambio_arctic_present, "outputs/wfo_outputs/wfo_ambio_arctic_present.csv", row.names = F, fileEncoding = "UTF-8")
       
       wfo_one_ambio_arctic_present = WFO.one(WFO.result = wfo_ambio_arctic_present, priority = "Accepted", spec.name = "scientificName")
       write.csv(wfo_one_ambio_arctic_present, "outputs/wfo_one_outputs/wfo_one_ambio_arctic_present.csv", row.names = F, fileEncoding = "UTF-8")
-      return(wfo_one_ambio_arctic_present)
+    return(wfo_one_ambio_arctic_present)
       
     endTime = Sys.time()
     cat("WFO completed the match for ambio_present species in ", format_elapsed_time(startTime, endTime), "\n")

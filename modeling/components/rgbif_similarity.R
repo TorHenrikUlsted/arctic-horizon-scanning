@@ -74,12 +74,12 @@ rgbif_simliarity_check = function(scientific_names) {
   duplicate_species = speciesKeys_unique[duplicated(speciesKeys_unique$speciesKey), ]
   ## Filter duplicated species
   filt_dup_sp_rgbifCodes = speciesKeys_unique[!duplicated(speciesKeys_unique$speciesKey), ]
-  ## Keep only the scientific names
-  filt_dup_sp_rgbifCodes = filt_dup_sp_rgbifCodes$scientificName
   
   cat(cc$lightSteelBlue("Filtering out", nrow(duplicate_species), "duplicated species based off of the rgbif speciesKeys \n"))
   
-  cat(yellow("Wrinting csv files to: \n", "outputs/similarity_check_outputs/similarityCheck_species_keys.csv \n", "outputs/similarity_check_outputs/filtered_species_rgbifCodes.csv \n"))
-  write.csv(speciesKeys_unique, "outputs/similarity_check_outputs/similarityCheck_species_keys.csv", row.names = F, fileEncoding = "UTF-8")
-  write.csv(filt_dup_sp_rgbifCodes, "outputs/similarity_check_outputs/filtered_species_rgbifCodes.csv", row.names = F, fileEncoding = "UTF-8")
+  cat(yellow("Wrinting duplicated species csv file to: \n", "outputs/similarity_check_outputs/similarityCheck_species_duplicated.csv \n"))
+  write.csv(duplicate_species, "outputs/similarity_check_outputs/similarityCheck_species_duplicated.csv", row.names = F, fileEncoding = "UTF-8")
+  
+  cat("Returning filtered list... \n")
+  return(filt_dup_sp_rgbifCodes)
 }
