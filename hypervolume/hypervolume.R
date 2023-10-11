@@ -11,6 +11,7 @@ projection = crs("+proj=longlat +datum=WGS84")
 source("./hypervolume/atoms/import_regions.R")
 regions = import_regions(shapefiles, prj = projection, log_output = "./hypervolume/log.txt")
 plot(regions$cavm)
+
 # Get anticlockwise wkt (GBIF friendly)
 source("./hypervolume/atoms/combine_wkt_anticlockwise.R")
 anticlockwise_wkt = combine_wkt_anticlockwise(regions, max_x = T, min_x = T)
@@ -19,5 +20,9 @@ anticlockwise_wkt = combine_wkt_anticlockwise(regions, max_x = T, min_x = T)
 source("./hypervolume/atoms/wc_crop_region.R")
 wc_region = wc_to_region(regions$cavm)
 
+# Use worldClim data to get correlation plot
 source("./hypervolume/atoms/corrplot.R")
 plot_correlation(wc_region)
+
+source("./hypervolume/atoms/get_corr_values.R")
+
