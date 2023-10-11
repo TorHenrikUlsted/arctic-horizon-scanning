@@ -1,26 +1,54 @@
 wc_to_region = function(region, var = "bio", res = 2.5, path = "./resources", version = "2.1", plot = T, verbose= T) {
   biovars = list()
+  cat("Checking if files exist \n")
   # Check if all 19 biovariables are present, if not install
   for (i in 1:19) {
-    file_name = paste0(path,"/wc2.1_",res,"m/","wc2.1_",res,"m_",var,"_",i,".tif")
+    dir_path = paste0(path,"/wc",version,"_",res,"m/")
+    file_name = paste0(dir_path,"wc2.1_",res,"m_",var,"_",i,".tif")
+    zip_file = paste0(dir_path,"wc2.1_",res,"m_",var,".zip")
     
     if(!file.exists(file_name)) {
-      cat("WorldClim data does not exist, downloading... \n")
-      r = worldclim_global(var, res, path, version)
-    } else r = rast(file_name)
+      cat(red(file_name, " is missing from the WorldClim data, looking for zip file... \n"))
+      
+      if(!file.exists(zip_file)) {
+        cat("Could not find zip file, trying to download... \n")
+        next
+      } else {
+        cat("Zip file located O_O, unzipping... \n")
+        unzip(zip_file, exdir = dir_path)
+        
+        next
+      }
+      
+      tryCatch({
+        r = worldclim_global(var, res, path, version)
+        
+        if (!is.null(r)) {
+          cat(green("WorldClim data downloaded successfully. \n"))
+        } else {
+          cat(red("Failed to download worldClim data, is the server down? \n"))
+          message("Taking you to the site...")
+          browseURL("https://www.worldclim.org/data/worldclim21.html")
+          stop("Exiting, download failed")
+        }
+      }, error = function(e) {
+        cat(red("Failed to download worldClim data \n"))
+        stop("Exiting, download failed")
+      })
+      
+    } else {
+      r = rast(file_name)
+    }
     
     biovars[[length(biovars) + 1]] = r
+    
   }
   
-  #print(biovars)
+  cat("Starting cropping sequence \n")
   
   biovarsMask = list()
-
+  
   for (biovar in biovars) {
-    #Crop WorldClim data to Arctic CAVM
-    cat("Cropping and masking ", names(biovar), "\n")
-    crop = crop(biovar, region)
-    
     if (!isTRUE(identical(crs(biovar), crs(region) ))) {
       if (verbose == T){
         cat(red("Crs not identical: \n"),
@@ -39,6 +67,9 @@ wc_to_region = function(region, var = "bio", res = 2.5, path = "./resources", ve
       } else crs(region) = crs(biovars)
     }
     
+    #Crop WorldClim data to region
+    cat("Cropping and masking ", names(biovar), "\n")
+    crop = crop(biovar, region)
     masked = mask(crop, region)
     biovarsMask[[length(biovarsMask) + 1]] = masked
   }
