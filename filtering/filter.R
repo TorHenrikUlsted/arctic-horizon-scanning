@@ -82,5 +82,3 @@ filtering = function() {
   # Print message with elapsed time
   message("Script finished in ", el_time_filter)
 }
-
-filtering()
