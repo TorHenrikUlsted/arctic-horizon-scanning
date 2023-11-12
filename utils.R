@@ -14,6 +14,7 @@ tryCatch({
     "terra",
     "sf",
     "sp",
+    "data.table",
     "CoordinateCleaner",
     "reticulate",
     "stringdist",

@@ -20,9 +20,8 @@ anticlockwise_wkt = combine_wkt_anticlockwise(regions, max_x = T, min_x = T)
 source("./hypervolume/atoms/wc_crop_region.R")
 wc_region = wc_to_region(regions$cavm)
 
-# Use worldClim data to get correlation plot
-source("./hypervolume/atoms/corrplot.R")
-plot_correlation(wc_region)
+source("./hypervolume/atoms/correlation.R")
+biovars_importance <- get_correlation(wc_region)
 
-source("./hypervolume/atoms/get_corr_values.R")
-
+# Pick the most important bioVariables
+biovars_importance_sel <- biovars_importance[c(1, 3,4,5), ]
