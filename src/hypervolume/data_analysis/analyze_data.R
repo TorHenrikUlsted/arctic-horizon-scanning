@@ -57,32 +57,33 @@ plot_hypervolumes <- function(hv_list) {
   }
 }
 
-analyze_region_hv <- function(biovars, name, verbose) {
-  cat("Analyzing cavm hypervolume. \n")
-
+analyze_region_hv <- function(biovars, name, method, samples.per.point, verbose) {
+  cat(blue("Analyzing cavm hypervolume. \n"))
 
   directory <- paste0("./outputs/data_analysis/hypervolume/region/", tolower(name), "/")
 
   if (!dir.exists(directory)) dir.create(directory, recursive = T)
 
-  if (!file.exists(paste0(directory, "hypervolume.rds"))) {
+  if (!file.exists(paste0(directory, "hypervolume_", method, ".rds"))) {
     cat("File not found, initating hypervolume sequence. \n")
     matrix <- terra::values(biovars, na.rm = T)
+    
+    if (any(is.na(matrix))) cat(red("Some biovars region values are NA. \n")) else cat(green("No biovars region values are NA. \n"))
 
     cat("Matrix sample: \n")
     print(head(matrix, 3))
 
-    hv <- hypervolume_box(matrix, name = name, verbose = verbose)
+    hv <- hypervolume(matrix, name = name, method = method, samples.per.point = samples.per.point, verbose = verbose)
 
     # Save the hypervolume to a file
-    saveRDS(hv, paste0(directory, "hypervolume.rds"))
+    saveRDS(hv, paste0(directory, "hypervolume_", method, ".rds"))
   } else {
     cat(name, "Hypervolume found, loading file. \n")
     # Load the hypervolume from the file
-    hv <- readRDS(paste0(directory, "hypervolume.rds"))
+    hv <- readRDS(paste0(directory, "hypervolume_", method, ".rds"))
   }
 
-  cat(cc$lightGreen(name, "Hypervolume Analysis Complete. \n"))
+  cat(cc$lightGreen(name, paste0("Hypervolume_", method), "Analysis Complete. \n"))
   return(hv)
 }
 

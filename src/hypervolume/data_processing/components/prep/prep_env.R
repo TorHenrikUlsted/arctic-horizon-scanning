@@ -8,8 +8,8 @@ prepare_environment <- function(sp_points, biovars, verbose = T) {
   
   if (verbose == T) {
     if (identical(terra::crs(sp_points), terra::crs(biovars[[1]]))) {
-      cat("CRS for bio variables and species is identical:", green("TRUE"), "\n") 
-    } else cat("CRS for bio variables and species is identical:", red("FALSE"), "\n")
+      cat("CRS for bio variables and species are identical:", green("TRUE"), "\n") 
+    } else cat("CRS for bio variables and species are identical:", red("FALSE"), "\n")
   }
   
   # Extract environmental values for each point

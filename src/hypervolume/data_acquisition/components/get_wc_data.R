@@ -1,4 +1,4 @@
-get_wc_data = function(region = NULL, var = "bio", res = 2.5, path = "./resources/region", version = "2.1") {
+get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", version = "2.1", show_plot = F) {
   biovars <- list()
   cat("Checking if files exist \n")
   # Check if all 19 biovariables are present, if not install
@@ -45,5 +45,21 @@ get_wc_data = function(region = NULL, var = "bio", res = 2.5, path = "./resource
     biovars[[length(biovars) + 1]] <- r
   }
   
+  if (show_plot == T) {
+    for (i in 1:length(biovars)) {
+      cat(paste0("Plotting bio_", as.character(i)), "\n")
+      # Plot each raster
+      plot(biovars[[i]], main = paste("Biovar", i))
+    }
+  } else {
+    cat("Plotting skipped \n")
+  }
+  
+  biovars <- terra::rast(biovars)
+  
+  
+  names(biovars) <- sub("wc2.1_2.5m_", "", (names(biovars)))
+  varnames(biovars) <- sub("wc2.1_2.5m_", "", (varnames(biovars)))
+    
   return(biovars)
 }

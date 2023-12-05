@@ -49,5 +49,6 @@ print_all_timers <- function() {
   }
   
   # Write the data frame to a CSV file
+  if (!dir.exists("./outputs/post_process/")) dir.create("./outputs/post_process/", recursive = T)
   fwrite(timer_df, "./outputs/post_process/timers.csv", row.names = FALSE, bom = TRUE)
 }

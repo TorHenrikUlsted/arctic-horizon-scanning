@@ -27,6 +27,7 @@ pkgs = c(
   "hypervolume",
   "dynRB",
   "VennDiagram",
+  "ggplot2",
   "alphahull",
   "rgl"
 )
@@ -52,6 +53,13 @@ cc <- custom_colors()
 cat("Creating reference list. \n")
 source("./src/utils/components/cite_packages.R")
 cite_packages(pkgs, formats = "bibtex")
+
+cat("Include the longlat and cavm laea CRS \n")
+cavm_crs <- "PROJCRS[\"North_Pole_Lambert_Azimuthal_Equal_Area\",\n    BASEGEOGCRS[\"WGS 84\",\n        DATUM[\"World Geodetic System 1984\",\n            ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1]],\n            ID[\"EPSG\",6326]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"Degree\",0.0174532925199433]]],\n    CONVERSION[\"unnamed\",\n        METHOD[\"Lambert Azimuthal Equal Area\",\n            ID[\"EPSG\",9820]],\n        PARAMETER[\"Latitude of natural origin\",90,\n            ANGLEUNIT[\"Degree\",0.0174532925199433],\n            ID[\"EPSG\",8801]],\n        PARAMETER[\"Longitude of natural origin\",180,\n            ANGLEUNIT[\"Degree\",0.0174532925199433],\n            ID[\"EPSG\",8802]],\n        PARAMETER[\"False easting\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8806]],\n        PARAMETER[\"False northing\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8807]]],\n    CS[Cartesian,2],\n        AXIS[\"(E)\",south,\n            MERIDIAN[90,\n                ANGLEUNIT[\"degree\",0.0174532925199433,\n                    ID[\"EPSG\",9122]]],\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"(N)\",south,\n            MERIDIAN[180,\n                ANGLEUNIT[\"degree\",0.0174532925199433,\n                    ID[\"EPSG\",9122]]],\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
+
+laea_crs <- "+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84"
+
+longlat_crs <- "+proj=longlat +datum=WGS84 +ellps=WGS84"
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")

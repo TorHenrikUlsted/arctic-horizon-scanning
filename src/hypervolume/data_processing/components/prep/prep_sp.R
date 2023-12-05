@@ -25,10 +25,10 @@ prepare_species <- function(df, projection, verbose = T) {
   
   create_dir_if("./outputs/data_processing/prep")
   # "flag" sets adds true/false to the corresponding tests
-  df <- ?clean_coordinates(df, value = "clean")
-  
+  df <- clean_coordinates(df, value = "clean")
+
   cat("Thining coordinates with spThin. \n")
-  
+
   sp_thinned <- suppressWarnings(thin(
     loc.data = df,
     lat.col = "decimalLatitude",
