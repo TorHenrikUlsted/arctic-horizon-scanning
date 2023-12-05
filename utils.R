@@ -22,7 +22,8 @@ tryCatch({
     "parallel",
     "progressr",
     "crayon",
-    "corrplot"
+    "corrplot",
+    "hypervolume"
   )
   
   # Check for outdated packages without considering dependencies
@@ -206,6 +207,8 @@ tryCatch({
                                      length(strsplit(!!sym(col2), split_text)[[1]]) > 1 && 
                                      strsplit(!!sym(col1), split_text)[[1]][2] == 
                                      strsplit(!!sym(col2), split_text)[[1]][2]))
+    
+    return(df)
   }
   
   

@@ -2,11 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-resources/Cavm2003/
-resources/wc2.1_10m/
-resources/wc2.1_2.5m/
-resources/NABoreal.zip
-resources/tdwgLvl3/
-resources/WFO_Backbone.zip
-resources/classification.csv
-resources/wwfTerrestrialEcoRegions/
+resources/region/
+resources/wfo/
+outputs/data_acquisition/region/
+outputs/data_analysis/hypervolume/region/
+outputs/setup/
