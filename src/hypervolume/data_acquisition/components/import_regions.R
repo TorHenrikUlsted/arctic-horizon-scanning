@@ -1,5 +1,4 @@
 import_regions <- function(shapefiles,
-                           projection = "longlat",
                            log_output,
                            verbose = T) {
   
@@ -51,34 +50,6 @@ import_regions <- function(shapefiles,
     if (is.na(original_crs) || original_crs == "") {
       cat("Found blank or na crs, adding a placeholder crs. \n")
       crs(region) <- prj
-    }
-    
-    
-    if (projection == "longlat") {
-      
-      cat("Choosing", cc$lightSteelBlue("longlat"),  "coordinate system. \n")
-      if (grepl("+proj=longlat", original_crs, fixed = TRUE) == FALSE) cat(red("Is not long Lat, needs reprojection. \n"))
-      print(crs(longlat_crs, proj = T))
-      prj <- longlat_crs
-      
-    } else if (projection == "laea") {
-      
-      cat("Choosing", cc$lightSteelBlue("polar"), "coordinate system. \n")
-      if (grepl("+proj=laea", crs(original_crs, proj = T), fixed = TRUE) == FALSE) cat(red("Is not polar \n"))
-      prj <- cavm_crs
-      
-    } else stop("You can only choose projection 'longlat' or 'laea'.")
-    
-
-    if (!isTRUE(identical(original_crs, prj))) {
-      if (verbose == T) cat(yellow("Original CRS not identical to current CSR. \n"))
-      if (verbose == T) cat("Reprojecting", cc$lightSteelBlue(shapefile_name), "to: ", crs(prj, proj = T), "\n") else next
-      
-      regions[[shapefile_name]] <- terra::project(region, prj)
-      
-      if (!isTRUE(identical(current_crs, prj))) cat(green("Reprojection completed successfully: "), crs(regions[[shapefile_name]], proj = T), "\n") else cat(red("Reprojection failed."))
-    } else {
-      if (verbose == T) cat("Original CRS identical to current CSR. \n")
     }
     
     # Append to log file if the file already exists

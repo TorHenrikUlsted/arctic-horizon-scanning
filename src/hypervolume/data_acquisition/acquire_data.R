@@ -1,35 +1,11 @@
 source_all("./src/hypervolume/data_acquisition/components")
 
-acquire_region = function(shapefiles, projection) {
+acquire_region = function(shapefiles) {
   cat(blue("Acquiring regions. \n"))
   
-  regions <- import_regions(shapefiles, projection, "./outputs/data_acquisition/region/logs/")
+  regions <- import_regions(shapefiles, "./outputs/data_acquisition/region/logs/")
   
   return(regions)
-}
-
-reproject_region <- function(region, show_plot = F) {
-  cat(blue("Reprojecting", strsplit(deparse(substitute(region)), "\\$")[[1]][[2]]), "\n")
-  
-  cat("Getting extents. \n")
-  ext_east <- terra::ext(ext(region)$xmin, 0, ext(region)$ymin, ext(region)$ymax)
-  ext_west <- terra::ext(0.00001, ext(region)$xmax, ext(region)$ymin, ext(region)$ymax)
-
-  cat("Cropping in half. \n")
-  vect_east <- terra::crop(region, ext_east)
-  vect_west <- terra::crop(region, ext_west)
-
-  cat("Reprojecting to longlat. \n")
-  proj_east <- terra::project(vect_east, crs(longlat_crs))
-  proj_west <- terra::project(vect_west, crs(longlat_crs))
-
-  region_longlat <- rbind(proj_west, proj_east)
-  
-  if (show_plot == T) plot(region_longlat)
-  
-  cat(cc$lightGreen(strsplit(deparse(substitute(region)), "\\$")[[1]][[2]], "reprojected successfully. \n"))
-  
-  return(region_longlat)
 }
 
 acquire_biovars = function(show_plot = F) {

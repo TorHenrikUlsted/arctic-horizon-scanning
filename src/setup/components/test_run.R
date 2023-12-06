@@ -82,7 +82,11 @@ run_test <- function(big_test) {
   }
 
   if (need_occ == T) {
-    cat(cc$lightCoral("Species data frame not found. \n"))
+    cat(cc$lightCoral("Species occurrence data not found. \n"))
+    
+    if(is.null(download_key)) {
+      
+    }
 
     # get codes
     cat("Getting species keys. \n")

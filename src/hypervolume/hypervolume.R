@@ -22,19 +22,60 @@ sp_df <- setup_sp(test = T, big_test = F)
 #                                         #
 ###########################################
 
+# https://nsidc.org/data/glims/data
+
 region <- acquire_region(
   shapefiles = c(
     cavm = "./resources/region/cavm2003/cavm.shp",
-    glims = "./resources/region/glims_db/glims_polygon.shp"
+    glims = "./resources/region/glims_db/glims_polygons.shp",
+    rgi = "./resources/region/rgi/RGI2000-v7.0-C-05_greenland_periphery.shp",
+    rgi_sj = "./resources/region/rgi/sval_jan/RGI2000-v7.0-C-07_svalbard_jan_mayen.shp"
     #wwfEcoRegion = "./resources/region/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp"
-  ),
-  projection = "laea"
+  )
 )
 
-region$cavm <- reproject_region(region$cavm)
+region$cavm <- reproject_region(region$cavm, projection = "laea", line_issue = T)
+plot(region$rgi_sj)
 plot(region$cavm)
+plot(region$rgi, add = T, col = "red")
+
+cavm_wo_ice_green <- erase(region$cavm, region$rgi)
+plot(cavm_wo_ice_green, col = "red")
+
+ice <- terra::project(region$glims, crs(region$cavm))
+identical(crs(region$cavm), crs(ice))
+ice2 <- terra::split(region$glims, as.factor(unlist(region$glims[[1]])))
+
+names(ice2[[2]])
+unique(ice2[[2]][[23]][[1]][[1]])
+
+ice3 <- terra::split(ice2[[2]], as.factor(unlist(ice2[[2]][[23]])))
+plot(ice3[[33]])
+
+glims_geo_names <- unique(ice2[[2]][[23]][[1]])
+glims_geo_names <- glims_geo_names[]
+for (i in seq_along(ice3)) {
+  names(ice3)[i] <-  paste0(glims_geo_names[[i]])
+  cat("renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(glims_geo_names[[i]]), "\n")
+}
+
+plot(ice3$`Prince William Sound`)
+
+terra::intersect(region$cavm, ice3[[2]])
+ice_cavm_list <- ice3
+
+for (i in seq_along(ice3)) {
+    
+  
+  if(length(intersect(ice3[[i]], region$cavm)) == 0) {
+    
+    ice_cavm_list[[i]] <- NULL
+  }
+
+}
 
 # Remove ice covered areas from the CAVM
+cavm_wo_ice <- terra::crop(region$cavm, region$glims)
 
 cavm_floreg <- terra::split(region$cavm, region$cavm$FLOREG)
 
@@ -42,6 +83,12 @@ for (i in seq_along(cavm_floreg)) {
   names(cavm_floreg)[i] <-  paste("floreg", unique(cavm_floreg[[i]]$FLOREG), sep="_")
   cat("renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(names(cavm_floreg)[i]), "\n")
 }
+
+plot(cavm_floreg$floreg_0, col = "blue")
+plot(region$rgi, add = T, col = "red")
+
+
+
 
 biovars_world <- acquire_biovars()
 

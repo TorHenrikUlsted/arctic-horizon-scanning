@@ -1,1 +1,11 @@
-Error in install.packages : type 'binary' is not supported on this platform
+package ‘xts’ successfully unpacked and MD5 sums checked
+package ‘intervals’ successfully unpacked and MD5 sums checked
+package ‘zoo’ successfully unpacked and MD5 sums checked
+package ‘sftime’ successfully unpacked and MD5 sums checked
+package ‘spacetime’ successfully unpacked and MD5 sums checked
+package ‘gstat’ successfully unpacked and MD5 sums checked
+package ‘sp’ successfully unpacked and MD5 sums checked
+package ‘stringdist’ successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+	C:\Users\tor_h\AppData\Local\Temp\RtmpMZYAFl\downloaded_packages

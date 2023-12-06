@@ -23,9 +23,9 @@ get_occ_data <- function(species_w_codes, download_path, file_name, region = NUL
 
   if (is.null(download_key) & is.null(doi)) {
     cat("No download Key or doi found \n")
-    
+
     u_input <- readline("Queue occurence download? Press [ENTER] to continue or [ESC] to exit.")
-    
+
     if (u_input == "") {
       cat("Creating occucrence queue \n")
 
@@ -44,7 +44,28 @@ get_occ_data <- function(species_w_codes, download_path, file_name, region = NUL
       }
 
       out <- do.call(occ_download, c(predicates, list(format = "SIMPLE_CSV")))
-      
+
+      tryCatch( # 1
+        {
+          if (!dir.exists(download_path)) dir.create(download_path, recursive = T)
+
+          cat("Queueing download \n")
+
+          ## check status
+          occ_download_wait(out)
+          ## get the download Data and import to create dataframe
+          gbif_occ_file <- occ_download_get(out, path = download_path, overwrite = T)
+
+          cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
+
+          return(gbif_occ_df)
+        },
+        error = function(e) {
+          cat("Download failed with error. \n")
+          cat(e, "\n")
+          next
+        }
+      )
     } else {
       stop("Process cancelled by user. \n")
     }
@@ -55,75 +76,58 @@ get_occ_data <- function(species_w_codes, download_path, file_name, region = NUL
 
   if (!dir.exists(download_path)) dir.create(download_path, recursive = T)
 
-  cat("Queueing download \n")
+  cat(red("An error has occurred: ", e$message, "\n"))
 
-  tryCatch( # 1
+  tryCatch( # 2
     {
-      ## check status
-      occ_download_wait(out)
-      ## get the download Data and import to create dataframe
-      gbif_occ_file <- occ_download_get(out, path = download_path, overwrite = T)
+      message("Trying to install by download key... ")
 
-      cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
 
-      return(gbif_occ_df)
+      cat("Using download key:", download_key, "\n")
+
+      if (!file.exists(paste0(file_name, ".csv"))) {
+        out <- occ_download_get(download_key, path = download_path, overwrite = TRUE)
+
+        cat("Renaming file from:", out, "to:", paste0(file_name, ".zip"), "\n")
+
+        if (file.exists(paste0(file_name, ".zip"))) {
+          cat("File already exists. \n")
+        } else if (!file.rename(from = out, to = paste0(file_name, ".zip"))) {
+          cat("Failed to rename the file. Please check the file paths and permissions.\n")
+        } else {
+          cat("File renamed successfully.\n")
+        }
+
+        cat("Unzipping GBIF file. \n")
+
+        unzip(paste0(file_name, ".zip"), exdir = download_path)
+
+        csv <- paste0(download_path, "/", download_key, ".csv")
+
+        file.rename(from = csv, to = paste0(file_name, ".csv"))
+
+        csv <- paste0(file_name, ".csv")
+
+        cat("Reading GBIF CSV. \n")
+        gbif_occ_df <- fread(csv, sep = "\t")
+
+        cat("Sample of data table: \n")
+        print(head(gbif_occ_df, 3))
+
+        gbif_occ_df <- set_df_utf8(gbif_occ_df)
+
+        fwrite(gbif_occ_df, paste0(file_name, ".csv"), bom = T)
+
+        cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
+
+        return(gbif_occ_df)
+      }
     },
-    error = function(e) {
+    error = function(e) { # 3
       cat(red("An error has occurred: ", e$message, "\n"))
 
-      tryCatch( # 2
-        {
-          message("Trying to install by download key... ")
-
-
-          cat("Using download key:", download_key, "\n")
-
-          if (!file.exists(paste0(file_name, ".csv"))) {
-            out <- occ_download_get(download_key, path = download_path, overwrite = TRUE)
-
-            cat("Renaming file from:", out, "to:", paste0(file_name, ".zip"), "\n")
-
-            if (file.exists(paste0(file_name, ".zip"))) {
-              cat("File already exists. \n")
-            } else if (!file.rename(from = out, to = paste0(file_name, ".zip"))) {
-              cat("Failed to rename the file. Please check the file paths and permissions.\n")
-            } else {
-              cat("File renamed successfully.\n")
-            }
-
-            cat("Unzipping GBIF file. \n")
-
-            unzip(paste0(file_name, ".zip"), exdir = download_path)
-
-            csv <- paste0(download_path, "/", download_key, ".csv")
-
-            file.rename(from = csv, to = paste0(file_name, ".csv"))
-
-            csv <- paste0(file_name, ".csv")
-
-            cat("Reading GBIF CSV. \n")
-            gbif_occ_df <- fread(csv, sep = "\t")
-            
-            cat("Sample of data table: \n")
-            print(head(gbif_occ_df, 3))
-            
-            gbif_occ_df <- set_df_utf8(gbif_occ_df)
-            
-            fwrite(gbif_occ_df, paste0(file_name, ".csv"), bom = T)
-
-            cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
-
-            return(gbif_occ_df)
-          }
-          
-        },
-        error = function(e) { # 3
-          cat(red("An error has occurred: ", e$message, "\n"))
-
-          message("Taking you to the online site... ")
-          browseURL(doi)
-        }
-      )
+      message("Taking you to the online site... ")
+      browseURL(doi)
     }
   )
 }
