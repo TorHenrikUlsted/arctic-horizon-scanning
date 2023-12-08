@@ -27,30 +27,35 @@ sp_df <- setup_sp(test = T, big_test = F)
 region <- acquire_region(
   shapefiles = c(
     cavm = "./resources/region/cavm2003/cavm.shp",
-    glims = "./resources/region/glims_db/glims_polygons.shp",
-    rgi = "./resources/region/rgi/RGI2000-v7.0-C-05_greenland_periphery.shp",
-    rgi_sj = "./resources/region/rgi/sval_jan/RGI2000-v7.0-C-07_svalbard_jan_mayen.shp"
+    cavm_noice = "./outputs/setup/region/cavm_edited.shp"
+    #glims = "./resources/region/glims_db/glims_polygons.shp"
+    #rgi = "./resources/region/rgi/RGI2000-v7.0-C-05_greenland_periphery.shp",
+    #rgi_sj = "./resources/region/rgi/sval_jan/RGI2000-v7.0-C-07_svalbard_jan_mayen.shp"
     #wwfEcoRegion = "./resources/region/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp"
   )
 )
+plot(region$cavm, col = "blue")
+plot(region$cavm_noice, col = "red", add = T)
+region$cavm
+region$cavm <- reproject_region(region$cavm, projection = "longlat", line_issue = T)
+region$glims <- reproject_region(region$glims, projection = "longlat")
+identical(crs(region$cavm), crs(region$glims))
 
-region$cavm <- reproject_region(region$cavm, projection = "laea", line_issue = T)
-plot(region$rgi_sj)
-plot(region$cavm)
-plot(region$rgi, add = T, col = "red")
+any(!is.valid(region$glims))
+valid_glims <- makeValid(region$glims)
+any(!is.valid(valid_glims))
 
-cavm_wo_ice_green <- erase(region$cavm, region$rgi)
-plot(cavm_wo_ice_green, col = "red")
+glims_cavm <- crop(valid_glims, ext(region$cavm))
+plot(glims_cavm)
 
-ice <- terra::project(region$glims, crs(region$cavm))
-identical(crs(region$cavm), crs(ice))
+
+cavm_noice <- erase(region$cavm, glims_cavm)
+plot(cavm_noice)
+
+
+#split test
 ice2 <- terra::split(region$glims, as.factor(unlist(region$glims[[1]])))
-
-names(ice2[[2]])
-unique(ice2[[2]][[23]][[1]][[1]])
-
 ice3 <- terra::split(ice2[[2]], as.factor(unlist(ice2[[2]][[23]])))
-plot(ice3[[33]])
 
 glims_geo_names <- unique(ice2[[2]][[23]][[1]])
 glims_geo_names <- glims_geo_names[]
@@ -59,24 +64,29 @@ for (i in seq_along(ice3)) {
   cat("renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(glims_geo_names[[i]]), "\n")
 }
 
-plot(ice3$`Prince William Sound`)
-
-terra::intersect(region$cavm, ice3[[2]])
 ice_cavm_list <- ice3
 
-for (i in seq_along(ice3)) {
+for (i in seq_along(ice_cavm_list)) {
+  if (any(!is.valid(ice_cavm_list[[i]]))) {
+    cat(red(names(ice_cavm_list[i]), "is invalid. \n"))
+    validShape <- makeValid(ice_cavm_list[[i]])
     
-  
-  if(length(intersect(ice3[[i]], region$cavm)) == 0) {
+    if (any(!is.valid(validShape))) cat(red("Failed to fix shape. \n")) else cat(green("Successfully fixed shape. \n"))
     
-    ice_cavm_list[[i]] <- NULL
+    ice_cavm_list[[i]] <- validShape
+  } else {
+    cat(green(names(ice_cavm_list[i]), "is valid. \n"))
   }
-
 }
 
-# Remove ice covered areas from the CAVM
-cavm_wo_ice <- terra::crop(region$cavm, region$glims)
+plot(glims_cavm)
+names(ice_cavm_list)       
+length(ice_cavm_list)
 
+cavm_wo_ice <- terra::crop(ice_cavm_list$`Prince William Sound`, ext(region$cavm))
+cavm_wo_ice <- crop(region$cavm, cavm_wo_ice)
+
+# Split cavm into florisitc regions
 cavm_floreg <- terra::split(region$cavm, region$cavm$FLOREG)
 
 for (i in seq_along(cavm_floreg)) {
@@ -84,10 +94,10 @@ for (i in seq_along(cavm_floreg)) {
   cat("renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(names(cavm_floreg)[i]), "\n")
 }
 
+plot(ice_cavm_list$`Prince William Sound`)
+
 plot(cavm_floreg$floreg_0, col = "blue")
 plot(region$rgi, add = T, col = "red")
-
-
 
 
 biovars_world <- acquire_biovars()
@@ -127,13 +137,32 @@ for (i in seq_along(biovars_floreg)) {
 #                                         #
 ###########################################
 
-proc_sp_data <- process_sp_data(acq_sp_data, projection = "longlat", verbose = T)
 
-proc_env_data <- process_env_data(biovars_world, proc_sp_data, projection = "longlat", verbose = T)
-
-cat("Processed environment data sample: \n")
-print(head(proc_env_data[[1]], 3))
-
+data_processing <- function(sp_data, biovars_world, projection = "longlat", verbose = F) {
+  
+  cat(blue("Initiating data processing protocol \n"))
+  
+  tryCatch({
+    cat("Processing species data \n")
+    proc_sp_data <- process_sp_data(sp_data, projection = projection, verbose = verbose)
+  }, error = function(e) {
+    cat(red(e), "\n")
+  })
+  
+  tryCatch({
+    cat("Processing environment data \n")
+    proc_env_data <- process_env_data(biovars_world, proc_sp_data, projection = projection, verbose = verbose)
+  }, error = function(e) {
+    cat(red(e), "\n")
+  })
+  
+  cat("Processed environment data sample: \n")
+  print(head(proc_env_data[[1]], 1))
+  
+  cat(cc$lightGreen("Data processing protocol completed successfully. \n"))
+  
+  return(proc_env_data)
+}
 
 ###########################################
 #                                         #
@@ -141,75 +170,119 @@ print(head(proc_env_data[[1]], 3))
 #                                         #
 ###########################################
 
-cat("Running hypervolume for", cc$lightSteelBlue(names(proc_env_data)[1])) 
-cat("Samples per point", cc$lightSteelBlue(ceiling((10^(3 + sqrt(ncol(proc_env_data[[1]]))))/nrow(proc_env_data[[1]]))), "\n")
+region_hv <- analyze_region_hv(biovars_region, "cavm", method = "gaussian", samples.per.point = 1, verbose = T)
+
+hv_analysis <- function(region_hv, sp_data, method, verbose) {
+  cat(blue("Initiating hypervolume sequence \n"))
+  
+  ## Inclusion test to eliminate obvious non-overlaps
+  cat("Computing inclusion analysis. \n")
+  tryCatch({
+    included_sp <- analyze_inclusion(region_hv, sp_data, verbose)
+    cat("Number of TRUE / FALSE values:", cc$lightSteelBlue(sum(included_sp == T)), "/", cc$lightSteelBlue(sum(included_sp == F)), "=", cc$lightSteelBlue(sum(included_sp == T) / sum(included_sp == F)))
+    if(any(included_sp == T)) {
+      cat(green("Included for further hypervolume analysis. \n")) 
+    } else { 
+      cat(red("Excluded from further hypervolume analysis. \n")) 
+      return() 
+    }
+    
+  }, error = function(e) {
+    cat(red(e))
+  })
+  
+ 
+  
+  ## If included, continue with hypervolume analysis
+  cat("Computing hypervolume analysis. \n")
+  tryCatch({
+    sp_hv <- hypervolume(sp_data, name = names(sp_data)[1], method = method, verbose = verbose)
+    
+    analyzed_hv <- analyze_hv(region_hv, sp_hv, verbose)
+    
+    if (analyzed_hv > 0) {
+      cat(sp_hv@Name, green("Included for further hypervolume analysis. \n")) 
+    } else {
+      cat(sp_hv@Name, red("Excluded from further hypervolume analysis. \n")) 
+      return()
+    }
+    
+  }, error = function(e) {
+    cat(red(e))
+  })
+
+  
+  tryCatch({
+    # Move onto projections
+    create_dir_if("./outputs/hypervolume/projections")
+    
+    cat("Computing projection analysis. \n")
+    
+    ## Projections for probability
+    sp_prob_project <- hypervolume_project(sp_hv, biovars_cavm, type = "probability", verbose = verbose)
+    
+    names(sp_prob_project) <- ("suitabilityScore")
+    
+    writeRaster(sp_prob_project, paste0("./outputs/hypervolume/projections/", sp_hv@Name, "/probability_longlat.tif"), format = GTiff)
+    
+    laea_prob_proj <- terra::project(sp_prob_project, crs(laea_crs))
+    
+    writeRaster(laea_prob_proj, paste0("./outputs/hypervolume/projections/", sp_hv@Name, "/probability_laea.tif"), format = GTiff)
+    
+    ## Projections for inclusion
+    sp_inc_project <- hypervolume_project(sp_hv, biovars_cavm, type = "inclusion", verbose = verbose)
+    
+    names(sp_inc_project) <- ("suitabilityScore")
+    
+    writeRaster(sp_prob_project, paste0("./outputs/hypervolume/projections/", sp_hv@Name, "/inclusion_longlat.tif"), format = GTiff)
+    
+    laea_inc_proj <- terra::project(sp_inc_project, crs(laea_crs))
+    
+    writeRaster(laea_inc_proj, paste0("./outputs/hypervolume/projections/", sp_hv@Name, "/inclusion_laea.tif"), format = GTiff)
+  }, error = function(e) {
+    cat(red(e))
+  })
+
+  
+  cat(cc$lightGreen("Hypervolume sequence completed successfully. \n"))
+}
+
+# joined_hv <- do.call(hypervolume_join, hv_list)
 
 
-## Inclusion test to eliminate obvious non-overlaps
-inc_test <- hypervolume_inclusion_test(region_hv_box, proc_env_data[[1]], reduction.factor = 1, fast.or.accurate =
-                                         "accurate", fast.method.distance.factor = 1,
-                                       accurate.method.threshold =
-                                         quantile(region_hv_box@ValueAtRandomPoints,
-                                                  0.5), verbose = TRUE)
+###########################################
+#                                         #
+# ------------- Run process ------------- #
+#                                         #
+###########################################
 
-cat("Number of TRUE / FALSE values:", cc$lightSteelBlue(sum(inc_test == T)), "/", cc$lightSteelBlue(sum(inc_test == F)), "=", cc$lightSteelBlue(sum(inc_test == T) / sum(inc_test == F)))
-if(any(inc_test == T)) cat(green("Species added to further hypervolume testing. \n")) else cat(red("Species is removed from further testing. \n"))
+hv_log <- "./outputs/hypervolume/logs/run_log.txt"
+last_iteration <- "./outputs/hypervolume/logs/last_iteration.txt"
 
+if(file.exists(last_iteration)) {
+  last_iteration <- as.integer(readLines(last_iteration))
+  cat("File found, continuing from previous iteration:",last_iteration, "\n")
+} else {
+  last_iteration <- 0
+}
 
-
-## box probability
-
-sp_hv_box <- hypervolume_box(proc_env_data[[1]], name = "species", verbose = T)
-region_hv_box <- analyze_region_hv(biovars_region, "cavm", method = "box", samples.per.point = 1, verbose = T)
-hv_set <- hypervolume_set(sp_hv_box, region_hv, check.memory=F)
-hv_stats <- hypervolume_overlap_statistics(hv_set)
-
-sp_surviv_region <- 1 - hv_stats[[4]]
-
-
-svalbard_hv <- hypervolume_box(biovars_floreg[[11]], name = "svalbard", verbose = T)
-sval_set <- hypervolume_set(sp_hv_box, svalbard_hv, check.memory=F)
-hypervolume_overlap_statistics(sval_set)
-
-
-
-draw.pairwise.venn(
-  area1 = hv_stats[[3]] + hv_stats[[1]],
-  area2 = hv_stats[[4]] + hv_stats[[1]],
-  cross.area =  hv_stats[[1]],
-  category = c(sp_hv_box@Name, region_hv_box@Name),
-  fill = c("blue", "red"),
-  lty = "blank"
-)
-
-floreg_project <- hypervolume_project(sp_hv_box, biovars_floreg[[11]], type = "probability", verbose = T)
-plot(floreg_project)
-
-plot(biovars_floreg[[11]][[1]])
-sp_hv_gauss <- hypervolume_gaussian(proc_env_data[[1]], name = "species", quantile.requested.type = "probability", verbose = T)
-
-floreg_gauss_proj <- hypervolume_project(sp_hv_gauss, biovars_floreg[[1]], type = "probability", verbose = T)
-plot(floreg_gauss_proj)
-
-fgps <- hypervolume_project(sp_hv_gauss, biovars_floreg[[11]], type = "probability", verbose = T)
-plot(fgps)
-
-hv_set <- hypervolume_set(sp_hv_gauss, region_hv, check.memory=F)
-hv_stats <- hypervolume_overlap_statistics(hv_set)
-
-sp_hvs <- analyze_hypervolume(proc_env_data, sample_size = 1, verbose = T)
-
-plot_hypervolumes(sp_hvs@HVList)
-plot(sp_hvs@HVList[[1]])
-
-region_hv <- analyze_region_hv(biovars_region, "cavm", method = "box", samples.per.point = 1, verbose = T)
-
-
-png("projection_gaussian_svaldbard.png", width = 1000, height = 500)
-plot(fgps, legend = "right", box = F)
-title(main = "Probability density of Saxifraga in CAVM", outer = F)
-dev.off()
-
-bt <- terra::project(hv_project, crs("+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84"))
-plot(bt, legend = "right", box = F)
-
+for (i in (last_iteration+1):length(acq_sp_data)) {
+  if (!file.exists(hv_log)) sink(hv_log) else sink(hv_log, append = T)
+  
+  
+  
+  cat("Run iteration", cc$lightSteelBlue(i), "\n")
+  cat("Using species:", cc$lightSteelBlue(sp_data[[1]][[1]]), "\n")
+  
+  
+  processed_data <- data_processing(acq_sp_data[[i]], biovars_world)
+  analyzed_hv <- hv_analysis(region_hv, processed_data, method, verbose)
+  
+  # Append to csv file
+  create_dir_if("")
+  fwrite("./outputs/hypervolume/", append = T, bom = T)
+  
+  sink()
+  
+  writeLines(as.character(i), last_iteration)
+}
