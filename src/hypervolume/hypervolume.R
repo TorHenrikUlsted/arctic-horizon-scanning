@@ -22,69 +22,11 @@ sp_df <- setup_sp(test = T, big_test = F)
 #                                         #
 ###########################################
 
-# https://nsidc.org/data/glims/data
-
 region <- acquire_region(
   shapefiles = c(
-    cavm = "./resources/region/cavm2003/cavm.shp",
-    cavm_noice = "./outputs/setup/region/cavm_edited.shp"
-    #glims = "./resources/region/glims_db/glims_polygons.shp"
-    #rgi = "./resources/region/rgi/RGI2000-v7.0-C-05_greenland_periphery.shp",
-    #rgi_sj = "./resources/region/rgi/sval_jan/RGI2000-v7.0-C-07_svalbard_jan_mayen.shp"
-    #wwfEcoRegion = "./resources/region/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp"
+    cavm = "./resources/region/cavm_noice/cavm_noice.shp"
   )
 )
-plot(region$cavm, col = "blue")
-plot(region$cavm_noice, col = "red", add = T)
-region$cavm
-region$cavm <- reproject_region(region$cavm, projection = "longlat", line_issue = T)
-region$glims <- reproject_region(region$glims, projection = "longlat")
-identical(crs(region$cavm), crs(region$glims))
-
-any(!is.valid(region$glims))
-valid_glims <- makeValid(region$glims)
-any(!is.valid(valid_glims))
-
-glims_cavm <- crop(valid_glims, ext(region$cavm))
-plot(glims_cavm)
-
-
-cavm_noice <- erase(region$cavm, glims_cavm)
-plot(cavm_noice)
-
-
-#split test
-ice2 <- terra::split(region$glims, as.factor(unlist(region$glims[[1]])))
-ice3 <- terra::split(ice2[[2]], as.factor(unlist(ice2[[2]][[23]])))
-
-glims_geo_names <- unique(ice2[[2]][[23]][[1]])
-glims_geo_names <- glims_geo_names[]
-for (i in seq_along(ice3)) {
-  names(ice3)[i] <-  paste0(glims_geo_names[[i]])
-  cat("renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(glims_geo_names[[i]]), "\n")
-}
-
-ice_cavm_list <- ice3
-
-for (i in seq_along(ice_cavm_list)) {
-  if (any(!is.valid(ice_cavm_list[[i]]))) {
-    cat(red(names(ice_cavm_list[i]), "is invalid. \n"))
-    validShape <- makeValid(ice_cavm_list[[i]])
-    
-    if (any(!is.valid(validShape))) cat(red("Failed to fix shape. \n")) else cat(green("Successfully fixed shape. \n"))
-    
-    ice_cavm_list[[i]] <- validShape
-  } else {
-    cat(green(names(ice_cavm_list[i]), "is valid. \n"))
-  }
-}
-
-plot(glims_cavm)
-names(ice_cavm_list)       
-length(ice_cavm_list)
-
-cavm_wo_ice <- terra::crop(ice_cavm_list$`Prince William Sound`, ext(region$cavm))
-cavm_wo_ice <- crop(region$cavm, cavm_wo_ice)
 
 # Split cavm into florisitc regions
 cavm_floreg <- terra::split(region$cavm, region$cavm$FLOREG)
@@ -94,11 +36,7 @@ for (i in seq_along(cavm_floreg)) {
   cat("renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(names(cavm_floreg)[i]), "\n")
 }
 
-plot(ice_cavm_list$`Prince William Sound`)
-
 plot(cavm_floreg$floreg_0, col = "blue")
-plot(region$rgi, add = T, col = "red")
-
 
 biovars_world <- acquire_biovars()
 

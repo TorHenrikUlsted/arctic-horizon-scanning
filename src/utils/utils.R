@@ -32,6 +32,8 @@ pkgs = c(
   "rgl"
 )
 
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
 source("./src/utils/components/check_updates.R")
 updated <- check_updates(pkgs)
 
@@ -59,6 +61,8 @@ cat("Include the longlat and cavm laea CRS \n")
 laea_crs <- "+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84"
 
 longlat_crs <- "+proj=longlat +datum=WGS84 +ellps=WGS84"
+
+stere_crs <- "+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs"
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")

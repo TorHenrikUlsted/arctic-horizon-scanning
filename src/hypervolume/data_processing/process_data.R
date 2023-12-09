@@ -2,6 +2,16 @@ source_all("./src/hypervolume/data_processing/components")
 
 scale_biovars <- function(biovars) {
   cat(blue("Scaling biovariables \n"))
+  name = deparse(substitute(biovars))
+  save_path <- paste0("./outputs/data_acquisition/region/world/", name, "_scaled.rds") 
+  
+  # Check if the scaled data already exists
+  if (file.exists(save_path)) {
+    cat("Scaled data found, loading from file. \n")
+    scaled_biovars <- readRDS(save_path)
+    cat(cc$lightGreen("Scaling biovariables completed successfully. \n"))
+    return(scaled_biovars)
+  }
   
   scaled_biovars <- biovars
   # Scale the dimensions
@@ -19,6 +29,10 @@ scale_biovars <- function(biovars) {
   
   cat("Renaming layers. \n")
   names(scaled_biovars) <- names(biovars)
+  
+  # Save the scaled data
+  saveRDS(scaled_biovars, save_path)
+  cat(name, "scaled data saved to file. \n")
   
   cat(cc$lightGreen("Scaling biovariables completed successfully. \n"))
   return(scaled_biovars)

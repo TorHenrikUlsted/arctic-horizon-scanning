@@ -12,12 +12,10 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
       
       if (!file.exists(zip_file)) {
         cat("Could not find zip file, trying to download... \n")
-        next
+ 
       } else {
         cat("Zip file located O_O, unzipping... \n")
         unzip(zip_file, exdir = dir_path)
-        
-        next
       }
       
       tryCatch(
@@ -26,23 +24,23 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
           
           if (!is.null(r)) {
             cat(green("WorldClim data downloaded successfully. \n"))
+            biovars[[length(biovars) + 1]] <- r
           } else {
             cat(red("Failed to download worldClim data, is the server down? \n"))
             message("Taking you to the site...")
             browseURL("https://www.worldclim.org/data/worldclim21.html")
-            stop("Exiting, download failed")
+            stop("Stopping, download failed")
           }
         },
         error = function(e) {
           cat(red("Failed to download worldClim data \n"))
-          stop("Exiting, download failed")
+          stop("Stopping, download failed")
         }
       )
     } else {
       r <- rast(file_name)
+      biovars[[length(biovars) + 1]] <- r
     }
-    
-    biovars[[length(biovars) + 1]] <- r
   }
   
   if (show_plot == T) {

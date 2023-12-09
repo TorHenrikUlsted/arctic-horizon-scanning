@@ -18,13 +18,13 @@ wc_to_region <- function(biovars, region, projection, show_plot = F, verbose = T
         if (projection == "longlat") {
           
           cat("Projecting to longlat. \n")
-          crs(region) <- crs(biovar)
+          region <- project(region, crs(biovar))
           
         } else if (projection == "laea") {
           
           cat("Projecting to laea for Layer", cc$lightSteelBlue(i), "/", cc$lightSteelBlue(length(1:terra::nlyr(biovars))),  "\n")
           
-          biovar <- terra::project(biovar, cavm_crs)
+          biovar <- terra::project(biovar, laea_crs)
           
         } else {
           stop("Missing or wrong use of projection parameter.")
@@ -37,9 +37,9 @@ wc_to_region <- function(biovars, region, projection, show_plot = F, verbose = T
         )
       } else {
         if (projection == "longlat") {
-          crs(region) <- crs(biovar)
+          region <- project(region, crs(biovar))
         } else if (projection == "laea") {
-          biovar <- terra::project(biovar, cavm_crs)
+          biovar <- terra::project(biovar, laea_crs)
         } else {
           stop("Missing or wrong use of projection parameter.")
         }

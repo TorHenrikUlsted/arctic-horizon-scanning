@@ -16,7 +16,11 @@ reproject_region <- function(region, projection, line_issue = F, show_plot = F, 
     
     cat("Reprojecting to longlat. \n")
     proj_east <- terra::project(vect_east, crs(longlat_crs))
+    cat("Plotting left side \n")
+    plot(proj_east)
     proj_west <- terra::project(vect_west, crs(longlat_crs))
+    cat("plotting right side \n")
+    plot(proj_west)
     
     region_longlat <- rbind(proj_west, proj_east)
     
@@ -48,7 +52,7 @@ reproject_region <- function(region, projection, line_issue = F, show_plot = F, 
     
     reproj_region <- terra::project(region, prj)
     
-    if (!isTRUE(identical(crs(region), prj))) cat(green("Reprojection completed successfully: "), crs(region, proj = T), "\n") else cat(red("Reprojection failed."))
+    if (!isTRUE(identical(crs(reproj_region), prj))) cat(green("Reprojection completed successfully: "), crs(reproj_region, proj = T), "\n") else cat(red("Reprojection failed."))
   } else {
     if (verbose == T) cat("Original CRS identical to current CSR. \n")
   }
