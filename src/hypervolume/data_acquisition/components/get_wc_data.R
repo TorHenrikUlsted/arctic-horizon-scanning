@@ -1,6 +1,6 @@
-get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", version = "2.1", show_plot = F) {
+get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", version = "2.1", show_plot = F, verbose = F) {
   biovars <- list()
-  cat("Checking if files exist \n")
+  if (verbose) cat("Checking if files exist \n")
   # Check if all 19 biovariables are present, if not install
   for (i in 1:19) {
     dir_path <- paste0(path, "/wc", version, "_", res, "m/")
@@ -14,7 +14,7 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
         cat("Could not find zip file, trying to download... \n")
  
       } else {
-        cat("Zip file located O_O, unzipping... \n")
+        cat("Zip file located, unzipping... \n")
         unzip(zip_file, exdir = dir_path)
       }
       
@@ -45,12 +45,12 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
   
   if (show_plot == T) {
     for (i in 1:length(biovars)) {
-      cat(paste0("Plotting bio_", as.character(i)), "\n")
+      if (verbose) cat(paste0("Plotting bio_", as.character(i)), "\n")
       # Plot each raster
       plot(biovars[[i]], main = paste("Biovar", i))
     }
   } else {
-    cat("Plotting skipped \n")
+    if (verbose) cat("Plotting skipped \n")
   }
   
   biovars <- terra::rast(biovars)

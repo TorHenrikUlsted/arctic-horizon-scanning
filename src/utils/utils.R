@@ -3,33 +3,28 @@ tryCatch({
 }, error = function(e) {
   cat("Working directory: ", getwd(), "\n")
 })  
-
-
+  
 pkgs = c(
   "rgbif",
   "dplyr",
   "WorldFlora",
   "geodata",
   "terra",
-  "tidyterra",
+  "peakRAM",
   "sf",
   "sp",
   "data.table",
   "CoordinateCleaner",
   "spThin",
-  "reticulate",
   "stringdist",
   "stringr",
   "parallel",
   "progressr",
   "crayon",
   "corrplot",
-  "hypervolume",
-  "dynRB",
-  "VennDiagram",
-  "ggplot2",
-  "alphahull",
-  "rgl"
+  "hypervolume"
+  #"alphahull",
+  #"rgl"
 )
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
@@ -63,6 +58,9 @@ laea_crs <- "+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84"
 longlat_crs <- "+proj=longlat +datum=WGS84 +ellps=WGS84"
 
 stere_crs <- "+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs"
+
+cat("Calculate memory allocation. \n")
+mem_limit <- (free_RAM() * 1024) * 0.80
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")
@@ -99,3 +97,6 @@ source("./src/utils/components/filter_rows_around_split_txt.R")
 
 cat("Loading extract name after prefix. \n")
 source("./src/utils/components/extract_name_after_prefix.R")
+
+cat("Loading get_disk_space function. \n")
+source("./src/utils/components/get_disk_space.R")

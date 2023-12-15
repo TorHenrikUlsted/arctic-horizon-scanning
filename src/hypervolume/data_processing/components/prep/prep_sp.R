@@ -3,12 +3,10 @@ prepare_species <- function(df, projection, verbose = T) {
     stop("Input must be a data.frame or data.table")
   }
   
-  if (verbose == T) cat("Getting Long/Lat values. \n")
+  if (verbose) cat("Getting Long/Lat values. \n")
   
   df <- df %>% 
     distinct(decimalLongitude, decimalLatitude, species, .keep_all = TRUE)
-  
-  any(duplicated(paste(df$decimalLongitude, df$decimalLatitude)))
   
   no_coords_sp <-  df %>% 
     group_by(species) %>% 
@@ -21,13 +19,13 @@ prepare_species <- function(df, projection, verbose = T) {
     return(NULL)
   }
   
-  cat("Cleaning species using coordinateCleaner. \n")
+  if (verbose) cat("Cleaning species using coordinateCleaner. \n")
   
   create_dir_if("./outputs/data_processing/prep")
   # "flag" sets adds true/false to the corresponding tests
-  df <- clean_coordinates(df, value = "clean")
+  df <- suppressWarnings( clean_coordinates(df, value = "clean") )
 
-  cat("Thining coordinates with spThin. \n")
+  if (verbose) cat("Thining coordinates with spThin. \n")
 
   sp_thinned <- suppressWarnings(thin(
     loc.data = df,
@@ -59,7 +57,7 @@ prepare_species <- function(df, projection, verbose = T) {
    prj = crs("+proj=laea +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
     
   } else {
-    cat(red("missing projection, using longlat"))
+    if (verbose) cat(red("missing projection, using longlat \n"))
     prj = crs("+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84")
   }
   

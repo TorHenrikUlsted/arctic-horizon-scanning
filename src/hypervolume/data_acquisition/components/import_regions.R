@@ -1,6 +1,7 @@
 import_regions <- function(shapefiles,
                            log_output,
-                           verbose = T) {
+                           verbose = F) {
+  log_output = paste0(log_output, "/")
   
   prj = crs(longlat_crs)
   
@@ -15,7 +16,7 @@ import_regions <- function(shapefiles,
   sink(log_output, append = appending)
   sink()
   
-  cat(cc$aquamarine("Importing ", length(shapefiles), "shapefiles", "\n"))
+  if (verbose) cat(cc$aquamarine("Importing ", length(shapefiles), "shapefiles", "\n"))
   
   for (shapefile_name in names(shapefiles)) {
     if (is.na(shapefile_name) || shapefile_name == "") {
@@ -42,16 +43,13 @@ import_regions <- function(shapefiles,
     ext_region <- ext(region)
     current_crs <- crs(region)
     
-    if (verbose == T) {
-      ext_region_printable <- as.vector(ext_region)
-      cat("Extent of ", shapefile_name, ": ", ext_region_printable, "\n")
-      
-      # Check the original CRS
-      original_crs <- crs(region)
-      cat("Original CRS: ", crs(original_crs, proj = T), "\n")
-    } else {
-      next
-    }
+    ext_region_printable <- as.vector(ext_region)
+    if (verbose) cat("Extent of ", shapefile_name, ": ", ext_region_printable, "\n")
+    
+    # Check the original CRS
+    original_crs <- crs(region)
+    if (verbose) cat("Original CRS: ", crs(original_crs, proj = T), "\n")
+
     
     # If the original CRS is not correctly defined, define it
     if (is.na(original_crs) || original_crs == "") {

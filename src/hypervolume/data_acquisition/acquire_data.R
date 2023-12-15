@@ -1,23 +1,7 @@
 source_all("./src/hypervolume/data_acquisition/components")
 
-acquire_region = function(shapefiles) {
-  cat(blue("Acquiring regions. \n"))
-  
-  regions <- import_regions(shapefiles, "./outputs/data_acquisition/region/logs/")
-  
-  return(regions)
-}
 
-acquire_biovars = function(show_plot = F) {
-  cat(blue("Acquiring WorldClim biovariables. \n"))
-  
-  biovars <- get_wc_data(show_plot = show_plot)
-  
-  cat(cc$lightGreen("Biovars acquired successfully \n"))
-  return(biovars)
-}
-
-acquire_region_data = function(biovars, regions, projection, show_plot = F, verbose = T) {
+acquire_region_data = function(biovars, regions, projection, show_plot = F, verbose = F) {
   cat(blue("Acquiring WorldClim region data. \n"))
   
   region_data_list <- list()
@@ -33,20 +17,20 @@ acquire_region_data = function(biovars, regions, projection, show_plot = F, verb
     
     
     if (file.exists(filename)) {
-    cat("File found", green("O_O"), "Loading file... \n")
+      if (verbose) cat("File found", green("O_O"), "Loading file... \n")
     
     region_data <- readRDS(filename)
     
     } else {
-      cat(red("File not found. \n"))
+      if (verbose) cat(red("File not found. \n"))
       
       region_crop <- start_timer("crop_region")
       
-      region_data <- wc_to_region(biovars, region, projection, show_plot = F, verbose = T)
+      region_data <- wc_to_region(biovars, region, projection, show_plot = F, verbose)
       
       end_timer(region_crop)
       
-      cat("Saving", cc$lightSteelBlue(name), "to:", cc$lightSteelBlue(filename), "\n")
+      if (verbose) cat("Saving", cc$lightSteelBlue(name), "to:", cc$lightSteelBlue(filename), "\n")
       
       create_dir_if(paste0("./outputs/data_acquisition/region/", name))
       
@@ -66,15 +50,15 @@ acquire_region_data = function(biovars, regions, projection, show_plot = F, verb
   }
 }
 
-acquire_species_data = function(sp_df, test, big_test) {
+acquire_species_data = function(sp_df, test, big_test, verbose = F) {
   cat("Acquiring species. \n")
   
   if (is.null(sp_df)) {
-    cat(cc$lightCoral("Species data frame not found. \n"))
+    if (verbose) cat(cc$lightCoral("Species data frame not found. \n"))
     
     sp_df <- setup_sp(test = test, big_test = big_test)
     
-  } else cat("Species data frame found. \n")
+  } else if (verbose) cat("Species data frame found. \n")
 
   cat(cc$lightGreen("Species data acquired successfully. \n"))
   
