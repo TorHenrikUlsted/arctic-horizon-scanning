@@ -1,1 +1,4 @@
-Error in install.packages : type 'binary' is not supported on this platform
+package ‘terra’ successfully unpacked and MD5 sums checked
+
+The downloaded binary packages are in
+	C:\Users\tor_h\AppData\Local\Temp\RtmpYhecM2\downloaded_packages

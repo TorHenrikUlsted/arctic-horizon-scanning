@@ -14,9 +14,7 @@ check_syn_wfo <- function(checklist, column, folder) {
 
   wfo_checklist <- set_df_utf8(wfo_checklist)
 
-  if (!dir.exists(folder)) dir.create(folder, recursive = T)
-  
-  fwrite(wfo_checklist, paste0(folder, "/wfo_checklist.csv"), bom = T)
+  fwrite(wfo_checklist, paste0(folder, "wfo-match.csv"), bom = T)
 
   end_timer(wfo_timer)
 
