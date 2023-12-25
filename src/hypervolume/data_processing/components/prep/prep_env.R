@@ -2,7 +2,7 @@ prepare_environment <- function(sp_points, biovars, verbose = T) {
   
   # Create an empty matrix to store environmental values
   env_values <- matrix(nrow = nrow(sp_points), ncol = terra::nlyr(biovars))
-  colnames(env_values) <- sub("wc2.1_2.5m_", "", (names(biovars)))
+  colnames(env_values) <- names(biovars)
   #set the crs()
   crs(sp_points) <- crs(biovars[[1]])
   
@@ -15,19 +15,17 @@ prepare_environment <- function(sp_points, biovars, verbose = T) {
   # Extract environmental values for each point
   for (i in 1:terra::nlyr(biovars)) {
     if (verbose == T) {
-      cat("Extracting biovariable for:",  sub("wc2.1_2.5m_", "", as.character(names(biovars[[i]]))), "\n")
+      cat("Extracting biovariable for:", cc$lightSteelBlue(names(biovars)), "\n")
     }
     
     env_values[, i] <- terra::extract(biovars[[i]], sp_points, df=TRUE, ID = FALSE)[,1]
   }
   
 
-  if (verbose == T) {
-    cat("Cleaning extracted data. \n")
-  }
+  if (verbose) cat("Cleaning extracted data. \n")
   
   if (any(is.na(env_values)) || any(env_values == "")) {
-    if (verbose == T) cat("Some extracted values are NA:", red("TRUE"), "\n")
+    if (verbose) cat("Some extracted values are NA:", red("TRUE"), "\n")
     
     env_values[env_values == ""] <- NA
     
@@ -39,9 +37,8 @@ prepare_environment <- function(sp_points, biovars, verbose = T) {
 
     
   }  else {
-    if (verbose == T) {
-      cat("Some extracted values are NA:", green("FALSE"), "\n")
-    }
+    if (verbose) cat("Some extracted values are NA:", green("FALSE"), "\n")
+    
     clean_env_matrix <- env_values
   } 
   

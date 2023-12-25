@@ -6,6 +6,7 @@ if(!file.exists("resources/region/wwfTerrestrialEcoRegions/wwf_terr_ecos.shp")) 
   dest_dir = "resources/region/wwfTerrestrialEcoRegions"
   official_dir = file.path("resources/region/wwfTerrestrialEcoRegions", "official")
   
+  if (!dir.exists(dest_dir)) dir.create(dest_dir, recursive = T)
   
   message("WWF Terrestrial EcoRegions does not exist. trying to download...")
   
