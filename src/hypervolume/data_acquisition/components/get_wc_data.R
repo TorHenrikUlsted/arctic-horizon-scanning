@@ -1,4 +1,4 @@
-get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", version = "2.1", show_plot = F, verbose = F) {
+get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", version = "2.1", show.plot = F, verbose = F) {
   biovars <- list()
   if (verbose) cat("Checking if files exist \n")
   # Check if all 19 biovariables are present, if not install
@@ -43,7 +43,7 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
     }
   }
   
-  if (show_plot == T) {
+  if (show.plot == T) {
     for (i in 1:length(biovars)) {
       if (verbose) cat(paste0("Plotting bio_", as.character(i)), "\n")
       # Plot each raster

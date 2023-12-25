@@ -3,7 +3,11 @@ source_all("./src/hypervolume/data_processing/components")
 scale_biovars <- function(biovars, verbose = F) {
  if (verbose) cat(blue("Scaling biovariables \n"))
   name = deparse(substitute(biovars))
-  save_path <- paste0("./outputs/data_acquisition/region/world/", name, "_scaled.rds") 
+  
+  save_dir <- "./outputs/data_processing/region/world"
+  create_dir_if(save_dir)
+  
+  save_path <- paste0(save_dir, "/", name, "_scaled.rds") 
   
   # Check if the scaled data already exists
   if (file.exists(save_path)) {

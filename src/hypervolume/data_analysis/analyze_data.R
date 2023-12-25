@@ -27,7 +27,7 @@ analyze_hv_stats <- function(region_hv, sp_hv, spec.name, verbose) {
   return(hv_stats)
 }
 
-analyze_region_hv <- function(biovars, name, method, samples.per.point, verbose) {
+analyze_region_hv <- function(biovars, name, method, verbose) {
   cat(blue("Analyzing cavm hypervolume. \n"))
 
   directory <- paste0("./outputs/data_analysis/hypervolume/region/", tolower(name), "/")
@@ -43,7 +43,7 @@ analyze_region_hv <- function(biovars, name, method, samples.per.point, verbose)
     if (verbose) cat("Matrix sample: \n")
     if (verbose) print(head(matrix, 3))
 
-    hv <- hypervolume(matrix, name = name, method = method, samples.per.point = samples.per.point, verbose = verbose)
+    hv <- hypervolume(matrix, name = name, method = method, verbose = verbose)
 
     # Save the hypervolume to a file
     saveRDS(hv, paste0(directory, "hypervolume_", method, ".rds"))

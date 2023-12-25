@@ -1,23 +1,31 @@
 get_occ_data <- function(species_w_codes, download_path, file_name, region = NULL, download_key = NULL, doi = NULL) {
   cat(blue("Initiating GBIF occurrence record download. \n"))
-
-  species_codes <- species_w_codes$speciesKey
-
-  sp_na <- any(is.na(species_codes))
-
-  if (sp_na == T) {
-    cat(red("NA keys found, removing... \n"))
-    species_codes <- species_codes[!is.na(species_codes)]
-  } else if (any(species_codes) == "") {
-    cat("Blank keys found, Removing... \n")
-    species_codes <- species_codes[species_codes != ""]
-  } else {
-    cat(green("No blank keys, nor NAs found. \n"))
+  
+  if(is.null(download_key)) {
+    # get codes
+    cat("Getting species keys. \n")
+    sp_w_keys <- get_sp_keys(checked_test_sp$scientificName)
+    
+    species_codes <- species_w_codes$speciesKey
+    
+    sp_na <- any(is.na(species_codes))
+    
+    if (sp_na == T) {
+      cat(red("NA keys found, removing... \n"))
+      species_codes <- species_codes[!is.na(species_codes)]
+    } else if (any(species_codes) == "") {
+      cat("Blank keys found, Removing... \n")
+      species_codes <- species_codes[species_codes != ""]
+    } else {
+      cat(green("No blank keys, nor NAs found. \n"))
+    }
+    
+    cat("Number of species:", length(species_codes), "\n")
+    cat("Species codes str: \n")
+    str(species_codes)
+    
   }
 
-  cat("Number of species:", length(species_codes), "\n")
-  cat("Species codes str: \n")
-  str(species_codes)
 
   out <- NULL
 
@@ -75,8 +83,6 @@ get_occ_data <- function(species_w_codes, download_path, file_name, region = NUL
   }
 
   if (!dir.exists(download_path)) dir.create(download_path, recursive = T)
-
-  cat(red("An error has occurred: ", e$message, "\n"))
 
   tryCatch( # 2
     {

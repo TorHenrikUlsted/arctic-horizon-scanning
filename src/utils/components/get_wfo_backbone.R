@@ -2,7 +2,7 @@ if (!file.exists("./resources/wfo/classification.csv")) {
   tryCatch({
     if (!dir.exists("./resources/wfo")) dir.create("./resources/wfo", recursive = T)
     cat(blue("A progress window pops up here, check your taskbar \n"))
-    WFO.download(save.dir = "resources/wfo", WFO.remember = TRUE, timeout = 1000)
+    WFO.download(save.dir = "resources/wfo", WFO.remember = TRUE, timeout = 2000)
     
   }, error = function(e) {
     cat("Error in download: ", e$message, "\n")
