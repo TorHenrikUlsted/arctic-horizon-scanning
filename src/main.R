@@ -1,5 +1,9 @@
 source("./src/utils/utils.R")
-source("./src/setup/setup.R")
+source("./src/setup/setup.R")source("./src/setup/setup.R")
+source("./src/filter/filter.R")
+source("./src/hypervolume/data_acquisition/components/import_regions.R")
+source("./src/hypervolume/data_processing/components/combine/combine_wkt_anticlockwise.R")
+filter(verbose = T)
 source("./src/hypervolume/hypervolume.R")
 
 sp_df <- setup_sp(test = T, big_test = F)

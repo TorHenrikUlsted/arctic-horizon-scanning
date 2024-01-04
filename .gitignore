@@ -10,3 +10,8 @@ outputs/setup/
 outputs/hypervolume/projections/
 outputs/hypervolume/logs/
 outputs/data_processing/
+outputs/post_process/
+outputs/filter/arctic/*
+!outputs/filter/arctic/arctic-absent-final.csv
+outputs/filter/gbif-acquisition/
+outputs/filter/logs/

@@ -97,6 +97,7 @@ run_test <- function(big_test) {
     cat("Using keys to download occurrence data. \n")
     sp_df <- get_occ_data(
       sp_w_keys,
+      format = "SIMPLE_CSV",
       download_path,
       file_name,
       download_key = download_key,
