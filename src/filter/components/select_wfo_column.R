@@ -4,6 +4,7 @@ select_wfo_column <- function(read.dir, column, pattern = "*.csv", verbose = F) 
   
   if (verbose) cat("Selecting the", column, "column. \n")
   
+  # make a list of data frames based on the different CSV files and also check for any "no matches" then add those to their own data frame.
   df_list <- lapply(csv_files, function(file) {
     df <- fread(file)
     
@@ -27,5 +28,5 @@ select_wfo_column <- function(read.dir, column, pattern = "*.csv", verbose = F) 
   names(df_list) <- gsub("-", "_", names(df_list))
   
   
-  return(df_list)
+  return(df_list = df_list)
 }

@@ -16,7 +16,7 @@ import_regions <- function(shapefiles,
   sink(log_output, append = appending)
   sink()
   
-  if (verbose) cat(cc$aquamarine("Importing ", length(shapefiles), "shapefiles", "\n"))
+  if (verbose) cat(cc$aquamarine("Importing ", length(shapefiles), "shapefile(s)", "\n"))
   
   for (shapefile_name in names(shapefiles)) {
     if (is.na(shapefile_name) || shapefile_name == "") {
@@ -34,7 +34,6 @@ import_regions <- function(shapefiles,
     if (grepl("\\.shp$", shapefile)) {
       print(shapefile)
       region <- terra::vect(shapefile)
-      print("Does this run?")
     } else if (grepl("\\.tif$", shapefile) || grepl("\\.nc$", shapefile)) {
       region <- terra::rast(shapefile)
     } else {
@@ -67,6 +66,8 @@ import_regions <- function(shapefiles,
     cat("Region: ", shapefile_name, "  |  ", "Extent: ", as.character(ext_region), "  |  ", "Projection: ", current_crs, "  |  ", "Append: ", appending, "\n")
     sink()
   }
+  
+  cat(cc$lightGreen("Regions imported successfully. \n"))
   
   return(regions)
 }

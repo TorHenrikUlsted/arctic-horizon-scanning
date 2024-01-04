@@ -35,7 +35,7 @@ wrangle_ambio <- function(column, verbose = F) {
   setnames(ambio_absent, old = "scientificName", new = column)
   
   if(verbose) cat("Writing out files. \n")
-  create_dir_if("./outputs/setup/wrangle")
+  create_dir_if("./outputs/setup/wrangle/ambio")
   
   ambio_formatted <- set_df_utf8(ambio_formatted)
   fwrite(ambio_formatted, "./outputs/setup/wrangle/ambio/ambio-formatted.csv", row.names = F, bom = T)

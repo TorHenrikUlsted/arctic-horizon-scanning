@@ -16,7 +16,7 @@ wrangle_glonaf <- function(column, verbose = F) {
   setnames(glonaf_species, old = "standardized_name", new = column)
   
   if(verbose) cat("Writing out dfs. \n")
-  create_dir_if("./outputs/setup/wrangle")
+  create_dir_if("./outputs/setup/wrangle/glonaf")
   
   glonaf_formatted <- set_df_utf8(glonaf_formatted)
   fwrite(glonaf_formatted, "./outputs/setup/wrangle/glonaf/glonaf-formatted.csv", row.names = F, bom = T)
