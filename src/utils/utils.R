@@ -3,34 +3,31 @@ tryCatch({
 }, error = function(e) {
   cat("Working directory: ", getwd(), "\n")
 })  
-
-
+  
 pkgs = c(
   "rgbif",
   "dplyr",
   "WorldFlora",
   "geodata",
   "terra",
-  "tidyterra",
+  "peakRAM",
   "sf",
   "sp",
   "data.table",
   "CoordinateCleaner",
   "spThin",
-  "reticulate",
   "stringdist",
   "stringr",
   "parallel",
   "progressr",
   "crayon",
   "corrplot",
-  "hypervolume",
-  "dynRB",
-  "VennDiagram",
-  "ggplot2",
-  "alphahull",
-  "rgl"
+  "hypervolume"
+  #"alphahull",
+  #"rgl"
 )
+
+options(repos = c(CRAN = "https://cloud.r-project.org"))
 
 source("./src/utils/components/check_updates.R")
 updated <- check_updates(pkgs)
@@ -55,11 +52,15 @@ source("./src/utils/components/cite_packages.R")
 cite_packages(pkgs, formats = "bibtex")
 
 cat("Include the longlat and cavm laea CRS \n")
-cavm_crs <- "PROJCRS[\"North_Pole_Lambert_Azimuthal_Equal_Area\",\n    BASEGEOGCRS[\"WGS 84\",\n        DATUM[\"World Geodetic System 1984\",\n            ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1]],\n            ID[\"EPSG\",6326]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"Degree\",0.0174532925199433]]],\n    CONVERSION[\"unnamed\",\n        METHOD[\"Lambert Azimuthal Equal Area\",\n            ID[\"EPSG\",9820]],\n        PARAMETER[\"Latitude of natural origin\",90,\n            ANGLEUNIT[\"Degree\",0.0174532925199433],\n            ID[\"EPSG\",8801]],\n        PARAMETER[\"Longitude of natural origin\",180,\n            ANGLEUNIT[\"Degree\",0.0174532925199433],\n            ID[\"EPSG\",8802]],\n        PARAMETER[\"False easting\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8806]],\n        PARAMETER[\"False northing\",0,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8807]]],\n    CS[Cartesian,2],\n        AXIS[\"(E)\",south,\n            MERIDIAN[90,\n                ANGLEUNIT[\"degree\",0.0174532925199433,\n                    ID[\"EPSG\",9122]]],\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]],\n        AXIS[\"(N)\",south,\n            MERIDIAN[180,\n                ANGLEUNIT[\"degree\",0.0174532925199433,\n                    ID[\"EPSG\",9122]]],\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1,\n                ID[\"EPSG\",9001]]]]"
 
 laea_crs <- "+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84"
 
 longlat_crs <- "+proj=longlat +datum=WGS84 +ellps=WGS84"
+
+stere_crs <- "+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs"
+
+cat("Calculate memory allocation. \n")
+mem_limit <- (free_RAM() * 1024) * 0.80
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")
@@ -96,3 +97,6 @@ source("./src/utils/components/filter_rows_around_split_txt.R")
 
 cat("Loading extract name after prefix. \n")
 source("./src/utils/components/extract_name_after_prefix.R")
+
+cat("Loading get_disk_space function. \n")
+source("./src/utils/components/get_disk_space.R")
