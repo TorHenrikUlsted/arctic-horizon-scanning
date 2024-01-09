@@ -4,7 +4,7 @@ scale_biovars <- function(biovars, verbose = F) {
  if (verbose) cat(blue("Scaling biovariables \n"))
   name = deparse(substitute(biovars))
   
-  save_dir <- "./outputs/data_processing/region/world"
+  save_dir <- "./outputs/hypervolume/data_processing/region"
   create_dir_if(save_dir)
   
   save_path <- paste0(save_dir, "/", name, "_scaled.rds") 

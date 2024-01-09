@@ -1,15 +1,13 @@
 import_regions <- function(shapefiles,
-                           log_output,
+                           out.dir,
                            verbose = F) {
-  log_output = paste0(log_output, "/")
-  
   prj = crs(longlat_crs)
   
   regions <- list()
   
-  if (!dir.exists(log_output)) dir.create(log_output, recursive = T)
+  create_dir_if(out.dir)
   
-  log_output <- paste0(log_output, "regions_log.txt")
+  log_output <- paste0(out.dir, "/regions-log.txt")
   
   appending <- F
   
@@ -39,7 +37,7 @@ import_regions <- function(shapefiles,
 
     # Get and print the extent
     ext_region <- ext(region)
-    current_crs <- crs(region)
+    current_crs <- crs(region, proj = T)
     
     ext_region_printable <- as.vector(ext_region)
     if (verbose) cat("Extent of ", shapefile_name, ": ", ext_region_printable, "\n")
@@ -59,7 +57,7 @@ import_regions <- function(shapefiles,
     if (file.exists(log_output)) appending = T else appending = F
     
     sink(log_output, append = appending)
-    cat("Region: ", shapefile_name, "  |  ", "Extent: ", as.character(ext_region), "  |  ", "Projection: ", current_crs, "  |  ", "Append: ", appending, "\n")
+    cat("Region: ", shapefile_name, "  |  ", "Extent: ", as.character(ext_region), "  |  ", "Projection: ", current_crs, "\n")
     sink()
   }
   

@@ -1,4 +1,4 @@
-parallell_processing <- function(sp_list, method, projection, proj.incl.t, iterations = NULL, max_cores, min.disk.space, show.plot, verbose) {
+parallell_processing <- function(sp_list, method, accuracy, project, proj.incl.t, iterations = NULL, max_cores, min.disk.space, show.plot, verbose) {
   on.exit(closeAllConnections())
   
   parallell_timer <- start_timer("parallell_timer")
@@ -24,10 +24,8 @@ parallell_processing <- function(sp_list, method, projection, proj.incl.t, itera
       sorensen = numeric(0),
       fracVolumeSpecies = numeric(0),
       fracVolumeRegion = numeric(0),
-      overlapRegionBox = numeric(0),
-      includedOverlapT1 = numeric(0),
-      includedOverlapT25 = numeric(0),
-      includedOverlapT5 = numeric(0)
+      overlapRegion = numeric(0),
+      includedOverlap = numeric(0)
     )
 
     fwrite(df, paste0(stats_dir, "/", method, "-stats.csv"), row.names = F, bom = T)
@@ -75,7 +73,7 @@ parallell_processing <- function(sp_list, method, projection, proj.incl.t, itera
   cat(sprintf("%8.2f | %8.2f | %8.0f \n", min.disk.space, current_disk_space, current_disk_space - min.disk.space))
 
   res <- clusterApplyLB(cl, batch_iterations, function(j) {
-    node_processing(j, sp_list, proj.incl.t, method, projection, show.plot, verbose, min.disk.space)
+    node_processing(j, sp_list, proj.incl.t, method, accuracy, project, show.plot, verbose, min.disk.space)
   })
 
   results[batch_iterations] <- res

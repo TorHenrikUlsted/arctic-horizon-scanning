@@ -1,31 +1,30 @@
 source("./src/utils/utils.R")
-source("./src/setup/setup.R")source("./src/setup/setup.R")
+source("./src/setup/setup.R")
 source("./src/filter/filter.R")
-source("./src/hypervolume/data_acquisition/components/import_regions.R")
-source("./src/hypervolume/data_processing/components/combine/combine_wkt_anticlockwise.R")
-filter(verbose = T)
 source("./src/hypervolume/hypervolume.R")
 
-sp_df <- setup_sp(test = T, big_test = F)
+sp_occ <- filter_process(
+  test = NULL,
+  cores.max = 14,
+  verbose = T
+  )
 
-sp_data <- sp_df %>% 
-  select(species, decimalLongitude, decimalLatitude, coordinateUncertaintyInMeters, coordinatePrecision, countryCode, stateProvince, year)
-
-sp_data <- sp_data[order(sp_data$species), ]
-
-sp_list <- split(sp_data, sp_data$species)
+#sp_df <- setup_sp(test = "small")
 
 min_disk_space <- get_disk_space("/home", units = "GB") * 0.2
+
+## Potential issue where it is not seperating the species properly and running all of them on every core. FIX
 
 # Check memory peak of one node by conducting a test run
 peak_ram <- peakRAM({
   parallell_processing(
     sp_list, 
     method = "box", #box approx 13 min, gaussian 1 hours 10 minutes
-    projection = "longlat",
-    proj.incl.t = c(0.5, 0.25, 0.1),
-    iterations = 2,
-    max_cores = 1, 
+    accuracy = "accurate",
+    project = "laea",
+    proj.incl.t = 0.5,
+    iterations = NULL,
+    max_cores = 5,
     min.disk.space = min_disk_space,
     show.plot = F,
     verbose = F
@@ -44,8 +43,9 @@ cores_to_use <- min(length(sp_list), detectCores() / 2, max_cores)
 
 parallell_processing(
   sp_list, 
-  method = "gaussian", #box approx 13 min, gaussian 1 hours 10 minutes
-  projection = "longlat",
+  method = "box", #box approx 13 min, gaussian 1 hours 10 minutes
+  accuracy = "fast",
+  project = "laea",
   proj.incl.t = c(0.5, 0.25, 0.1),
   iterations = NULL,
   max_cores = max_cores, 
@@ -53,3 +53,14 @@ parallell_processing(
   show.plot = F,
   verbose = F
 )
+
+
+t <- fread("./outputs/filter/arctic/chunk/species/A")
+
+t1 <- fread("./outputs/filter/arctic/sp_w_keys.csv")
+
+any(is.na(t1))
+length(which(is.na(t1)))
+
+t3 <- fread("./outputs/filter/test/test-big/chunk/species/Calypso-bulbosa.csv")
+View(t3)

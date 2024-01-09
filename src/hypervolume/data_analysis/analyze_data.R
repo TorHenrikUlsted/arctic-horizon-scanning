@@ -1,18 +1,5 @@
 source_all("./src/hypervolume/data_analysis/components")
 
-analyze_correlation <- function(wc_region, threshold, verbose = F) {
-  cat(blue("Analyzing correlation data. \n"))
-
-  cor_mat <- get_correlation(wc_region, threshold)
-
-  # Use the function
-  # imp_biovars <- important_biovars(cor_mat, threshold)
-
-  cat(cc$lightGreen("Correlation analysis completed. \n"))
-
-  # return(imp_biovars)
-}
-
 analyze_hv_stats <- function(region_hv, sp_hv, spec.name, verbose) {
   cat("Analyzing hypervolume for", cc$lightSteelBlue(sp_hv@Name), "species. \n")
   
@@ -30,7 +17,7 @@ analyze_hv_stats <- function(region_hv, sp_hv, spec.name, verbose) {
 analyze_region_hv <- function(biovars, name, method, verbose) {
   cat(blue("Analyzing cavm hypervolume. \n"))
 
-  directory <- paste0("./outputs/data_analysis/hypervolume/region/", tolower(name), "/")
+  directory <- paste0("./outputs/hypervolume/data_analysis/region/", tolower(name), "/")
 
   if (!dir.exists(directory)) dir.create(directory, recursive = T)
 
@@ -62,9 +49,11 @@ plot_hypervolumes <- function(hv_list) {
   for (i in seq_along(hv_list)) {
     hv <- hv_list[[i]]
     
-    if (!dir.exists("./outputs/data_analysis/hypervolume/species/plots/")) dir.create("./outputs/data_analysis/hypervolume/species/plots/", recursive = T)
+    plot_dir <- "./outputs/data_analysis/hypervolume/species/plots"
     
-    png(paste0("./outputs/data_analysis/hypervolume/species/plots/hv_", names(hv_list)[i], ".png"), width = 800, height = 800, pointsize = 20)
+    create_dir_if(plot_dir)
+    
+    png(paste0(plot_dir, "/hv_", names(hv_list)[i], ".png"), width = 800, height = 800, pointsize = 20)
     
     plot(hv, main = paste("Hypervolume for species", names(hv_list)[i]), cex.lab = 1.5, cex.axis = 1.5, cex.main = 1.5, cex.sub = 1.5)
     
@@ -77,14 +66,15 @@ plot_projects <- function(hv_list) {
 
   for (i in seq_along(hv_list)) {
     hv <- hv_list[[i]]
+    
+    plot_dir <- "./outputs/data_analysis/hypervolume/species_projects/plots"
+    create_dir_if(plot_dir)
 
     cat("Plotting", cc$lightSteelBlue(names(hv_list[[i]])), "\n")
 
-    if (!dir.exists("./outputs/data_analysis/hypervolume/species_projects/plots/")) dir.create("./outputs/data_analysis/hypervolume/species_projects/plots/", recursive = T)
+    png(paste0(plot_dir, "/hv_", names(hv_list[[i]]), ".png"), width = 800, height = 800, pointsize = 20)
 
-    png(paste0("./outputs/data_analysis/hypervolume/species_projects/plots/hv_", names(hv_list[[i]]), ".png"), width = 800, height = 800, pointsize = 20)
-
-    plot(hv, main = paste("Hypervolume for Saxifraga oppositifolia", names(hv_list[[i]])), cex.lab = 1.5, cex.axis = 1.5, cex.main = 1.5, cex.sub = 1.5)
+    plot(hv, main = paste("Hypervolume for", names(hv_list[[i]])), cex.lab = 1.5, cex.axis = 1.5, cex.main = 1.5, cex.sub = 1.5)
 
     dev.off()
   }

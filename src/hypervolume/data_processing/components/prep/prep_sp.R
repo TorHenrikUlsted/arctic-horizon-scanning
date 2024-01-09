@@ -21,7 +21,9 @@ prepare_species <- function(df, projection, verbose = T) {
   
   if (verbose) cat("Cleaning species using coordinateCleaner. \n")
   
-  create_dir_if("./outputs/data_processing/prep")
+  prep_dir <- "./outputs/hypervolume/data-processing/prep"
+    
+  create_dir_if(prep_dir)
   # "flag" sets adds true/false to the corresponding tests
   df <- suppressWarnings( clean_coordinates(df, value = "clean") )
 
@@ -35,9 +37,9 @@ prepare_species <- function(df, projection, verbose = T) {
     locs.thinned.list.return = TRUE,
     write.files = T,
     max.files = length(unique(df$species)),
-    out.dir = "./outputs/data_processing/prep",
+    out.dir = paste0(prep_dir, "/species"),
     out.base = paste0(gsub(" ", "_", df$species)),
-    log.file = "./outputs/data_processing/prep/spatial_thin_log.txt",
+    log.file = paste(prep_dir, "/thin-log.txt"),
     thin.par = 0.1,
     reps = 1,
   ))
@@ -51,14 +53,14 @@ prepare_species <- function(df, projection, verbose = T) {
   if (verbose == T) cat("Converting species to points \n")
   
   if (projection == "longlat") {
-    prj = crs("+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84")
+    prj = longlat_crs
     
   } else if (projection == "laea") {
-   prj = crs("+proj=laea +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
+   prj = laea_crs
     
   } else {
-    if (verbose) cat(red("missing projection, using longlat \n"))
-    prj = crs("+proj=longlat +lat_0=90 +lon_0=180 +x_0=0 +y_0=0 +datum=WGS84")
+    if (verbose) cat(cc$lightCoral("missing projection, using longlat \n"))
+    prj = longlat_crs
   }
   
   sp_points = vect(sp_thinned, geom=c("Longitude", "Latitude"), crs = prj)

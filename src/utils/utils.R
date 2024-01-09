@@ -23,8 +23,6 @@ pkgs = c(
   "crayon",
   "corrplot",
   "hypervolume"
-  #"alphahull",
-  #"rgl"
 )
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
@@ -53,14 +51,14 @@ cite_packages(pkgs, formats = "bibtex")
 
 cat("Include the longlat and cavm laea CRS \n")
 
-laea_crs <- "+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84"
+laea_crs <- crs("+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84")
 
-longlat_crs <- "+proj=longlat +datum=WGS84 +ellps=WGS84"
+longlat_crs <- crs("+proj=longlat +datum=WGS84 +ellps=WGS84")
 
-stere_crs <- "+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs"
+stere_crs <- crs("+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs")
 
 cat("Calculate memory allocation. \n")
-mem_limit <- (free_RAM() * 1024) * 0.80
+mem_limit <- (free_RAM() * 1024) * 0.8
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")

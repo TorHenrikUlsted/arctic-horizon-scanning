@@ -1,4 +1,4 @@
-run_test <- function(big_test) {
+run_test <- function(test) {
   cat("Initiating test run. \n")
 
   run_syn_check <- FALSE
@@ -9,7 +9,7 @@ run_test <- function(big_test) {
   doi <- NULL
   need_occ <- FALSE
 
-  if (big_test == T) {
+  if (tolower(test) == "big") {
     cat("Loading big test list. \n")
     
     if (!file.exists("./outputs/setup/test/gbif/big/big_test_occ.csv")) {
@@ -43,7 +43,7 @@ run_test <- function(big_test) {
 
 
     # ----End of big test ----
-  } else if (big_test == F) {
+  } else if (tolower(test) == "small") {
     cat("Loading small test list. \n")
     
     if (!file.exists("./outputs/setup/test/gbif/small/small_test_occ.csv")) {
@@ -110,7 +110,7 @@ run_test <- function(big_test) {
   } else {
     cat("Species data frame found. \n")
     
-    if (big_test == T) sp_df <- fread("./outputs/setup/test/gbif/big/big_test_occ.csv", sep = "\t") else  sp_df <- fread("./outputs/setup/test/gbif/small/small_test_occ.csv", sep = "\t")
+    if (tolower(test) == "big") sp_df <- fread("./outputs/setup/test/gbif/big/big_test_occ.csv", sep = "\t") else  sp_df <- fread("./outputs/setup/test/gbif/small/small_test_occ.csv", sep = "\t")
 
     return(sp_df)
   }

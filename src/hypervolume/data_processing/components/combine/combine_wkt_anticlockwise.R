@@ -1,4 +1,4 @@
-combine_wkt_anticlockwise <- function(regions, min_x = F, max_x = F, min_y = F, max_y = F) {
+combine_wkt_anticlockwise <- function(regions, log.out, min_x = F, max_x = F, min_y = F, max_y = F) {
   combined_extents <- NULL
   
   cat("Combining the WKTs of: ", names(regions), "\n")
@@ -41,8 +41,8 @@ combine_wkt_anticlockwise <- function(regions, min_x = F, max_x = F, min_y = F, 
   # Combine the numbers back into a single string
   combined_WKT_anticlockwise <- paste(numbers, collapse = " ")
   cat("Combined WKT: ", combined_WKT_anticlockwise, "\n")
-  create_dir_if("./outputs/data_processing/gbif/")
-  write(combined_WKT_anticlockwise, "./outputs/data_processing/gbif/combined_WKT_anticlockwise.txt")
+  create_dir_if(log.out)
+  write(combined_WKT_anticlockwise, paste0(log.out, "/combined_WKT_anticlockwise.txt"))
   
   return(combined_WKT_anticlockwise)
 }

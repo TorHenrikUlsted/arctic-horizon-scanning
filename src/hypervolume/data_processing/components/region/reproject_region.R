@@ -15,10 +15,10 @@ reproject_region <- function(region, projection, line_issue = F, show_plot = F, 
     vect_west <- terra::crop(region, ext_west)
     
     cat("Reprojecting to longlat. \n")
-    proj_east <- terra::project(vect_east, crs(longlat_crs))
+    proj_east <- terra::project(vect_east, longlat_crs)
     cat("Plotting left side \n")
     plot(proj_east)
-    proj_west <- terra::project(vect_west, crs(longlat_crs))
+    proj_west <- terra::project(vect_west, longlat_crs)
     cat("plotting right side \n")
     plot(proj_west)
     

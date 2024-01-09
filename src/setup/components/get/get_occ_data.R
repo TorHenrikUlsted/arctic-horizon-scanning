@@ -4,21 +4,21 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
   download_path <- dirname(file.name)
   create_dir_if(download_path)
 
-  species_codes <- species_w_keys$speciesKey
+  species_codes <- species_w_keys$usageKey
 
   sp_na <- any(is.na(species_codes))
 
   if (sp_na == T) {
-    cat(red("NA keys found, removing... \n"))
+    cat(red("NA keys found, removing", cc$lightSteelBlue(length(which(sp_na))), "species. \n"))
     species_codes <- species_codes[!is.na(species_codes)]
   } else if (any(species_codes) == "") {
-    cat("Blank keys found, Removing... \n")
+    cat("Blank keys found, removing",  cc$lightSteelBlue(length(which(species_codes == ""))), "\n")
     species_codes <- species_codes[species_codes != ""]
   } else {
     cat(cc$lightGreen("No blank keys, nor NAs found. \n"))
   }
 
-  cat("Number of species:", cc$lightSteelBlue(length(species_codes)), "\n")
+  cat("Final number of species keys:", cc$lightSteelBlue(length(species_codes)), "\n")
   cat("Species codes str: \n")
   str(species_codes)
 
@@ -42,7 +42,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
         pred_gte("year", 1970),
         pred_lte("coordinateUncertaintyInMeters", 4700) # 2.5 min res = 4.63 km at equator, WorldClim Cell size in km = 111.32 * cos(60 * pi/180) * 2.5 / 60 ≈ 2.8 km in the boreal belt and 1.9 km in the arctic.
       )
-
+      
       if (!is.null(region)) {
         predicates <- c(predicates, list(pred("geometry", region)))
       }
@@ -58,8 +58,6 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
           gbif_occ_file <- occ_download_get(out, path = download_path, overwrite = T)
 
           cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
-
-          return(gbif_occ_file)
         },
         error = function(e) {
           cat(red("An error has occurred: ", e$message, "\n"))
@@ -99,17 +97,20 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
         cat("Unzipping GBIF file. \n")
 
         unzip(paste0(file.name, ".zip"), exdir = download_path)
+        
+        cat("Cleaning up old file. \n")
+        file.remove(paste0(download_path, "/", download.key, ".zip"))
 
         csv <- paste0(download_path, "/", download.key, ".csv")
         
         cat("Renaming CSV file. \n")
 
         file.rename(from = csv, to = paste0(file.name, ".csv"))
-
+        
         csv <- paste0(file.name, ".csv")
 
         cat("Reading GBIF CSV. \n")
-        gbif_occ_df <- fread(csv, sep = "\t")
+        gbif_occ_df <- fread(csv)
 
         cat("Sample of data table: \n")
         print(head(gbif_occ_df, 3))
@@ -128,11 +129,12 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
         size <- round(size, digits = 2)
         cat("File size:", cc$lightSteelBlue(size), "GB. \n")
         
-        if (size <= 10) {
-          gbif_occ_df <- fread(paste0(file.name, ".csv"), sep = "\t")
+        if (size <= 30) {
+          cat("File size smaller than 30 GB, reading file... \n")
+          gbif_occ_df <- fread(paste0(file.name, ".csv"))
           return(gbif_occ_df)
         } else {
-          cat(cc$aquamarine("File size very big, load manually. \n"))
+          cat(cc$aquamarine("File size very big, using file chunking method. \n"))
         }
       }
     },

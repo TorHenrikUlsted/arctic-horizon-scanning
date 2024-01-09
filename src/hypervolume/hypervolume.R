@@ -1,5 +1,3 @@
-# source("./src/utils/utils.R")
-# source("./src/setup/setup.R")
 source("./src/hypervolume/data_acquisition/acquire_data.R")
 source("./src/hypervolume/data_analysis/analyze_data.R")
 source("./src/hypervolume/data_processing/process_data.R")
@@ -20,10 +18,10 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
   )
   withCallingHandlers(
     {
-      regions <- import_regions(shapefiles, "./outputs/data_acquisition/region/logs")
+      regions <- import_regions(shapefiles, "./outputs/hypervolume/data_acquisition/region")
     }, 
-    warning = function(w) warn(w, warn_msg = "Warning when importing regions in iteration"),
-    error = function(e) err(e, err_msg = "Error when importing regions in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when importing regions in iteration"),
+    error = function(e) err(e, err_txt = "Error when importing regions in iteration")
   )
   
   cavm_floreg <- terra::split(regions$cavm, regions$cavm$FLOREG)
@@ -41,8 +39,8 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     {
       biovars_world <- get_wc_data(show.plot = show.plot, verbose = verbose)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when getting worldClim data in iteration"),
-    error = function(e) err(e, err_msg = "Error when getting worldClim data in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when getting worldClim data in iteration"),
+    error = function(e) err(e, err_txt = "Error when getting worldClim data in iteration")
   )
 
   if (verbose) cat(cc$lightGreen("Biovars_world acquired successfully \n"))
@@ -53,8 +51,8 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     {
       biovars_world <- scale_biovars(biovars_world, verbose = verbose)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when scaling biovars_world in iteration"),
-    error = function(e) err(e, err_msg = "Error when scaling biovars_world in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when scaling biovars_world in iteration"),
+    error = function(e) err(e, err_txt = "Error when scaling biovars_world in iteration")
   )
 
   if (verbose) cat(cc$lightGreen("Biovars_world scaled successfully \n"))
@@ -65,8 +63,8 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     {
       biovars_region <- acquire_region_data(biovars_world, regions, projection = "longlat", verbose = verbose)
     },
-    warning =  function(w) warn(w, warn_msg = "Warning when acquiring region data in iteration"),
-    error = function(e) err(e, err_msg = "Error when acquiring region data in iteration")
+    warning =  function(w) warn(w, warn_txt = "Warning when acquiring region data in iteration"),
+    error = function(e) err(e, err_txt = "Error when acquiring region data in iteration")
   )
 
   if (verbose) cat(cc$lightGreen("Biovars_region acquired successfully \n"))
@@ -77,8 +75,8 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     {
       biovars_floreg <- acquire_region_data(biovars_world, cavm_floreg, projection = "longlat", verbose = verbose)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when acquiring floristic region data in iteration"),
-    error = function(e) err(e, err_msg = "Error when when acquiring floristic region data in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when acquiring floristic region data in iteration"),
+    error = function(e) err(e, err_txt = "Error when when acquiring floristic region data in iteration")
   )
 
   if (verbose) cat(cc$lightGreen("Biovars_floreg acquired successfully \n"))
@@ -102,10 +100,10 @@ data_analysis <- function(biovars_world, biovars_region, biovars_floreg, method,
   cat(blue("Initiating data analysis protocol \n"))
   withCallingHandlers(
     {
-      #analyzed_data <- analyze_correlation(biovars_region, threshold = 0.5)
+      analyzed_data <- analyze_correlation(biovars_region, file.out = "./outputs/hypervolume/data_analysis/correlation", threshold = 0.5)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when analyzing correlation in iteration"),
-    error = function(e) err(e, err_msg = "Error when analyzing correlation in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when analyzing correlation in iteration"),
+    error = function(e) err(e, err_txt = "Error when analyzing correlation in iteration")
   )
 
   withCallingHandlers(
@@ -119,16 +117,16 @@ data_analysis <- function(biovars_world, biovars_region, biovars_floreg, method,
         biovars_floreg[[i]] <- subset
       }
     },
-    warning = function(w) warn(w, warn_msg = "Warning when subsetting regions in iteration"),
-    error = function(e) err(e, err_msg = "Error when when subsetting regions in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when subsetting regions in iteration"),
+    error = function(e) err(e, err_txt = "Error when when subsetting regions in iteration")
   )
 
   withCallingHandlers(
     {
       region_hv <- setup_region_hv(biovars_region, "cavm", method = method)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when setting up region hypervolume in iteration"),
-    error = function(e) err(e, err_msg = "Error when setting up region hypervolume in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when setting up region hypervolume in iteration"),
+    error = function(e) err(e, err_txt = "Error when setting up region hypervolume in iteration")
   )
 
   cat(cc$lightGreen("Data analysis protocol completed successfully \n"))
@@ -154,10 +152,10 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, projection 
 
   withCallingHandlers(
     {
-      sp_points <- prepare_species(sp_df, projection, verbose)
+      sp_points <- prepare_species(sp_df, projection = "longlat", verbose)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when preparing species in iteration"),
-    error = function(e) err(e, err_msg = "Error when preparing species in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when preparing species in iteration"),
+    error = function(e) err(e, err_txt = "Error when preparing species in iteration")
   )
 
   if (verbose) {
@@ -175,8 +173,8 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, projection 
     {
       sp_mat <- prepare_environment(sp_points, biovars_world, verbose)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when preparing environment in iteration"),
-    error = function(e) err(e, err_msg = "Error when preparing environment in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when preparing environment in iteration"),
+    error = function(e) err(e, err_txt = "Error when preparing environment in iteration")
   )
 
   if (verbose) {
@@ -198,7 +196,7 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, projection 
 ###########################################
 
 
-hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, verbose, iteration, warn, err) {
+hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, project, verbose, iteration, warn, err) {
   cat(blue("Initiating hypervolume sequence \n"))
 
   ## Inclusion test to eliminate obvious non-overlaps
@@ -225,37 +223,11 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
           random_points = nrp,
           excluded = T,
           analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
-          included_sp_t1 = c(rep(TRUE, 0), rep(FALSE, nobs)),
-          included_sp_t25 = c(rep(TRUE, 0), rep(FALSE, nobs)),
-          included_sp_t5 = c(rep(TRUE, 0), rep(FALSE, nobs))
+          included_sp = c(rep(TRUE, 0), rep(FALSE, nobs))
         ))
       }
 
-      included_sp_t1 <- hypervolume_inclusion_test(
-        region_hv,
-        sp_mat,
-        reduction.factor = 1,
-        fast.or.accurate = "accurate",
-        fast.method.distance.factor = 1,
-        accurate.method.threshold = quantile(region_hv@ValueAtRandomPoints, 0.1),
-        verbose = verbose
-      )
-
-      invisible(gc())
-
-      included_sp_t25 <- hypervolume_inclusion_test(
-        region_hv,
-        sp_mat,
-        reduction.factor = 1,
-        fast.or.accurate = "accurate",
-        fast.method.distance.factor = 1,
-        accurate.method.threshold = quantile(region_hv@ValueAtRandomPoints, 0.25),
-        verbose = verbose
-      )
-
-      invisible(gc())
-
-      included_sp_t5 <- hypervolume_inclusion_test(
+      included_sp <- hypervolume_inclusion_test(
         region_hv,
         sp_mat,
         reduction.factor = 1,
@@ -269,8 +241,8 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
 
       cat(cc$lightGreen("inclusion analysis completed successfully \n"))
 
-      cat("Number of TRUE / FALSE = OVERLAP values:", cc$lightSteelBlue(sum(included_sp_t5 == T)), "/", cc$lightSteelBlue(sum(included_sp_t5 == F)), "=", cc$lightSteelBlue(format(sum(included_sp_t5 == T) / length(included_sp_t5), nsmall = 2, big.mark = ",")), "\n")
-      if (any(included_sp_t5 == T)) {
+      cat("Number of TRUE / FALSE = OVERLAP values:", cc$lightSteelBlue(sum(included_sp == T)), "/", cc$lightSteelBlue(sum(included_sp == F)), "=", cc$lightSteelBlue(format(sum(included_sp == T) / length(included_sp), nsmall = 2, big.mark = ",")), "\n")
+      if (any(included_sp == T)) {
         cat(green("Included for further hypervolume analysis. \n"))
       } else {
         cat(red("Excluded from further hypervolume analysis. \n"))
@@ -282,14 +254,12 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
           random_points = nrp,
           excluded = T,
           analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
-          included_sp_t1 = included_sp_t1,
-          included_sp_t25 = included_sp_t25,
-          included_sp_t5 = included_sp_t5
+          included_sp = included_sp
         ))
       }
     },
-    warning = function(w) warn(w, warn_msg = "Warning when analyzing hypervolume inclusion in iteration"),
-    error = function(e) err(e, err_msg = "Error when analyzing hypervolume inclusion in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when analyzing hypervolume inclusion in iteration"),
+    error = function(e) err(e, err_txt = "Error when analyzing hypervolume inclusion in iteration")
   )
 
   invisible(gc())
@@ -301,8 +271,8 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       sp_hv <- hypervolume(sp_mat, name = spec.name, method = method, verbose = T)
 
     },
-    warning = function(w) warn(w, warn_msg = "Warning when analyzing hypervolume in iteration"),
-    error = function(e) err(e, err_msg = "Error when analyzing hypervolume in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when analyzing hypervolume in iteration"),
+    error = function(e) err(e, err_txt = "Error when analyzing hypervolume in iteration")
   )
 
   invisible(gc())
@@ -326,60 +296,64 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
           random_points = nrp,
           excluded = T,
           analyzed_hv_stats = analyzed_hv_stats,
-          included_sp_t1 = included_sp_t1,
-          included_sp_t25 = included_sp_t25,
-          included_sp_t5 = included_sp_t5
+          included_sp = included_sp
         ))
       }
     },
-    warning = function(w) warn(w, warn_msg = "Warning when analyzing statistics in iteration"),
-    error = function(e) err(e, err_msg = "Error when analyzing statistics in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when analyzing statistics in iteration"),
+    error = function(e) err(e, err_txt = "Error when analyzing statistics in iteration")
   )
 
   invisible(gc())
 
   withCallingHandlers(
     {
-      # Move onto projections
       proj_dir <- paste0("./outputs/hypervolume/projections/", method, "/", gsub(" ", "-", spec.name))
       create_dir_if(proj_dir)
 
       cat("Projecting inclusion analysis. \n")
+      cat("Using the", accuracy, "inclusion accuracy. \n")
       ## Projections for inclusion
+      for (threshold in proj.incl.t) {
+        inc_project <- hypervolume_project(
+           sp_hv,
+           biovars_region,
+           type = "inclusion",
+           fast.or.accurate = accuracy,
+           accurate.method.threshold = quantile(sp_hv@ValueAtRandomPoints, threshold),
+           verbose = T
+         )
+         names(inc_project) <- ("inclusionScore")
+         if (project == "laea") {
+           cat("Reprojecting to laea. \n")
+           inc_proj <- terra::project(inc_project, crs(laea_crs))
+         } else cat("Keeping longlat projection. \n")
+         writeRaster(inc_project, paste0(proj_dir, "/inclusion-", threshold, ".tif"), overwrite = T)
+         rm(inc_project)
+         invisible(gc())
+       }
 
-      # for (threshold in proj.incl.t) {
-      #   sp_inc_project <- hypervolume_project(
-      #     sp_hv,
-      #     biovars_region,
-      #     type = "inclusion",
-      #     fast.or.accurate = "accurate",
-      #     accurate.method.threshold = quantile(sp_hv@ValueAtRandomPoints, threshold),
-      #     verbose = T
-      #   )
-      #   names(sp_inc_project) <- ("inclusionScore")
-      #   laea_inc_proj <- terra::project(sp_inc_project, crs(laea_crs))
-      #   writeRaster(laea_inc_proj, paste0(proj_dir, "/inclusion-", threshold, ".tif"), overwrite = T)
-      #   rm(sp_inc_project)
-      #   rm(laea_inc_proj)
-      #   invisible(gc())
-      # }
 
-
-      # cat("Projecting probability analysis. \n")
-      # ## Projections for probability
-      # sp_prob_project <- hypervolume_project(sp_hv, biovars_region, type = "probability", verbose = T)
-      #
-      # names(sp_prob_project) <- ("suitabilityScore")
-      #
-      # laea_prob_proj <- terra::project(sp_prob_project, crs(laea_crs))
-      #
-      # writeRaster(laea_prob_proj, paste0(proj_dir, "/probability.tif"), overwrite = T)
+       cat("Projecting probability analysis. \n")
+       ## Projections for probability
+       prob_proj <- hypervolume_project(sp_hv, biovars_region, type = "probability", verbose = T)
+      
+       names(prob_proj) <- ("suitabilityScore")
+      
+       if (project == "laea") {
+         cat("Reprojecting to laea. \n")
+         prob_proj <- terra::project(prob_proj, crs(laea_crs))
+       } else cat("Keeping the longlat projection. \n")
+      
+       writeRaster(prob_proj, paste0(proj_dir, "/probability.tif"), overwrite = T)
     },
-    warning = function(w) warn(w, warn_msg = "Warning when projecting hypervolume in iteration"),
-    error = function(e) err(e, err_msg = "Error when projecting hypervolume in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when projecting hypervolume in iteration"),
+    error = function(e) err(e, err_txt = "Error when projecting hypervolume in iteration")
   )
 
-
+  rm(prob_proj)
+  invisible(gc())
+  
   cat(cc$lightGreen("Hypervolume sequence completed successfully. \n"))
 
   return(list(
@@ -389,8 +363,6 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
     random_points = nrp,
     excluded = F,
     analyzed_hv_stats = analyzed_hv_stats,
-    included_sp_t1 = included_sp_t1,
-    included_sp_t25 = included_sp_t25,
-    included_sp_t5 = included_sp_t5
+    included_sp = included_sp
   ))
 }

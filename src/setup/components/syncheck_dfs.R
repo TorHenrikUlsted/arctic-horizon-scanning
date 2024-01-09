@@ -46,7 +46,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, coun
       sp_checked <- check_syn_wfo_one(sp_synonyms, paste0(out_dir, file_path))
       
       if (verbose) cat("Renaming file to resources/synonym-checked folder. \n")
-      old_name <- paste0(out_dir, "/", child_folder, "-wfo-one.csv")
+      old_name <- paste0(out_dir, "/", child_folder, "/wfo-one-uniq.csv")
       new_name <- paste0(cut_dir, "/", parent_folder, "-", child_folder, "-wfo-one.csv")
       file.rename(from = old_name, to = new_name)
       

@@ -1,6 +1,5 @@
 source_all("./src/hypervolume/data_acquisition/components")
 
-
 acquire_region_data = function(biovars, regions, projection, show_plot = F, verbose = F) {
   cat(blue("Acquiring WorldClim region data. \n"))
   
@@ -13,11 +12,14 @@ acquire_region_data = function(biovars, regions, projection, show_plot = F, verb
     
     cat("Using", cc$lightSteelBlue(name), "\n")
     
-    filename <- paste0("./outputs/data_acquisition/region/", name, "/biovars_", projection, ".rds") 
+    dir_name <- paste0("./outputs/hypervolume/data_acquisition/region/", name)
+    create_dir_if(dir_name)
+    
+    filename <- paste0(dir_name, "/biovars_", projection, ".rds") 
     
     
     if (file.exists(filename)) {
-      if (verbose) cat("File found", green("O_O"), "Loading file... \n")
+      if (verbose) cat("File found", "Loading file... \n")
     
     region_data <- readRDS(filename)
     
@@ -31,8 +33,6 @@ acquire_region_data = function(biovars, regions, projection, show_plot = F, verb
       end_timer(region_crop)
       
       if (verbose) cat("Saving", cc$lightSteelBlue(name), "to:", cc$lightSteelBlue(filename), "\n")
-      
-      create_dir_if(paste0("./outputs/data_acquisition/region/", name))
       
       saveRDS(region_data, file = filename)
     }
@@ -48,19 +48,4 @@ acquire_region_data = function(biovars, regions, projection, show_plot = F, verb
   } else {
     return(region_data_list)
   }
-}
-
-acquire_species_data = function(sp_df, test, big_test, verbose = F) {
-  cat("Acquiring species. \n")
-  
-  if (is.null(sp_df)) {
-    if (verbose) cat(cc$lightCoral("Species data frame not found. \n"))
-    
-    sp_df <- setup_sp(test = test, big_test = big_test)
-    
-  } else if (verbose) cat("Species data frame found. \n")
-
-  cat(cc$lightGreen("Species data acquired successfully. \n"))
-  
-  return(sp_df)
 }
