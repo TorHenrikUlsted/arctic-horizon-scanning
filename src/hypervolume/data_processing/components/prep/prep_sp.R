@@ -2,7 +2,9 @@ prepare_species <- function(df, projection, verbose = T) {
   if (!is.data.frame(df)) {
     stop("Input must be a data.frame or data.table")
   }
-  print(df)
+  cat("Data frame sample:\n")
+  print(head(df, 3))
+  
   if (verbose) cat("Getting Long/Lat values. \n")
   
   df <- df %>% 
