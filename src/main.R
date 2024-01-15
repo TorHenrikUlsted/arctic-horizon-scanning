@@ -1,10 +1,5 @@
-source("./src/utils/utils.R")
-source("./src/setup/setup.R")
-source("./src/filter/filter.R")
-source("./src/hypervolume/hypervolume.R")
-
 sp_dir <- filter_process(
-  test = "small",
+  test = NULL,
   cores.max = 12,
   verbose = T
   )
@@ -37,7 +32,7 @@ parallell_processing(
   accuracy = "accurate",
   hv.projection = "laea",
   proj.incl.t = 0.5,
-  iterations = 1,
+  iterations = NULL,
   cores.max.high = cores_max_high, 
   cores.max = cores_max,
   min.disk.space = min_disk_space,
