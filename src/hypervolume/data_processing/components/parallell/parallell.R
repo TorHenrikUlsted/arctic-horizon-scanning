@@ -1,16 +1,33 @@
-parallell_processing <- function(sp_list, method, accuracy, project, proj.incl.t, iterations = NULL, max_cores, min.disk.space, show.plot, verbose) {
+parallell_processing <- function(spec.list, method, accuracy, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
   on.exit(closeAllConnections())
+  
+  cat(blue("Initiating hypervolume sequence \n"))
   
   parallell_timer <- start_timer("parallell_timer")
 
-  cat(blue("Initiating hypervolume sequence \n"))
-  cat(cc$aquamarine("Outputs are being logged at ouputs/hypervolume/logs. \n"))
-
-  if (!file.exists(paste0("./outputs/hypervolume/logs/", method, "-error.txt"))) file.create(paste0("./outputs/hypervolume/logs/", method, "-error.txt"))
-  if (!file.exists(paste0("./outputs/hypervolume/logs/", method, "-warning.txt"))) file.create(paste0("./outputs/hypervolume/logs/", method, "-warning.txt"))
-
-  stats_dir <- paste0("./outputs/hypervolume/stats")
+  if (verbose) cat("Setting up hypervolume files and folders. \n")
+  
+  logs_dir <-   paste0(hv.dir, "/logs")
+  proj_dir <-   paste0(hv.dir, "/projections")
+  stats_dir <- paste0(hv.dir, "/stats")
+  locks_dir <- paste0(hv.dir, "/locks")
+  
+  create_dir_if(logs_dir)
+  create_dir_if(proj_dir)
   create_dir_if(stats_dir)
+  create_dir_if(locks_dir)
+  
+  highest_it_file <- paste0(hv.dir, "/logs/highest_iteration.txt")
+  ram_usage <- paste0(logs_dir, "/", method, "-ram-usage.txt")
+  err_file <- paste0(logs_dir, "/", method, "-error.txt")
+  warn_file <- paste0(logs_dir, "/", method, "-warning.txt")
+  node_it <- paste0(logs_dir, "/node-iterations.txt")
+  
+  create_file_if(highest_it_file, keep = TRUE)
+  create_file_if(node_it, keep = TRUE)
+  create_file_if(ram_usage)
+  create_file_if(err_file)
+  create_file_if(warn_file)
 
   if (!file.exists(paste0(stats_dir, "/", method, "-stats.csv"))) {
     df <- data.frame(
@@ -31,17 +48,13 @@ parallell_processing <- function(sp_list, method, accuracy, project, proj.incl.t
     fwrite(df, paste0(stats_dir, "/", method, "-stats.csv"), row.names = F, bom = T)
   }
 
-  cl <- makeCluster(max_cores)
-
-  highest_it_file <- "./outputs/hypervolume/logs/highest_iteration.txt"
-
   if (is.null(iterations)) {
     if (file.exists(highest_it_file)) {
       highest_iteration <- as.integer(readLines(highest_it_file))
 
-      cat("Previous session found, continuing from iteration:", cc$lightSteelBlue(highest_iteration + 1), "with", cc$lightSteelBlue(max_cores), "cores. \n")
+      cat("Previous session found, continuing from iteration:", cc$lightSteelBlue(highest_iteration + 1), "with", cc$lightSteelBlue(cores.max), "core(s). \n")
 
-      if (highest_iteration >= length(sp_list)) {
+      if (highest_iteration >= length(spec.list)) {
         stop(cc$lightCoral("STOP: Previous iteration is higher or the same as the number of species. \n"))
       }
     } else {
@@ -50,34 +63,52 @@ parallell_processing <- function(sp_list, method, accuracy, project, proj.incl.t
     
     # If iterations is not provided, start from the highest saved iteration
     i <- highest_iteration + 1
-    end <- length(sp_list)
+    end <- length(spec.list)
     batch_iterations <- i:end
   } else {
     batch_iterations <- iterations
 
-    cat("Initiating", cc$lightSteelBlue(length(batch_iterations)), "specific iteration(s) with", cc$lightSteelBlue(max_cores), "cores. \n")
+    cat("Initiating", cc$lightSteelBlue(length(batch_iterations)), "specific iteration(s) with", cc$lightSteelBlue(cores.max), "cores. \n")
   }
+  
+  if (verbose) cat("Creating cluster of", cc$lightSteelBlue(cores.max), "core(s). \n")
+  
+  cl <- makeCluster(cores.max)
 
   clusterEvalQ(cl, {
     source("./src/utils/utils.R")
     source("./src/setup/setup.R")
     source("./src/hypervolume/hypervolume.R")
   })
+  
+  if (verbose) cat("Creating a vector for the results. \n")
 
-  results <- vector("list", length(sp_list))
+  results <- vector("list", length(spec.list))
 
-  current_disk_space <- get_disk_space("/home", units = "GB")
-
+  current_disk_space <- get_disk_space("/export", units = "GB")
+  
   cat("Remaining disk space (GB) \n")
   cat(sprintf("%8s | %8s | %8s \n", "Minimum", "Current", "Remaining"))
   cat(sprintf("%8.2f | %8.2f | %8.0f \n", min.disk.space, current_disk_space, current_disk_space - min.disk.space))
-
+  
+  cat("Hypervolume sequence has started, progress is being logged to:", yellow(logs_dir), "\n")
+  
   res <- clusterApplyLB(cl, batch_iterations, function(j) {
-    node_processing(j, sp_list, proj.incl.t, method, accuracy, project, show.plot, verbose, min.disk.space)
+    # RAM check
+    mem_free <- (free_RAM() * 1024) - (mem_total - mem_limit)
+    
+    if (mem_free <= 0) {
+      ram_con <- file(ram_usage, open = "a")
+      writeLines(paste("RAM usage is above the maximum, not creating new node", j, ".\n"), ram_con)
+      close(ram_con)
+      return()
+    }
+    
+    node_processing(j, spec.list, proj.incl.t, method, accuracy, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
+    
   })
 
   results[batch_iterations] <- res
-
 
   cat("Finishing up \n")
 

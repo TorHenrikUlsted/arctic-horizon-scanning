@@ -56,6 +56,8 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
           occ_download_wait(out)
           ## get the download Data and import to create dataframe
           gbif_occ_file <- occ_download_get(out, path = download_path, overwrite = T)
+          
+          download.key <- gbif_occ_file$keyname
 
           cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
         },
@@ -76,30 +78,17 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
       if (!file.exists(paste0(file.name, ".csv"))) {
         if (file.exists(paste0(download_path, "/", download.key, ".zip"))) {
           cat("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found. \n")
-          if (!file.rename(from = out, to = paste0(file.name, ".zip"))) {
-            cat("Failed to rename the file. Please check the file paths and permissions.\n")
-          } else {
-            cat("File renamed successfully.\n")
-          }
         } else if (!file.exists(paste0(file.name, ".zip"))) {
           message("Trying to install by download key... ")
           cat("Using download key:", download.key, "\n")
           out <- occ_download_get(download.key, path = download_path, overwrite = TRUE)
-          if (!file.rename(from = out, to = paste0(file.name, ".zip"))) {
-            cat("Failed to rename the file. Please check the file paths and permissions.\n")
-          } else {
-            cat("File renamed successfully.\n")
-          }
         } else {
-          cat("ZIP file named", paste0(file.name, ".zip"), "found. \n")
+          cat("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found. \n")
         }
 
         cat("Unzipping GBIF file. \n")
 
-        unzip(paste0(file.name, ".zip"), exdir = download_path)
-        
-        cat("Cleaning up old file. \n")
-        file.remove(paste0(download_path, "/", download.key, ".zip"))
+        unzip(paste0(download_path, "/", download.key, ".zip"), exdir = download_path)
 
         csv <- paste0(download_path, "/", download.key, ".csv")
         
@@ -129,8 +118,8 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
         size <- round(size, digits = 2)
         cat("File size:", cc$lightSteelBlue(size), "GB. \n")
         
-        if (size <= 30) {
-          cat("File size smaller than 30 GB, reading file... \n")
+        if (size <= 5) {
+          cat("File size smaller than 5 GB, reading file... \n")
           gbif_occ_df <- fread(paste0(file.name, ".csv"))
           return(gbif_occ_df)
         } else {

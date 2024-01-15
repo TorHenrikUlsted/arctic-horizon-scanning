@@ -1,2 +1,0 @@
-﻿Species,jaccard,sorensen,fracVolumeSpecies,fracVolumeRegion,overlapRegion,randomPoints,samplesPerPoint,observations,dimensions,maxInclusionPoints,includedPoints,excludedPoints,includedOverlap
-Calypso bulbosa,0.0622123094054237,0.117137240558335,0.824426211400833,0.912114014251781,0.0878859857482186,103770,18,5765,4,5765,1247,4518,0.216305290546401

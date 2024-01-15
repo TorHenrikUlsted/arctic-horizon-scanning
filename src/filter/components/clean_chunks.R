@@ -33,13 +33,14 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
   }
   
   cat("Cleaning chunk files \n")
-  cat(sprintf("%8s | %16s | %8s \n", "n_data", "Total n_data", "Remaining"))
+  cat(sprintf("%5s | %8s | %16s | %8s \n", "File", "n_data", "Total n_data", "Remaining"))
   
+  j <- 1
   # Loop over each chunk file
   for(i in iterations) {
     tryCatch({
       # Progress indicator
-      cat(sprintf("\r%8.2f | %16.2f | %8.0f", i, n_total, n_total - i))
+      cat(sprintf("\r%5.0f | %8.0f | %16.0f | %8.0f", j, i, n_total, n_total - i))
       
       # Read the chunk file
       chunk_data <- fread(chunk_files[i])
@@ -58,6 +59,7 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
       
       writeLines(as.character(i), last_iteration_file)
       
+      j + 1
     }, error = function(e) {
       try(err_log <- file(err_log, open = "at"))
       sink(err_log, type = "output")

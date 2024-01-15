@@ -10,7 +10,6 @@ pkgs = c(
   "WorldFlora",
   "geodata",
   "terra",
-  "peakRAM",
   "sf",
   "sp",
   "data.table",
@@ -58,7 +57,11 @@ longlat_crs <- crs("+proj=longlat +datum=WGS84 +ellps=WGS84")
 stere_crs <- crs("+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs")
 
 cat("Calculate memory allocation. \n")
-mem_limit <- (free_RAM() * 1024) * 0.8
+mem_total <- (free_RAM() * 1024)
+mem_limit <- mem_total * 0.8
+
+cat("Load get_mem_usage")
+source("./src/utils/components/get_mem_use.R")
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")
@@ -81,8 +84,14 @@ source("./src/utils/components/source_all.R")
 cat("Loading similarity check function. \n")
 source("./src/utils/components/stringdist_similarity_check.R")
 
-cat("Loading create dir if \n")
+cat("Loading create dir if. \n")
 source("./src/utils/components/create_dir_if.R")
+
+cat("Loading create file if. \n")
+source("./src/utils/components/create_file_if.R")
+
+cat("Loading lock_file. \n")
+source("./src/utils/components/lock_file.R")
 
 cat("Loading input command check. \n")
 source("./src/utils/components/check_input_cmd.R")

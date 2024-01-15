@@ -2,7 +2,7 @@ prepare_species <- function(df, projection, verbose = T) {
   if (!is.data.frame(df)) {
     stop("Input must be a data.frame or data.table")
   }
-  
+  print(df)
   if (verbose) cat("Getting Long/Lat values. \n")
   
   df <- df %>% 
@@ -21,7 +21,7 @@ prepare_species <- function(df, projection, verbose = T) {
   
   if (verbose) cat("Cleaning species using coordinateCleaner. \n")
   
-  prep_dir <- "./outputs/hypervolume/data-processing/prep"
+  prep_dir <- "./outputs/hypervolume/data_processing/prep"
     
   create_dir_if(prep_dir)
   # "flag" sets adds true/false to the corresponding tests
@@ -39,7 +39,7 @@ prepare_species <- function(df, projection, verbose = T) {
     max.files = length(unique(df$species)),
     out.dir = paste0(prep_dir, "/species"),
     out.base = paste0(gsub(" ", "_", df$species)),
-    log.file = paste(prep_dir, "/thin-log.txt"),
+    log.file = paste0(prep_dir, "/thin-log.txt"),
     thin.par = 0.1,
     reps = 1,
   ))

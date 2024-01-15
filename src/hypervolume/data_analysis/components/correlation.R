@@ -1,14 +1,24 @@
-analyze_correlation <- function(raster_stack, file.out, threshold, plot = T) {
-
-  stack_corr <- terra::layerCor(raster_stack, "pearson", na.rm = T)
+analyze_correlation <- function(raster_stack, file.out, threshold, plot = T, verbose = F) {
   
-  stack_corr <- stack_corr$pearson
+  if (file.exists(paste0(file.out, "/correlation_matrix.csv"))) {
+    cat("Correlation analysis already exists at:",  paste0(file.out, "/correlation_matrix.csv"), "\n")
+    return()
+  }
   
   create_dir_if(file.out)
+  
+  stack_corr <- terra::layerCor(raster_stack, "pearson", na.rm = T)
+  
+  stack_corr <- stack_corr$correlation
+  
+  if (verbose) {
+    cat("Stack_corr$correlation:\n")
+    print(stack_corr)
+  }
 
   # Create correlation plot
   if (plot == T) {
-    cat("Plotting correlation. \n")
+    if (verbose) cat("Plotting correlation. \n")
     
     # Open a PNG device
     png(filename = paste0(file.out, "/corrplot_circle.png"), width = 1920, height = 1080, pointsize = 20)
@@ -29,7 +39,7 @@ analyze_correlation <- function(raster_stack, file.out, threshold, plot = T) {
     dev.off()
     
   } else {
-    cat("Correlation plotting skipped. \n")
+    if (verbose) cat("Correlation plotting skipped. \n")
   }
   
   fwrite(stack_corr, paste0(file.out, "/correlation_matrix.csv"), row.names = T, bom = T)

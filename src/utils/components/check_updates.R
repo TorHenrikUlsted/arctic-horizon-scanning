@@ -56,7 +56,19 @@ check_updates <- function(pkgs) {
       
       # Try to install binary packages
       sink(log_file)
-      install.packages(outdated_binary, ask = FALSE, dependencies = TRUE, repos = options()$repos, type = "binary")
+      for (pkg in outdated_binary) {
+        lib_path <- find.package(pkg)
+        
+        # Check if the directory is writable
+        if (file.access(lib_path, 2) == 0) {
+          # If the directory is writable, install the package in the current library path
+          install.packages(pkg, lib = lib_path, ask = FALSE, dependencies = TRUE, repos = options()$repos, type = "binary")
+        } else {
+          # If the directory is not writable, print a message and install the package in a personal library
+          cat("The library path for the package ", pkg, " is not writable. Installing the package in a personal library.\n")
+          install.packages(pkg, ask = FALSE, dependencies = TRUE, repos = options()$repos, type = "binary")
+        }
+      }
       sink()
       search_string <- "type 'binary' is not supported"
       log <- readLines(log_file)
@@ -65,7 +77,19 @@ check_updates <- function(pkgs) {
       # If installing binary packages failed, switch to source
       if (is_present) {
         cat("Failed to install binary packages, switching to source.\n")
-        install.packages(outdated_source, ask = FALSE, dependencies = TRUE, repos = options()$repos, type = "source")
+        for (pkg in outdated_source) {
+          lib_path <- find.package(pkg)
+          
+          # Check if the directory is writable
+          if (file.access(lib_path, 2) == 0) {
+            # If the directory is writable, install the package in the current library path
+            install.packages(pkg, lib = lib_path, ask = FALSE, dependencies = TRUE, repos = options()$repos, type = "source")
+          } else {
+            # If the directory is not writable, print a message and install the package in a personal library
+            cat("The library path for the package ", pkg, " is not writable. Installing the package in a personal library.\n")
+            install.packages(pkg, ask = FALSE, dependencies = TRUE, repos = options()$repos, type = "source")
+          }
+        }
       } else {
         cat("Finished attempting to install binary packages.\n")
       }
@@ -83,12 +107,24 @@ check_updates <- function(pkgs) {
   # Install packages if necessary and load them
   for (pkg in pkgs) {
     if (!require(pkg, character.only = TRUE)) {
-      install.packages(pkg, dependencies = TRUE, repos = options()$repos, type = "binary")
+      lib_path <- find.package(pkg)
+      
+      # Check if the directory is writable
+      if (file.access(lib_path, 2) == 0) {
+        # If the directory is writable, install the package in the current library path
+        install.packages(pkg, lib = lib_path, dependencies = TRUE, repos = options()$repos, type = "binary")
+      } else {
+        # If the directory is not writable, print a message and install the package in a personal library
+        cat("The library path for the package ", pkg, " is not writable. Installing the package in a personal library.\n")
+        install.packages(pkg, dependencies = TRUE, repos = options()$repos, type = "binary")
+      }
+      
       library(pkg, character.only = TRUE)
       cat("Package ", pkg, " loaded successfully.\n")
       restart_needed <- TRUE
     }
   }
+  
   
   return(restart_needed)
 }

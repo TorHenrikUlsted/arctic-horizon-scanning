@@ -100,7 +100,7 @@ data_analysis <- function(biovars_world, biovars_region, biovars_floreg, method,
   cat(blue("Initiating data analysis protocol \n"))
   withCallingHandlers(
     {
-      analyzed_data <- analyze_correlation(biovars_region, file.out = "./outputs/hypervolume/data_analysis/correlation", threshold = 0.5)
+      analyzed_data <- analyze_correlation(biovars_region, file.out = "./outputs/hypervolume/data_analysis/correlation", threshold = 0.5, verbose = T)
     },
     warning = function(w) warn(w, warn_txt = "Warning when analyzing correlation in iteration"),
     error = function(e) err(e, err_txt = "Error when analyzing correlation in iteration")
@@ -145,7 +145,7 @@ data_analysis <- function(biovars_world, biovars_region, biovars_floreg, method,
 #                                         #
 ###########################################
 
-data_processing <- function(sp_df, biovars_world, spec.name, method, projection = "longlat", verbose = F, iteration, warn, err) {
+data_processing <- function(sp_df, biovars_world, spec.name, method, points.projection = "longlat", verbose = F, iteration, warn, err) {
   cat(blue("Initiating data processing protocol \n"))
 
   if (verbose) cat(blue("Processing species data.\n"))
@@ -196,7 +196,7 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, projection 
 ###########################################
 
 
-hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, project, verbose, iteration, warn, err) {
+hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, hv.projection, verbose, iteration, proj.dir, warn, err) {
   cat(blue("Initiating hypervolume sequence \n"))
 
   ## Inclusion test to eliminate obvious non-overlaps
@@ -308,7 +308,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
 
   withCallingHandlers(
     {
-      proj_dir <- paste0("./outputs/hypervolume/projections/", method, "/", gsub(" ", "-", spec.name))
+      proj_dir <- paste0(proj.dir, "/", method, "/", spec.name)
       create_dir_if(proj_dir)
 
       cat("Projecting inclusion analysis. \n")
@@ -324,7 +324,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
            verbose = T
          )
          names(inc_project) <- ("inclusionScore")
-         if (project == "laea") {
+         if (hv.projection == "laea") {
            cat("Reprojecting to laea. \n")
            inc_proj <- terra::project(inc_project, crs(laea_crs))
          } else cat("Keeping longlat projection. \n")
@@ -340,7 +340,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       
        names(prob_proj) <- ("suitabilityScore")
       
-       if (project == "laea") {
+       if (hv.projection == "laea") {
          cat("Reprojecting to laea. \n")
          prob_proj <- terra::project(prob_proj, crs(laea_crs))
        } else cat("Keeping the longlat projection. \n")

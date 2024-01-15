@@ -105,17 +105,6 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
   cat(cc$lightGreen("raw data setup completed successfully. \n"))
 }
 
-setup_sp <- function(test = "small", verbose = F) {
-  if (tolower(test) == "small" || tolower(test) == "big") {
-    sp_df <- run_test(test)
-  } else {
-    cat(blue("Initiating full run. \n"))
-    sp_df <- filter(verbose = verbose)
-  }
-  
-  return(sp_df)
-}
-
 setup_region_hv <- function(biovars_region, name, method) {
   region_filename <- paste0("./outputs/setup/region/", name, "/hypervolume-", method,".rds")
   
@@ -287,3 +276,71 @@ setup_region <- function() {
   
   return(cavm_noice)
 }
+
+setup_hv_sequence <- function(min_disk_space, verbose = T) {
+  sp_list_setup <- list.files("./outputs/filter/test/test-small/chunk/species", full.names = TRUE)
+  hv_setup_dir <- "./outputs/setup/hypervolume"
+  create_dir_if(hv_setup_dir)
+  setup_check <- paste0(hv_setup_dir, "/logs/setup-check.txt")
+  low_file <- paste0(hv_setup_dir, "/logs/peak-mem-low.txt")
+  high_file <- paste0(hv_setup_dir, "/logs/peak-mem-high.txt")
+  
+  if (verbose) cat("Running low peak ram setup by using:", cc$lightSteelBlue(sp_list_setup[[1]]), "wait time: 3 min. \n")
+  
+  if (file.exists(low_file) & file.exists(high_file)) {
+    cat("Setup already run. \n")
+      
+  } else {
+    create_file_if(setup_check)
+    
+    ram_control <- start_mem_tracking(file.out = setup_check, stop_file = paste0(hv_setup_dir, "/stop-file.txt"))
+    
+    parallell_processing(
+      spec.list = sp_list_setup[[1]],
+      method = "box", #box approx 13 min, gaussian 1 hours 10 minutes
+      accuracy = "accurate",
+      hv.projection = "laea",
+      proj.incl.t = 0.5,
+      iterations = 1,
+      min.disk.space = min_disk_space,
+      hv.dir = hv_setup_dir,
+    )
+      
+    stop_mem_tracking(ram_control, low_file, paste0(hv_setup_dir, "/stop-file.txt"))
+    
+    if (verbose) cat("Running high peak ram setup. wait time: 25 min. \n")
+    create_file_if(setup_check)
+    
+    ram_control <- start_mem_tracking(file.out = setup_check, stop_file = paste0(hv_setup_dir, "/stop-file.txt"))
+    
+    #Run a hypervolume sequence of sax. opp.
+    peak_ram_high <- peakRAM({
+      parallell_processing(
+        spec.list = sp_list_setup[[3]], # list of strings
+        method = "box", #box approx 13 min, gaussian 1 hours 10 minutes
+        accuracy = "accurate",
+        hv.projection = "laea",
+        proj.incl.t = 0.5,
+        iterations = 1,
+        min.disk.space = min_disk_space,
+        hv.dir = hv_setup_dir,
+      )
+    })
+    
+    stop_mem_tracking(ram_control, high_file, paste0(hv_setup_dir, "/stop-file.txt"))
+  }
+  
+  peak_mem_low <- as.numeric(readLines(low_file))
+  peak_mem_high <- as.numeric(readLines(high_file))
+  
+  rm(sp_list_setup)
+  invisible(gc())
+  
+  cat("hypervolume Peak ram setup finished. \n")
+  
+  return(list(
+    low = peak_mem_low,
+    high = peak_mem_high
+  ))
+}
+ 

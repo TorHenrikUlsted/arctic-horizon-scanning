@@ -1,6 +1,7 @@
 source_all("./src/filter/components")
 
 filter_process <- function(test = NULL, cores.max = 1, verbose) {
+  on.exit(closeAllConnections())
   cat(blue("Initiating filtering sequence. \n"))
   
   
@@ -19,7 +20,7 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
   on.exit(end_timer(filter_timer))
   
   setup_raw_data(
-    column = "rawName", 
+    column = "rawName",
     test = test, 
     max.cores = cores.max,
     verbose = T,
@@ -115,7 +116,7 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
     
     create_dir_if("./outputs/filter/arctic")
     
-    arctic_absent <- arctic_absent[, c("refinedScientificName", "scientificNameAuthorship", setdiff(names(arctic_absent), c("refinedScientificName", "scientificNameAuthorship")))]
+    arctic_absent <- arctic_absent[, c("refinedScientificName", "scientificNameAuthorship", setdiff(names(arctic_absent), c("refinedScientificName", "scientificNameAuthorship"))), with = FALSE]
     fwrite(arctic_absent, "./outputs/filter/arctic/arctic-absent-final.csv", bom = T)
     
     ##################################################
@@ -154,11 +155,11 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
     gbif_filtered <- gbif_sp_list %>% 
       dplyr::filter(taxonRank %in% c("SPECIES", "SUBSPECIES", "VARIETY", "FORM", "UNRANKED"))
     
-    gbif_sp_scientificName <- data.frame(refinedScientificName = gbif_filtered$acceptedScientificName)
+    gbif_sp_scientificName <- data.table(species = gbif_filtered$species, scientificName = gbif_filtered$scientificName)
     
     if (any(is.na(gbif_sp_scientificName))) {
       cat(cc$lightCoral("Some species are NA, removing... \n"))
-      gbif_sp_scientificName <- gbif_sp_scientificName[!is.na(rowSums(gbif_sp_scientificName)), ]
+      gbif_sp_scientificName <- data.table(gbif_sp_scientificName[!is.na(rowSums(gbif_sp_scientificName)), ])
       
       if (any(is.na(gbif_sp_scientificName))) cat(cc$lightCoral("Failed to remove NA values. \n")) else cat(cc$lightGreen("NAs removed successfully. \n"))
     } else {
@@ -167,8 +168,8 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
     
     if (any(gbif_sp_scientificName == "")) {
       cat(cc$lightCoral("Some species are blank, removing... \n"))
-      gbif_sp_scientificName <- gbif_sp_scientificName[rowSums(gbif_sp_scientificName != "") > 0, ]
-      if (any(is.na(gbif_sp_scientificName))) cat(cc$lightCoral("Failed to remove NA values. \n")) else cat(cc$lightGreen("NAs removed successfully. \n"))
+      gbif_sp_scientificName <- data.table(gbif_sp_scientificName[rowSums(gbif_sp_scientificName != "") > 0, ])
+      if (any(is.na(gbif_sp_scientificName))) cat(cc$lightCoral("Failed to remove blank values. \n")) else cat(cc$lightGreen("blank values removed successfully. \n"))
     } else {
       cat(cc$lightGreen("No blank values found. \n"))
     }
@@ -176,18 +177,18 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
     cat("Removing duplicates. \n")
     
     # Remove species that are already present in the Arctic
-    gbif_sp_scientificName <-  anti_join(gbif_sp_scientificName, arctic_present, by = "refinedScientificName")
+    gbif_sp_scientificName <-  anti_join(gbif_sp_scientificName, arctic_present, by = c("species" = "refinedScientificName"))
     
     # Remove species already a part of the glonaf_absent species
-    gbif_sp_scientificName <-  anti_join(gbif_sp_scientificName, arctic_absent, by = "refinedScientificName")
-    
-    names(gbif_sp_scientificName) <- "rawName"
+    gbif_sp_scientificName <-  anti_join(gbif_sp_scientificName, arctic_absent, by = c("species" = "refinedScientificName"))
     
     # Run synonym Check on these names, then run the entire process again
     if (file.exists("./outputs/filter/gbif-acquisition/wfo-one-uniq.csv")) {
       cat("GBIF synonym check already conducted, reading file... \n")
       gbif_species <- fread("./outputs/filter/gbif-acquisition/wfo-one-uniq.csv")
     } else {
+      names(gbif_sp_scientificName$scientificName) <- "rawName"
+      
       gbif_sp_wfo <- check_syn_wfo(
         checklist = gbif_sp_scientificName, 
         column = "rawName", 
@@ -258,8 +259,8 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
       species_w_keys = arctic_absent_keys,
       file.name = "outputs/filter/arctic/arctic-absent-occ", 
       region = NULL, 
-      download.key = NULL,
-      download.doi = NULL
+      download.key = "0049125-231120084113126",
+      download.doi = "https://doi.org/10.15468/dl.yhk883"
     )
     
     chunk_dir = "./outputs/filter/arctic/chunk"
@@ -311,14 +312,13 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
         species_w_keys = test_small_keys,
         file.name = paste0(out_dir, "/test-small-occ"),
         region = NULL,
-        download.key = "0048042-231120084113126",
-        download.doi = "https://doi.org/10.15468/dl.rq9ywc"
+        download.key = "0056255-231120084113126",
+        download.doi = "https://doi.org/10.15468/dl.9v7s8g"
       )
       
       sp_occ_path <- paste0(out_dir, "/test-small-occ.csv")
       
       sp_occ <- test_small_occ
-      
       chunk_dir <- paste0(out_dir, "/chunk")
       
       sp_w_keys_out <- test_small_keys
@@ -347,7 +347,6 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
       sp_occ_path <- paste0(out_dir, "/test-big-occ.csv")
       
       sp_occ <- test_big_occ
-      
       chunk_dir <- paste0(out_dir, "/chunk")
       sp_w_keys_out <- test_big_keys
     } else {
@@ -357,12 +356,13 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
   
   if (is.null(sp_occ)) {
     chunk_file(
-      file_path = sp_occ_path, 
+      file_path = sp_occ_path,
+      chunk.name = "species",
       chunk.column = c("species", "infraspecificEpithet"), 
       chunk.dir = chunk_dir, 
-      chunk.size = 1e6, 
-      iterations = NULL, 
-      #cores.max = cores.max, 
+      chunk.size = 1e6,
+      #cores.max = cores.max,
+      iterations = NULL,
       verbose = verbose
     )
     
@@ -386,5 +386,5 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
   
   cat(cc$lightGreen("Filtering sequence completed successfully. \n"))
   
-  return(sp_occ = sp_occ)
+  return(paste0(chunk_dir, "/species"))
 }
