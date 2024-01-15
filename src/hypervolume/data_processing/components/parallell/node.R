@@ -13,7 +13,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
   
   node_timer <- start_timer(node)
   
-  print(cores.max.high)
+  cat("Cores.max.high:", cores.max.high, "\n")
   
   if (verbose) cat("Creating directories. \n")
   

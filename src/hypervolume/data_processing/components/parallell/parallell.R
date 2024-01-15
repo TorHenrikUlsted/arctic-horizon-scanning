@@ -23,7 +23,6 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   warn_file <- paste0(logs_dir, "/", method, "-warning.txt")
   node_it <- paste0(logs_dir, "/node-iterations.txt")
   
-  create_file_if(highest_it_file, keep = TRUE)
   create_file_if(node_it, keep = TRUE)
   create_file_if(ram_usage)
   create_file_if(err_file)
@@ -58,6 +57,7 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
         stop(cc$lightCoral("STOP: Previous iteration is higher or the same as the number of species. \n"))
       }
     } else {
+      create_file_if(highest_it_file, keep = TRUE)
       highest_iteration <- 0
     }
     
@@ -74,7 +74,9 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   if (verbose) cat("Creating cluster of", cc$lightSteelBlue(cores.max), "core(s). \n")
   
   cl <- makeCluster(cores.max)
-
+  
+  clusterExport(cl, c("spec.list", "proj.incl.t", "method", "accuracy", "hv.projection", "cores.max.high", "min.disk.space", "hv.dir", "show.plot", "verbose"), envir = environment())
+  
   clusterEvalQ(cl, {
     source("./src/utils/utils.R")
     source("./src/setup/setup.R")
