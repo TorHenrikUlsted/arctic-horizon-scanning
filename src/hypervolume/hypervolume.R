@@ -196,7 +196,7 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, points.proj
 ###########################################
 
 
-hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, hv.projection, verbose, iteration, proj.dir, warn, err) {
+hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, hv.projection, verbose, iteration, proj.dir, lock_hv_dir, cores.max.high, warn, err) {
   cat(blue("Initiating hypervolume sequence \n"))
 
   ## Inclusion test to eliminate obvious non-overlaps
@@ -263,6 +263,23 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
   )
 
   invisible(gc())
+  
+  # Wait for a spot in the queue system
+  while (TRUE) {
+    if (is.locked(lock_hv_dir, lock.n = cores.max.high)) {
+      if (!while_msg) {
+        cat("The node is stuck in hypervolume analysis traffic... \n")
+        while_msg <- TRUE
+      }
+      Sys.sleep(1)
+    } else {
+      Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
+      break
+    }
+  }
+  while_msg <- FALSE
+  
+  lock_analysis <- lock(lock_hv_dir, lock.n = cores.max.high)
 
   ## If included, continue with hypervolume analysis
   cat("Computing hypervolume analysis. \n")
@@ -350,9 +367,11 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
     warning = function(w) warn(w, warn_txt = "Warning when projecting hypervolume in iteration"),
     error = function(e) err(e, err_txt = "Error when projecting hypervolume in iteration")
   )
-
+  
   rm(prob_proj)
   invisible(gc())
+  
+  unlock(lock_analysis)
   
   cat(cc$lightGreen("Hypervolume sequence completed successfully. \n"))
 

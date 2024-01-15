@@ -16,11 +16,11 @@ min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 # Check memory peak of one node by conducting a test run as well as setting up the entire hypervolume sequence
 peak_ram <- setup_hv_sequence(min_disk_space)
 
-mem_high_gb <- peak_ram$high #/ 1024 Removed GB transformation as it seems to be more correct that it is in GB already
+mem_high_gb <- peak_ram$high #GB
 mem_max_high <- floor(mem_limit/1024^3 / mem_high_gb * 0.9)
 cores_max_high <- min(length(sp_list), floor(detectCores() * 0.6), mem_max_high)
 
-mem_low_gb <- peak_ram$low #/ 1024 Removed GB transformation as it seems to be more correct that it is in GB already
+mem_low_gb <- peak_ram$low #GB
 mem_max_low <- floor(mem_max_high / mem_low_gb)
 if (cores_max_high < mem_max_high) cores_max_low <- 0 else cores_max_low <- floor(detectCores() * 0.2 - cores_max_high)
 
@@ -36,7 +36,7 @@ parallell_processing(
   cores.max.high = cores_max_high, 
   cores.max = cores_max,
   min.disk.space = min_disk_space,
-  hv.dir = "./outputs/hypervolume",
+  hv.dir = "./outputs/hypervolume/sequence",
   show.plot = F,
   verbose = T
 ) 

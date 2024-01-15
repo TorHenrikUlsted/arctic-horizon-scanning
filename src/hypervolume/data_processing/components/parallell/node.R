@@ -55,9 +55,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
   
   lock_node_it <- lock(lock_node_dir, lock.n = 1)
   
-  print(lock_node_it)
-  
-  if (verbose) cat("Locked file. \n")
+  if (verbose) cat("Checking for locked file. \n")
   
   node_con <- file(node_it, open = "a")
   identifier <- paste0("node", j)
@@ -133,29 +131,9 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
     processed_data <- data_processing(spec, biovars_world = ana_data[[1]], spec.name, method, verbose = verbose, iteration = j, warn, err)
     invisible(gc())
     
-    cat("Checking for locks... \n")
     
-    while (TRUE) {
-      if (is.locked(lock_hv_dir, lock.n = cores.max.high)) {
-        if (!while_msg) {
-          cat("The node is stuck in hypervolume analysis traffic... \n")
-          while_msg <- TRUE
-        }
-        Sys.sleep(1)
-      } else {
-        Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
-        break
-      }
-    }
-    while_msg <- FALSE
+    analyzed_hv <- hv_analysis(processed_data, biovars_region = ana_data[[2]], region_hv = ana_data[[4]], method, spec.name, proj.incl.t, accuracy, hv.projection, verbose = verbose, iteration = j, proj_dir, lock_hv_dir, cores.max.high, warn, err)
     
-    cat("After while loop. \n")
-    
-    lock_analysis <- lock(lock_hv_dir, lock.n = cores.max.high)
-    
-    analyzed_hv <- hv_analysis(processed_data, biovars_region = ana_data[[2]], region_hv = ana_data[[4]], method, spec.name, proj.incl.t, accuracy, hv.projection, verbose = verbose, iteration = j, proj_dir, warn, err)
-    
-    unlock(lock_analysis)
     
     final_res <- data.frame(
       species = spec.name,
