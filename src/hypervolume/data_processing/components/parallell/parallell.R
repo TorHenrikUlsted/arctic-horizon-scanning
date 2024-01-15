@@ -89,9 +89,13 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
 
   current_disk_space <- get_disk_space("/export", units = "GB")
   
-  cat("Remaining disk space (GB) \n")
+  cat("\nRemaining disk space (GB) \n")
   cat(sprintf("%8s | %8s | %8s \n", "Minimum", "Current", "Remaining"))
   cat(sprintf("%8.2f | %8.2f | %8.0f \n", min.disk.space, current_disk_space, current_disk_space - min.disk.space))
+  
+  cat("\nMemory allocation (GB) \n")
+  cat(sprintf("%8s | %8s | %8s \n", "Maximum", "Current", "Limit"))
+  cat(sprintf("%8.2f | %8.2f | %8.0f \n", mem_total / 1024^3, get_mem_usage("free", format = "gb"), mem_limit / 1024^3))
   
   cat("Hypervolume sequence has started, progress is being logged to:", yellow(logs_dir), "\n")
   

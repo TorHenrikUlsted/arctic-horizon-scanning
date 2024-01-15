@@ -170,14 +170,16 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
     lock_node_it <- lock(lock_node_dir, lock.n = 1)
     
     node_con <- file(node_it, open = "r")
-    lines <- readLines(node_it)
+    lines <- readLines(node_con)
     close(node_con)
-    lines <- lines[-which(grepl(identifier, lines))]
+    lines <- lines[-which(grepl(paste0("^", identifier, "$"), lines))] # Use regular expression to get exact match
     node_con <- file(node_it, open = "w")
-    writeLines(lines, node_it)
+    writeLines(lines, node_con)
     close(node_con)
     
     unlock(lock_node_it)
+    
+    cat("Hypervolume sequence completed successfully. \n")
     
     end_timer(node_timer)
     
