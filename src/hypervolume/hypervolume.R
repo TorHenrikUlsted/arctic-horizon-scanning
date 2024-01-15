@@ -198,6 +198,8 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, points.proj
 
 hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, hv.projection, verbose, iteration, proj.dir, lock_hv_dir, cores.max.high, warn, err) {
   cat(blue("Initiating hypervolume sequence \n"))
+  
+  while_msg <- FALSE
 
   ## Inclusion test to eliminate obvious non-overlaps
   cat("Computing inclusion analysis. \n")
@@ -268,7 +270,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
   while (TRUE) {
     if (is.locked(lock_hv_dir, lock.n = cores.max.high)) {
       if (!while_msg) {
-        cat("The node is stuck in hypervolume analysis traffic... \n")
+        cat("The node has entered the hypervolume analysis queue... \n")
         while_msg <- TRUE
       }
       Sys.sleep(1)
