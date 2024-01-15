@@ -1,9 +1,20 @@
 # Function to get current memory usage
-get_mem_usage <- function() {
+get_mem_usage <- function(type = "free") {
   # Call free command and get the output
-  mem_usage <- as.numeric(strsplit(system("free -m", intern = TRUE)[2], "\\s+")[[1]][4])
   
-  # Transform to bytes
+  mem_info <- strsplit(system("free -m", intern = TRUE)[2], "\\s+")[[1]]
+  
+  if (type == "free") {
+    # Get free memory
+    mem_usage <- as.numeric(mem_info[4])
+  } else if (type == "total") {
+    # Get total memory
+    mem_usage <- as.numeric(mem_info[2])
+  } else {
+    stop("Invalid type. Choose 'free' or 'total'.")
+  }
+  
+  # Transform to GB
   mem_usage <- mem_usage / 1024
   
   return(mem_usage)

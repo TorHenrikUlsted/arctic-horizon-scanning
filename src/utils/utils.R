@@ -56,12 +56,12 @@ longlat_crs <- crs("+proj=longlat +datum=WGS84 +ellps=WGS84")
 
 stere_crs <- crs("+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs")
 
-cat("Calculate memory allocation. \n")
-mem_total <- (free_RAM() * 1024)
-mem_limit <- mem_total * 0.8
-
 cat("Load get_mem_usage")
 source("./src/utils/components/get_mem_use.R")
+
+cat("Calculate memory allocation. \n")
+mem_total <- get_mem_usage("total") * 1024^3
+mem_limit <- mem_total * 0.8
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")
