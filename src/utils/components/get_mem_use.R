@@ -10,8 +10,11 @@ get_mem_usage <- function(type = "free", format = "b") {
   } else if (type == "total") {
     # Get total memory
     mem_usage <- as.numeric(mem_info[2])
+  } else if (type == "used") {
+    # Get used memory
+    mem_usage <- as.numeric(mem_info[3])
   } else {
-    stop("Invalid type. Choose 'free' or 'total'.")
+    stop("Invalid type. Choose 'free', 'total', or 'used'.")
   }
   
   # Transform to specified format
@@ -26,14 +29,14 @@ get_mem_usage <- function(type = "free", format = "b") {
   } else if (format == "tb") {
     mem_usage <- mem_usage / 1024^2
   } else {
-    stop("Invalid format. Choose 'bytes', 'kb', 'mb', 'gb', or 'tb'.")
+    stop("Invalid format. Choose 'b', 'kb', 'mb', 'gb', or 'tb'.")
   }
   
   return(mem_usage)
 }
 
 start_mem_tracking <- function(file.out, stop_file) {
-  init_val <- get_mem_usage()
+  init_val <- get_mem_usage(format = "gb")
   # Create a control object
   control <- new.env()
   
@@ -46,7 +49,7 @@ start_mem_tracking <- function(file.out, stop_file) {
       # Check memory usage every second
       Sys.sleep(1)
       
-      new_mem_usage <- get_mem_usage()
+      new_mem_usage <- get_mem_usage(format = "gb")
       
       existing_mem_usage <- as.numeric(readLines(file.out))
       

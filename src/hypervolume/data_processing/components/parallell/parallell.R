@@ -68,10 +68,10 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   } else {
     batch_iterations <- iterations
 
-    cat("Initiating", cc$lightSteelBlue(length(batch_iterations)), "specific iteration(s) with", cc$lightSteelBlue(cores.max), "cores. \n")
+    cat("Initiating", cc$lightSteelBlue(length(batch_iterations)), "specific iteration(s) with", cc$lightSteelBlue(cores.max), "core(s),", "and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
   }
   
-  if (verbose) cat("Creating cluster of", cc$lightSteelBlue(cores.max), "core(s). \n")
+  if (verbose) cat("Creating cluster of", cc$lightSteelBlue(cores.max), "core(s), with a high max of", cc$lightSteelBlue(cores.max.high), "\n")
   
   cl <- makeCluster(cores.max)
   
@@ -100,15 +100,22 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   cat("Hypervolume sequence has started, progress is being logged to:", yellow(logs_dir), "\n")
   
   res <- clusterApplyLB(cl, batch_iterations, function(j) {
+    ram_msg <- FALSE
     # RAM check
-    mem_free <- (free_RAM() * 1024) - (mem_total - mem_limit)
+    mem_used_gb <- get_mem_usage(type = "used", format = "gb")
+    mem_limit_gb <- mem_limit / 1024^3
     
-    if (mem_free <= 0) {
-      ram_con <- file(ram_usage, open = "a")
-      writeLines(paste("RAM usage is above the maximum, not creating new node", j, ".\n"), ram_con)
-      close(ram_con)
-      return()
+    while (mem_used_gb >= mem_limit_gb) {
+      if (!ram_msg) {
+        ram_con <- file(ram_usage, open = "a")
+        writeLines(paste0("RAM usage",mem_used_gb,"is above the maximum",mem_limit_gb,"Waiting with node", j), ram_con)
+        close(ram_con)
+      }
+      Sys.sleep(5)  # Wait for 5 seconds before checking again
+      Sys.sleep(runif(1, 0, 1)) # Add random seconds between 0 and 1 to apply difference if multiple nodes are in queue
+      mem_used_gb <- get_mem_usage(type = "used", format = "gb")
     }
+
     
     node_processing(j, spec.list, proj.incl.t, method, accuracy, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
     

@@ -16,15 +16,21 @@ min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 # Check memory peak of one node by conducting a test run as well as setting up the entire hypervolume sequence
 peak_ram <- setup_hv_sequence(min_disk_space)
 
+# Get 80% of total cores and get a ratio of high and low memory core usage
+total_cores <- detectCores() * 0.6
+cores_high <- round(total_cores * (5 / 8))
+cores_low <- total_cores - cores_high
+
 mem_high_gb <- peak_ram$high #GB
-mem_max_high <- floor(mem_limit/1024^3 / mem_high_gb * 0.9)
-cores_max_high <- min(length(sp_list), floor(detectCores() * 0.6), mem_max_high)
-
 mem_low_gb <- peak_ram$low #GB
-mem_max_low <- floor(mem_max_high / mem_low_gb)
-if (cores_max_high < mem_max_high) cores_max_low <- 0 else cores_max_low <- floor(detectCores() * 0.2 - cores_max_high)
+total_mem_gb <- mem_high_gb + mem_low_gb
 
-cores_max <- cores_max_high + cores_max_low
+mem_core_high <- mem_high_gb / total_cores
+mem_core_low <- mem_low_gb / total_cores
+
+cores_max_total <- min(length(sp_list), floor((mem_limit / 1024^3) / total_cores))
+cores_max_high <- min(length(sp_list), floor((mem_limit / 1024^3) * (5 / 8) / mem_high_gb), cores_high)
+cores_max_low <- min(floor((mem_limit / 1024^3) * (3 / 8) / mem_low_gb), cores_max_total - cores_max_high)
 
 parallell_processing(
   spec.list = sp_list, # list of strings
@@ -34,7 +40,7 @@ parallell_processing(
   proj.incl.t = 0.5,
   iterations = NULL,
   cores.max.high = cores_max_high, 
-  cores.max = cores_max,
+  cores.max = cores_max_total,
   min.disk.space = min_disk_space,
   hv.dir = "./outputs/hypervolume/sequence",
   show.plot = F,
