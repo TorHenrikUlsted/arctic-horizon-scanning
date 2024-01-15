@@ -57,9 +57,9 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
   
   if (verbose) cat("Checking for locked file. \n")
   
-  node_con <- file(node_it, open = "a")
+  node_con <- file(node_it, open = "at")
   identifier <- paste0("node", j)
-  writeLines(identifier, node_it)
+  writeLines(identifier, node_con)
   close(node_con)
   
   unlock(lock_node_it)
