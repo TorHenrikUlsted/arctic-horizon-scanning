@@ -273,7 +273,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
         cat("The node has entered the hypervolume analysis queue... \n")
         analysis_msg <- TRUE
       }
-      Sys.sleep(1)
+      Sys.sleep(10)
     } else {
       Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
       break
