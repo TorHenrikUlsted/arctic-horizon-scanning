@@ -265,19 +265,32 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
   invisible(gc())
   
   analysis_msg <- FALSE
-  
+  mm <- FALSE
+  mc <- get_mem_usage("used", "gb")
+  ml <- get_mem_usage("total", "gb") * 0.8
   # Wait for a spot in the queue system
   while (TRUE) {
-    if (is.locked(lock_hv_dir, lock.n = cores.max.high)) {
-      if (!analysis_msg) {
-        cat("The node has entered the hypervolume analysis queue... \n")
-        analysis_msg <- TRUE
+    if (mc >= ml) {
+      if (!mm) {
+        cat("The node waiting for more available RAM before initiating the hypervolume analysis. \n")
+        mm <- TRUE
       }
+      
       Sys.sleep(10)
+      
     } else {
-      Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
-      break
+      if (is.locked(lock_hv_dir, lock.n = cores.max.high)) {
+        if (!analysis_msg) {
+          cat("The node has entered the hypervolume analysis queue... \n")
+          analysis_msg <- TRUE
+        }
+        Sys.sleep(10)
+      } else {
+        Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
+        break
+      }
     }
+    
   }
   analysis_msg <- FALSE
   
@@ -366,6 +379,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
          prob_proj <- terra::project(prob_proj, crs(laea_crs))
        } else cat("Keeping the longlat projection. \n")
       
+       if (verbose) cat("Writing out raster file:", paste0(proj_dir, "/probability.tif"), "\n")
        writeRaster(prob_proj, paste0(proj_dir, "/probability.tif"), overwrite = T)
     },
     warning = function(w) warn(w, warn_txt = "Warning when projecting hypervolume in iteration"),

@@ -16,7 +16,7 @@ min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 # Check memory peak of one node by conducting a test run as well as setting up the entire hypervolume sequence
 peak_ram <- setup_hv_sequence(min_disk_space)
 
-# Get 80% of total cores and get a ratio of high and low memory core usage
+# Get 60% of total cores and get a ratio of high and low memory core usage
 total_cores <- detectCores() * 0.6
 cores_high <- round(total_cores * (5 / 8))
 cores_low <- total_cores - cores_high
@@ -38,7 +38,7 @@ parallell_processing(
   accuracy = "accurate",
   hv.projection = "laea",
   proj.incl.t = 0.5,
-  iterations = NULL,
+  iterations = 135,
   cores.max.high = cores_max_high, 
   cores.max = cores_max_total,
   min.disk.space = min_disk_space,

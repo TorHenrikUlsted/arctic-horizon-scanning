@@ -28,29 +28,59 @@ prepare_species <- function(df, projection, verbose = T) {
   create_dir_if(prep_dir)
   # "flag" sets adds true/false to the corresponding tests
   df <- suppressWarnings( clean_coordinates(df, value = "clean") )
+  
+  invisible(gc())
 
   if (verbose) cat("Thining coordinates with spThin. \n")
+  if (verbose) cat("max.files written:", length(unique(df$species)), "\n")
 
-  sp_thinned <- suppressWarnings(thin(
-    loc.data = df,
-    lat.col = "decimalLatitude",
-    long.col = "decimalLongitude",
-    spec.col = "species",
-    locs.thinned.list.return = TRUE,
-    write.files = T,
-    max.files = length(unique(df$species)),
-    out.dir = paste0(prep_dir, "/species"),
-    out.base = paste0(gsub(" ", "_", df$species)),
-    log.file = paste0(prep_dir, "/thin-log.txt"),
-    thin.par = 0.1,
-    reps = 1,
-  ))
+  mem_lim <- get_mem_usage("total", "gb") * 0.07
   
-  sp_thinned <- sp_thinned[[1]]
+  str_b <- 56 + (nchar(df$species[1]) * 4)
+  num_b <- 8
+  row_b <- str_b + (num_b * 2)
   
-  sp_thinned$species <- unique(df$species)
+  n <- (2.8285*nrow(df))^2 + nrow(df) * row_b
   
-  sp_thinned <- sp_thinned %>% select(species, everything())
+  etr <- n / 1024^3
+  
+  splits <- ceiling(etr / mem_lim)
+  
+  if (verbose) cat("Estimated RAM usage:", etr, "\n")
+  if (verbose) cat("Max allowed usage", mem_lim, "\n")
+  if (verbose) cat("Splits needed", splits, "\n")
+  
+  df_list <- split(df, factor(sort(rank(row.names(df)) %% splits)))
+  
+  sp_thinned_list <- lapply(df_list, function(sp) {
+   sp_thinned <- suppressWarnings(thin(
+      loc.data = sp,
+      lat.col = "decimalLatitude",
+      long.col = "decimalLongitude",
+      spec.col = "species",
+      locs.thinned.list.return = TRUE,
+      write.files = TRUE,
+      max.files = length(unique(sp$species)),
+      out.dir = paste0(prep_dir, "/species"),
+      out.base = paste0(gsub(" ", "_", sp$species)),
+      log.file = paste0(prep_dir, "/thin-log.txt"),
+      thin.par = 0.1,
+      reps = 1,
+    ))
+    
+    sp_thinned <- sp_thinned[[1]]
+    
+    sp_thinned$species <- unique(sp$species)
+    
+    sp_thinned <- sp_thinned %>% select(species, everything())
+    
+    invisible(gc())
+    
+    sp_thinned
+  })
+  
+  if (verbose) cat("Combining thinned lists. \n")
+  df_thinned <- do.call(rbind, sp_thinned_list)
   
   if (verbose == T) cat("Converting species to points \n")
   
@@ -65,7 +95,7 @@ prepare_species <- function(df, projection, verbose = T) {
     prj = longlat_crs
   }
   
-  sp_points = vect(sp_thinned, geom=c("Longitude", "Latitude"), crs = prj)
+  sp_points = vect(df_thinned, geom=c("Longitude", "Latitude"), crs = prj)
 
   if (verbose == T) {
     if(!any(is.na(sp_points))) cat("No values are NA:", green("TRUE") , "\n") else cat("Some values are NA:", red("FALSE") , "\n")   

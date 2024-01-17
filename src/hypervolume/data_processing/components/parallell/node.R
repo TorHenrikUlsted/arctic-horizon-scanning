@@ -64,25 +64,6 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
   
   unlock(lock_node_it)
   
-  if (verbose) cat("Creating warning and error functions. \n")
-  # Create warning and error functions
-  warn <- function(w, warn_txt) {
-    warn_msg <- conditionMessage(w)
-    warn_con <- file(warn_file, open = "a")
-    writeLines(paste(warn_txt, j, ":", warn_msg), warn_con)
-    close(warn_con)
-    invokeRestart(findRestart("muffleWarning"))
-  }
-
-  err <- function(e, err_txt) {
-    err_msg <- conditionMessage(e)
-    err_con <- file(err_file, open = "a")
-    writeLines(paste(err_txt, j, ":", err_msg), err_con)
-    close(err_con)
-    stop(e)
-  }
-  
-  
   cat("spec.list[[j]]:\n")
   print(spec.list[[j]])
   
@@ -118,8 +99,27 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
 
   cat("Run iteration", cc$lightSteelBlue(j), "\n")
   cat("Using species:", cc$lightSteelBlue(spec.name), "\n")
+  cat("Speccies observations:", nrow(spec), "\n")
 
   tryCatch({
+    if (verbose) cat("Creating warning and error functions. \n")
+    # Create warning and error functions
+    warn <- function(w, warn_txt) {
+      warn_msg <- conditionMessage(w)
+      warn_con <- file(warn_file, open = "a")
+      writeLines(paste(warn_txt, j, ":", warn_msg), warn_con)
+      close(warn_con)
+      invokeRestart(findRestart("muffleWarning"))
+    }
+    
+    err <- function(e, err_txt) {
+      err_msg <- conditionMessage(e)
+      err_con <- file(err_file, open = "a")
+      writeLines(paste(err_txt, j, ":", err_msg), err_con)
+      close(err_con)
+      stop(e)
+    }
+    
     acq_data <- data_acquisition(show.plot, method, verbose = verbose, iteration = j, warn, err)
     
     invisible(gc())
@@ -134,6 +134,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
     
     analyzed_hv <- hv_analysis(processed_data, biovars_region = ana_data[[2]], region_hv = ana_data[[4]], method, spec.name, proj.incl.t, accuracy, hv.projection, verbose = verbose, iteration = j, proj_dir, lock_hv_dir, cores.max.high, warn, err)
     
+    cat("Appending data to csv file. \n")
     
     final_res <- data.frame(
       species = spec.name,
@@ -153,9 +154,12 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
     
     fwrite(final_res, paste0(stats_dir, "/", method, "-stats.csv"), append = T, bom = T)
     
+    cat("Appended data. \n")
+    print(final_res)
+    
     while (TRUE) {
       if (!while_msg) {
-        cat("The node is stuck in node-iterations traffic... \n")
+        cat("The node has entered node-iterations queue... \n")
         while_msg <- TRUE
       }
       if (is.locked(lock_node_dir, lock.n = 1)) {
@@ -179,7 +183,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
     
     unlock(lock_node_it)
     
-    cat("Hypervolume sequence completed successfully. \n")
+    cat("Node finished successfully. \n")
     
     end_timer(node_timer)
     

@@ -4,7 +4,7 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   cat(blue("Initiating hypervolume sequence \n"))
   
   parallell_timer <- start_timer("parallell_timer")
-
+  
   if (verbose) cat("Setting up hypervolume files and folders. \n")
   
   logs_dir <-   paste0(hv.dir, "/logs")
@@ -17,13 +17,14 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   create_dir_if(stats_dir)
   create_dir_if(locks_dir)
   
-  highest_it_file <- paste0(hv.dir, "/logs/highest_iteration.txt")
   ram_usage <- paste0(logs_dir, "/", method, "-ram-usage.txt")
   err_file <- paste0(logs_dir, "/", method, "-error.txt")
   warn_file <- paste0(logs_dir, "/", method, "-warning.txt")
   node_it <- paste0(logs_dir, "/node-iterations.txt")
+  highest_it_file <- paste0(logs_dir, "/highest_iteration.txt")
   
   create_file_if(node_it, keep = TRUE)
+  create_file_if(highest_it_file, keep = TRUE)
   create_file_if(ram_usage)
   create_file_if(err_file)
   create_file_if(warn_file)
@@ -48,32 +49,58 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   }
 
   if (is.null(iterations)) {
-    if (file.exists(highest_it_file)) {
-      highest_iteration <- as.integer(readLines(highest_it_file))
-
-      cat("Previous session found, continuing from iteration:", cc$lightSteelBlue(highest_iteration + 1), "with", cc$lightSteelBlue(cores.max), "core(s). \n")
-
-      if (highest_iteration >= length(spec.list)) {
+      node_its <- as.integer(readLines(node_it))
+      cat("node iterations:", node_its, "\n")
+      
+      if (is.null(node_its)) {
+        cat("Node iterations file is null. \n")
+        
+        highest_it <- as.integer(readLines(highest_it_file))
+        if (is.null(highest_it)) {
+          cat("Previous session completed successfully on iteration", cc$lightSteelBlue(highest_it), "\n")
+          cat("Input list is expected to take", cc$lightSteelBlue(length(spec.list)), "iterations. \n")
+        } else {
+          cat("Highest iteration is null. Assuming sequence has never been run before. \n")
+          start_iteration <- 0
+        }
+        
+      } else {
+        cat("Node iterations from previous session:", node_its, "\n")
+        
+        node_int <- gsub("node", "", node_its)
+        
+        start_iteration <- min(node_int) + 1
+      }
+      
+      if (start_iteration >= length(spec.list)) {
         stop(cc$lightCoral("STOP: Previous iteration is higher or the same as the number of species. \n"))
       }
-    } else {
-      create_file_if(highest_it_file, keep = TRUE)
-      highest_iteration <- 0
-    }
+      
+      # If iterations is not provided, start from the highest saved iteration
+      i <- start_iteration
+      end <- length(spec.list)
+      batch_iterations <- i:end
+      
+      cores.max <- min(length(batch_iterations), cores.max)
+      cores.max.high <- min(cores.max, cores.max.high)
+      
+      cat("Initiate from iteration:", cc$lightSteelBlue(start_iteration), "with", cc$lightSteelBlue(cores.max), "core(s), and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
     
-    # If iterations is not provided, start from the highest saved iteration
-    i <- highest_iteration + 1
-    end <- length(spec.list)
-    batch_iterations <- i:end
   } else {
     batch_iterations <- iterations
+    
+    cores.max <- min(length(batch_iterations), cores.max)
+    cores.max.high <- min(cores.max, cores.max.high)
 
-    cat("Initiating", cc$lightSteelBlue(length(batch_iterations)), "specific iteration(s) with", cc$lightSteelBlue(cores.max), "core(s),", "and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
+    cat("Initiating specific iteration(s)", cc$lightSteelBlue(batch_iterations), "with", cc$lightSteelBlue(cores.max), "core(s),", "and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
+    
   }
   
-  if (verbose) cat("Creating cluster of", cc$lightSteelBlue(cores.max), "core(s), with a high max of", cc$lightSteelBlue(cores.max.high), "\n")
+  if (verbose) cat("Creating cluster of cores. \n")
   
   cl <- makeCluster(cores.max)
+  
+  if (verbose) cat("Including the necessary components in each core. \n")
   
   clusterExport(cl, c("spec.list", "proj.incl.t", "method", "accuracy", "hv.projection", "cores.max.high", "min.disk.space", "hv.dir", "show.plot", "verbose"), envir = environment())
   
@@ -94,8 +121,8 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   cat(sprintf("%8.2f | %8.2f | %8.0f \n", min.disk.space, current_disk_space, current_disk_space - min.disk.space))
   
   cat("\nMemory allocation (GB) \n")
-  cat(sprintf("%8s | %8s | %8s \n", "Maximum", "Current", "Limit"))
-  cat(sprintf("%8.2f | %8.2f | %8.0f \n", mem_total / 1024^3, get_mem_usage("free", format = "gb"), mem_limit / 1024^3))
+  cat(sprintf("%8s | %8s | %8s \n", "Maximum", "Limit", "Current"))
+  cat(sprintf("%8.2f | %8.2f | %8.0f \n", mem_total / 1024^3, mem_limit / 1024^3, get_mem_usage("used", format = "gb")))
   
   cat("Hypervolume sequence has started, progress is being logged to:", yellow(logs_dir), "\n")
   
@@ -108,14 +135,14 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
     while (mem_used_gb >= mem_limit_gb) {
       if (!ram_msg) {
         ram_con <- file(ram_usage, open = "a")
-        writeLines(paste0("RAM usage",mem_used_gb,"is above the maximum",mem_limit_gb,"Waiting with node", j), ram_con)
+        writeLines(paste0("RAM usage ", mem_used_gb, " is above the maximum ", mem_limit_gb, " Waiting with node", j), ram_con)
         close(ram_con)
+        ram_msg = TRUE
       }
-      Sys.sleep(5)  # Wait for 5 seconds before checking again
+      Sys.sleep(60)  # Wait for 5 seconds before checking again
       Sys.sleep(runif(1, 0, 1)) # Add random seconds between 0 and 1 to apply difference if multiple nodes are in queue
       mem_used_gb <- get_mem_usage(type = "used", format = "gb")
     }
-
     
     node_processing(j, spec.list, proj.incl.t, method, accuracy, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
     

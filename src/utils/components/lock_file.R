@@ -32,5 +32,9 @@ is.locked <- function(lock.dir, lock.n = 1) {
 
 
 unlock <- function(lock.object) {
-  file.remove(lock.object)
+  tryCatch({
+    file.remove(lock.object)
+  }, error = function(e) {
+    stop("Failed to unlock", lock.object)
+  })
 }
