@@ -52,16 +52,17 @@ parallell_processing <- function(spec.list, method, accuracy, ndim, hv.projectio
       node_its <- readLines(node_it)
       cat("Node iterations:", node_its, "\n")
       
-      if (is.null(node_its)) {
+      if (is.na(node_its[1])) {
         cat("Node iterations file is null. \n")
         
         highest_it <- as.integer(readLines(highest_it_file))
-        if (is.null(highest_it)) {
-          cat("Previous session completed successfully on iteration", cc$lightSteelBlue(highest_it), "\n")
-          cat("Input list is expected to take", cc$lightSteelBlue(length(spec.list)), "iterations. \n")
-        } else {
+        if (is.na(highest_it[1])) {
           cat("Highest iteration is null. Assuming sequence has never been run before. \n")
           start_iteration <- 0
+        } else {
+          cat("Previous session completed successfully on iteration", cc$lightSteelBlue(highest_it), "\n")
+          cat("Input list is expected to take", cc$lightSteelBlue(length(spec.list)), "iterations. \n")
+          start_iteration <- highest_it
         }
         
       } else {
@@ -69,7 +70,7 @@ parallell_processing <- function(spec.list, method, accuracy, ndim, hv.projectio
         
         cat("Node iterations from previous session:", node_int, "\n")
         
-        start_iteration <- as.numeric(min(node_int))
+        start_iteration <- as.integer(min(node_int))
         
         cat("Start iteration:", cc$lightSteelBlue(start_iteration), "\n")
       }
