@@ -1,4 +1,4 @@
-parallell_processing <- function(spec.list, method, accuracy, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
+parallell_processing <- function(spec.list, method, accuracy, ndim, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
   on.exit(closeAllConnections())
   
   cat(blue("Initiating hypervolume sequence \n"))
@@ -49,8 +49,8 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
   }
 
   if (is.null(iterations)) {
-      node_its <- as.integer(readLines(node_it))
-      cat("node iterations:", node_its, "\n")
+      node_its <- readLines(node_it)
+      cat("Node iterations:", node_its, "\n")
       
       if (is.null(node_its)) {
         cat("Node iterations file is null. \n")
@@ -65,14 +65,17 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
         }
         
       } else {
-        cat("Node iterations from previous session:", node_its, "\n")
-        
         node_int <- gsub("node", "", node_its)
         
-        start_iteration <- min(node_int) + 1
+        cat("Node iterations from previous session:", node_int, "\n")
+        
+        start_iteration <- as.numeric(min(node_int))
+        
+        cat("Start iteration:", cc$lightSteelBlue(start_iteration), "\n")
       }
       
       if (start_iteration >= length(spec.list)) {
+        cat("Start iteration:", cc$lightSteelBlue(start_iteration), "number of species:", cc$lightSteelBlue(length(spec.list)), "\n")
         stop(cc$lightCoral("STOP: Previous iteration is higher or the same as the number of species. \n"))
       }
       
@@ -144,7 +147,7 @@ parallell_processing <- function(spec.list, method, accuracy, hv.projection, pro
       mem_used_gb <- get_mem_usage(type = "used", format = "gb")
     }
     
-    node_processing(j, spec.list, proj.incl.t, method, accuracy, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
+    node_processing(j, spec.list, proj.incl.t, method, accuracy, ndim, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
     
   })
 

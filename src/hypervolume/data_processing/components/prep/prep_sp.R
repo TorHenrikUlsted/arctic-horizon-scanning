@@ -27,9 +27,16 @@ prepare_species <- function(df, projection, verbose = T) {
     
   create_dir_if(prep_dir)
   # "flag" sets adds true/false to the corresponding tests
-  df <- suppressWarnings( clean_coordinates(df, value = "clean") )
+  tryCatch({
+    df <- suppressWarnings( clean_coordinates(df, value = "clean") )
+  }, error = function(e) {
+    cat("Error when cleaning Coordinates:", e$message, "\n")
+  })
   
-  invisible(gc())
+  if (is.null(df)) {
+    cat("All species were removed in the Coordinate cleaning process. \n")
+    return(NULL)
+  }
 
   if (verbose) cat("Thining coordinates with spThin. \n")
   if (verbose) cat("max.files written:", length(unique(df$species)), "\n")
@@ -50,37 +57,50 @@ prepare_species <- function(df, projection, verbose = T) {
   if (verbose) cat("Max allowed usage", mem_lim, "\n")
   if (verbose) cat("Splits needed", splits, "\n")
   
-  df_list <- split(df, factor(sort(rank(row.names(df)) %% splits)))
-  
-  sp_thinned_list <- lapply(df_list, function(sp) {
-   sp_thinned <- suppressWarnings(thin(
-      loc.data = sp,
-      lat.col = "decimalLatitude",
-      long.col = "decimalLongitude",
-      spec.col = "species",
-      locs.thinned.list.return = TRUE,
-      write.files = TRUE,
-      max.files = length(unique(sp$species)),
-      out.dir = paste0(prep_dir, "/species"),
-      out.base = paste0(gsub(" ", "_", sp$species)),
-      log.file = paste0(prep_dir, "/thin-log.txt"),
-      thin.par = 0.1,
-      reps = 1,
-    ))
+  tryCatch({
+    df_list <- split(df, factor(sort(rank(row.names(df)) %% splits)))
     
-    sp_thinned <- sp_thinned[[1]]
+    if (verbose) cat("Actual splits made:", length(df_list), "\n") 
     
-    sp_thinned$species <- unique(sp$species)
+    sp_thinned_list <- lapply(df_list, function(sp) {
+      cat("max.files:", length(unique(sp$species)), "\n")
+      cat("out.base:", paste0(unique(gsub(" ", "_", sp$species))), "\n")
+
+      sp_thinned <- suppressWarnings(thin(
+        loc.data = sp,
+        lat.col = "decimalLatitude",
+        long.col = "decimalLongitude",
+        spec.col = "species",
+        locs.thinned.list.return = TRUE,
+        write.files = FALSE,
+        max.files = length(unique(sp$species)),
+        out.dir = paste0(prep_dir, "/species"),
+        out.base = paste0(unique(gsub(" ", "_", sp$species))),
+        log.file = paste0(prep_dir, "/thin-log.txt"),
+        thin.par = 0.1,
+        reps = 1,
+      ))
+      
+      sp_thinned <- sp_thinned[[1]]
+      
+      sp_thinned$species <- unique(sp$species)
+      
+      sp_thinned <- sp_thinned %>% select(species, everything())
+      
+      sp_thinned
+    })
     
-    sp_thinned <- sp_thinned %>% select(species, everything())
+    if (verbose) cat("Combining thinned lists. \n")
+    df_thinned <- do.call(rbind, sp_thinned_list)
     
-    invisible(gc())
-    
-    sp_thinned
+  }, error = function(e) {
+    cat("Error when thinning lists:", e$message, "\n")
   })
   
-  if (verbose) cat("Combining thinned lists. \n")
-  df_thinned <- do.call(rbind, sp_thinned_list)
+  if (is.null(df_thinned)) {
+    cat("All species were removed in the thinning process. \n")
+    return(NULL)
+  }
   
   if (verbose == T) cat("Converting species to points \n")
   
@@ -95,7 +115,11 @@ prepare_species <- function(df, projection, verbose = T) {
     prj = longlat_crs
   }
   
-  sp_points = vect(df_thinned, geom=c("Longitude", "Latitude"), crs = prj)
+  tryCatch({
+    sp_points = vect(df_thinned, geom=c("Longitude", "Latitude"), crs = prj)
+  }, error = function(e) {
+    cat("Error when making species into points:", e$message, "\n")
+  })
 
   if (verbose == T) {
     if(!any(is.na(sp_points))) cat("No values are NA:", green("TRUE") , "\n") else cat("Some values are NA:", red("FALSE") , "\n")   

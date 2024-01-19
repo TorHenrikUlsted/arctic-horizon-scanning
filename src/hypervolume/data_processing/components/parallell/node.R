@@ -1,5 +1,6 @@
-node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose) {
+node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, ndim, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose) {
   current_disk_space <- get_disk_space("/export", units = "GB")
+  skip_to_end <- FALSE
   
   # Make dir objects
   log_dir <- paste0(hv.dir, "/logs")
@@ -7,7 +8,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
   create_file_if(init_log)
   node <- paste0("Node-", j)
   
-  try(init_log <- file(init_log, open = "at"))
+  try(init_log <- file(init_log, open = "at")) # for error handling before the process even starts
   sink(init_log, type = "output")
   sink(init_log, type = "message")
   
@@ -48,12 +49,13 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
       Sys.sleep(1)
     } else {
       Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
-      break
+      lock_node_it <- lock(lock_node_dir, lock.n = 1)
+      if (!is.null(lock_node_it) && file.exists(lock_node_it)) {
+        break
+      }
     }
   }
   while_msg <- FALSE
-  
-  lock_node_it <- lock(lock_node_dir, lock.n = 1)
   
   if (verbose) cat("Checking for locked file. \n")
   
@@ -80,6 +82,9 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
   
   
   spec <- fread(spec_to_read, select = c("species", "decimalLongitude", "decimalLatitude", "coordinateUncertaintyInMeters", "coordinatePrecision", "countryCode", "stateProvince", "year"))
+  
+  nobs <- nrow(spec)
+  
   cat("spec:\n")
   print(head(spec, 2))
 
@@ -99,7 +104,32 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
 
   cat("Run iteration", cc$lightSteelBlue(j), "\n")
   cat("Using species:", cc$lightSteelBlue(spec.name), "\n")
-  cat("Speccies observations:", nrow(spec), "\n")
+  cat("Species observations:", nobs, "\n")
+  cat("Log observations:", log(nobs), "\n")
+  cat("Expected dimensions:", ndim, "\n")
+  cat("Identifier:", identifier, "\n\n")
+  
+  if (log(nobs) < ndim) {
+    cat("Number of observations are less than the expected dimensions. \n")
+    cat("Appending data to csv file. \n")
+    
+    final_res <- data.frame(
+      species = spec.name,
+      observations = nobs,
+      dimensions = ndim,
+      samplesPerPoint = 0,
+      randomPoints = 0,
+      excluded = T,
+      jaccard = 0,
+      sørensen = 0,
+      fracVolumeSpecies = 0,
+      fracVolumeRegion = 0,
+      overlapRegion = 1,
+      includedOverlap = 0
+    )
+    
+    skip_to_end <- TRUE
+  }
 
   tryCatch({
     if (verbose) cat("Creating warning and error functions. \n")
@@ -120,19 +150,22 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
       stop(e)
     }
     
-    acq_data <- data_acquisition(show.plot, method, verbose = verbose, iteration = j, warn, err)
+  if (!skip_to_end) {
+    cat("Running main sequence. \n")
+    
+    acq_data <- data_acquisition(show.plot, method, verbose = verbose, iteration = j, warn = warn, err = err)
     
     invisible(gc())
     
-    ana_data <- data_analysis(biovars_world = acq_data[[1]], biovars_region = acq_data[[2]], biovars_floreg = acq_data[[3]], method, show.plot, verbose = verbose, iteration = j, warn, err)
+    ana_data <- data_analysis(biovars_world = acq_data[[1]], biovars_region = acq_data[[2]], biovars_floreg = acq_data[[3]], method, show.plot, verbose = verbose, iteration = j, warn = warn, err = err)
     
     invisible(gc())
     
-    processed_data <- data_processing(spec, biovars_world = ana_data[[1]], spec.name, method, verbose = verbose, iteration = j, warn, err)
+    processed_data <- data_processing(spec, biovars_world = ana_data[[1]], spec.name, method, verbose = verbose, iteration = j, warn = warn, err = err)
     invisible(gc())
     
     
-    analyzed_hv <- hv_analysis(processed_data, biovars_region = ana_data[[2]], region_hv = ana_data[[4]], method, spec.name, proj.incl.t, accuracy, hv.projection, verbose = verbose, iteration = j, proj_dir, lock_hv_dir, cores.max.high, warn, err)
+    analyzed_hv <- hv_analysis(processed_data, biovars_region = ana_data[[2]], region_hv = ana_data[[4]], method, spec.name, proj.incl.t, accuracy, hv.projection, verbose = verbose, iteration = j, proj_dir, lock_hv_dir, cores.max.high, warn = warn, err = err)
     
     cat("Appending data to csv file. \n")
     
@@ -151,6 +184,9 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
       includedOverlap = sum(analyzed_hv[[7]] == T) / length(analyzed_hv[[7]])
     )
     # If we want the number of true and false values we can do: round(observations * includedOverlap) = true values, and: observations - true values = false values
+  } else {
+    cat("Skipping to end. \n")
+  }
     
     fwrite(final_res, paste0(stats_dir, "/", method, "-stats.csv"), append = T, bom = T)
     
@@ -166,20 +202,25 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.proj
         Sys.sleep(1)
       } else {
         Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
-        break
+        lock_node_it <- lock(lock_node_dir, lock.n = 1)
+        if (!is.null(lock_node_it) && file.exists(lock_node_it)) {
+          break
+        }
       }
     }
     while_msg <- FALSE
     
-    lock_node_it <- lock(lock_node_dir, lock.n = 1)
-    
     node_con <- file(node_it, open = "r")
     lines <- readLines(node_con)
     close(node_con)
+    if (verbose) cat("Removing from node-iterations:", lines[which(grepl(paste0("^", identifier, "$"), lines))], "\n")
     lines <- lines[-which(grepl(paste0("^", identifier, "$"), lines))] # Use regular expression to get exact match
+    if (verbose) cat("Rewriting to node-iterations:", lines, "\n")
     node_con <- file(node_it, open = "w")
     writeLines(lines, node_con)
     close(node_con)
+    
+    cat("Unlocking node iterations. \n")
     
     unlock(lock_node_it)
     

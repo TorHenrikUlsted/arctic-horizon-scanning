@@ -81,7 +81,7 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
 
   if (verbose) cat(cc$lightGreen("Biovars_floreg acquired successfully \n"))
 
-  cat(cc$lightGreen("Data acquisition protocol completed successfully \n"))
+  cat(cc$lightGreen("Data acquisition protocol completed successfully \n\n"))
 
   return(list(
     biovars_world,
@@ -129,7 +129,7 @@ data_analysis <- function(biovars_world, biovars_region, biovars_floreg, method,
     error = function(e) err(e, err_txt = "Error when setting up region hypervolume in iteration")
   )
 
-  cat(cc$lightGreen("Data analysis protocol completed successfully \n"))
+  cat(cc$lightGreen("Data analysis protocol completed successfully \n\n"))
 
   return(list(
     biovars_world,
@@ -157,6 +157,19 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, points.proj
     warning = function(w) warn(w, warn_txt = "Warning when preparing species in iteration"),
     error = function(e) err(e, err_txt = "Error when preparing species in iteration")
   )
+  
+  if (is.null(sp_points)) {
+    cat("Excluding", spec.name, "from further processing. \n")
+    return(list(
+      n_observations = 0,
+      n_dimensions = 0,
+      samples_per_point = 0,
+      random_points = 0,
+      excluded = T,
+      analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
+      included_sp = c(rep(TRUE, 0), rep(FALSE, 0))
+    ))
+  }
 
   if (verbose) {
     cat("Processed environment data sample: \n")
@@ -184,7 +197,7 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, points.proj
   }
 
 
-  cat(cc$lightGreen("Data processing protocol completed successfully. \n"))
+  cat(cc$lightGreen("Data processing protocol completed successfully. \n\n"))
 
   return(sp_mat)
 }
@@ -270,6 +283,11 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
   ml <- get_mem_usage("total", "gb") * 0.8
   # Wait for a spot in the queue system
   while (TRUE) {
+    if (!analysis_msg) {
+      cat("The node has entered the hypervolume analysis queue... \n")
+      analysis_msg <- TRUE
+    }
+    
     if (mc >= ml) {
       if (!mm) {
         cat("The node waiting for more available RAM before initiating the hypervolume analysis. \n")
@@ -279,24 +297,22 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       Sys.sleep(10)
       
     } else {
+      
       if (is.locked(lock_hv_dir, lock.n = cores.max.high)) {
-        if (!analysis_msg) {
-          cat("The node has entered the hypervolume analysis queue... \n")
-          analysis_msg <- TRUE
-        }
         Sys.sleep(10)
       } else {
         Sys.sleep(runif(1, 0, 1))  # Add a random delay between 0 and 1 second
-        break
+        lock_analysis <- lock(lock_hv_dir, lock.n = cores.max.high)
+        if (!is.null(lock_analysis) && file.exists(lock_analysis)) {
+          break
+        }
       }
     }
-    
   }
+  
   analysis_msg <- FALSE
   
   cat("The node has exited the queue. \n")
-  
-  lock_analysis <- lock(lock_hv_dir, lock.n = cores.max.high)
 
   ## If included, continue with hypervolume analysis
   cat("Computing hypervolume analysis. \n")
@@ -322,6 +338,9 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
         cat(sp_hv@Name, green("Included for further hypervolume analysis. \n"))
       } else {
         cat(sp_hv@Name, red("Excluded from further hypervolume analysis. \n"))
+        
+        if (verbose) cat("Unlocking analysis lock. \n")
+        unlock(lock_analysis)
 
         return(list(
           n_observations = nobs,
@@ -386,12 +405,13 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
     error = function(e) err(e, err_txt = "Error when projecting hypervolume in iteration")
   )
   
+  if (verbose) cat("Unlocking analysis lock. \n")
+  unlock(lock_analysis)
+  
   rm(prob_proj)
   invisible(gc())
   
-  unlock(lock_analysis)
-  
-  cat(cc$lightGreen("Hypervolume sequence completed successfully. \n"))
+  cat(cc$lightGreen("Hypervolume sequence completed successfully. \n\n"))
 
   return(list(
     n_observations = nobs,

@@ -36,9 +36,10 @@ parallell_processing(
   spec.list = sp_list, # list of strings
   method = "box", #box approx 13 min, gaussian 1 hours 10 minutes
   accuracy = "accurate",
+  ndim = 4,
   hv.projection = "laea",
   proj.incl.t = 0.5,
-  iterations = 135,
+  iterations = 447,
   cores.max.high = cores_max_high, 
   cores.max = cores_max_total,
   min.disk.space = min_disk_space,
@@ -46,3 +47,6 @@ parallell_processing(
   show.plot = F,
   verbose = T
 ) 
+
+
+#as.numeric(gsub("node", "", readLines("outputs/hypervolume/sequence/logs/node-iterations.txt")))

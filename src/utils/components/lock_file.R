@@ -20,7 +20,11 @@ lock <- function(lock.dir, lock.n = 1) {
       return(full_path)
     }
   }
+  
+  # If no lock file could be created, return an error
+  cat("No available lock files. Increase lock.n or remove existing lock files.")
 }
+
   
 
 
@@ -35,6 +39,6 @@ unlock <- function(lock.object) {
   tryCatch({
     file.remove(lock.object)
   }, error = function(e) {
-    stop("Failed to unlock", lock.object)
+    stop("Failed to unlock ", lock.object, " with error: ", e$message)
   })
 }
