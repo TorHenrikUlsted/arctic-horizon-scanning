@@ -1,6 +1,4 @@
-source_all("./src/hypervolume/data_acquisition/components")
-
-acquire_region_data = function(biovars, regions, projection, show_plot = F, verbose = F) {
+get_region_data = function(biovars, regions, projection, show_plot = F, verbose = F) {
   cat(blue("Acquiring WorldClim region data. \n"))
   
   region_data_list <- list()
@@ -20,9 +18,9 @@ acquire_region_data = function(biovars, regions, projection, show_plot = F, verb
     
     if (file.exists(filename)) {
       if (verbose) cat("File found", "Loading file... \n")
-    
-    region_data <- readRDS(filename)
-    
+      
+      region_data <- readRDS(filename)
+      
     } else {
       if (verbose) cat(red("File not found. \n"))
       

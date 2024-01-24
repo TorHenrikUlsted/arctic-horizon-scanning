@@ -1,4 +1,4 @@
-parallell_processing <- function(spec.list, method, accuracy, ndim, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
+parallel_processing <- function(spec.list, method, accuracy, hv.dims, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
   on.exit(closeAllConnections())
   
   cat(blue("Initiating hypervolume sequence \n"))
@@ -106,12 +106,16 @@ parallell_processing <- function(spec.list, method, accuracy, ndim, hv.projectio
   
   if (verbose) cat("Including the necessary components in each core. \n")
   
-  clusterExport(cl, c("spec.list", "proj.incl.t", "method", "accuracy", "hv.projection", "cores.max.high", "min.disk.space", "hv.dir", "show.plot", "verbose"), envir = environment())
+  clusterExport(cl, c("spec.list", "proj.incl.t", "method", "accuracy", "hv.dims", "hv.projection", "cores.max.high", "min.disk.space", "hv.dir", "show.plot", "verbose"), envir = environment())
   
   clusterEvalQ(cl, {
     source("./src/utils/utils.R")
     source("./src/setup/setup.R")
-    source("./src/hypervolume/hypervolume.R")
+    source("./src/hypervolume/data_acquisition/data_acquisition.R")
+    source("./src/hypervolume/data_analysis/data_analysis.R")
+    source("./src/hypervolume/data_processing/data_processing.R")
+    source("./src/hypervolume/hv_analysis/hv_analysis.R")
+    source("./src/hypervolume/node.R")
   })
   
   if (verbose) cat("Creating a vector for the results. \n")
@@ -148,7 +152,7 @@ parallell_processing <- function(spec.list, method, accuracy, ndim, hv.projectio
       mem_used_gb <- get_mem_usage(type = "used", format = "gb")
     }
     
-    node_processing(j, spec.list, proj.incl.t, method, accuracy, ndim, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
+    node_processing(j, spec.list, proj.incl.t, method, accuracy, hv.dims, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
     
   })
 

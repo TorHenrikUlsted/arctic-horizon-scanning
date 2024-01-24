@@ -1,5 +1,3 @@
-source_all("./src/hypervolume/data_processing/components")
-
 scale_biovars <- function(biovars, verbose = F) {
   name = deparse(substitute(biovars))
   if (verbose) cat(blue("Scaling biovariables", name,"\n"))

@@ -105,7 +105,7 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
   cat(cc$lightGreen("raw data setup completed successfully. \n"))
 }
 
-setup_region_hv <- function(biovars_region, name, method) {
+setup_region_hv <- function(biovars_region, out.dir, name, method) {
   region_filename <- paste0("./outputs/setup/region/", name, "/hypervolume-", method,".rds")
   
   if (file.exists(region_filename)) {
@@ -116,20 +116,10 @@ setup_region_hv <- function(biovars_region, name, method) {
     create_dir_if(paste0("./outputs/setup/region/", name))
     region_log_out <- paste0("./outputs/setup/region/logs/", name, "-", method, "-output.txt")
     
-    if (!file.exists(region_log_out)) {
-      file.create(region_log_out)
-    } else {
-      file.remove(region_log_out)
-      file.create(region_log_out)
-    }
+    create_file_if(region_log_out)
     
     region_log_msg <- paste0("./outputs/setup/region/logs/", name, "-", method, "-message.txt")
-    if (!file.exists(region_log_msg)) {
-      file.create(region_log_msg)
-    } else {
-      file.remove(region_log_msg)
-      file.create(region_log_msg)
-    }
+    create_file_if(region_log_msg)
     
     try(region_log_out <- file(region_log_out, open = "at"))
     try(region_log_msg <- file(region_log_msg, open = "at"))
@@ -138,7 +128,7 @@ setup_region_hv <- function(biovars_region, name, method) {
     
     region_hv_timer <- start_timer("region_hv_timer")
     
-    region_hv <- analyze_region_hv(biovars_region, name, method = method, verbose = T)
+    region_hv <- analyze_region_hv(biovars_region, out.dir, name, method = method, verbose = T)
     
     end_timer(region_hv_timer)
     
@@ -277,7 +267,7 @@ setup_region <- function() {
   return(cavm_noice)
 }
 
-setup_hv_sequence <- function(min_disk_space, verbose = T) {
+setup_hv_process <- function(min_disk_space, verbose = T) {
   cat(blue("Initiating hypervolume sequence setup. \n"))
   
   sp_list_setup <- list.files("./outputs/filter/test/test-small/chunk/species", full.names = TRUE)

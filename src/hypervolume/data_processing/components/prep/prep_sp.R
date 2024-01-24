@@ -33,7 +33,9 @@ prepare_species <- function(df, projection, verbose = T) {
     cat("Error when cleaning Coordinates:", e$message, "\n")
   })
   
-  if (is.null(df)) {
+  print(df)
+  
+  if (nrow(df) == 0) {
     cat("All species were removed in the Coordinate cleaning process. \n")
     return(NULL)
   }
@@ -97,7 +99,7 @@ prepare_species <- function(df, projection, verbose = T) {
     cat("Error when thinning lists:", e$message, "\n")
   })
   
-  if (is.null(df_thinned)) {
+  if (nrow(df_thinned) == 0) {
     cat("All species were removed in the thinning process. \n")
     return(NULL)
   }
