@@ -39,7 +39,7 @@ parallel_processing(
   hv.dims = c(18, 10, 3, 4),
   hv.projection = "laea",
   proj.incl.t = 0.5,
-  iterations = c(4550, 4704, 6291, 6292, 6297, 6298),
+  iterations = NULL,
   cores.max.high = cores_max_high, 
   cores.max = cores_max_total,
   min.disk.space = min_disk_space,
