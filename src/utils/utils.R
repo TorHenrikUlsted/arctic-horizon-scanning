@@ -12,6 +12,8 @@ pkgs = c(
   "terra",
   "sf",
   "sp",
+  "ggplot2",
+  "plotrix",
   "data.table",
   "CoordinateCleaner",
   "spThin",

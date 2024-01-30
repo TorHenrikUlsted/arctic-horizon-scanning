@@ -49,3 +49,11 @@ parallel_processing(
 ) 
 
 #as.numeric(gsub("node", "", readLines("outputs/hypervolume/sequence/logs/node-iterations.txt")))
+
+visualize(
+  out.dir = "./outputs/visualize", 
+  hv.dir = "./outputs/hypervolume/sequence", 
+  hv.method = "box", 
+  x.threshold = 0.2, 
+  verbose = T
+  )

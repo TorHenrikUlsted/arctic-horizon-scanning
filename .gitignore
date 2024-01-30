@@ -13,3 +13,4 @@ outputs/filter/arctic/*
 outputs/filter/gbif-acquisition/
 outputs/filter/logs/
 outputs/filter/test/
+outputs/visualize/
