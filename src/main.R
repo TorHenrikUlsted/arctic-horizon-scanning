@@ -32,6 +32,8 @@ cores_max_total <- min(length(sp_list), floor((mem_limit / 1024^3) / total_cores
 cores_max_high <- min(length(sp_list), floor((mem_limit / 1024^3) * (5 / 8) / mem_high_gb), cores_high)
 cores_max_low <- min(floor((mem_limit / 1024^3) * (3 / 8) / mem_low_gb), cores_max_total - cores_max_high)
 
+# Run the data_acquisition here instead of inside each node.
+
 parallel_processing(
   spec.list = sp_list, # list of strings
   method = "box", #box approx 13 min, gaussian 1 hours 10 minutes

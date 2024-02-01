@@ -6,7 +6,8 @@ visualize <- function(out.dir, hv.dir, hv.method, x.threshold, verbose) {
   out.dir = "./outputs/visualize" 
   hv.dir = "./outputs/hypervolume/sequence"
   hv.method = "box"
-  x.threshold = 0.2 
+  x.threshold = 0.2
+  show.plot = FALSE
   verbose = T
   
   # Set up directories
@@ -39,24 +40,57 @@ visualize <- function(out.dir, hv.dir, hv.method, x.threshold, verbose) {
 
   visualize_data <- get_visualize_data(hv.dir, hv.method, verbose = T, warn = warn, err = err)
   
-  plot(visualize_data$prob_stack[[2]])
+  # Load regions
   
-  # Figure 1A: Histogram with proportion of overlap statistics
+  shapefiles = c(
+    cavm = "./resources/region/cavm-noice/cavm-noice.shp"
+  )
   
-  included_sp$thresholdLabels <- ifelse(included_sp$overlapRegion > 0.2, included_sp$species, "")
+  regions <- import_regions(shapefiles, "./outputs/visualize/region")
   
-  lv <- setNames(included_sp$thresholdLabels, included_sp$species)
+  # cavm_floreg <- terra::split(regions$cavm, regions$cavm$VEGPHYS)
+
+   # for (i in seq_along(cavm_floreg)) {
+   #   names(cavm_floreg)[i] <- paste("floreg", unique(cavm_floreg[[i]]$FLOREG), sep = "_")
+   #   if (verbose) cat("Renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(names(cavm_floreg)[i]), "\n")
+   # }
   
-  ggplot(included_sp, aes(x = species, y = overlapRegion)) +
-    geom_col() +
-    scale_x_discrete(labels = lv, guide = guide_axis(n.dodge = 2)) +
-    geom_label_repel(label = lv) +
-    labs(x = "Species", y = "Region overlap") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  regions$cavm
+  plot(test_rast[[1]])
+  plot(regions$cavm)
+  plot(cavm_floreg$floreg_0)
   
-  # Figure 1B: Histogram with proportion of overlap statistics and floristic regions
+  test_rast[[1]]
+  cavm_floreg[[1]]
+  
+  # Check raster files for different things and crs
+  
+  nlyr(visualize_data$inc_stack)
+  
+  test_rast <- subset(visualize_data$inc_stack, 1:10)
+  
+  
+  terra::cellSize(test_rast, unit="km", lyrs=TRUE, mask=TRUE)
+  
+  terra::res(test_rast)
+  
+  prod(terra::res(test_rast))
+  
+  # Get species per cell
+  
+  sp_cell <- get_sp_cell()
+  
+  source_all("./src/visualize/components")
+  
+  # Maybe use get_sp_cell
+  
+  # Create figure 1
+  
+  # Missing :: Add floristic region names, and combine the ones in the different regions to countries
+  make_histogram(rast = test_rast, region = regions$cavm, region.sub = "VEGPHYS", region.name = "CAVM")
   
   # Figure 2: Stack inclusion tif files and calculate species in each cell to get potential hotspots
+  
   
   # Figure 3: Stack probability tif files and use the highest numbers to get a color gradient
   
