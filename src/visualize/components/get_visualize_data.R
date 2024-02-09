@@ -103,7 +103,7 @@ get_visualize_data <- function(hv.dir, hv.method, verbose = F, warn, err) {
       for (i in seq_along(sp_dirs)) {
         species <- sp_dirs[[i]]
 
-        if (verbose) cat("\rStacking raster files ", i, " / ", length(sp_dirs))
+        cat("\rStacking raster files ", i, " / ", length(sp_dirs))
 
         flush.console()
 

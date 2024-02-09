@@ -8,7 +8,11 @@ get_sp_list <- function(taxon, region, region.name, file.name, download.key, dow
 
   taxon_key <- name_backbone(taxon)$usageKey
 
-  cat("Applying the", cc$lightSteelBlue(region.name), "region. \n")
+  if(!is.null(region.name)) {
+    cat("Applying the", cc$lightSteelBlue(region.name), "region. \n")
+  } else {
+    cat("Region will NOT be applied. \n")
+  }
 
   out <- NULL
 
