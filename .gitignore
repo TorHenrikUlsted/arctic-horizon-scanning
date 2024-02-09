@@ -2,5 +2,14 @@
 .Rhistory
 .RData
 .Ruserdata
-/modeling/resources/Cavm2003/
-/modeling/resources/wc2.1_10m/
+resources/region/
+resources/wfo/
+outputs/setup/
+outputs/hypervolume/*
+!outputs/hypervolume/stats/
+outputs/filter/arctic/*
+!outputs/filter/arctic/arctic-absent-final.csv
+!outputs/filter/arctic/sp-w-keys.csv
+outputs/filter/gbif-acquisition/
+outputs/filter/logs/
+outputs/filter/test/
