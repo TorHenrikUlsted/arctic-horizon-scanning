@@ -1,4 +1,4 @@
-clean_hv_output <- function(data, projection, verbose = F) {
+tesdt <- function(data, projection, verbose = F) {
   cat(blue("Initiating hypervloume output data check\n"))
   
   data_item_len <- data.table(item_name = character(), item_length = integer())

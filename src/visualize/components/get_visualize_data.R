@@ -1,4 +1,4 @@
-get_visualize_data <- function(hv.dir, hv.method, verbose = F, warn, err) {
+get_visualize_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, err) {
   cat(blue("Initializing visulasation data. \n"))
   # Define directories
   vis_stats_dir <- "./outputs/visualize/stats"
@@ -14,7 +14,7 @@ get_visualize_data <- function(hv.dir, hv.method, verbose = F, warn, err) {
 
   if (!file.exists("./outputs/visualize/stats/included-species.csv") || !file.exists("./outputs/visualize/stats/included-species.csv")) {
     stats_src <- paste0(hv.dir, "/stats/box-stats.csv")
-    sp_stats <- fread(stats_src)
+    sp_stats <- cleaned_data
 
     # Get the region for the species
     glonaf_wfo_one <- fread("./resources/synonym-checked/glonaf-species-wfo-one.csv")
