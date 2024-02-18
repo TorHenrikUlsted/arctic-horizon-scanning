@@ -124,8 +124,8 @@ get_visualize_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, war
         )
       }
     },
-    warning = function(w) warn(w, warn_txt = "Warning when stacking inclusion analyses."),
-    error = function(e) err(e, err_txt = "Error when stacking inclusion analyses.")
+    warning = function(w) warn(w, warn_txt = "Warning when stacking raster analyses."),
+    error = function(e) err(e, err_txt = "Error when stacking raster analyses.")
   )
 
   cat(cc$lightGreen("\nvisualization data successfully initialised.\n"))

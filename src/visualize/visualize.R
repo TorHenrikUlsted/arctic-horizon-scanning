@@ -41,6 +41,7 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   ##########################
   #       Check data       #
   ##########################
+  source_all("./src/visualize/components")
   # Check the output if it is in the expected format and length
   checked_data <- check_hv_output(spec.list, hv.dir, hv.method, hv.projection, hv.inc.t = 0.5, verbose = F)
   
@@ -97,7 +98,7 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   end_timer(inc_timer)
   
   prob_timer <- start_timer("Prob_timer")
-  prob_cells <- get_sp_cell(test_prob, cavm, method = "probability", cores = 1, out.filename = paste0(out.dir, "/rast/test-prob.tif"))
+  prob_cells <- get_sp_cell(test_prob, test_cavm, method = "probability", cores = 1, out.filename = paste0(out.dir, "/rast/test-prob.tif"))
   end_timer(prob_timer)
   
   # Create figure 1
@@ -114,13 +115,47 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   prob_cells$sp_count <- project(prob_cells$sp_count, laea_crs)
   end_timer(laea_prob_timer)
   
-  source_all("./src/visualize/components")
+  # Get cell sums
+  test_rast <- ceiling(test_rast)
+  test_vals <- data.table(terra::values(test_rast, na.rm = TRUE))
+  test_vals[, cell_sum := rowSums(.SD, na.rm = TRUE), .SDcols = -1]
   
-  visualize_histogram(sp_cells = inc_cells, region = cavm, region.sub = "FLOREG", region.sub.color = "country", region.name = "CAVM")
+  # Get sub_region sums
+  t_ex <- terra::extract(test_rast, cavm, cells = TRUE)
+  t_ex <- as.data.table(t_ex, na.rm = TRUE)
+  
+  cavm_dt <- as.data.table(cavm)
+  cavm_dt[, ID := .I]
+  sub_regions_dt <- merge(t_ex, cavm_dt[, .(ID, FLOREG, country, floristicProvince)], by = "ID")
+  
+  sp_cols <- 2:(1 + nlyr(test_rast))
+  
+  sub_regions_dt[, cell_sum := rowSums(.SD, na.rm = TRUE), .SDcols = sp_cols]
+  
+  floreg_sums <- sub_regions_dt[, .(floreg_sum = sum(cell_sum, na.rm = TRUE)), by = FLOREG]
+  
+  final_dt <- merge(sub_regions_dt, floreg_sums, by = "FLOREG", all.x = TRUE)
+  
+  source_all("./src/visualize/components")
+  visualize_histogram(sp_cells = final_dt, region = cavm, region.sub.color = "country", region.sub.shades = "floristicProvince", region.name = "CAVM")
   
   # Figure 2: Stack inclusion tif files and calculate species in each cell to get potential hotspots
   # Figure 3: Stack probability tif files and use the highest numbers to get a color gradient
-  visualize_hotspots(sp_cells = list(inc_cells, prob_cells), prob.value = "proportion", region = cavm, region.sub = "country", region.name = "CAVM", plot.show = F) 
+  visualize_hotspots(sp_cells = final_dt, prob.value = "proportion", region = cavm, region.sub = "country", region.name = "CAVM", plot.show = T) 
+  
+  cavm_sf <- st_as_sf(cavm)
+  final_sf <- merge(cavm_sf, final_dt, by.x = "FLOREG", by.y = "FLOREG")
+  
+  ggplot() +
+    geom_sf(data = final_sf, aes(fill = cell_sum)) +
+    scale_fill_whitebox_c(palette = "muted", na.value = NA, guide = guide_legend(reverse = TRUE)) +
+    labs(x = "Longitude", y = "Latitude", title = paste0("Potential species distribution in the ", region.name), fill = "Proportion", color = "Country") +
+    coord_sf(xlim = c(region_ext$xmin, region_ext$xmax), ylim = c(region_ext$ymin, region_ext$ymax)) +
+    theme_minimal() +
+    labs(fill = "Cell Sum",
+         title = "Hotspots on CAVM Shape",
+         caption = "Red areas indicate higher cell sums")
+  
 
   # Figure 4: Matrix with floristic regions 
   visualize_matrix(sp_cells = inc_cells, region.sub = "country")

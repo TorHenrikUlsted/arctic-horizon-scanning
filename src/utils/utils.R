@@ -14,7 +14,6 @@ pkgs = c(
   "sp",
   "ggplot2",
   "tidyterra",
-  #"networkD3",
   "ggalluvial",
   "heatmaply",
   "plotrix",

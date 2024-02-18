@@ -1,13 +1,16 @@
-visualize_histogram <- function(sp_cells, region, region.sub, region.sub.color, region.name, plot.show = TRUE, verbose = T) {
+visualize_histogram <- function(sp_cells, region, region.sub.color, region.sub.shades, region.name, plot.show = TRUE, verbose = T) {
   create_dir_if("./outputs/visualize/plots")
   
   # Figure 1A Whole CAVM
   cat(blue("Creating histogram for the entire Region\n"))
   
+  print(class(sp_cells))
+  print(head(sp_cells, 3))
+  
   if (verbose) cat("Creating plot 1A. \n")
-  fig1A <- ggplot(sp_cells$region, aes(x = sp_cells$region$prop)) +
-    geom_freqpoly() +
-    labs(x = "Relative Species Distribution", y = "Cell Frequency", title = paste0("Potential species distribution in ", region.name)) +
+  fig1A <- ggplot(sp_cells, aes(x = cell_sum) ) +
+    geom_freqpoly(binwidth = 0.1, aes(y = after_stat(count)/sum(after_stat(count)))) +
+    labs(x = "Sum of Species Counts per Cell", y = "Proportion of Species Counts per Cell", title = paste0("Distribution of potential species richness in ", region.name)) +
     scale_x_continuous(limits = c(0, NA)) +
     theme_minimal() + 
     theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
@@ -19,10 +22,19 @@ visualize_histogram <- function(sp_cells, region, region.sub, region.sub.color, 
   # Figure 1B different regions
   cat(blue("Creating histogram for each region in the", region.name, "\n"))
   
-  fig1B <- ggplot(sp_cells$region, aes(x = prop, color = as.factor(sp_cells$region[[region.sub.color]]), linetype = as.factor(sp_cells$region[[region.sub]])) ) +
-    geom_freqpoly(binwidth = 0.1) +
-    labs(x = "Relative Species Distribution", y = "Cell Frequency", title = paste0("Potential species distribution in the floristic regions of ", region.name), color = "Country", linetype = "Floristic Province") +
+  # ADD shades of country for each floreg
+  
+  fig1B <- ggplot(sp_cells, aes(x = cell_sum, color =  as.factor(sp_cells[[region.sub.color]]), linetype = as.factor(sp_cells[[region.sub.shades]])))  +
+    geom_freqpoly(binwidth = 2, aes(y = after_stat(count)/sum(after_stat(count)))) +
+    #scale_color_manual(values = unlist(color_list)) +
+    labs(
+      x = "Sum of Species Counts per Cell", y = "Proportion of Species Counts per Cell", 
+      title = paste0("Distribution of potential species richness in different regions of ", region.name), 
+      color = "Country", 
+      linetype = "Floristic Province"
+    ) +
     scale_x_continuous(limits = c(0, NA)) +
+    scale_y_continuous(limits = c(0, NA)) +
     theme_minimal() + 
     theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
   
@@ -35,18 +47,20 @@ visualize_histogram <- function(sp_cells, region, region.sub, region.sub.color, 
 
 visualize_hotspots <- function(sp_cells, prob.value, region, region.sub, region.name, plot.show = TRUE, verbose = T) {
 
-  inc <- sp_cells[[1]]$sp_count
-  prob <- sp_cells[[2]]$sp_count
+  #inc <- sp_cells[[1]]$sp_count
+  #prob <- sp_cells[[2]]$sp_count
 
-  inc[inc == 0] <- NA
-  min_inc <- min(terra::values(inc$prop), na.rm = TRUE)
-  max_inc <- max(terra::values(inc$prop), na.rm = TRUE)
+  #inc[inc == 0] <- NA
+  #min_inc <- min(terra::values(inc$prop), na.rm = TRUE)
+  #max_inc <- max(terra::values(inc$prop), na.rm = TRUE)
+  min_inc <- min(sp_cells$cell_sum, na.rm = TRUE)
+  max_inc <- max(sp_cells$cell_sum, na.rm = TRUE)
   region_ext <- terra::ext(region)
   
   fig2 <- ggplot() +
-    geom_spatvector(data = cavm, aes_string(color = paste0("as.factor(", region.sub, ")")), fill = NA) +
+    geom_spatvector(data = region, aes_string(color = paste0("as.factor(", region.sub, ")"))) +
     scale_color_grey( guide = guide_legend(reverse = TRUE)) +
-    geom_spatraster(data = inc, aes(fill = prop)) +
+    #geom_spatraster(data = inc, aes(fill = prop)) +
     scale_fill_whitebox_c(palette = "muted", na.value = NA, breaks = c(seq(min_inc, max_inc, by = 0.2)), limits = c(min_inc, max_inc), guide = guide_legend(reverse = TRUE)) +
     labs(x = "Longitude", y = "Latitude", title = paste0("Potential species distribution in the ", region.name), fill = "Proportion", color = "Country") +
     coord_sf(xlim = c(region_ext$xmin, region_ext$xmax), ylim = c(region_ext$ymin, region_ext$ymax)) +
@@ -54,6 +68,7 @@ visualize_hotspots <- function(sp_cells, prob.value, region, region.sub, region.
     theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
   
   if (plot.show) print(fig2)
+  stop()
   
   ggsave("./outputs/visualize/plots/figure-2.png", plot = fig2)
   
