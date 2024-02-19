@@ -8,8 +8,9 @@ visualize_histogram <- function(sp_cells, region, region.sub.color, region.sub.s
   print(head(sp_cells, 3))
   
   if (verbose) cat("Creating plot 1A. \n")
-  fig1A <- ggplot(sp_cells, aes(x = cell_sum) ) +
-    geom_freqpoly(binwidth = 0.1, aes(y = after_stat(count)/sum(after_stat(count)))) +
+  fig1A <- ggplot(sp_cells, aes(x = cellSum) ) +
+    # After_Stat accesses ggplot processed data, count represents the count of data points in each bin of the histogram
+    geom_freqpoly(binwidth = 0.1, aes(y = after_stat(count)/sum(after_stat(count)))) +  
     labs(x = "Sum of Species Counts per Cell", y = "Proportion of Species Counts per Cell", title = paste0("Distribution of potential species richness in ", region.name)) +
     scale_x_continuous(limits = c(0, NA)) +
     theme_minimal() + 
@@ -24,7 +25,7 @@ visualize_histogram <- function(sp_cells, region, region.sub.color, region.sub.s
   
   # ADD shades of country for each floreg
   
-  fig1B <- ggplot(sp_cells, aes(x = cell_sum, color =  as.factor(sp_cells[[region.sub.color]]), linetype = as.factor(sp_cells[[region.sub.shades]])))  +
+  fig1B <- ggplot(sp_cells, aes(x = cellSum, color =  as.factor(sp_cells[[region.sub.color]]), linetype = as.factor(sp_cells[[region.sub.shades]])))  +
     geom_freqpoly(binwidth = 2, aes(y = after_stat(count)/sum(after_stat(count)))) +
     #scale_color_manual(values = unlist(color_list)) +
     labs(
@@ -112,52 +113,63 @@ visualize_matrix <- function(sp_cells, region.sub, plot.show = F) {
   ggsave("./outputs/visualize/plots/figure-4.png", plot = fig4)
 }
 
-visualize_sankey <- function(df.start, df.end, df.mergeCol, plot.show = F) {
+visualize_sankey <- function(dt.src, dt.target, plot.show = F, verbose = F) {
+  cat(blue("Visualizing data in a sankey plot\n"))
+  # dt check
+  if (!("data.table" %in% class(dt.src)) || !("data.table" %in% class(dt.target))) {
+    stop("input data is not a data.table.")
+  }
   
-  print(df.start)
-  print(df.end)
-  print(any(df.end$included > 0))
+  cat("Setting up target data.\n")
   
-  cat("Merging data frames.\n")
-  merged_df <- merge(df.start, df.end, by = df.mergeCol, all = TRUE, allow.cartesian = TRUE)
-  merged_df <- na.omit(merged_df)
+  if (verbose) cat("Reshaping target data.\n")
   
-  print(any(merged_df$included > 0))
-  print(merged_df)
-  cat("Aggregating included species with country data frames.\n")
-  sum_df <- aggregate(included ~ species + country.x, data = merged_df, FUN = sum)
+  # Reshape to long format for sankey plotting
+  target_dt <- melt(dt.target, id.vars = c("ID", "FLOREG", "country", "floristicProvince"), measure.vars = sp_cols, variable.name = "species", value.name = "count")
+  # Sum species values
+  target_dt <- target_dt[, speciesSum := sum(count, na.rm = TRUE), by = FLOREG]
   
-  print(sum_df)
+  target_dt <- unique(target_dt, by = c("species", "FLOREG"))
   
-  stop()
-  fig5 <- ggplot(data = merged_df, aes(axis1 = country.x, axis2 = country.y, y = prop)) +
-    scale_x_discrete(limits = c("included_sp country", "arctic_sub_region country"), expand = c(.1, .1)) +
+  # Remove speciesSum of 0
+  target_dt <- target_dt[speciesSum > 0]
+  
+  cat("Setting up source data.\n")
+  # Get source country
+  source_dt <- visualize_data$included_sp %>% 
+    select(species, srcCountryIso = countryIso, srcCountry = country)
+  
+  # Calculate source country
+  source_dt <- source_dt[, srcSpeciesSum := uniqueN(species), by = .(srcCountryIso, srcCountry)]
+  
+  source_dt <- unique(source_dt, by = c("srcCountryIso", "srcCountry"))
+  
+  source_dt <- source_dt[srcSpeciesSum > 0]
+  
+  # Merge the dts
+  sankey_dt <- merge(target_dt, source_dt, by = "species", allow.cartesian = TRUE)
+  
+  ################
+  #     Plot     #
+  ################
+  
+  cat("Creating sankey plot.\n")
+  
+  fig5 <- ggplot(data = sankey_dt, aes(axis1 = srcCountry, axis2 = floristicProvince, y = speciesSum)) +
+    scale_x_discrete(limits = c("Origin", "Destination"), expand = c(.1, .1)) +
     xlab("Country") +
-    ylab("Prop") +
+    ylab("Sums of each floristic region") +
     geom_alluvium(aes(fill = species)) +
     geom_stratum() +
-    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 1.5) +
     theme_minimal() +
-    ggtitle("Sankey plot from included_sp country to arctic_sub_region country")
+    ggtitle("Sankey plot from origin country to Arctic country")
   
   if (plot.show) print(fig5)
   
-  ggsave("./outputs/visualize/plots/figure-5.png", plot = fig5)
-  
-  stop()
-  
-  # Figure 5 -Sankey
-  ggplot(merged_inc, aes(axis1 = country, axis2 = FLOREG)) +
-    geom_alluvium(aes(fill = prop)) +
-    geom_stratum() +
-    geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
-    scale_fill_viridis_d() +
-    theme_void()
-  
-  ggplot(df_long, aes(x = x, next_x = next_x, node = node, next_node = next_node, fill = factor(node), label = node)) +
-    geom_sankey() +
-    geom_sankey_label() +
-    theme_sankey(base_size = 16)
+  ggsave("./outputs/visualize/plots/figure-5.png", device = "jpeg", unit = "px", width = 3840, height = 2160, plot = fig5)
+
+  cat(cc$lightGreen("Data successfully visualized in a Sankey plot\n"))
 }
 
 
