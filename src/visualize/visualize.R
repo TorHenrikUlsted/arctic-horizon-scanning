@@ -117,27 +117,27 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   
   # Get cell sums
   test_rast <- ceiling(test_rast)
-  test_vals <- data.table(terra::values(test_rast, na.rm = TRUE))
-  test_vals[, cell_sum := rowSums(.SD, na.rm = TRUE), .SDcols = -1]
   
   # Get sub_region sums
   t_ex <- terra::extract(test_rast, cavm, cells = TRUE)
   t_ex <- as.data.table(t_ex, na.rm = TRUE)
   
+  # Add cavm regions
   cavm_dt <- as.data.table(cavm)
   cavm_dt[, ID := .I]
+  
   sub_regions_dt <- merge(t_ex, cavm_dt[, .(ID, FLOREG, country, floristicProvince)], by = "ID")
   
+  # Calculate the sum of species in each cell and in each cell in each floreg
   sp_cols <- 2:(1 + nlyr(test_rast))
   
-  sub_regions_dt[, cell_sum := rowSums(.SD, na.rm = TRUE), .SDcols = sp_cols]
+  sub_regions_dt <- sub_regions_dt[, cellSum := rowSums(.SD, na.rm = TRUE), .SDcols = sp_cols]
   
-  floreg_sums <- sub_regions_dt[, .(floreg_sum = sum(cell_sum, na.rm = TRUE)), by = FLOREG]
+  #sub_regions_dt <- sub_regions_dt[, floregSum := sum(cellSum, na.rm = TRUE), by = .(FLOREG)]
   
-  final_dt <- merge(sub_regions_dt, floreg_sums, by = "FLOREG", all.x = TRUE)
+  #t_ex_long <- merge(t_ex_long, stat_inc_data, by = "species", all.x = TRUE, allow.cartesian = TRUE)
   
-  source_all("./src/visualize/components")
-  visualize_histogram(sp_cells = final_dt, region = cavm, region.sub.color = "country", region.sub.shades = "floristicProvince", region.name = "CAVM")
+  visualize_histogram(sp_cells = sub_regions_dt, region = cavm, region.sub.color = "country", region.sub.shades = "floristicProvince", region.name = "CAVM")
   
   # Figure 2: Stack inclusion tif files and calculate species in each cell to get potential hotspots
   # Figure 3: Stack probability tif files and use the highest numbers to get a color gradient
@@ -160,10 +160,10 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   # Figure 4: Matrix with floristic regions 
   visualize_matrix(sp_cells = inc_cells, region.sub = "country")
   
-  # Figure 5: Sankey with floristic regions 
-  stat_inc_data <- visualize_data$included_sp %>% 
-    select(species, countryIso, country)
+
   
-  visualize_sankey(df.start = stat_inc_data, df.end = inc_cells$region, df.mergeCol = "species")
+  source_all("./src/visualize/components")
+  # Figure 5: Sankey with floristic regions 
+  visualize_sankey(dt.src = visualize_data$included_sp, dt.target = sub_regions_dt)
   
 }
