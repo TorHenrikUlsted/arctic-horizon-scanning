@@ -158,12 +158,18 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   
 
   # Figure 4: Matrix with floristic regions 
-  visualize_matrix(sp_cells = inc_cells, region.sub = "country")
   
-
+  # Reshape to long format for sankey plotting
+  #sub_regions_long <- melt(sub_regions_dt, id.vars = c("ID", "FLOREG", "country", "floristicProvince"), measure.vars = sp_cols, variable.name = "species", value.name = "count")
+  
+  richness_dt <- calculate_richness(sub_regions_dt, sp_cols, taxon = "family")
+  
+  print(head(richness_dt, 3))
+  
+  visualize_richness(dt = richness_dt, axis.x = "floristicProvince", axis.y = "relativeRichness", fill = "family", group = "family")
   
   source_all("./src/visualize/components")
   # Figure 5: Sankey with floristic regions 
-  visualize_sankey(dt.src = visualize_data$included_sp, dt.target = sub_regions_dt)
+  visualize_sankey(dt.src = visualize_data$included_sp, dt.target = sub_regions_long)
   
 }

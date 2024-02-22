@@ -91,26 +91,86 @@ visualize_hotspots <- function(sp_cells, prob.value, region, region.sub, region.
   ggsave("./outputs/visualize/plots/figure-3.png", plot = fig3)
 }
 
-visualize_matrix <- function(sp_cells, region.sub, plot.show = F) {
-  cells <- sp_cells$region[!is.na(prop), ]
+calculate_richness <- function(dt, sp_cols, taxon, verbose = F) {
   
-  min_prop <- min(cells$prop)
-  max_prop <- max(cells$prop)
+  cat("Calculatig potential richness.\n")
+  # Reform it to be richness and not abundance
+  dt <- dt[, (sp_cols) := lapply(.SD, function(x) ifelse(is.na(x), 0, x)), .SDcols = sp_cols]
   
-  break_scale <- seq(min_prop, 1, by = 0.10)
-  cells$prop_bin <- cut(cells$prop, breaks = break_scale, labels = FALSE)
+  # Calculate the sum for each FLOREG and keep specific columns
+  dt <- dt[, c(lapply(.SD, sum), .(country = country, floristicProvince = floristicProvince)), by = FLOREG, .SDcols = sp_cols]
   
-  fig4 <- ggplot(cells, aes(x = prop_bin, y = as.factor(cells[[region.sub]]), fill = prop)) +
-    geom_tile(color = "white") +
-    scale_fill_whitebox_c(palette = "muted", na.value = NA, breaks = break_scale, guide = guide_legend(reverse = TRUE)) +
-    labs(title = "Species climate suitability", x = "Species proportion", y = "Country") +
-    theme_minimal() + 
-    theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic")) +
-    scale_x_discrete(breaks = break_scale)
-    
-  if (plot.show) print(fig4)
+  dt <- unique(dt, by = "FLOREG")
+  
+  dt <- dt[, (sp_cols) := lapply(.SD, function(x) ifelse(x > 0, 1, x)), .SDcols = sp_cols]
+  
+  dt[, speciesRichness := rowSums(.SD > 0), .SDcols = sp_cols]
+  
+  dt <- melt(dt, id.vars = c("FLOREG", "country", "floristicProvince", "speciesRichness"), measure.vars = sp_cols, variable.name = "species", value.name = "count")
+  print(dt)
+  # Get higher taxon ranks
+  cat("Getting higher taxon names.\n")
+  checklist <- name_backbone_checklist(name_data = levels(dt$species))
+  
+  checklist <- data.table(checklist[, c("kingdom", "phylum", "order", "family", "genus", "canonicalName", "verbatim_name")])
+  
+  names(checklist)[7] <- "species"
+  
+  na_sp <- checklist[is.na(checklist$genus),]
+  
+  cat("Species missing classification.\n")
+  print(na_sp)
+  
+  cat("Merging data tables.\n")
+  merged_dt <- merge(dt, checklist, by = "species")
+  
+  dt <- data.table(merged_dt)
+  
+  dt <- dt[complete.cases(dt),]
+  
+  taxon_col <- dt[[taxon]]
+  
+  #dt <- dt[, .(country, floristicProvince, potentialRichness = length(unique(species))), by = .(FLOREG, taxon_col)]
 
-  ggsave("./outputs/visualize/plots/figure-4.png", plot = fig4)
+  dt <- unique(dt, by = c(taxon, "FLOREG"))
+  
+  dt <- dt[, .(country, floristicProvince, kingdom, phylum, order, family, speciesRichness, totalRichness = sum(speciesRichness)), by = FLOREG]
+  
+  cat("Calculating relative richness\n")
+  dt[, relativeRichness := speciesRichness / totalRichness]
+  
+  return(dt)
+}
+
+visualize_richness <- function(dt, axis.x, axis.y, fill, group, plot.show = F, verbose = F) {
+  # Reorder the bars
+  dt[[axis.x]] <- as.factor(dt[[axis.x]])
+  
+  if (verbose) {
+    cat("Before sorting:\n")
+    print(levels(dt[[axis.x]]))
+  }
+  
+  # Order the entire data framy by the group parameter
+  dt <- dt[order(dt[[group]]), ]
+  # Order the levels of the x axis by the sorted dt 
+  dt[[axis.x]] <- factor(dt[[axis.x]], levels = unique(dt[[axis.x]]))
+  
+  if (verbose) {
+    cat("After sorting:\n")
+    print(levels(dt[[axis.x]]))
+  }
+  
+  fig4 <- ggplot(dt, aes(x = dt[[axis.x]], y = dt[[axis.y]], fill = dt[[fill]] )) +
+    geom_bar(stat = "identity", position = "stack") +
+    scale_fill_whitebox_d(palette = "muted") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    labs(x = "Floristic Region", y = "Relative Richness", fill = paste0(toupper(substr(fill, 1, 1)), substr(fill, 2, nchar(fill))))
+  
+  if (plot.show) print(fig4)
+  
+  ggsave("./outputs/visualize/plots/figure-4.jpeg", plot = fig4, device = "jpeg", unit="px")
+  
 }
 
 visualize_sankey <- function(dt.src, dt.target, plot.show = F, verbose = F) {
@@ -155,11 +215,11 @@ visualize_sankey <- function(dt.src, dt.target, plot.show = F, verbose = F) {
   
   cat("Creating sankey plot.\n")
   
-  fig5 <- ggplot(data = sankey_dt, aes(axis1 = srcCountry, axis2 = floristicProvince, y = speciesSum)) +
+  fig5 <- ggplot(data = sankey_dt, aes(axis1 = srcCountry, axis2 = country, y = speciesSum)) +
     scale_x_discrete(limits = c("Origin", "Destination"), expand = c(.1, .1)) +
     xlab("Country") +
     ylab("Sums of each floristic region") +
-    geom_alluvium(aes(fill = species)) +
+    geom_alluvium(aes(fill = floristicProvince)) +
     geom_stratum() +
     geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 1.5) +
     theme_minimal() +
@@ -167,7 +227,7 @@ visualize_sankey <- function(dt.src, dt.target, plot.show = F, verbose = F) {
   
   if (plot.show) print(fig5)
   
-  ggsave("./outputs/visualize/plots/figure-5.png", device = "jpeg", unit = "px", width = 3840, height = 2160, plot = fig5)
+  ggsave("./outputs/visualize/plots/figure-5.jpeg", device = "jpeg", unit = "px", width = 3840, height = 2160, plot = fig5)
 
   cat(cc$lightGreen("Data successfully visualized in a Sankey plot\n"))
 }
