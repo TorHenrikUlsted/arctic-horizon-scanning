@@ -1,4 +1,4 @@
-visualize_histogram <- function(sp_cells, region, region.sub.color, region.sub.shades, region.name, plot.show = TRUE, verbose = T) {
+visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, plot.color, plot.shade, plot.show = FALSE, verbose = FALSE) {
   create_dir_if("./outputs/visualize/plots")
   
   # Figure 1A Whole CAVM
@@ -8,87 +8,165 @@ visualize_histogram <- function(sp_cells, region, region.sub.color, region.sub.s
   print(head(sp_cells, 3))
   
   if (verbose) cat("Creating plot 1A. \n")
-  fig1A <- ggplot(sp_cells, aes(x = cellSum) ) +
+  
+  sp_cells[, richness := ifelse(richness == 0, NA, richness)]
+  
+  fig1A <- ggplot(sp_cells, aes_string(x = plot.x) ) +
     # After_Stat accesses ggplot processed data, count represents the count of data points in each bin of the histogram
-    geom_freqpoly(binwidth = 0.1, aes(y = after_stat(count)/sum(after_stat(count)))) +  
-    labs(x = "Sum of Species Counts per Cell", y = "Proportion of Species Counts per Cell", title = paste0("Distribution of potential species richness in ", region.name)) +
-    scale_x_continuous(limits = c(0, NA)) +
+    geom_freqpoly(binwidth = 0.1, aes(y = ..count.. / sum(..count..)) ) +
+    labs(
+      x = "Species Richness (log10)", 
+      y = "Relative Cell Frequency", 
+      title = paste0("Potential Species Richness in ", region.name)
+      ) +
+    scale_x_log10(labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
     theme_minimal() + 
     theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
   
   if (plot.show) print(fig1A)
   
-  ggsave("./outputs/visualize/plots/figure-1A.png", fig1A, width = 10, height = 6)
+  ggsave("./outputs/visualize/plots/figure-1A.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, fig1A)
   
   # Figure 1B different regions
   cat(blue("Creating histogram for each region in the", region.name, "\n"))
   
-  # ADD shades of country for each floreg
+  # Order by plot.color
+  sp_cells <- sp_cells[order(sp_cells[[plot.color]]), ]
+  sp_cells[[plot.color]] <- factor(sp_cells[[plot.color]], levels = unique(sp_cells[[plot.color]]))
   
-  fig1B <- ggplot(sp_cells, aes(x = cellSum, color =  as.factor(sp_cells[[region.sub.color]]), linetype = as.factor(sp_cells[[region.sub.shades]])))  +
-    geom_freqpoly(binwidth = 2, aes(y = after_stat(count)/sum(after_stat(count)))) +
-    #scale_color_manual(values = unlist(color_list)) +
+  # ADD shades of country for each floreg
+  plcol <- eval(as.factor(sp_cells[[plot.color]]))
+  plshd <- eval(as.factor(sp_cells[[plot.shade]]))
+  
+  fig1B <- ggplot(sp_cells, aes_string(x = plot.x, color = plcol, fill = plshd))  +
+    # ..count.. / sum(..count..) calculates the proportion of cells at each species richness value for each region within each bin of the histogram
+    geom_freqpoly(binwidth = 0.1, aes(y =  ..count.. / sum(..count..)) ) + 
+    scale_color_viridis_d(guide = "legend", option = "B") + 
     labs(
-      x = "Sum of Species Counts per Cell", y = "Proportion of Species Counts per Cell", 
-      title = paste0("Distribution of potential species richness in different regions of ", region.name), 
+      x = "Species Richness (log10)", 
+      y = "Relative Cell Frequency", 
+      title = paste0("Potential Species Richness in Different Regions of ", region.name), 
       color = "Country", 
       linetype = "Floristic Province"
     ) +
-    scale_x_continuous(limits = c(0, NA)) +
-    scale_y_continuous(limits = c(0, NA)) +
+    scale_y_continuous(limits = c(0, NA), labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
+    scale_x_log10(labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
     theme_minimal() + 
     theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
   
   if (plot.show) print(fig1B)
   
-  ggsave("./outputs/visualize/plots/figure-1B.png", fig1B, width = 10, height = 6)
+  ggsave("./outputs/visualize/plots/figure-1B.jpeg",device = "jpeg", unit = "px", width = 2160, height = 2160, fig1B)
   
   # Plot 1C - how many species [y] have a certain proportion of cells [x]
 }
 
-visualize_hotspots <- function(sp_cells, prob.value, region, region.sub, region.name, plot.show = TRUE, verbose = T) {
-
-  #inc <- sp_cells[[1]]$sp_count
-  #prob <- sp_cells[[2]]$sp_count
-
-  #inc[inc == 0] <- NA
-  #min_inc <- min(terra::values(inc$prop), na.rm = TRUE)
-  #max_inc <- max(terra::values(inc$prop), na.rm = TRUE)
-  min_inc <- min(sp_cells$cell_sum, na.rm = TRUE)
-  max_inc <- max(sp_cells$cell_sum, na.rm = TRUE)
-  region_ext <- terra::ext(region)
+visualize_hotspots <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
+  cat(blue("Visualizing Potential Species hotspots\n"))
   
-  fig2 <- ggplot() +
-    geom_spatvector(data = region, aes_string(color = paste0("as.factor(", region.sub, ")"))) +
-    scale_color_grey( guide = guide_legend(reverse = TRUE)) +
-    #geom_spatraster(data = inc, aes(fill = prop)) +
-    scale_fill_whitebox_c(palette = "muted", na.value = NA, breaks = c(seq(min_inc, max_inc, by = 0.2)), limits = c(min_inc, max_inc), guide = guide_legend(reverse = TRUE)) +
-    labs(x = "Longitude", y = "Latitude", title = paste0("Potential species distribution in the ", region.name), fill = "Proportion", color = "Country") +
-    coord_sf(xlim = c(region_ext$xmin, region_ext$xmax), ylim = c(region_ext$ymin, region_ext$ymax)) +
+  cat("Checking crs.\n")
+  rast <- check_crs(rast, projection, projection.method)
+  region <- check_crs(region, projection, projection.method)
+
+  cat("Getting min and max values.\n")
+  min_lim <- where.min(rast)
+  min_lim <- min(min_lim[, 3])
+  max_lim <- where.max(rast)
+  max_lim <- max(max_lim[, 3])
+  
+  cat("Plotting hotspots.\n")
+  
+  fig2A <- ggplot() +
+    geom_spatvector(data = world_map) +
+    geom_spatraster(data = rast) +
+    scale_fill_whitebox_c(
+      palette = "muted", 
+      guide = guide_legend(reverse = TRUE), 
+      limits = (c(min_lim, max_lim)), 
+      #trans = "log",
+      labels = function(x) format(x, big.mark = ",", scientific = FALSE)
+    ) +
+    labs(title = paste0("Potential species hotspots in the CAVM"), fill = "Species Richness") +
+    coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
     theme_minimal() + 
-    theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
+    theme(
+      plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
+      legend.title = element_text(size = 5),
+      legend.text = element_text(size = 8)
+    )
   
-  if (plot.show) print(fig2)
-  stop()
+  if (plot.show) print(fig2A)
   
-  ggsave("./outputs/visualize/plots/figure-2.png", plot = fig2)
+  cat("Saving plot.\n")
+  ggsave("./outputs/visualize/plots/figure-2A.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig2A)
   
-  prob[prob == 0] <- NA
-  prob_min <- min(terra::values(prob$proportion), na.rm = TRUE)
-  prob_max <- max(terra::values(prob$proportion), na.rm = TRUE)
+  cat(cc$lightGreen("Successfully visualized Potential Species hotspots\n"))
+}
+
+visualize_highest_spread <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
+  cat(blue("Visualizing Potential Species hotspots\n"))
+  
+  cat("Checking crs.\n")
+  rast <- check_crs(rast, projection, projection.method, verbose = verbose)
+  region <- check_crs(region, projection, projection.method, verbose = verbose)  
+  
+  cat("Plotting hotspots.\n")
+  
+  fig2B <- ggplot() +
+    geom_spatvector(data = region) +
+    geom_spatraster(data = rast) +
+    facet_wrap(~lyr, ncol = 3, labeller = label_wrap_gen(width = 20)) +
+    scale_fill_whitebox_c(palette = "muted", breaks = c(0, 1), labels = c("No Overlap", "Overlap"), guide = guide_legend(reverse = TRUE)) +
+    labs(title = paste0("Species with Highest Potential Spread in the CAVM"), fill = "Overlap Value") +
+    coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
+    theme_minimal() + 
+    theme(
+      plot.title = element_text(color = "black", vjust = -0.5, size = 12, face = "bold.italic"),
+      legend.title = element_text(size = 5),
+      legend.text = element_text(size = 8)
+    )
+  
+  if (plot.show) print(fig2B)
+  
+  cat("Saving plot.\n")
+  ggsave("./outputs/visualize/plots/figure-2B.jpeg", device = "jpeg", unit = "px",  plot = fig2B)
+  
+  cat(cc$lightGreen("Successfully visualized Potential Species hotspots\n"))
+}
+
+visualize_suitability <- function(rast, region, region.name, plot.show = F, verbose = F) {
+  
+  if (!identical(crs(rast, proj = TRUE), crs(region, proj = TRUE))) {
+    cat("Reprojecting to laea.\n")
+    cat(crs(rast, proj = TRUE), "\n")
+    cat(crs(region, proj = TRUE), "\n")
+    cat(identical(crs(rast, proj = TRUE), crs(region, proj = TRUE)), "\n")
+    rast <- project(rast, laea_crs, method = "bilinear")
+  }
+  
+  cat("Acquiring min and max values.\n")
+  prob_min <- 0.001
+  prob_max <- where.max(rast[[1]])[[3]]
+  region_ext <- ext(region)
+  
+  cat("Generating plot.\n")
   fig3 <- ggplot() +
-    geom_spatvector(data = cavm, aes_string(color = paste0("as.factor(", region.sub, ")")), fill = NA) +
-    scale_color_grey( guide = guide_legend(reverse = TRUE)) +
-    geom_spatraster(data = prob, aes_string(fill = prob.value)) +
-    scale_fill_whitebox_c(palette = "muted", na.value = NA, breaks = c(seq(prob_min, prob_max, by = 0.2)), limits = c(prob_min, prob_max), guide = guide_legend(reverse = TRUE)) +
-    labs(x = "", y = "Latitude", title = paste0("Predicted species distribution in ", region.name), fill = "Relative Suitability Score", color = "Country") +
+    geom_spatvector(data = region) +
+    geom_spatraster(data = rast) +
+    scale_fill_whitebox_c(palette = "muted", limits = c(prob_min, prob_max), breaks = c(seq(100, prob_max, by = 100)), guide = guide_legend(reverse = TRUE)) +
+    facet_wrap(~lyr, nrow = 3) +
+    labs(x = "Longitude", y = "Latitude", title = paste0("Predicted species distribution in ", region.name), fill = "Suitability Score", color = "Country") +
     coord_sf(xlim = c(region_ext$xmin, region_ext$xmax), ylim = c(region_ext$ymin, region_ext$ymax)) +
     theme_minimal() + 
-    theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
+    theme(
+      plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 10, face = "bold.italic"),
+      axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
+      axis.text.y = element_text(size = 8),
+      strip.text = element_text(size = 10)
+      )
   
   if (plot.show) print(fig3)
-  
-  ggsave("./outputs/visualize/plots/figure-3.png", plot = fig3)
+  ggsave("./outputs/visualize/plots/figure-3.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig3)
 }
 
 calculate_richness <- function(dt, sp_cols, taxon, verbose = F) {
