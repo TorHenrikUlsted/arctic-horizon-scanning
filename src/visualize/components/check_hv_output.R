@@ -1,4 +1,4 @@
-check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection = laea_crs, hv.inc.t = 0.5, verbose = F) {
+check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection, hv.inc.t = 0.5, verbose = F) {
   
   proj_dir <- paste0(hv.dir, "/projections")
   stats_dir <- paste0(hv.dir, "/stats")
@@ -20,6 +20,9 @@ check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection = laea_c
     wrong_crs_log <- paste0(logs_dir, "/", basename(method_dir), "-wrong_crs.csv")
     create_file_if(wrong_crs_log)
     
+    wrong_ext_log <- paste0(logs_dir, "/", basename(method_dir), "-wrong_exent.csv")
+    create_file_if(wrong_ext_log)
+    
     sp_dirs <- list.dirs(path = method_dir, full.names = TRUE)
     sp_dirs_dt <- data.table(species = basename(sp_dirs), dirName = sp_dirs, iteration = NA)
     sp_dirs_dt <- sp_dirs_dt[-1,]
@@ -40,7 +43,8 @@ check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection = laea_c
     
     missing_rast <- data.table(species = character(), dirName = character(), hvIteration = numeric())
     wrong_crs <- data.table(species = character(), hvIteration = numeric(), crs = character(), fileName = character())
-    cat("Using crs:", crs(hv.projection, proj = TRUE), "\n")
+    wrong_extent <-  data.table(species = character(), hvIteration = numeric(), ext = character(), expectedExt = character(), res = numeric(), expectedRes = numeric(), fileName = character())
+    cat("Expected crs:", crs(hv.projection, proj = TRUE), "\n")
     # Inside the species directory of the Hypervolume output
     for (j in 1:nrow(merged_dt)) {
       tryCatch({
@@ -84,6 +88,50 @@ check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection = laea_c
             print(rast) 
           }
           
+          rast_ext <- terra::ext(rast)
+          
+          if (basename(rast_file) == "inclusion-0.5.tif") {
+            # Compare extents
+            if (!all(ext(-180, 180, 55.7916666666667, 83.625) == rast_ext)) {
+              if (verbose) {
+                cat(cc$lightCoral("Raster has mismatched extent:\n"))
+                cat("basename:", basename(rast_file), "\n")
+                cat("Extent:", as.character(rast_ext), "/", ext(-180, 180, 55.7916666666667, 83.625), "\n")
+              }
+              
+              wrong_ext_i <- data.table(species = sp, 
+                                        hvIteration = hv_it_num, 
+                                        ext = as.character(rast_ext), 
+                                        expectedExt = "-180, 180, 55.7916666666667, 83.625", 
+                                        res = res(rast), 
+                                        expectedRes = 0.04166667, 
+                                        fileName = rast_file
+                                        )
+              wrong_extent <- rbind(wrong_extent, wrong_ext_i)
+            }
+          }
+          
+          if (basename(rast_file) == "probability.tif") {
+            # Compare extents
+            if (!all(ext(-180, 180, 40.795614586063, 90) == rast_ext)) {
+              if (verbose) {
+                cat(cc$lightCoral("Raster has mismatched extent:\n"))
+                cat("basename:", basename(rast_file), "\n")
+                cat("Extent:", as.character(rast_ext), "/", as.character(ext(-180, 180, 40.795614586063, 90)), "\n")
+              }
+              
+              wrong_ext_i <- data.table(species = sp, 
+                                        hvIteration = hv_it_num, 
+                                        ext = as.character(rast_ext), 
+                                        expectedExt = "-180, 180, 40.795614586063, 90", 
+                                        res = res(rast), 
+                                        expectedRes = c(0.02076963, 0.02077011), 
+                                        fileName = rast_file
+                                        )
+              wrong_extent <- rbind(wrong_extent, wrong_ext_i)
+            }
+          }
+            
           raster_crs <- terra::crs(rast, proj = TRUE)
           
           if (verbose) {
@@ -116,7 +164,7 @@ check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection = laea_c
     
     cat("\n")
     
-    if (nrow(missing_rast) > 0 || nrow(wrong_crs) > 0) {
+    if (nrow(missing_rast) > 0 || nrow(wrong_crs) > 0 || nrow(wrong_extent) > 0) {
       if (nrow(missing_rast) > 0) {
         cat(cc$lightCoral("hypervolume output failed the projection check with missing rasters.\n"))
         fwrite(missing_rast, missing_rast_log, bom = TRUE)
@@ -129,6 +177,13 @@ check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection = laea_c
         fwrite(wrong_crs, wrong_crs_log, bom = TRUE)
         
         cat("Rasters with wrong crs:", cc$lightSteelBlue(nrow(wrong_crs)), "/", cc$lightSteelBlue(nrow(sp_dirs_dt) * (length(hv.inc.t) + 1)), "\n")
+      }
+      
+      if (nrow(wrong_extent) > 0) {
+        cat(cc$lightCoral("hypervolume output failed the projection check with wrong extents.\n"))
+        fwrite(wrong_extent, wrong_ext_log, bom = TRUE)
+        
+        cat("Rasters with wrong extent:", cc$lightSteelBlue(nrow(wrong_extent)), "/", cc$lightSteelBlue(nrow(sp_dirs_dt) * (length(hv.inc.t) + 1)), "\n")
       }
     } else {
       cat(cc$lightGreen("hypervolume output completed the projection check successfully.\n"))
@@ -213,7 +268,8 @@ check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection = laea_c
     missing_species = missing_sp,
     duplicate_species = dt_dups,
     missing_raster = missing_rast,
-    wrong_crs = wrong_crs
+    wrong_crs = wrong_crs,
+    wrong_extent = wrong_extent
   ))
 }
 
@@ -221,7 +277,7 @@ clean_hv_output <- function(checked_data, out.dir, hv.dir, hv.projection, verbos
   cat(blue("Initiating Hypervolume output cleaning.\n"))
   
   # Check if the data is in the expected format
-  if (length(checked_data) != 4) {
+  if (length(checked_data) != 5) {
     stop("Data is not in the expected format. Expecting output from check_hv_output function.")
     
     for (i in seq_along(checked_data)) {
@@ -250,46 +306,95 @@ clean_hv_output <- function(checked_data, out.dir, hv.dir, hv.projection, verbos
   
   stat_files <- list.files(stats_dir, full.names = TRUE)
   
-  for (i in seq_along(stats_dir)) {
-    stat_file_dir <- list.files(stats_dir[[i]], full.names = TRUE)
-    stat_file <- stat_file_dir[[1]]
-    
-    stats_dt <- fread(stat_file)
-    
-    stats_dt_unique <- unique(stats_dt, by = "species", fromLast = TRUE)
-    
-    cat("Removing", cc$lightSteelBlue(nrow(stats_dt) - nrow(stats_dt_unique)), "species from the stats file and keeping the latest occurrence.\n")
-    
+  if (nrow(checked_data$duplicate_species) == 0) {
+    cat("Stats file already clean.\n")
+  } else {
+    for (i in seq_along(stats_dir)) {
+      stat_file_dir <- list.files(stats_dir[[i]], full.names = TRUE)
+      stat_file <- stat_file_dir[[1]]
+      
+      stats_dt <- fread(stat_file)
+      
+      stats_dt_unique <- unique(stats_dt, by = "species", fromLast = TRUE)
+      
+      cat("Removing", cc$lightSteelBlue(nrow(stats_dt) - nrow(stats_dt_unique)), "species from the stats file and keeping the latest occurrence.\n")
+    }
   }
   
-  for (i in 1:nrow(checked_data$wrong_crs)) {
-    rast_file <- checked_data$wrong_crs$fileName[i]
- 
-    cat("\rReprojecting", cc$lightSteelBlue(i), "/", cc$lightSteelBlue(nrow(checked_data$wrong_crs)))
-    
-    rast <- terra::rast(rast_file)
-    
-    old_proj <- terra::crs(rast, proj = TRUE)
-    
-    if (!identical(old_proj, crs(hv.projection, proj = TRUE))) {
-      proj <- terra::project(rast, hv.projection)
+  # clean extents
+  if (nrow(checked_data$wrong_extent) == 0) {
+    cc$lightGreen("extents already clean.\n")
+  } else {
+    for (i in 1:nrow(checked_data$wrong_extent)) {
+      rast_file <- checked_data$wrong_extent$fileName[i]
       
-      new_proj <- terra::crs(proj, proj = TRUE)
+      cat("\rCropping", cc$lightSteelBlue(i), "/", cc$lightSteelBlue(nrow(checked_data$wrong_extent)))
       
-      if (!identical(old_proj, new_proj)) {
-        if (verbose) cat(cc$lightGreen("Successfully reprojected", rast_file,"\n"))
-        writeRaster(proj, rast_file, overwrite = TRUE)
+      expected_res <- checked_data$wrong_extent$expectedRes[[i]]
+      
+      rast <- terra::rast(rast_file)
+      
+      extent <- checked_data$wrong_extent$expectedExt[[i]]
+      
+      extent <- strsplit(extent, ",")[[1]]
+      
+      extent <- as.numeric(extent)
+      
+      extent <- ext(extent)
+      
+      if (basename(rast_file) == "probability.tif") {
+        new_ext <- terra::crop(rast, extent)
       } else {
-        if (verbose) cat(cc$lightCoral("Failed to reproject", rast_file, "\n"))
-        try(frl <- file(failed_reproj_log, open = "at"))
-        writeLines(failed_reproj_log, con = frl)
-        close(frl)
+        rast <- ceiling(rast)
+        rast_new <- rast(res = expected_res, extent = extent)
+        rast <- resample(rast, rast_new, method = "near")
+        new_ext <- terra::crop(rast, ext(as.double(-180), as.double(180), as.double(55.7916666666667), as.double(83.6250000000)))
+        ext(new_ext) <- extent
       }
-    } else {
-      if (verbose) cat(cc$lightGreen(rast_file,"Already in the correct projection.\n"))
+      
+      writeRaster(new_ext, rast_file, overwrite = TRUE)
+      
     }
-    
   }
+  
+  if (nrow(checked_data$wrong_crs) == 0) {
+    cat("Projections already have the correct projections.\n")
+  } else {
+    for (i in 1:nrow(checked_data$wrong_crs)) {
+      rast_file <- checked_data$wrong_crs$fileName[i]
+      
+      cat("\rReprojecting", cc$lightSteelBlue(i), "/", cc$lightSteelBlue(nrow(checked_data$wrong_crs)))
+      
+      rast <- terra::rast(rast_file)
+
+      old_proj <- terra::crs(rast, proj = TRUE)
+      
+      if (!identical(old_proj, crs(hv.projection, proj = TRUE))) {
+        
+        if (basename(rast_file) == "probability.tif") {
+          proj <- terra::project(rast, hv.projection, method = "bilinear")
+        } else {
+          proj <- terra::project(rast, hv.projection, method = "near")
+        }
+        
+        new_proj <- terra::crs(proj, proj = TRUE)
+        
+        if (!identical(old_proj, new_proj)) {
+          if (verbose) cat(cc$lightGreen("Successfully reprojected", rast_file,"\n"))
+          writeRaster(proj, rast_file, overwrite = TRUE)
+        } else {
+          if (verbose) cat(cc$lightCoral("Failed to reproject", rast_file, "\n"))
+          try(frl <- file(failed_reproj_log, open = "at"))
+          writeLines(failed_reproj_log, con = frl)
+          close(frl)
+        }
+      } else {
+        if (verbose) cat(cc$lightGreen(rast_file,"Already in the correct projection.\n"))
+      }
+      
+    }
+  }
+  
   end_timer(reproject_timer)
   
 

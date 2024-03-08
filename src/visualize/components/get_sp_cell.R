@@ -108,7 +108,7 @@ extract_region <- function(sp_count, shape) {
 
 extract_species <- function() {
   cat("Extracting species names from each cell. \n")
-  sp_name_cell <- terra::extract(rast, shape, cells=TRUE)
+  sp_name_cell <- terra::extract(rast, shape, cells=TRUE, xy = TRUE)
   
   print(sp_name_cell)
   
