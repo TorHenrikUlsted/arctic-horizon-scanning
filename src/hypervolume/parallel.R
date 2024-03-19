@@ -62,7 +62,7 @@ parallel_processing <- function(spec.list, method, accuracy, hv.dims, hv.project
         } else {
           cat("Previous session completed successfully on iteration", cc$lightSteelBlue(highest_it), "\n")
           cat("Input list is expected to take", cc$lightSteelBlue(length(spec.list)), "iterations. \n")
-          start_iteration <- highest_it
+          start_iteration <- highest_it + 1
         }
         
       } else {
@@ -88,7 +88,7 @@ parallel_processing <- function(spec.list, method, accuracy, hv.dims, hv.project
       cores.max <- min(length(batch_iterations), cores.max)
       cores.max.high <- min(cores.max, cores.max.high)
       
-      cat("Initiate from iteration:", cc$lightSteelBlue(start_iteration), "with", cc$lightSteelBlue(cores.max), "core(s), and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
+      cat("Initiate from iteration:", cc$lightSteelBlue(i), "with", cc$lightSteelBlue(cores.max), "core(s), and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
     
   } else {
     batch_iterations <- iterations
@@ -161,10 +161,12 @@ parallel_processing <- function(spec.list, method, accuracy, hv.dims, hv.project
   cat("Finishing up \n")
 
   stopCluster(cl)
+  
+  prev_highest_it <- as.integer(readLines(highest_it_file))
 
   highest_iteration <- max(unlist(lapply(results, function(res) res$iteration)))
-
-  writeLines(as.character(highest_iteration), highest_it_file)
+  
+  if (highest_iteration > prev_highest_it) writeLines(as.character(highest_iteration), highest_it_file)
   
   end_timer(parallell_timer)
 

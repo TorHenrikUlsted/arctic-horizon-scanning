@@ -47,7 +47,7 @@ parallel_processing(
   hv.dir = "./outputs/hypervolume/sequence",
   show.plot = F,
   verbose = T
-) 
+)
 
 #as.numeric(gsub("node", "", readLines("outputs/hypervolume/sequence/logs/node-iterations.txt")))
 

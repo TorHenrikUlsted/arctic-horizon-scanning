@@ -1,8 +1,1 @@
 Error in install.packages : type 'binary' is not supported on this platform
-Error in install.packages : Updating loaded packages
-Error in install.packages : type 'binary' is not supported on this platform
-Error in install.packages : Updating loaded packages
-Error in install.packages : Updating loaded packages
-Error in install.packages : type 'binary' is not supported on this platform
-Error in install.packages : type 'binary' is not supported on this platform
-Error in install.packages : type 'binary' is not supported on this platform

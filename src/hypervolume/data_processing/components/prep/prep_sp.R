@@ -33,8 +33,6 @@ prepare_species <- function(df, projection, verbose = T) {
     cat("Error when cleaning Coordinates:", e$message, "\n")
   })
   
-  print(df)
-  
   if (nrow(df) == 0) {
     cat("All species were removed in the Coordinate cleaning process. \n")
     return(NULL)
