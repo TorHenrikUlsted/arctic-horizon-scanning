@@ -9,15 +9,22 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
   
   if (verbose) cat("Creating plot 1A. \n")
   
-  sp_cells[, richness := ifelse(richness == 0, NA, richness)]
+  #sp_cells[, richness := ifelse(richness == 0, NA, richness)]
+  # Remove NA values
+  sp_cells <- sp_cells[!is.na(sp_cells[[plot.x]]), ]
+  
+  # Remove Inf values
+  sp_cells <- sp_cells[sp_cells[[plot.x]] != Inf, ]
+
   
   fig1A <- ggplot(sp_cells, aes_string(x = plot.x) ) +
     # After_Stat accesses ggplot processed data, count represents the count of data points in each bin of the histogram
-    geom_freqpoly(binwidth = 0.1, aes(y = ..count.. / sum(..count..)) ) +
+    geom_freqpoly(binwidth = 0.1, aes(y = after_stat(count) / sum(after_stat(count))) ) +
+    geom_text() +
     labs(
       x = "Species Richness (log10)", 
-      y = "Relative Cell Frequency", 
-      title = paste0("Potential Species Richness in ", region.name)
+      y = "Proportion of cells in Arctic CAVM", 
+      title = paste0("Potential Door-knocker Species Richness in ", region.name)
       ) +
     scale_x_log10(labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
     theme_minimal() + 
@@ -28,7 +35,7 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
   ggsave("./outputs/visualize/plots/figure-1A.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, fig1A)
   
   # Figure 1B different regions
-  cat(blue("Creating histogram for each region in the", region.name, "\n"))
+  vebcat("Creating histogram for each region in the", region.name, color = "funInit")
   
   # Order by plot.color
   sp_cells <- sp_cells[order(sp_cells[[plot.color]]), ]
@@ -40,7 +47,7 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
   
   fig1B <- ggplot(sp_cells, aes_string(x = plot.x, color = plcol, fill = plshd))  +
     # ..count.. / sum(..count..) calculates the proportion of cells at each species richness value for each region within each bin of the histogram
-    geom_freqpoly(binwidth = 0.1, aes(y =  ..count.. / sum(..count..)) ) + 
+    geom_freqpoly(binwidth = 0.1, aes(y =  after_stat(count) / sum(after_stat(count))) ) + 
     scale_color_viridis_d(guide = "legend", option = "B") + 
     labs(
       x = "Species Richness (log10)", 
@@ -62,31 +69,34 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
 }
 
 visualize_hotspots <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
-  cat(blue("Visualizing Potential Species hotspots\n"))
+  vebcat("Visualizing Potential Species hotspots", color = "funInit")
   
-  cat("Checking crs.\n")
+  catn("Checking crs.")
   rast <- check_crs(rast, projection, projection.method)
   region <- check_crs(region, projection, projection.method)
 
-  cat("Getting min and max values.\n")
+  catn("Getting min and max values.")
   min_lim <- where.min(rast)
   min_lim <- min(min_lim[, 3])
   max_lim <- where.max(rast)
   max_lim <- max(max_lim[, 3])
-  
-  cat("Plotting hotspots.\n")
+  catn("Plotting hotspots.")
   
   fig2A <- ggplot() +
     geom_spatvector(data = world_map) +
     geom_spatraster(data = rast) +
-    scale_fill_whitebox_c(
-      palette = "muted", 
-      guide = guide_legend(reverse = TRUE), 
-      limits = (c(min_lim, max_lim)), 
-      #trans = "log",
-      labels = function(x) format(x, big.mark = ",", scientific = FALSE)
+    scale_fill_viridis_b(
+      option = "B", 
+      #palette = "E",
+      guide = guide_legend(reverse = TRUE),
+      #direction = -1,
+      #trans = "log1p",
+      limits = (c(min_lim, max_lim)),
+      breaks = c(0,1,5,10,50,100,500,1000, max_lim),
+      labels = function(x) format((x), big.mark = ",", scientific = FALSE, digits = 2),
+      na.value = "transparent"
     ) +
-    labs(title = paste0("Potential species hotspots in the CAVM"), fill = "Species Richness") +
+    labs(title = paste0("Potential door-knocker species hotspots in the CAVM"), fill = "Species Richness") +
     coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
     theme_minimal() + 
     theme(
@@ -97,20 +107,20 @@ visualize_hotspots <- function(rast, region, region.name, extent, projection, pr
   
   if (plot.show) print(fig2A)
   
-  cat("Saving plot.\n")
+  catn("Saving plot.")
   ggsave("./outputs/visualize/plots/figure-2A.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig2A)
   
-  cat(cc$lightGreen("Successfully visualized Potential Species hotspots\n"))
+  vebcat("Successfully visualized Potential Species hotspots", color = "funSuccess")
 }
 
 visualize_highest_spread <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
-  cat(blue("Visualizing Potential Species hotspots\n"))
+  vebcat("Visualizing Potential Species hotspots", color = "funInit")
   
-  cat("Checking crs.\n")
+  catn("Checking crs.")
   rast <- check_crs(rast, projection, projection.method, verbose = verbose)
   region <- check_crs(region, projection, projection.method, verbose = verbose)  
   
-  cat("Plotting hotspots.\n")
+  catn("Plotting hotspots.")
   
   fig2B <- ggplot() +
     geom_spatvector(data = region) +
@@ -129,9 +139,9 @@ visualize_highest_spread <- function(rast, region, region.name, extent, projecti
   if (plot.show) print(fig2B)
   
   cat("Saving plot.\n")
-  ggsave("./outputs/visualize/plots/figure-2B.jpeg", device = "jpeg", unit = "px",  plot = fig2B)
+  ggsave("./outputs/visualize/plots/figure-2B.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig2B)
   
-  cat(cc$lightGreen("Successfully visualized Potential Species hotspots\n"))
+  vebcat("Successfully visualized Potential Species hotspots", color = "funSuccess")
 }
 
 visualize_suitability <- function(rast, region, region.name, plot.show = F, verbose = F) {
@@ -169,145 +179,77 @@ visualize_suitability <- function(rast, region, region.name, plot.show = F, verb
   ggsave("./outputs/visualize/plots/figure-3.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig3)
 }
 
-calculate_richness <- function(dt, sp_cols, taxon, verbose = F) {
-  
-  cat("Calculatig potential richness.\n")
-  # Reform it to be richness and not abundance
-  dt <- dt[, (sp_cols) := lapply(.SD, function(x) ifelse(is.na(x), 0, x)), .SDcols = sp_cols]
-  
-  # Calculate the sum for each FLOREG and keep specific columns
-  dt <- dt[, c(lapply(.SD, sum), .(country = country, floristicProvince = floristicProvince)), by = FLOREG, .SDcols = sp_cols]
-  
-  dt <- unique(dt, by = "FLOREG")
-  
-  dt <- dt[, (sp_cols) := lapply(.SD, function(x) ifelse(x > 0, 1, x)), .SDcols = sp_cols]
-  
-  dt[, speciesRichness := rowSums(.SD > 0), .SDcols = sp_cols]
-  
-  dt <- melt(dt, id.vars = c("FLOREG", "country", "floristicProvince", "speciesRichness"), measure.vars = sp_cols, variable.name = "species", value.name = "count")
-  print(dt)
-  # Get higher taxon ranks
-  cat("Getting higher taxon names.\n")
-  checklist <- name_backbone_checklist(name_data = levels(dt$species))
-  
-  checklist <- data.table(checklist[, c("kingdom", "phylum", "order", "family", "genus", "canonicalName", "verbatim_name")])
-  
-  names(checklist)[7] <- "species"
-  
-  na_sp <- checklist[is.na(checklist$genus),]
-  
-  cat("Species missing classification.\n")
-  print(na_sp)
-  
-  cat("Merging data tables.\n")
-  merged_dt <- merge(dt, checklist, by = "species")
-  
-  dt <- data.table(merged_dt)
-  
-  dt <- dt[complete.cases(dt),]
-  
-  taxon_col <- dt[[taxon]]
-  
-  #dt <- dt[, .(country, floristicProvince, potentialRichness = length(unique(species))), by = .(FLOREG, taxon_col)]
-
-  dt <- unique(dt, by = c(taxon, "FLOREG"))
-  
-  dt <- dt[, .(country, floristicProvince, kingdom, phylum, order, family, speciesRichness, totalRichness = sum(speciesRichness)), by = FLOREG]
-  
-  cat("Calculating relative richness\n")
-  dt[, relativeRichness := speciesRichness / totalRichness]
-  
-  return(dt)
-}
-
 visualize_richness <- function(dt, axis.x, axis.y, fill, group, plot.show = F, verbose = F) {
+  # Remove NAs
+  dt <- dt[!is.na(dt[[fill]]), ]
+  
   # Reorder the bars
   dt[[axis.x]] <- as.factor(dt[[axis.x]])
+  dt[[fill]] <- as.factor(dt[[fill]])
   
-  if (verbose) {
-    cat("Before sorting:\n")
-    print(levels(dt[[axis.x]]))
-  }
+  #vebcat("Before sorting:", veb = verbose)
+  #vebprint(levels(dt[[fill]]), veb = verbose)
   
-  # Order the entire data framy by the group parameter
-  dt <- dt[order(dt[[group]]), ]
+  levels(dt[[fill]]) <- order_by_apg(levels(dt[[fill]]), by = fill, verbose = verbose)
+  
+  # Order the entire data table by the group parameter
+  #dt <- dt[order(dt[[group]]), ]
   # Order the levels of the x axis by the sorted dt 
-  dt[[axis.x]] <- factor(dt[[axis.x]], levels = unique(dt[[axis.x]]))
+  #dt[[axis.x]] <- factor(dt[[axis.x]], levels = unique(dt[[axis.x]]))
   
-  if (verbose) {
-    cat("After sorting:\n")
-    print(levels(dt[[axis.x]]))
-  }
+  #vebcat("After sorting:", veb = verbose)
+  #vebprint(levels(dt[[fill]]), veb = verbose)
   
   fig4 <- ggplot(dt, aes(x = dt[[axis.x]], y = dt[[axis.y]], fill = dt[[fill]] )) +
     geom_bar(stat = "identity", position = "stack") +
     scale_fill_whitebox_d(palette = "muted") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    labs(x = "Floristic Region", y = "Relative Richness", fill = paste0(toupper(substr(fill, 1, 1)), substr(fill, 2, nchar(fill))))
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    labs(
+      x = "Floristic Region", 
+      y = "Relative Richness", 
+      fill = paste0(toupper(substr(fill, 1, 1)), substr(fill, 2, nchar(fill)))
+    )
   
   if (plot.show) print(fig4)
   
-  ggsave("./outputs/visualize/plots/figure-4.jpeg", plot = fig4, device = "jpeg", unit="px")
+  ggsave("./outputs/visualize/plots/figure-4.jpeg", plot = fig4, width = 3000, height = 2160, device = "jpeg", unit="px")
   
 }
 
-visualize_sankey <- function(dt.src, dt.target, plot.show = F, verbose = F) {
-  cat(blue("Visualizing data in a sankey plot\n"))
-  # dt check
-  if (!("data.table" %in% class(dt.src)) || !("data.table" %in% class(dt.target))) {
-    stop("input data is not a data.table.")
-  }
+visualize_sankey <- function(dt, taxon, level, plot.show = F, verbose = F) {
+  vebcat("Visualizing data in a sankey plot", color = "funInit")
   
-  cat("Setting up target data.\n")
+  dt_sank <- copy(dt)
   
-  if (verbose) cat("Reshaping target data.\n")
+  #dt_sank <- dt_sank[!is.na(dt_sank[[taxon]])]
+  #dt_sank <- dt_sank[complete.cases(dt_sank[[taxon]])]
   
-  # Reshape to long format for sankey plotting
-  target_dt <- melt(dt.target, id.vars = c("ID", "FLOREG", "country", "floristicProvince"), measure.vars = sp_cols, variable.name = "species", value.name = "count")
-  # Sum species values
-  target_dt <- target_dt[, speciesSum := sum(count, na.rm = TRUE), by = FLOREG]
+  catn("Creating sankey plot.")
+  print(unique(dt_sank$country))
   
-  target_dt <- unique(target_dt, by = c("species", "FLOREG"))
-  
-  # Remove speciesSum of 0
-  target_dt <- target_dt[speciesSum > 0]
-  
-  cat("Setting up source data.\n")
-  # Get source country
-  source_dt <- visualize_data$included_sp %>% 
-    select(species, srcCountryIso = countryIso, srcCountry = country)
-  
-  # Calculate source country
-  source_dt <- source_dt[, srcSpeciesSum := uniqueN(species), by = .(srcCountryIso, srcCountry)]
-  
-  source_dt <- unique(source_dt, by = c("srcCountryIso", "srcCountry"))
-  
-  source_dt <- source_dt[srcSpeciesSum > 0]
-  
-  # Merge the dts
-  sankey_dt <- merge(target_dt, source_dt, by = "species", allow.cartesian = TRUE)
-  
-  ################
-  #     Plot     #
-  ################
-  
-  cat("Creating sankey plot.\n")
-  
-  fig5 <- ggplot(data = sankey_dt, aes(axis1 = srcCountry, axis2 = country, y = speciesSum)) +
+  fig5 <- ggplot(data = dt_sank, aes(axis1 = dt_sank[[level]], axis2 = country, y = relativeRichness)) +
     scale_x_discrete(limits = c("Origin", "Destination"), expand = c(.1, .1)) +
-    xlab("Country") +
-    ylab("Sums of each floristic region") +
-    geom_alluvium(aes(fill = floristicProvince)) +
+    labs(
+      y = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness"),
+      #fill = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))),
+      title = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness from origin region to Arctic region")
+    ) +
+    geom_flow() +
     geom_stratum() +
-    geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 1.5) +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
     theme_minimal() +
-    ggtitle("Sankey plot from origin country to Arctic country")
+    theme(
+      axis.text = element_text(size = 10),
+      plot.title = element_text(vjust = 0.5, hjust = 0.5)
+    )
+  
   
   if (plot.show) print(fig5)
   
-  ggsave("./outputs/visualize/plots/figure-5.jpeg", device = "jpeg", unit = "px", width = 3840, height = 2160, plot = fig5)
+  catn("Saving sankey plot.")
+  ggsave("./outputs/visualize/plots/figure-5.jpeg", device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig5)
 
-  cat(cc$lightGreen("Data successfully visualized in a Sankey plot\n"))
+  vebcat("Sankey plot successfully visualized", color = "funSuccess")
 }
 
 

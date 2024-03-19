@@ -73,7 +73,7 @@ source("./src/utils/components/get_mem_use.R")
 cat("Calculate memory allocation. \n")
 mem_total <- get_mem_usage("total")
 mem_limit <- mem_total * 0.8
-total_cores <- detectCores() * 0.6
+total_cores <- detectCores() * 0.4
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")
@@ -116,3 +116,9 @@ source("./src/utils/components/extract_name_after_prefix.R")
 
 cat("Loading get_disk_space function. \n")
 source("./src/utils/components/get_disk_space.R")
+
+cat("Loading Error handler function.\n")
+source("./src/utils/components/error_handler.R")
+
+cat("Loading hepler functions.\n")
+source("./src/utils/components/helper_functions.R")
