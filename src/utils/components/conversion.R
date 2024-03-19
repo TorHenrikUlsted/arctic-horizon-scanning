@@ -1,19 +1,19 @@
 to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
-  if (verbose) cat("Converting to vector.\n")
+  vebcat("Converting to vector.", veb = verbose)
   
   if (!is.vector(input)) {
     input <- unlist(input)
     
     if (!is.vector(input)) {
-      cat("Failed to convert to vector.\n")
+      vebcat("Failed to convert to vector.", color = "nonFatalError")
       if (terminate) stop("Check input.")
     } else if (is.vector(input)) {
-      if (verbose) cat("successfully converted to vector.\n")
+      vebcat("successfully converted to vector.", veb = verbose)
     } else {
       cat("Unlisting the input is not making it turn into a vector. Check input.\n")
     }
   } else {
-    if (verbose) cat("Input is already a vector.\n")
+    vebcat("Input is already a vector.", verbose = TRUE)
   }
   
   return(input)
@@ -33,7 +33,7 @@ check_crs <- function(object, projection, projection.method, verbose = FALSE) {
   }
   
   if (!identical(crs(object, proj = TRUE), crs(projection, proj = TRUE))) {
-    cat("Reprojecting", cc$lightSteelBlue(as.character(crs(object, proj = TRUE))), "-->", cc$lightSteelBlue(as.character(crs(projection, proj = TRUE))), "\n")
+    catn("Reprojecting", highcat(as.character(crs(object, proj = TRUE))), "-->", highcat(as.character(crs(projection, proj = TRUE))), "\n")
     object <- project(object, projection, method = projection.method)
   }  
   

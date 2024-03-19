@@ -35,8 +35,10 @@ get_mem_usage <- function(type = "free", format = "b") {
   return(mem_usage)
 }
 
-start_mem_tracking <- function(file.out, stop_file) {
-  init_val <- get_mem_usage(format = "gb")
+start_mem_tracking <- function(file.out, file.stop) {
+  if(file.exists(file.stop)) file.remove(file.stop)
+  
+  init_val <- get_mem_usage(type = "used", format = "gb")
   # Create a control object
   control <- new.env()
   
@@ -45,47 +47,49 @@ start_mem_tracking <- function(file.out, stop_file) {
     # Initialize a vector to store memory usage over time
     mem_usage <- c()
     
-    while(!file.exists(stop_file)) {
+    while(!file.exists(file.stop)) {
       # Check memory usage every second
       Sys.sleep(1)
       
-      new_mem_usage <- get_mem_usage(format = "gb")
+      new_mem_usage <- get_mem_usage(type = "used", format = "gb")
       
       existing_mem_usage <- as.numeric(readLines(file.out))
       
-      min_mem_usage <- min(c(existing_mem_usage, new_mem_usage), na.rm = TRUE)
+      max_mem_usage <- max(c(existing_mem_usage, new_mem_usage), na.rm = TRUE)
       
-      writeLines(as.character(min_mem_usage), file.out)
+      writeLines(as.character(max_mem_usage), file.out)
     }
   })
   
   return(list(
     control = control, 
-    init_val = init_val,
-    file_out = file.out
+    init.val = init_val,
+    file.out = file.out
   ))
 }
 
 # Function to stop tracking memory usage
-stop_mem_tracking <- function(control, file.out, stop_file) {
+stop_mem_tracking <- function(control, file.stop) {
   # Create the stop file
-  file.create(stop_file)
+  file.create(file.stop)
   
   result <- parallel::mccollect(list(control$control$pid), wait = TRUE)
   
   # Read the memory usage over time from the file
-  mem_usage <- as.numeric(readLines(control$file_out))
+  mem_usage <- as.numeric(readLines(control$file.out))
+  
+  file.remove(control$file.out)
   
   # Get the peak memory usage
-  min_mem <- min(mem_usage)
+  max_mem <- max(mem_usage)
   
-  print(min_mem)
+  peak_mem_usage <- max_mem - control$init.val
   
-  peak_mem_usage <- control$init_val - min_mem
+  catn("Peak Memory Usage:")
+  print(peak_mem_usage)
   
   # Write the peak memory usage to an output file
-  writeLines(as.character(peak_mem_usage), paste0(file.out))
+  writeLines(as.character(peak_mem_usage), control$file.out)
   
-  file.remove(control$file_out)
-  file.remove(stop_file)
+  return(peak_mem_usage)
 }

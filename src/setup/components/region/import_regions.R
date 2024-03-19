@@ -1,6 +1,6 @@
-import_regions <- function(shapefiles,
-                           out.dir,
-                           verbose = F) {
+import_regions <- function(shapefiles, out.dir, verbose = F) {
+  vebcat("Importing regions", color = "funInit")
+  
   prj = crs(longlat_crs)
   
   regions <- list()
@@ -14,15 +14,19 @@ import_regions <- function(shapefiles,
   sink(log_output, append = appending)
   sink()
   
-  if (verbose) cat(cc$aquamarine("Importing ", length(shapefiles), "shapefile(s)", "\n"))
+  if (is.character(shapefiles)) {
+    shapefiles <- c(region = shapefiles)
+  }
+  
+  vebcat("Importing ", length(shapefiles), "shapefile(s)", veb = verbose)
   
   for (shapefile_name in names(shapefiles)) {
     if (is.na(shapefile_name) || shapefile_name == "") {
-      cat(red("ERROR: You have to name your shapefiles, skipping missing a names... \n"))
+      vebcat("ERROR: You have to name your shapefiles, skipping missing a names...", color = "nonFatalError")
       next
     }
     
-    cat(cc$paleTurquoise("importing: ", shapefile_name, "\n"))
+    catn("importing: ", highcat(shapefile_name))
     
     shapefile <- shapefiles[shapefile_name]
 
@@ -40,15 +44,15 @@ import_regions <- function(shapefiles,
     current_crs <- crs(region, proj = T)
     
     ext_region_printable <- as.vector(ext_region)
-    if (verbose) cat("Extent of ", shapefile_name, ": ", ext_region_printable, "\n")
+    vebcat("Extent of ", shapefile_name, ": ", ext_region_printable, veb = verbose)
     
     # Check the original CRS
     original_crs <- crs(region)
-    if (verbose) cat("Original CRS: ", crs(original_crs, proj = T), "\n")
+    vebcat("Original CRS: ", crs(original_crs, proj = T), veb = verbose)
     
     # If the original CRS is not correctly defined, define it
     if (is.na(original_crs) || original_crs == "") {
-      cat(red("Found blank or na crs. Needs manual processing. \n"))
+      vebcat("Found blank or na crs. Needs manual processing", color = "nonFatalError")
     }
 
     regions[[shapefile_name]] <- region
@@ -57,11 +61,11 @@ import_regions <- function(shapefiles,
     if (file.exists(log_output)) appending = T else appending = F
     
     sink(log_output, append = appending)
-    cat("Region: ", shapefile_name, "  |  ", "Extent: ", as.character(ext_region), "  |  ", "Projection: ", current_crs, "\n")
+    catn("Region: ", shapefile_name, "  |  ", "Extent: ", ext_region, "  |  ", "Projection: ", current_crs)
     sink()
   }
   
-  cat(cc$lightGreen("Regions imported successfully. \n"))
+  vebcat("Regions imported successfully", color = "funSuccess")
   
   return(regions)
 }

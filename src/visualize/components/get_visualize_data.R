@@ -1,5 +1,5 @@
 get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, err) {
-  cat(blue("Initializing stats data. \n"))
+  vebcat("Initializing stats data.", color = "funInit")
   # Define directories
   vis_stats_dir <- "./outputs/visualize/stats"
   
@@ -54,18 +54,18 @@ get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, e
     # Match the gwo_stats and godf --- Some will have multiple region ids
     matched_glonaf <- merge(gwo_stats, godf, by = "origName")
     
-    if (verbose) cat("Number of rows when appending region ids:", cc$lightSteelBlue(nrow(matched_glonaf)), "\n")
+   vebcat("Number of rows when appending region ids:", highcat(nrow(matched_glonaf)), veb = verbose)
     
     # Remove duplicates based on combined region id and standardized name
     matched_dups <- nrow(matched_glonaf[duplicated(paste(matched_glonaf$standardized_name, matched_glonaf$region_id)), ])
-    if (verbose) cat("Number of duplicates after appending region id:", cc$lightSteelBlue(matched_dups), "\n")
+    vebcat("Number of duplicates after appending region id:", highcat(matched_dups), veb = verbose)
     
     if (matched_dups > 0) {
       matched_glonaf <- matched_glonaf[!duplicated(paste(matched_glonaf$standardized_name, matched_glonaf$region_id)), ]
       
-      if (verbose) cat("Number of duplicates after removal:", cc$lightSteelBlue(nrow(matched_glonaf[duplicated(paste(matched_glonaf$standardized_name, matched_glonaf$region_id)), ])))
+     vebcat("Number of duplicates after removal:", highcat(nrow(matched_glonaf[duplicated(paste(matched_glonaf$standardized_name, matched_glonaf$region_id)), ])), veb = verbose)
       
-      if (verbose) cat("Number of rows after finishing appending region ids:", cc$lightSteelBlue(nrow(matched_glonaf)), "\n")
+      vebcat("Number of rows after finishing appending region ids:", highcat(nrow(matched_glonaf)), veb = verbose)
     }
     
     # Append region info
@@ -78,7 +78,7 @@ get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, e
     
     included_sp <- matched_stats %>% filter(excluded == FALSE)
     
-    if (verbose) cat("Number of included species:", cc$lightSteelBlue(nrow(included_sp)), "\n")
+    vebcat("Number of included species:", highcat(nrow(included_sp)), veb = verbose)
     
     create_dir_if("./outputs/visualize/stats")
     
@@ -86,7 +86,7 @@ get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, e
     
     excluded_sp <- matched_stats %>% filter(excluded == TRUE)
     
-    if (verbose) cat("Number of included species:", cc$lightSteelBlue(nrow(excluded_sp)), "\n")
+    vebcat("Number of included species:", highcat(nrow(excluded_sp)), veb = verbose)
     
     fwrite(excluded_sp, paste0(vis_stats_dir, "/excluded-species.csv"), bom = TRUE)
     
@@ -96,153 +96,12 @@ get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, e
     excluded_sp <- fread(paste0(vis_stats_dir, "/excluded-species.csv"))
   }
   
-  cat(cc$lightGreen("Stats successfully initialised.\n"))
+  vebcat("Stats successfully initialised.", color = "funSuccess")
   
   return(included_sp)
 }
 
-get_inclusion_data <- function(region, hv.dir, hv.method, hv.project.method, verbose = F, warn, err) {
-  cat(blue("Initializing visulasation data. \n"))
-  
-  save_file <- "./outputs/visualize/logs/get-visualize-data/cell-regions-dt.csv"
-  
-  if (file.exists("./outputs/visualize/logs/get-visualize-data/cell-regions-dt.csv")) {
-    cell_regions_dt <- fread(save_file)
-  } else {
-    sp_dirs <- list.dirs(paste0(hv.dir, "/projections/", hv.method))
-    # Remove the directory name
-    sp_dirs <- sp_dirs[-1]
-    
-    if (verbose) {
-      cat("Sample directory names: \n")
-      print(head(sp_dirs, 3))
-    }
-    
-    # Initialize  data table
-    cat("Initializing data table.\n")
-    sp_rast <- terra::rast(paste0(sp_dirs[[1]], "/", hv.project.method, ".tif"))
-    names(sp_rast) <- basename(sp_dirs[[1]])
-    
-    if (!identical(ext(sp_rast), ext(region))) {
-      cat("Cropping region extent to match species.\n")
-      region <- crop(region, ext(sp_rast))
-    }
-    
-    region_rast_dt <- terra::extract(sp_rast, region, cells = TRUE, na.rm = FALSE)
-    region_rast_dt <- data.table(region_rast_dt)
-    
-    region_dt <- as.data.table(region)
-    region_dt[, ID := .I]
-    
-    cell_regions_dt <- merge(region_rast_dt, region_dt[, .(ID, FLOREG, country, floristicProvince)], by = "ID")
-    
-    cell_regions_dt <- cell_regions_dt[, -2]
-    # Merge cell regions with the raster cells
-    sp_dt <- terra::extract(sp_rast, ext(sp_rast), cells = TRUE)
-    sp_dt <- data.table(sp_dt)
-    names(sp_dt) <- c("cell", "richness")
-    
-    cell_regions_dt <- merge(sp_dt, cell_regions_dt[, .(cell, FLOREG, country, floristicProvince)], by = "cell", all = TRUE)
-    
-    cat("Table sample:\n")
-    print(head(cell_regions_dt, 2))
-    
-    #
-    for (i in 2:length(sp_dirs)) {
-      species <- sp_dirs[[i]]
-      
-      cat("\rCalculating richness in raster:", i, "/", length(sp_dirs))
-      
-      flush.console()
-      
-      sp_file <- paste0(species, "/", hv.project.method, ".tif")
-      sp_name <- basename(species)
-      
-      sp_rast <- terra::rast(sp_file)
-      names(sp_rast) <- sp_name
-      #t <- global(sp_rast, fun = sum, na.rm=TRUE) # Sum all values in the raster
-      
-      sp_rast_dt <- terra::extract(sp_rast, ext(sp_rast), cells = TRUE)
-      sp_rast_dt <- data.table(sp_rast_dt)
-      names(sp_rast_dt) <- c("cell", "value")
-      
-      # Merge to sum with the richness column
-      cell_regions_dt <- merge(cell_regions_dt, sp_rast_dt, by = "cell", all = TRUE)
-      
-      # Sum richness with new value, only if both are not NA, else keep richness value
-      cell_regions_dt[, richness := ifelse(!is.na(richness) & !is.na(value), richness + value, richness), by = cell]
-      cell_regions_dt[, value := NULL]
-    }; cat("\n")
-    
-    create_dir_if("./outputs/visualize/logs/get-visualize-data")
-    
-    fwrite(cell_regions_dt, save_file, bom = TRUE)
-  }
-
-  cat(cc$lightGreen("visualization data successfully initialised.\n"))
-
-  return(cell_regions_dt)
-}
-
-get_projection_max <- function(hv.dir, hv.method, hv.project.method  = "probability", n = NULL) {
-  
-  cat(blue("Acquiring max values for all probability rasters. \n"))
-  
-  log_file <- paste0("./outputs/visualize/logs/", hv.project.method, "-max-values.csv")
-  
-  if (file.exists(log_file)) {
-    cat("Found max value table:", log_file, "\n")
-    
-    max_values <- fread(log_file)
-    
-  } else {
-    cat("No previous table found, acquiring max values for", hv.project.method, "method.\n")
-    
-    sp_dirs <- list.dirs(paste0(hv.dir, "/projections/", hv.method))
-    
-    # Remove the directory name
-    sp_dirs <- sp_dirs[-1]
-    
-    max_values <- data.table()
-    
-    for (i in seq_along(sp_dirs)) {
-      sp_dir <- sp_dirs[[i]]
-      sp_name <- basename(sp_dir)
-      sp_filename <- paste0(sp_dir, "/", hv.project.method, ".tif")
-      
-      cat("\rAcquiring max values", i, "/", length(sp_dirs))
-       
-      sp_rast <- terra::rast(sp_filename)
-      sp_max <- where.max(sp_rast)
-      sp_max <- data.table(sp_max)
-      sp_max <- sp_max[, -(1:2)]
-      
-      sp_dt <- sp_max[, .(maxValue = value, species = sp_name, filename = sp_filename)]
-      
-      max_values <- rbind(max_values, sp_dt)
-      
-      max_values <- max_values[maxValue != 0, ]
-    }; cat("\n")
-    
-    max_values <- max_values[maxValue != 0, ]
-    
-    max_values <- max_values[order(-max_values$maxValue), ]
-    
-    fwrite(max_values, log_file, bom = TRUE)
-  }
-  
-  if (is.null(n)) {
-    cat("n is not used, returning the whole table.\n")
-  } else {
-    max_values <- max_values[1:n, ]
-  }
-  
-  cat(cc$lightGreen("Successfully acquired max values for all probability rasters.\n"))
-  
-  return(max_values)
-}
-
-get_prob_max <- function(spec.filename) {
+get_prob_max <- function(spec.filename, region, verbose) {
   sp_name <- basename(dirname(spec.filename))
   
   sp_rast <- terra::rast(spec.filename)
@@ -256,21 +115,336 @@ get_prob_max <- function(spec.filename) {
   return(sp_dt)
 }
 
-get_inclusion_coverage <- function(spec.filename) {
-  sp_name <- basename(dirname(spec.filename))
+get_inclusion_coverage <- function(spec.filename, region, verbose) {
+  init <- function(spec.filename, region, verbose) {
+    
+  }
   
-  sp_rast <- terra::rast(spec.filename)
+  execute <- function(spec.filename, region, verbose) {
+    sp_name <- basename(dirname(spec.filename))
+    
+    sp_rast <- terra::rast(spec.filename)
+    
+    sp_coverage <- terra::global(sp_rast, fun = sum, na.rm = TRUE)
+    
+    sp_dt <- data.table(coverage = sp_coverage, species = sp_name, filename = spec.filename)
+    
+    return(sp_dt)
+  }
   
-  sp_coverage <- terra::global(sp_rast, fun = sum, na.rm = TRUE)
+  process <- function(spec.filename, region, verbose) {
+    
+  }
+}
+
+get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
+
+  init <- function(spec.filename, region, verbose) {
+    
+    sp_name <- basename(dirname(spec.filename))
+    
+    sp_rast <- terra::rast(spec.filename)
+    names(sp_rast) <- sp_name
+    
+    if (!identical(ext(sp_rast), ext(region))) {
+      catn("Cropping region extent to match species")
+      region <- crop(region, ext(sp_rast))
+    }
+    
+    catn("Extracting raster from region.")
+    sp_region <- terra::extract(sp_rast, region, cells = TRUE, na.rm = FALSE)
+    sp_region <- data.table(sp_region)
+    
+    vebprint(head(sp_region, 3), verbose)
+    
+    catn("Converting region to data table.")
+    region_dt <- as.data.frame(region)
+    region_dt <- as.data.table(region_dt)
+    region_dt[, ID := .I]
+    
+    vebprint(head(region_dt, 3), verbose)
+    
+    catn("Merging raster_dt and region_dt.")
+    sp_regions_dt <- merge(sp_region, region_dt[, .(ID, FLOREG, country, floristicProvince)], by = "ID")
+    sp_regions_dt[, ID := NULL]
+    
+    vebprint(head(sp_regions_dt, 3), verbose)
+    
+    # Merge cell regions with the raster cells
+    catn("Extracting raster cells.")
+    sp_dt <- terra::extract(sp_rast, ext(sp_rast), cells = TRUE)
+    sp_dt <- as.data.frame(sp_dt)
+    sp_dt <- as.data.table(sp_dt)
+    names(sp_dt) <- c("cell", "richness") # Richness because each cell can only hold 0 or 1 for each species.
+    
+    catn("Merging raster cells with region by cells.")
+    cell_regions_dt <- merge(sp_dt, sp_regions_dt[, .(cell, FLOREG, country, floristicProvince)], by = "cell", all = TRUE)
+    
+    cell_regions_dt <- unique(cell_regions_dt, by = "cell")
+    cell_regions_dt <- cell_regions_dt[order(cell_regions_dt$cell)]
+    
+    return(cell_regions_dt)
+  }
   
-  sp_dt <- data.table(coverage = sp_coverage, species = sp_name, filename = spec.filename)
+  execute <- function(spec.filename, region, hv.project.method, verbose) {
+    
+    catn("Initiating data table.")
+    sp_name <- basename(dirname(spec.filename[1]))
+    vebcat(sp_name, veb = verbose)
+    
+    sp_rast <- terra::rast(spec.filename[1])
+    names(sp_rast) <- sp_name
+    
+    res_dt <- extract_ext_to_dt(sp_rast, value = "valueSum")
+    vebprint(res_dt, veb = verbose)
+    
+    for(i in 2:length(spec.filename)) {
+      catn("Execution Iteration:", i)
+      species <- spec.filename[i]
+      
+      sp_name <- basename(dirname(species))
+      catn(sp_name)
+      
+      sp_rast <- terra::rast(species)
+      names(sp_rast) <- sp_name
+      
+      vebcat("Extracting raster cells.", veb = verbose)
+      sp_rast_dt <- extract_ext_to_dt(sp_rast, value = "value")
+      
+      vebprint(head(sp_rast_dt, 3), veb = verbose)
+      
+      vebcat("Merging with init results.", veb = verbose)
+      # Merge to sum with the richness column
+      cell_regions_dt <- merge(res_dt, sp_rast_dt, by = "cell", all = TRUE)
+      
+      vebprint(head(cell_regions_dt, 3), veb = verbose)
+      
+      vebcat("Calculating richness", veb = verbose)
+      # Sum richness with new value, only if both are not NA, else keep richness value
+      cell_regions_dt[, valueSum := ifelse(!is.na(valueSum) & !is.na(value), valueSum + value, ifelse(!is.na(valueSum), valueSum, value)), by = cell]
+      
+      cell_regions_dt[, value := NULL] # Remove the value column after summing to save ram and space
+      res_dt <- cell_regions_dt
+      
+      vebprint(head(res_dt, 3), veb = verbose)
+    }
+    
+    catn("Finished Executing parallel.")
+   
+    return(res_dt)
+  }
   
-  return(sp_dt)
+  # Handle the parallel results will return a list of results
+  process <- function(parallel.res, verbose) { # parallel.res is a list of data tables
+    dt_region <- parallel.res[[1]]
+    dt_list <- parallel.res[[2]]
+    
+    summed_dt <- dt_region
+    
+    vebprint(dt_region, veb = verbose)
+    vebprint(dt_list, veb = verbose)
+    
+    for (i in 1:length(dt_list)) {
+      cat("\rProcessing list", i, "/", length(dt_list))
+      
+      dt_cell <- dt_list[[i]]
+      
+      merged_dt <- merge(summed_dt, dt_cell, by = "cell")
+      
+      # Sum the richness
+      merged_dt[, richness := ifelse(!is.na(richness) & !is.na(valueSum), richness + valueSum, ifelse(!is.na(richness), richness, valueSum)), by = cell]
+      
+      merged_dt[, valueSum := NULL]
+      
+      summed_dt <- merged_dt
+    }; catn()
+    
+    
+    return(summed_dt)
+  }
+  
+  return(list(
+    init = init,
+    execute = execute,
+    process = process
+  ))
+}
+
+
+get_region_richness <- function(spec.filename, region, verbose) {
+  
+  init <- function(spec.filename, region, verbose) {
+    
+  }
+  
+  execute <- function(spec.filename, region, verbose) {
+    catn("Setting up raster.")
+    sp_name <- basename(dirname(spec.filename))
+    
+    sp_rast <- terra::rast(spec.filename)
+    names(sp_rast) <- sp_name
+    
+    catn("Extracting raster from region.")
+    sp_region <- terra::extract(sp_rast, region, na.rm = FALSE)
+    sp_region <- data.table(sp_region)
+    
+    vebprint(head(sp_region, 3), verbose)
+    
+    catn("Converting region to data table.")
+    region_dt <- as.data.frame(region)
+    region_dt <- as.data.table(region_dt)
+    region_dt[, ID := .I]
+    
+    vebprint(head(region_dt, 3), verbose)
+    
+    catn("Merging raster_dt and region_dt.")
+    sp_regions_dt <- merge(sp_region, region_dt[, .(ID, FLOREG, country, floristicProvince)], by = "ID")
+    sp_regions_dt[, ID := NULL]
+    
+    vebprint(head(sp_regions_dt, 3), verbose)
+    
+    # Calculate abundance for each region
+    catn("Calculating abundance.")
+    sp_regions_dt[, abundance := sum(.SD[[sp_name]], na.rm = TRUE), by = "FLOREG" ]
+    sp_regions_dt <- unique(sp_regions_dt, by = "FLOREG")
+    
+    vebprint(sp_regions_dt, verbose)
+    
+    sp_regions_dt <- melt(sp_regions_dt, id.vars = c("FLOREG", "country", "floristicProvince", "abundance"), measure.vars = sp_name, variable.name = "species", value.name = "value")
+    
+    vebprint(head(sp_regions_dt, 5), verbose)
+  }
+  
+  process <- function(spec.filename, region, verbose) {
+    dt[, value := ifelse(abundance >= 1, 1, 0)]
+  }
+  
+  return(list(
+    init = init,
+    execute = execute,
+    process = process
+  ))
+}
+
+append_taxon <- function(dt, dt.species, verbose = FALSE) {
+  vebcat("Appending taxon names to data table.", color = "funInit")
+  
+  vebprint(dt, veb = verbose)
+  vebcat("Number of species:", length(unique(dt[[dt.species]])), veb = verbose)
+  
+  species <- unique(dt[[dt.species]])
+  
+  species <- gsub("-", " ", species)
+  
+  catn("Checking GBIF backbone.\n")
+  checklist <- name_backbone_checklist(name_data = species)
+  
+  checklist <- data.table(checklist[, c("kingdom", "phylum", "order", "family", "genus", "canonicalName", "verbatim_name")])
+  
+  names(checklist)[7] <- "species"
+  
+  na_sp <- checklist[is.na(checklist$genus),]
+  
+  if (nrow(na_sp) > 0) {
+    vebcat("Species missing classification.", color = "nonFatalError")
+    print(na_sp)
+  }
+  
+  checklist[, species := gsub(" ", "-", species)]
+  
+  vebprint(checklist, veb = verbose)
+  vebprint(dt, veb = verbose)
+  
+  catn("Merging data tables.")
+  merged_dt <- merge(dt, checklist, by = "species")
+  
+  merged_dt <- data.table(merged_dt)
+  
+  vebcat("Taxon names successfully appended to data table.", color = "funSuccess")
+  
+  return(merged_dt)
+}
+
+calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
+  catn("Calculating richness for", highcat(taxon))
+  
+  taxon_col <- dt[[taxon]]
+  
+  #dt[!is.na(dt$taxon_col),]
+  
+  dt[, value := ifelse(abundance >= 1, 1, 0)]
+  
+  dt[, taxonRichness := sum(abundance, na.rm = TRUE), by = .(FLOREG, get(taxon))]
+  
+  # Calculate total taxon richness
+  dt[, totalRichness := sum(taxonRichness, na.rm = TRUE), by = .(FLOREG)]
+  
+  # Calculate relative richness
+  dt[, relativeRichness := taxonRichness / totalRichness]
+  
+  return(dt)
+}
+
+append_src_country <- function(src.dt, target.dt, level, taxon, verbose) {
+  vebcat("Appending source regions to target data table", color = "funInit")
+  catn("Getting working groups.")
+  tdwg2 <- vect("./resources/region/tdwg/level2/level2.shp")
+  tdwg2_dt <- convert_spatial_dt(tdwg2)
+  tdwg2_dt <- tdwg2_dt[, .(LEVEL2_NAM, LEVEL2_COD)]
+  colnames(tdwg2_dt) <- c("lvl2Name", "lvl2Code")
+  
+  tdwg3 <- vect("./resources/region/tdwg/level3/level3.shp")
+  tdwg3_dt <- convert_spatial_dt(tdwg3)
+  tdwg3_dt <- tdwg3_dt[, .(LEVEL3_NAM, LEVEL3_COD, LEVEL2_COD)]
+  colnames(tdwg3_dt) <- c("lvl3Name", "lvl3Code", "lvl2Code")
+  
+  merged_tdwg <- merge(tdwg3_dt, tdwg2_dt, by = "lvl2Code")
+
+  tdwg4 <- vect("./resources/region/tdwg/level4/level4.shp")
+  tdwg4_dt <- convert_spatial_dt(tdwg4)
+  tdwg4_dt <- tdwg4_dt[, .(Level_4_Na, Level3_cod)]
+  colnames(tdwg4_dt) <- c("srcCountry", "lvl3Code")
+  
+  merged_tdwg <- merge(merged_tdwg, tdwg4_dt, by = "lvl3Code")
+
+  catn("Setting up source country.")
+  
+  src_dt <- copy(src.dt)
+  target_dt <- copy(target.dt)
+  
+  # Get source country
+  src_dt <- src_dt[, .(species, srcCountry = country)]
+  
+  # combine with tdwg
+  src_dt <- merge(src_dt, merged_tdwg, by = "srcCountry")
+  
+  if (taxon == "species") {
+    src_dt <- unique(src_dt, by = "species")
+  }
+
+  print(src_dt)
+  
+  catn("Setting up target region.")
+  
+  target_dt[, taxonSum := uniqueN(.SD[[taxon]][value == 1], na.rm = TRUE), by = FLOREG]
+  
+  target_dt <- unique(target_dt, by = c(taxon, "FLOREG"))
+  
+  target_dt <- target_dt[taxonSum > 0]
+  
+  catn("Merging data tables.")
+  sankey_dt <- merge(target_dt, src_dt, by = taxon, allow.cartesian = TRUE, all = TRUE)
+  
+  sankey_dt <- unique(sankey_dt, by = c("FLOREG", "srcCountry"))
+  
+  vebcat("Appended source regions successfully", color = "funSuccess")
+  
+  return(sankey_dt)
 }
 
 stack_projections <- function(filenames, projection, projection.method, binary = FALSE, verbose = FALSE) {
+  vebcat("Stacking probability rasters", color = "funInit")
   
-  cat(blue("Stacking probability rasters. \n"))
   # Initialize raster stack with the first layer
   sp_name <- filenames[['species']][[1]]
   sp_filename <- filenames[['filename']][[1]]
@@ -278,7 +452,7 @@ stack_projections <- function(filenames, projection, projection.method, binary =
   names(sp_rast) <- sp_name
   
   if(!identical(crs(sp_rast, proj = TRUE), crs(projection, proj = TRUE))) {
-    cat("Reprojecting to", as.character(crs(projection, proj = TRUE)), "\n")
+    catn("Reprojecting to", as.character(crs(projection, proj = TRUE)))
     stack <- terra::project(sp_rast, projection, method = projection.method)
   } else {
     stack <- sp_rast
@@ -294,24 +468,24 @@ stack_projections <- function(filenames, projection, projection.method, binary =
     names(sp_rast) <- sp_name
     
     if(!identical(crs(sp_rast, proj = TRUE), crs(projection, proj = TRUE))) {
-      if (verbose) cat("Reprojecting to", as.character(crs(projection, proj = TRUE)), "\n")
+      if (verbose) catn("Reprojecting to", as.character(crs(projection, proj = TRUE)))
       sp_rast <- terra::project(sp_rast, projection, method = projection.method)
     }
     
     stack <- c(stack, sp_rast)
 
-  }; cat("\n")
+  }; catn()
   
   # Convert values to 0 and 1 if binary
   if (binary) stack <- ceiling(stack)
   
-  cat(cc$lightGreen("Successfully stacked probability rasters.\n"))
+  vebcat("Successfully stacked probability rasters", color = "funSuccess")
   
   return(stack)
 }
 
 convert_template_raster <- function(input.values, hv.dir, hv.method, hv.project.method, projection, projection.method = "near", verbose = F) {
-  cat(blue("Acquiring template raster\n"))
+  vebcat("Converting raster", color = "funInit")
   sp_dirs <- list.dirs(paste0(hv.dir, "/projections/", hv.method))
   # Remove the directory name
   sp_dirs <- sp_dirs[-1]
@@ -320,22 +494,20 @@ convert_template_raster <- function(input.values, hv.dir, hv.method, hv.project.
   
   template <- terra::rast(sp_filename)
   # Check length
-  cat("Length of input / raster\n")
-  cat(length(input.values), "/", ncell(template),"\n")
+  catn("Length of input / raster")
+  catn(length(input.values), "/", ncell(template))
   
   terra::values(template) <- input.values
   
   template <- check_crs(template, projection = projection, projection.method = projection.method)
   
+  vebcat("Raster converted successfully", color = "funSuccess")
+  
   return(template)
 }
 
-get_sp_names_region <- function(spec.filename) {
-  
-}
-
 get_world_map <- function(projection, scale = "medium", pole = "north") {
-  cat(blue("Setting up world Map.\n"))
+  vebcat("Setting up world Map.", color = "funInit")
   
   world_map <- ne_countries(scale = scale, returnclass = "sf")
   
@@ -353,7 +525,7 @@ get_world_map <- function(projection, scale = "medium", pole = "north") {
   
   world_map <- project(world_map, projection)
   
-  cat(cc$lightGreen("World Map setup completed successfully.\n"))
+  vebcat("World Map setup completed successfully", color = "funSuccess")
   
   return(world_map)
 }
