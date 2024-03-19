@@ -12,6 +12,15 @@ pkgs = c(
   "terra",
   "sf",
   "sp",
+  "ggplot2",
+  "tidyterra",
+  "scales",
+  "rnaturalearth",
+  "rnaturalearthdata",
+  "ggalluvial",
+  "heatmaply",
+  "plotrix",
+  "viridis",
   "data.table",
   "CoordinateCleaner",
   "spThin",
@@ -50,9 +59,11 @@ cite_packages(pkgs, formats = "bibtex")
 
 cat("Include the longlat and cavm laea CRS \n")
 
-laea_crs <- crs("+proj=laea +lon_0=180 +lat_0=90 +datum=WGS84")
+laea_crs <- crs("+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84")
 
 longlat_crs <- crs("+proj=longlat +datum=WGS84 +ellps=WGS84")
+
+mollweide_crs <- crs("+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
 
 stere_crs <- crs("+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs")
 
@@ -62,6 +73,7 @@ source("./src/utils/components/get_mem_use.R")
 cat("Calculate memory allocation. \n")
 mem_total <- get_mem_usage("total")
 mem_limit <- mem_total * 0.8
+total_cores <- detectCores() * 0.4
 
 cat("Loading WFO file. \n")
 source("./src/utils/components/get_wfo_backbone.R")
@@ -84,11 +96,8 @@ source("./src/utils/components/source_all.R")
 cat("Loading similarity check function. \n")
 source("./src/utils/components/stringdist_similarity_check.R")
 
-cat("Loading create dir if. \n")
-source("./src/utils/components/create_dir_if.R")
-
-cat("Loading create file if. \n")
-source("./src/utils/components/create_file_if.R")
+cat("Loading create if. \n")
+source("./src/utils/components/create_if.R")
 
 cat("Loading lock_file. \n")
 source("./src/utils/components/lock_file.R")
@@ -96,8 +105,8 @@ source("./src/utils/components/lock_file.R")
 cat("Loading input command check. \n")
 source("./src/utils/components/check_input_cmd.R")
 
-cat("Loading filter rows after split text. \n")
-source("./src/utils/components/filter_rows_after_split_txt.R")
+cat("Loading conversions. \n")
+source("./src/utils/components/conversion.R")
 
 cat("Loading filter rows around split text. \n")
 source("./src/utils/components/filter_rows_around_split_txt.R")
@@ -107,3 +116,9 @@ source("./src/utils/components/extract_name_after_prefix.R")
 
 cat("Loading get_disk_space function. \n")
 source("./src/utils/components/get_disk_space.R")
+
+cat("Loading Error handler function.\n")
+source("./src/utils/components/error_handler.R")
+
+cat("Loading hepler functions.\n")
+source("./src/utils/components/helper_functions.R")

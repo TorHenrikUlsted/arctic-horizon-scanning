@@ -334,11 +334,80 @@ setup_hv_process <- function(min_disk_space, verbose = T) {
   rm(sp_list_setup)
   invisible(gc())
   
-  cat(cc$lightSteelBlue("hypervolume sequence setup completed successfully. \n"))
+  cat(cc$lightGreen("hypervolume sequence setup completed successfully. \n"))
   
   return(list(
     low = peak_mem_low,
     high = peak_mem_high
+  ))
+}
+
+setup_app_process <- function(region, verbose = T) {
+  cat(blue("Running peak ram for the app process \n"))
+  
+  inc_test_rast <- terra::rast("./resources/data-raw/test-inclusion.tif")
+  prob_test_rast <- terra::rast("./resources/data-raw/test-probability.tif")
+  
+  setup_dir <- "./outputs/setup/visualize"
+  rast_dir <- paste0(setup_dir, "/rast")
+  create_dir_if(paste0(setup_dir, "/logs"))
+  create_dir_if(rast_dir)
+
+  setup_ram_out <- paste0(setup_dir, "/logs/setup-ram-out.txt")
+  inc_ram_file <- paste0(setup_dir, "/logs/app-inc-peak.txt")
+  inc_out_file <- paste0(rast_dir, "/test-scaled-inc.tif")
+  prob_ram_file <- paste0(setup_dir, "/logs/app-prob-peak.txt")
+  prob_out_file <- paste0(rast_dir, "/test-scaled-prob.tif")
+  
+  if (!file.exists(inc_ram_file)) {
+    if (verbose) cat("Running peak inclusion ram setup.\n")
+    if (verbose) print(inc_test_rast)
+    
+    create_file_if(setup_ram_out)
+    
+    ram_control <- start_mem_tracking(file.out = setup_ram_out, stop_file = paste0(setup_dir, "/stop-file.txt"))
+    
+    inc_cells <- get_sp_cell(inc_test_rast, region, method = "inclusion", out.filename = inc_out_file)
+    
+    stop_mem_tracking(ram_control, inc_ram_file, paste0(setup_dir, "/stop-file.txt"))
+    
+    rm(inc_cells)
+    invisible(gc())
+    
+  } else {
+    cat("App inclusion peak ram setup already run. \n")
+  }
+  
+  if (!file.exists(prob_ram_file)){
+    if (verbose) cat("Running peak probability ram setup.\n")
+    
+    if (verbose) print(prob_test_rast)
+    
+    create_file_if(setup_ram_out)
+    
+    ram_control <- start_mem_tracking(file.out = setup_ram_out, stop_file = paste0(setup_dir, "/stop-file.txt"))
+    
+    prob_cells <- get_sp_cell(prob_test_rast, region, method = "probability", out.filename = prob_out_file)
+    
+    stop_mem_tracking(ram_control, prob_ram_file, paste0(setup_dir, "/stop-file.txt"))
+    
+    rm(prob_cells)
+    invisible(gc())
+    
+  } else {
+    cat("App probability peak ram setup already run. \n")
+  }
+  
+  peak_mem_inc <- as.numeric(readLines(inc_ram_file))
+  peak_mem_prob <- as.numeric(readLines(prob_ram_file))
+  
+  cat("App inclusion ram usage:", peak_mem_inc, " | App probability ram usage", peak_mem_prob, "\n")
+  
+  cat(cc$lightGreen("App setup completed successfully. \n"))
+  
+  return(list(
+    peak_mem_inc = peak_mem_inc,
+    peak_mem_prob = peak_mem_prob
   ))
 }
  

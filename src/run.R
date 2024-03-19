@@ -7,5 +7,6 @@ source("./src/hypervolume/data_processing/data_processing.R")
 source("./src/hypervolume/hv_analysis/hv_analysis.R")
 source("./src/hypervolume/parallel.R")
 source("./src/hypervolume/node.R")
+source("./src/visualize/visualize.R")
 
 source("./src/main.R")

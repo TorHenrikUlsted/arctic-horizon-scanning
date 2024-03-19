@@ -169,7 +169,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
         names(inc_project) <- ("inclusionScore")
         if (hv.projection == "laea") {
           cat("Reprojecting to laea. \n")
-          inc_proj <- terra::project(inc_project, crs(laea_crs))
+          inc_proj <- terra::project(inc_project, crs(laea_crs), method="near")
         } else cat("Keeping longlat projection. \n")
         writeRaster(inc_project, paste0(proj_dir, "/inclusion-", threshold, ".tif"), overwrite = T)
         rm(inc_project)
@@ -185,7 +185,7 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       
       if (hv.projection == "laea") {
         cat("Reprojecting to laea. \n")
-        prob_proj <- terra::project(prob_proj, crs(laea_crs))
+        prob_proj <- terra::project(prob_proj, crs(laea_crs), method = "bilinear")
       } else cat("Keeping the longlat projection. \n")
       
       if (verbose) cat("Writing out raster file:", paste0(proj_dir, "/probability.tif"), "\n")

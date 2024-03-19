@@ -17,7 +17,6 @@ min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 peak_ram <- setup_hv_process(min_disk_space)
 
 # Get 60% of total cores and get a ratio of high and low memory core usage
-total_cores <- detectCores() * 0.6
 cores_high <- round(total_cores * (5 / 8))
 cores_low <- total_cores - cores_high
 
@@ -31,6 +30,8 @@ mem_core_low <- mem_low_gb / total_cores
 cores_max_total <- min(length(sp_list), floor((mem_limit / 1024^3) / total_cores))
 cores_max_high <- min(length(sp_list), floor((mem_limit / 1024^3) * (5 / 8) / mem_high_gb), cores_high)
 cores_max_low <- min(floor((mem_limit / 1024^3) * (3 / 8) / mem_low_gb), cores_max_total - cores_max_high)
+
+# Run the data_acquisition here instead of inside each node.
 
 parallel_processing(
   spec.list = sp_list, # list of strings
@@ -49,3 +50,11 @@ parallel_processing(
 )
 
 #as.numeric(gsub("node", "", readLines("outputs/hypervolume/sequence/logs/node-iterations.txt")))
+
+visualize(
+  out.dir = "./outputs/visualize", 
+  hv.dir = "./outputs/hypervolume/sequence", 
+  hv.method = "box", 
+  x.threshold = 0.2, 
+  verbose = T
+)
