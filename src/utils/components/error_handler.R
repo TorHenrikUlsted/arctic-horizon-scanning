@@ -21,8 +21,11 @@ print_function_args<- function() {
   catn()
 }
 
-vebprint <- function(x, veb = FALSE) {
+vebprint <- function(x, veb = TRUE, text = NULL) {
   if (veb) {
+    if (!is.null(text)) {
+      catn(text)
+    }
     print(x)
   }
 }

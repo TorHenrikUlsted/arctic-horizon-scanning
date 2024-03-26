@@ -1,4 +1,4 @@
-parallel_processing <- function(spec.list, method, accuracy, hv.dims, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
+hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
   on.exit(closeAllConnections())
   
   cat(blue("Initiating hypervolume sequence \n"))

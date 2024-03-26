@@ -47,18 +47,22 @@ start_mem_tracking <- function(file.out, file.stop) {
     # Initialize a vector to store memory usage over time
     mem_usage <- c()
     
-    while(!file.exists(file.stop)) {
-      # Check memory usage every second
-      Sys.sleep(1)
-      
-      new_mem_usage <- get_mem_usage(type = "used", format = "gb")
-      
-      existing_mem_usage <- as.numeric(readLines(file.out))
-      
-      max_mem_usage <- max(c(existing_mem_usage, new_mem_usage), na.rm = TRUE)
-      
-      writeLines(as.character(max_mem_usage), file.out)
-    }
+    tryCatch({
+      while(!file.exists(file.stop)) {
+        # Check memory usage every second
+        Sys.sleep(1)
+        
+        new_mem_usage <- get_mem_usage(type = "used", format = "gb")
+        
+        existing_mem_usage <- as.numeric(readLines(file.out))
+        
+        max_mem_usage <- max(c(existing_mem_usage, new_mem_usage), na.rm = TRUE)
+        
+        writeLines(as.character(max_mem_usage), file.out)
+      }
+    }, error = function(e) {
+      file.create(file.stop)
+    })
   })
   
   return(list(
@@ -93,3 +97,49 @@ stop_mem_tracking <- function(control, file.stop) {
   
   return(peak_mem_usage)
 }
+
+calc_num_cores <- function(ram.high, ram.low = 0, verbose = FALSE) {
+  # Ratio of high ram cores
+  high_core_ratio <- (3/4)
+  low_core_ratio <- (1/4)
+  # Calc ram the process will use
+  high_load_cores <- floor(total_cores * high_core_ratio)
+  low_load_cores <- floor(total_cores - high_load_cores)
+  
+  vebprint(total_cores, veb = verbose, "total_cores:")
+  vebprint(high_load_cores, veb = verbose, "high_load_cores:")
+  vebprint(low_load_cores, veb = verbose, "low_load_cores:")
+  
+  mem_limit_gb <- mem_limit / 1024^3
+  
+  # Get the memory limit for high and low loads
+  max_high_mem <- floor(mem_limit_gb * high_core_ratio)
+  max_low_mem <- floor(mem_limit_gb * low_core_ratio)
+  
+  vebprint(max_high_mem, veb = verbose, "Max mem high:")
+  vebprint(max_low_mem, veb = verbose, "Max mem low:")
+  
+  # Get the minimum of high load or the floor of max mem / peak ram
+  max_cores_high <- min(high_load_cores, floor(max_high_mem / ram.high))
+  max_cores_low <- min(low_load_cores, floor(max_low_mem / ram.low))
+  
+  vebprint(max_cores_high, veb = verbose, "Max cores high:")
+  vebprint(max_cores_low, veb = verbose, "Max cores low:")
+  
+  max_cores <- max_cores_high + max_cores_low
+  
+  max_cores <- min(max_cores, total_cores)
+  
+  vebprint(max_cores, veb = verbose, "max cores:")
+  
+  return(list(
+    total = max_cores,
+    high = max_cores_high,
+    low = max_cores_low
+  ))
+}
+
+
+
+
+

@@ -72,3 +72,17 @@ find_peaks <- function(data, prominence = 0.1) {
   
   return(filtered_peaks)
 }
+
+##########################
+#       Parallel         #
+##########################
+load_sp_rast <- function(spec.filename) {
+  sp_name <- basename(dirname(spec.filename))
+  
+  sp_rast <- terra::rast(spec.filename)
+  names(sp_rast) <- sp_name
+  
+  return(sp_rast)
+}
+
+

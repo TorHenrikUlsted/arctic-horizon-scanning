@@ -1,6 +1,6 @@
 source_all("./src/filter/components")
 
-filter_process <- function(test = NULL, cores.max = 1, verbose) {
+filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
   on.exit(closeAllConnections())
   cat(blue("Initiating filtering sequence. \n"))
   
@@ -120,7 +120,7 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
     fwrite(arctic_absent, "./outputs/filter/arctic/arctic-absent-final.csv", bom = T)
     
     ##################################################
-    #               Collect gbif species             #
+    #             Collect boreal species             #
     ##################################################
     
     shapefiles <- c(
@@ -220,7 +220,7 @@ filter_process <- function(test = NULL, cores.max = 1, verbose) {
     
     
     ##################################################
-    #           gbif arctic present absent           #
+    #           boreal arctic present absent         #
     ##################################################
     
     

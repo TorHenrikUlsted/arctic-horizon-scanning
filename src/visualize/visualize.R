@@ -1,6 +1,6 @@
 source_all("./src/visualize/components")
 
-visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbose) {
+visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbose) {
   
   # Test params
   spec.list = list.files("./outputs/filter/arctic/chunk/species", full.names = TRUE)
@@ -33,6 +33,7 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   ##########################
   #     Load varaibles     #
   ##########################
+  
   warn <- function(w, warn_txt) {
     warn_msg <- conditionMessage(w)
     warn_con <- file(warn_file, open = "a")
@@ -102,7 +103,6 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   freq_stack <- freq_stack[, ncellsRegion := .N, by = floristicProvince]
   
   freq_stack <- freq_stack[, propCells := ncellsRegion / nrow(freq_stack), by = floristicProvince]
-  source_all("./src/visualize/components")
   
   visualize_freqpoly(
     sp_cells = freq_stack, 
@@ -145,7 +145,7 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
     region = NULL,
     n = 9,
     out.order = "coverage",
-    fun = get_inclusion_coverage,
+    fun = get_inc_coverage,
     verbose = FALSE
   )
   
@@ -163,7 +163,7 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
     extent = cavm_laea_ext,
     projection  = laea_crs,
     projection.method = "near",
-    verbose = F
+    verbose = FALSE
   )
   
   ##########################
@@ -174,12 +174,12 @@ visualize <- function(spec.list, out.dir, hv.dir, hv.method, x.threshold, verbos
   # Get the max values of all probability raster files
   prob_max <- parallel_spec_handler(
     spec.dirs = sp_dirs,
-    dir = paste0(get_vis_log, "/prob-max"),
+    dir = paste0(get_vis_log, "/max"),
     region = NULL,
     hv.project.method  = "probability",
     n = 3,
     out.order = "maxValue",
-    fun = get_inclusion_coverage,
+    fun = get_prob_max,
     verbose = FALSE
   )
   
