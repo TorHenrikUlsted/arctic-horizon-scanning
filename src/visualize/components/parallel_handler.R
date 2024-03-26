@@ -1,9 +1,8 @@
-parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
+parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun.init, fun.execute, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
+
   if (verbose) {
     print_function_args()
   }
-  
-  input_functions <- fun()
   
   catn("Setting up parallel function")
   
@@ -31,14 +30,14 @@ parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun, b
   init_res <- parallel_init(
     spec.filename = sp_filename, 
     region = region, 
-    fun.init = input_functions$init,
+    fun.init = fun.init,
     file.log = peak_log, 
     file.stop = stop_file,
     verbose = verbose
   )
   
   timer_res <- end_timer(init_timer)
-  
+
   peak_mem_core <- as.numeric(readLines(peak_log))
   
   cores_max <- floor(remain_mem / peak_mem_core)
@@ -60,7 +59,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun, b
   })
   
   # Get the exports that are not null
-  export_vars <- c("sp_dirs", "region", "hv.project.method", "fun", "batch", "node.log.append", "test", "verbose" , "node_dir", "ram_log")
+  export_vars <- c("sp_dirs", "region", "hv.project.method", "fun.execute", "batch", "node.log.append", "test", "verbose" , "node_dir", "ram_log")
   
   export_vars <- export_vars[sapply(export_vars, function(x) !is.null(get(x)))]
   
@@ -68,8 +67,6 @@ parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun, b
   vebprint(export_vars, veb = verbose)
   
   clusterExport(cl, export_vars, envir = environment())
-  
-  input_functions <- fun()
 
   current_disk_space <- get_disk_space("/export", units = "GB") #WIP
   
@@ -145,10 +142,9 @@ parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun, b
       }
       
       catn("\nParallel processing execute function.")
-      dt <- input_functions$execute(
+      dt <- fun.execute(
         spec.filename = sp_filename, 
         region = region,
-        hv.project.method = hv.project.method,
         verbose = verbose
       )
       
@@ -183,6 +179,25 @@ parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.meth
   }
   input_functions <- fun()
   
+  if (!exists("execute", where = input_functions)) {
+    vebcat("Missing execute function to run parallel process.", color = "fatalError")
+    stop()
+  } else {
+    fun_execute <- input_functions$execute
+  }
+  
+  if (!exists("init", where = input_functions)) {
+    fun_init <- input_functions$execute
+  } else {
+    fun_init <- input_functions$init
+  } 
+    
+  if (!exists("process", where = input_functions)) {
+    fun_process <- parallel_process_single
+  } else {
+    fun_process <- input_functions$process
+  }
+  
   vebcat("Acquiring", basename(dir), "values for all", hv.project.method, "rasters", color = "funInit")
   
   create_dir_if(dir)
@@ -207,7 +222,8 @@ parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.meth
       dir = values_sub_dir,
       region = region,
       hv.project.method = hv.project.method, 
-      fun = fun, 
+      fun.init = fun_init,
+      fun.execute = fun_execute,
       batch = batch,
       test = test,
       node.log.append = node.log.append,
@@ -218,17 +234,15 @@ parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.meth
     
     catn("Running post processing.")
     
-    #combined_values <- rbindlist(values)
-    
-    if (!is.null(out.order)) {
-      combined_values <- combined_values[order(-combined_values[[out.order]]), ]
-    }
-    
     # Run the post process
-    process_res <- input_functions$process(
+    process_res <- fun_process(
       parallel.res = parallel_res,
       verbose = verbose
     )
+    
+    if (!is.null(out.order)) {
+      process_res <- process_res[order(-process_res[[out.order]]), ]
+    }
     
     fwrite(process_res, values_log, bom = TRUE)
   }
@@ -245,19 +259,40 @@ parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.meth
 }
 
 parallel_init <- function(spec.filename, region, hv.project.method, fun.init, file.log, file.stop, verbose) {
-  # Initiate memory control
-  ram_control <- start_mem_tracking(file.out = file.log, file.stop = file.stop)
-  
-  if (!is.null(region)) {
-    regions <- import_regions(region, "./outputs/visualize/logs/region")
-    region <- handle_region(regions[[1]])
-  }
-  
-  # Init function
-  init_res <- fun.init(spec.filename, region, verbose)
-  
-  # Stop the memory tracker
-  stop_mem_tracking(ram_control, file.stop = file.stop)
+ 
+  tryCatch({
+    # Initiate memory control
+    ram_control <- start_mem_tracking(file.out = file.log, file.stop = file.stop)
+    
+    if (!is.null(region)) {
+      regions <- import_regions(region, "./outputs/visualize/logs/region")
+      region <- handle_region(regions[[1]])
+    }
+    
+    vebprint(class(fun.init), veb = verbose)
+    vebprint(spec.filename, veb = verbose)
+    vebprint(region, veb = verbose)
+    vebprint(verbose, veb = verbose)
+    
+    init_res <- fun.init(
+      spec.filename = spec.filename, 
+      region = region, 
+      verbose = verbose
+    )
+    
+    # Stop the memory tracker
+    stop_mem_tracking(ram_control, file.stop = file.stop)
+  }, error = function(e) {
+    vebcat("Error occurred:\n", e$message, color = "nonFatalError")
+    vebcat("Stopping RAM check process.", color = "nonFatalError")
+    stop_mem_tracking(ram_control, file.stop = file.stop)
+  })
   
   return(init_res)
+}
+
+parallel_process_single <- function(parallel.res, verbose) {
+  merged_dt <- rbindlist(parallel.res, fill = TRUE)
+  
+  return(merged_dt)
 }

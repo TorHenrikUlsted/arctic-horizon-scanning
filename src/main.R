@@ -1,4 +1,4 @@
-sp_dir <- filter_process(
+sp_dir <- filter_sequence(
   test = NULL,
   cores.max = 12,
   verbose = T
@@ -14,26 +14,23 @@ cat("Found", cc$lightSteelBlue(length(sp_list)), "species. \n")
 min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 
 # Check memory peak of one node by conducting a test run as well as setting up the entire hypervolume sequence
-peak_ram <- setup_hv_process(min_disk_space)
+peak_ram <- setup_hv_sequence(min_disk_space)
 
-# Get 60% of total cores and get a ratio of high and low memory core usage
-cores_high <- round(total_cores * (5 / 8))
-cores_low <- total_cores - cores_high
+max_cores <- calc_num_cores(
+  ram.high = peak_ram$high, 
+  ram.low = peak_ram$low, 
+  verbose =  FALSE
+)
 
-mem_high_gb <- peak_ram$high #GB
-mem_low_gb <- peak_ram$low #GB
-total_mem_gb <- mem_high_gb + mem_low_gb
+cores_max_high <- min(length(sp_list), max_cores$high)
+cores_max_total <- min(length(sp_list), max_cores$total)
 
-mem_core_high <- mem_high_gb / total_cores
-mem_core_low <- mem_low_gb / total_cores
-
-cores_max_total <- min(length(sp_list), floor((mem_limit / 1024^3) / total_cores))
-cores_max_high <- min(length(sp_list), floor((mem_limit / 1024^3) * (5 / 8) / mem_high_gb), cores_high)
-cores_max_low <- min(floor((mem_limit / 1024^3) * (3 / 8) / mem_low_gb), cores_max_total - cores_max_high)
+vebprint(max_cores$total, text = "Total cores input into the Hypervolume sequence:")
+vebprint(max_cores$high, text = "High load cores input into the Hypervolume sequence:")
+vebprint(max_cores$low, text = "Low load cores input into the Hypervolume sequence:")
 
 # Run the data_acquisition here instead of inside each node.
-
-parallel_processing(
+hypervolume_sequence(
   spec.list = sp_list, # list of strings
   method = "box", #box approx 13 min, gaussian 1 hours 10 minutes
   accuracy = "accurate",
@@ -51,7 +48,7 @@ parallel_processing(
 
 #as.numeric(gsub("node", "", readLines("outputs/hypervolume/sequence/logs/node-iterations.txt")))
 
-visualize(
+visualize_sequence(
   out.dir = "./outputs/visualize", 
   hv.dir = "./outputs/hypervolume/sequence", 
   hv.method = "box", 

@@ -101,50 +101,11 @@ get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, e
   return(included_sp)
 }
 
-get_prob_max <- function(spec.filename, region, verbose) {
-  sp_name <- basename(dirname(spec.filename))
-  
-  sp_rast <- terra::rast(spec.filename)
-  sp_max <- where.max(sp_rast)
-  sp_max <- sp_max[sp_max != 0]
-  sp_max <- data.table(sp_max)
-  sp_max <- sp_max[, -(1:2)]
-  
-  sp_dt <- sp_max[, .(maxValue = value, species = sp_name, filename = spec.filename)]
-  
-  return(sp_dt)
-}
-
-get_inclusion_coverage <- function(spec.filename, region, verbose) {
-  init <- function(spec.filename, region, verbose) {
-    
-  }
-  
-  execute <- function(spec.filename, region, verbose) {
-    sp_name <- basename(dirname(spec.filename))
-    
-    sp_rast <- terra::rast(spec.filename)
-    
-    sp_coverage <- terra::global(sp_rast, fun = sum, na.rm = TRUE)
-    
-    sp_dt <- data.table(coverage = sp_coverage, species = sp_name, filename = spec.filename)
-    
-    return(sp_dt)
-  }
-  
-  process <- function(spec.filename, region, verbose) {
-    
-  }
-}
-
 get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
-
+  
   init <- function(spec.filename, region, verbose) {
     
-    sp_name <- basename(dirname(spec.filename))
-    
-    sp_rast <- terra::rast(spec.filename)
-    names(sp_rast) <- sp_name
+    sp_rast <- load_sp_rast(spec.filename)
     
     if (!identical(ext(sp_rast), ext(region))) {
       catn("Cropping region extent to match species")
@@ -186,14 +147,13 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
     return(cell_regions_dt)
   }
   
-  execute <- function(spec.filename, region, hv.project.method, verbose) {
+  execute <- function(spec.filename, region, verbose) {
     
     catn("Initiating data table.")
     sp_name <- basename(dirname(spec.filename[1]))
     vebcat(sp_name, veb = verbose)
     
-    sp_rast <- terra::rast(spec.filename[1])
-    names(sp_rast) <- sp_name
+    sp_rast <- load_sp_rast(spec.filename[1])
     
     res_dt <- extract_ext_to_dt(sp_rast, value = "valueSum")
     vebprint(res_dt, veb = verbose)
@@ -205,8 +165,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
       sp_name <- basename(dirname(species))
       catn(sp_name)
       
-      sp_rast <- terra::rast(species)
-      names(sp_rast) <- sp_name
+      sp_rast <- load_sp_rast(species)
       
       vebcat("Extracting raster cells.", veb = verbose)
       sp_rast_dt <- extract_ext_to_dt(sp_rast, value = "value")
@@ -230,7 +189,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
     }
     
     catn("Finished Executing parallel.")
-   
+    
     return(res_dt)
   }
   
@@ -270,6 +229,138 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
   ))
 }
 
+convert_template_raster <- function(input.values, hv.dir, hv.method, hv.project.method, projection, projection.method = "near", verbose = F) {
+  
+  vebcat("Converting raster", color = "funInit")
+  sp_dirs <- list.dirs(paste0(hv.dir, "/projections/", hv.method))
+  # Remove the directory name
+  sp_dirs <- sp_dirs[-1]
+  
+  sp_filename <- paste0(sp_dirs[[1]], "/", hv.project.method,".tif")
+  
+  template <- terra::rast(sp_filename)
+  # Check length
+  catn("Length of input / raster")
+  catn(length(input.values), "/", ncell(template))
+  
+  terra::values(template) <- input.values
+  
+  template <- check_crs(template, projection = projection, projection.method = projection.method)
+  
+  vebcat("Raster converted successfully", color = "funSuccess")
+  
+  return(template)
+}
+
+get_world_map <- function(projection, scale = "medium", pole = "north") {
+  vebcat("Setting up world Map.", color = "funInit")
+  
+  world_map <- ne_countries(scale = scale, returnclass = "sf")
+  
+  world_map <- vect(world_map)
+  
+  if (pole == "north") {
+    equator_extent <- ext(-180, 180, 0, 90)
+  } else if (pole == "south") {
+    equator_extent <- ext(-180, 180, -90, 0)
+  } else {
+    stop("pole has to be either 'south' or 'north'.")
+  }
+  
+  world_map <- crop(world_map, equator_extent)
+  
+  world_map <- project(world_map, projection)
+  
+  vebcat("World Map setup completed successfully", color = "funSuccess")
+  
+  return(world_map)
+}
+
+get_inc_coverage <- function(spec.filename, region = NULL, verbose = FALSE) {
+  
+  execute <- function(spec.filename, region, verbose) {
+    sp_name <- basename(dirname(spec.filename))
+    
+    sp_rast <- terra::rast(spec.filename)
+    
+    sp_coverage <- terra::global(sp_rast, fun = sum, na.rm = TRUE)
+    
+    sp_dt <- data.table(coverage = sp_coverage, species = sp_name, filename = spec.filename)
+    
+    setnames(sp_dt, "coverage.sum", "coverage")
+    
+    return(sp_dt)
+  }
+  
+  return(list(
+    execute = execute
+  ))
+}
+
+stack_projections <- function(filenames, projection, projection.method, binary = FALSE, verbose = FALSE) {
+  vebcat("Stacking probability rasters", color = "funInit")
+  
+  # Initialize raster stack with the first layer
+  sp_name <- filenames[['species']][[1]]
+  sp_filename <- filenames[['filename']][[1]]
+  sp_rast <- terra::rast(sp_filename)
+  names(sp_rast) <- sp_name
+  
+  if(!identical(crs(sp_rast, proj = TRUE), crs(projection, proj = TRUE))) {
+    catn("Reprojecting to", as.character(crs(projection, proj = TRUE)))
+    stack <- terra::project(sp_rast, projection, method = projection.method)
+  } else {
+    stack <- sp_rast
+  }
+  
+  for (i in 2:nrow(filenames)) {
+    sp_name <- filenames[['species']][[i]]
+    sp_filename <- filenames[['filename']][[i]]
+    
+    cat("\rStacking raster", i, "/", nrow(filenames))
+    
+    sp_rast <- terra::rast(sp_filename)
+    names(sp_rast) <- sp_name
+    
+    if(!identical(crs(sp_rast, proj = TRUE), crs(projection, proj = TRUE))) {
+      if (verbose) catn("Reprojecting to", as.character(crs(projection, proj = TRUE)))
+      sp_rast <- terra::project(sp_rast, projection, method = projection.method)
+    }
+    
+    stack <- c(stack, sp_rast)
+    
+  }; catn()
+  
+  # Convert values to 0 and 1 if binary
+  if (binary) stack <- ceiling(stack)
+  
+  vebcat("Successfully stacked probability rasters", color = "funSuccess")
+  
+  return(stack)
+}
+
+get_prob_max <- function(spec.filename, region = NULL, verbose = FALSE) {
+  
+  execute <- function(spec.filename, region, verbose) {
+    sp_name <- basename(dirname(spec.filename))
+    
+    sp_rast <- terra::rast(spec.filename)
+    sp_max <- where.max(sp_rast)
+    sp_max <- as.data.table(sp_max)
+    sp_max <- sp_max[value != 0]
+    sp_max <- sp_max[, -(1:2)]
+    
+    vebprint(sp_max, veb = verbose)
+    
+    sp_dt <- sp_max[, .(maxValue = value, species = sp_name, filename = spec.filename)]
+    
+    return(sp_dt)
+  }
+  
+  return(list(
+    execute = execute
+  ))
+}
 
 get_region_richness <- function(spec.filename, region, verbose) {
   
@@ -440,92 +531,4 @@ append_src_country <- function(src.dt, target.dt, level, taxon, verbose) {
   vebcat("Appended source regions successfully", color = "funSuccess")
   
   return(sankey_dt)
-}
-
-stack_projections <- function(filenames, projection, projection.method, binary = FALSE, verbose = FALSE) {
-  vebcat("Stacking probability rasters", color = "funInit")
-  
-  # Initialize raster stack with the first layer
-  sp_name <- filenames[['species']][[1]]
-  sp_filename <- filenames[['filename']][[1]]
-  sp_rast <- terra::rast(sp_filename)
-  names(sp_rast) <- sp_name
-  
-  if(!identical(crs(sp_rast, proj = TRUE), crs(projection, proj = TRUE))) {
-    catn("Reprojecting to", as.character(crs(projection, proj = TRUE)))
-    stack <- terra::project(sp_rast, projection, method = projection.method)
-  } else {
-    stack <- sp_rast
-  }
-  
-  for (i in 2:nrow(filenames)) {
-    sp_name <- filenames[['species']][[i]]
-    sp_filename <- filenames[['filename']][[i]]
-    
-    cat("\rStacking raster", i, "/", nrow(filenames))
-    
-    sp_rast <- terra::rast(sp_filename)
-    names(sp_rast) <- sp_name
-    
-    if(!identical(crs(sp_rast, proj = TRUE), crs(projection, proj = TRUE))) {
-      if (verbose) catn("Reprojecting to", as.character(crs(projection, proj = TRUE)))
-      sp_rast <- terra::project(sp_rast, projection, method = projection.method)
-    }
-    
-    stack <- c(stack, sp_rast)
-
-  }; catn()
-  
-  # Convert values to 0 and 1 if binary
-  if (binary) stack <- ceiling(stack)
-  
-  vebcat("Successfully stacked probability rasters", color = "funSuccess")
-  
-  return(stack)
-}
-
-convert_template_raster <- function(input.values, hv.dir, hv.method, hv.project.method, projection, projection.method = "near", verbose = F) {
-  vebcat("Converting raster", color = "funInit")
-  sp_dirs <- list.dirs(paste0(hv.dir, "/projections/", hv.method))
-  # Remove the directory name
-  sp_dirs <- sp_dirs[-1]
-  
-  sp_filename <- paste0(sp_dirs[[1]], "/", hv.project.method, ".tif")
-  
-  template <- terra::rast(sp_filename)
-  # Check length
-  catn("Length of input / raster")
-  catn(length(input.values), "/", ncell(template))
-  
-  terra::values(template) <- input.values
-  
-  template <- check_crs(template, projection = projection, projection.method = projection.method)
-  
-  vebcat("Raster converted successfully", color = "funSuccess")
-  
-  return(template)
-}
-
-get_world_map <- function(projection, scale = "medium", pole = "north") {
-  vebcat("Setting up world Map.", color = "funInit")
-  
-  world_map <- ne_countries(scale = scale, returnclass = "sf")
-  
-  world_map <- vect(world_map)
-  
-  if (pole == "north") {
-    equator_extent <- ext(-180, 180, 0, 90)
-  } else if (pole == "south") {
-    equator_extent <- ext(-180, 180, -90, 0)
-  } else {
-    stop("pole has to be either 'south' or 'north'.")
-  }
-  
-  world_map <- crop(world_map, equator_extent)
-  
-  world_map <- project(world_map, projection)
-  
-  vebcat("World Map setup completed successfully", color = "funSuccess")
-  
-  return(world_map)
 }
