@@ -1,4 +1,4 @@
-print_function_args<- function() {
+print_function_args <- function() {
   # Get the function call
   fun_call <- sys.call(-1)
   
@@ -24,7 +24,7 @@ print_function_args<- function() {
 vebprint <- function(x, veb = TRUE, text = NULL) {
   if (veb) {
     if (!is.null(text)) {
-      catn(text)
+      cat(text, "\n")
     }
     print(x)
   }
@@ -37,15 +37,15 @@ catn <- function(...) {
   cat(text, "\n")
 }
 
-catcol <- function(..., color = NULL, veb = TRUE) {
+colcat <- function(..., color = NULL, veb = TRUE) {
   if (veb) {
     args <- list(...)
     text <- do.call(paste, c(list(sep = " "), as.character(args)))
     
     if (!is.null(color)) {
-      cat(cc[[color]](text))
+      return(paste(cc[[color]](text)))
     } else {
-      cat(text)
+      return(text)
     }
   }
 }

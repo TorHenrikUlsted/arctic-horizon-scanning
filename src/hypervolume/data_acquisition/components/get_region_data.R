@@ -1,5 +1,5 @@
 get_region_data = function(biovars, regions, projection, show_plot = F, verbose = F) {
-  cat(blue("Acquiring WorldClim region data. \n"))
+  vebcat("Acquiring WorldClim region data.", color = "funInit")
   
   region_data_list <- list()
   
@@ -8,7 +8,7 @@ get_region_data = function(biovars, regions, projection, show_plot = F, verbose 
     
     name <- names(regions)[i]
     
-    cat("Using", cc$lightSteelBlue(name), "\n")
+    catn("Using", highcat(name))
     
     dir_name <- paste0("./outputs/hypervolume/data_acquisition/region/", name)
     create_dir_if(dir_name)
@@ -17,12 +17,12 @@ get_region_data = function(biovars, regions, projection, show_plot = F, verbose 
     
     
     if (file.exists(filename)) {
-      if (verbose) cat("File found", "Loading file... \n")
+      vebcat("File found", "Loading file...", veb = verbose)
       
       region_data <- readRDS(filename)
       
     } else {
-      if (verbose) cat(red("File not found. \n"))
+      vebcat("File not found.", color = "nonFatalError", veb = verbose)
       
       region_crop <- start_timer("crop_region")
       
@@ -30,7 +30,7 @@ get_region_data = function(biovars, regions, projection, show_plot = F, verbose 
       
       end_timer(region_crop)
       
-      if (verbose) cat("Saving", cc$lightSteelBlue(name), "to:", cc$lightSteelBlue(filename), "\n")
+      catn("Saving", highcat(name), "to:", colcat(filename, color = "output"))
       
       saveRDS(region_data, file = filename)
     }
@@ -38,7 +38,7 @@ get_region_data = function(biovars, regions, projection, show_plot = F, verbose 
     region_data_list[[name]] <- region_data
   }
   
-  cat(cc$lightGreen("Region data acquired successfully. \n"))
+  vebcat("Region data acquired successfully.", color = "funSuccess")
   
   # Check if the list has only one item
   if(length(region_data_list) == 1) {

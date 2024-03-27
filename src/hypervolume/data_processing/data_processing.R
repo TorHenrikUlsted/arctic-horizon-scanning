@@ -1,9 +1,9 @@
 source_all("./src/hypervolume/data_processing/components")
 
 data_processing <- function(sp_df, biovars_world, spec.name, method, points.projection = "longlat", verbose = F, iteration, warn, err) {
-  cat(blue("Initiating data processing protocol \n"))
+  vebcat("Initiating data processing protocol.", color = "funInit")
   
-  if (verbose) cat(blue("Processing species data.\n"))
+  vebcat("Starting species data process.", veb = verbose)
   
   withCallingHandlers(
     {
@@ -14,18 +14,15 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, points.proj
   )
   
   if (is.null(sp_points)) {
-    cat("Excluding", spec.name, "from further processing. \n")
-    return(list(excluded = TRUE))
+    catn("Excluding", spec.name, "from further processing.")
+    return(list(
+      excluded = TRUE
+    ))
   }
   
-  if (verbose) {
-    cat("Processed environment data sample: \n")
-    print(sp_points)
-    cat(cc$lightGreen("Species preperation completed successfully. \n"))
-    
-    cat(blue("Processing environment data.\n"))
-    cat("Using biovars:", cc$lightSteelBlue(names(biovars_world)), "\n")
-  }
+  vebprint(sp_points, verbose, "Processed environment data sample:")
+  vebcat("Using biovars:", highcat(names(biovars_world)), veb = verbose)
+  vebcat("Starting processing of environment data.", veb = verbose)
   
   withCallingHandlers(
     {
@@ -35,14 +32,9 @@ data_processing <- function(sp_df, biovars_world, spec.name, method, points.proj
     error = function(e) err(e, err_txt = "Error when preparing environment in iteration")
   )
   
-  if (verbose) {
-    cat(cc$lightGreen("Environment preperation completed successfully. \n"))
-    cat("Processed environment data sample: \n")
-    print(head(sp_mat, 3))
-  }
+  vebprint(head(sp_mat, 3), verbose, "Processed environment data sample:")
   
-  
-  cat(cc$lightGreen("Data processing protocol completed successfully. \n\n"))
+  vebcat("Data processing protocol completed successfully.", color = "funSuccess")
   
   return(sp_mat)
 }

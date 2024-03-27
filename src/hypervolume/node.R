@@ -14,9 +14,9 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
 
   node_timer <- start_timer(node)
 
-  cat("Cores.max.high:", cores.max.high, "\n")
+  catn("Cores.max.high:", cores.max.high)
 
-  if (verbose) cat("Creating directories. \n")
+  vebcat("Creating directories.", veb = verbose)
 
   node_hv_dir <- paste0(log_dir, "/nodes")
   stats_dir <- paste0(hv.dir, "/stats")
@@ -30,7 +30,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
   create_dir_if(lock_node_dir)
   create_dir_if(lock_hv_dir)
 
-  if (verbose) cat("Creating files. \n")
+  vebcat("Creating files.", veb = verbose)
 
   # Make file objects
   warn_file <- paste0(log_dir, "/", method, "-warning.txt")
@@ -38,11 +38,11 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
   node_it <- paste0(log_dir, "/node-iterations.txt")
   while_msg <- FALSE
 
-  if (verbose) cat("Locking file. \n")
+  vebcat("Locking file.", veb = verbose)
 
   while (TRUE) {
     if (!while_msg) {
-      cat("The node is stuck in node-iterations traffic... \n")
+      vebcat("The node is stuck in node-iterations traffic...", veb = verbose)
       while_msg <- TRUE
     }
     if (is.locked(lock_node_dir, lock.n = 1)) {
@@ -57,7 +57,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
   }
   while_msg <- FALSE
 
-  if (verbose) cat("Checking for locked file. \n")
+  vebcat("Checking for locked file.", veb = verbose)
 
   node_con <- file(node_it, open = "at")
   identifier <- paste0("node", j)
@@ -66,28 +66,25 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
 
   unlock(lock_node_it)
 
-  cat("spec.list[[j]]:\n")
-  print(spec.list[[j]])
+  vebprint(spec.list[[j]], text = "spec.list[[j]]:")
 
   # Check if the current disk space is less than the minimum required
   if (current_disk_space <= min.disk.space) stop("Insufficient disk space. Stopping processing.")
 
   spec_to_read <- spec.list[[j]]
-  cat("spec_to_read:\n")
-  print(spec_to_read)
-
+  vebprint(spec_to_read, text = "spec_to_read")
+  
   spec.name <- gsub(".csv", "", basename(spec_to_read))
   spec.name <- trimws(spec.name)
-  cat("spec.name:\n", spec.name, "\n")
+  catn("spec.name:\n", spec.name)
 
   spec <- fread(spec_to_read, select = c("species", "decimalLongitude", "decimalLatitude", "coordinateUncertaintyInMeters", "coordinatePrecision", "countryCode", "stateProvince", "year"))
 
   nobs <- nrow(spec)
 
-  cat("spec:\n")
-  print(head(spec, 2))
+  vebprint(head(spec, 2), text = "spec:")
 
-  cat("Init-log finished. \n")
+  catn("Init-log finished.")
 
   sink(type = "message")
   sink(type = "output")
@@ -100,21 +97,21 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
   sink(main_log, type = "output")
   sink(main_log, type = "message")
 
-  cat("Run iteration", cc$lightSteelBlue(j), "\n")
-  cat("Using species:", cc$lightSteelBlue(spec.name), "\n")
-  cat("Species observations:", nobs, "\n")
-  cat("Log observations:", log(nobs), "\n")
-  cat("Expected dimensions:", length(hv.dims), "\n")
-  cat("Identifier:", identifier, "\n\n")
+  catn("Run iteration", highcat(j))
+  catn("Using species:", highcat(spec.name))
+  catn("Species observations:", nobs)
+  catn("Log observations:", log(nobs))
+  catn("Expected dimensions:", length(hv.dims))
+  catn("Identifier:", identifier, "\n")
 
   if (log(nobs) < length(hv.dims)) {
-    cat("Number of observations are less than the expected dimensions. \n")
+    catn("Number of observations are less than the expected dimensions.")
     skip_to_end <- TRUE
   }
 
   tryCatch(
     {
-      if (verbose) cat("Creating warning and error functions. \n")
+      vebcat("Creating warning and error functions.", veb = verbose)
       # Create warning and error functions
       warn <- function(w, warn_txt) {
         warn_msg <- conditionMessage(w)
@@ -133,7 +130,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
       }
 
       while (!skip_to_end) {
-        cat("Running main sequence. \n")
+        catn("Running main sequence.")
 
         acq_data <- data_acquisition(show.plot, method, verbose = verbose, iteration = j, warn = warn, err = err)
 
@@ -154,7 +151,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
 
         analyzed_hv <- hv_analysis(processed_data, biovars_region = ana_data[[2]], region_hv = ana_data[[4]], method, spec.name, proj.incl.t, accuracy, hv.projection, verbose = verbose, iteration = j, proj_dir, lock_hv_dir, cores.max.high, warn = warn, err = err)
 
-        cat("Appending data to csv file. \n")
+        catn("Appending data to csv file.")
 
         final_res <- data.frame(
           species = spec.name,
@@ -176,8 +173,8 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
       }
 
       if (skip_to_end) {
-        cat("Skipping to end. \n")
-        cat("Appending data to csv file. \n")
+        catn("Skipping to end.")
+        catn("Appending data to csv file.")
 
         final_res <- data.frame(
           species = spec.name,
@@ -197,12 +194,11 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
 
       fwrite(final_res, paste0(stats_dir, "/", method, "-stats.csv"), append = T, bom = T)
 
-      cat("Appended data. \n")
-      print(final_res)
+      vebprint(final_res, text = "Appended data:")
 
       while (TRUE) {
         if (!while_msg) {
-          cat("The node has entered node-iterations queue... \n")
+          catn("The node has entered node-iterations queue...")
           while_msg <- TRUE
         }
         if (is.locked(lock_node_dir, lock.n = 1)) {
@@ -220,18 +216,18 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
       node_con <- file(node_it, open = "r")
       lines <- readLines(node_con)
       close(node_con)
-      if (verbose) cat("Removing from node-iterations:", lines[which(grepl(paste0("^", identifier, "$"), lines))], "\n")
+      vebcat("Removing from node-iterations:", lines[which(grepl(paste0("^", identifier, "$"), lines))], veb = verbose)
       lines <- lines[-which(grepl(paste0("^", identifier, "$"), lines))] # Use regular expression to get exact match
-      if (verbose) cat("Rewriting to node-iterations:", lines, "\n")
+      vebcat("Rewriting to node-iterations:", lines, veb = verbose)
       node_con <- file(node_it, open = "w")
       writeLines(lines, node_con)
       close(node_con)
 
-      cat("Unlocking node iterations. \n")
+      catn("Unlocking node iterations.")
 
       unlock(lock_node_it)
 
-      cat("Node finished successfully. \n")
+      catn("Node finished successfully.")
 
       end_timer(node_timer)
 
@@ -240,7 +236,7 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
       close(main_log)
     },
     error = function(e) {
-      cat("Error occurred in node", j, ":", e$message, "\n")
+      vebcat("Error occurred in node", j, ":", e$message, color = "nonFatalError")
       sink(type = "message")
       sink(type = "output")
       close(main_log)

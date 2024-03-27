@@ -5,11 +5,11 @@ sp_dir <- filter_sequence(
   )
 
 # Get file_names as a list
-cat("Listing files in the directory:", cc$lightSteelBlue(sp_dir), "\n")
+catn("Listing files in the directory:", highcat(sp_dir))
 
 sp_list <- list.files(sp_dir, full.names = TRUE)
 
-cat("Found", cc$lightSteelBlue(length(sp_list)), "species. \n")
+catn("Found", highcat(length(sp_list)), "species.")
 
 min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 

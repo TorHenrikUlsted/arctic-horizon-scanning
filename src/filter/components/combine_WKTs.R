@@ -1,4 +1,6 @@
-combine_WKTs = function(regions, min_x = F, max_x = F, min_y = F, max_y = F) {
+combine_WKTs = function(regions, out.file, min_x = F, max_x = F, min_y = F, max_y = F) {
+  catn("Combining WKTs")
+  
     combined_extents = NULL
     
     # Get extent of each region
@@ -32,7 +34,12 @@ combine_WKTs = function(regions, min_x = F, max_x = F, min_y = F, max_y = F) {
     })
     # Combine the numbers back into a single string
     combined_WKT = paste(numbers, collapse=" ")
-    write(combined_WKT, "./outputs/filtering/gbif_retrieval_process/combined_WKT.txt")
+    
+    catn("Writing file to:", colcat(out.file, color = "output"))
+    
+    write(combined_WKT, out.file)
+    
+    catn("Combined WKT:", combined_WKT)
     
     return(combined_WKT)
 }

@@ -1,12 +1,12 @@
 plot_hypervolumes <- function(hv_list, out.dir) {
-  cat(blue("Plotting hypervolumes. \n"))
+  vebcat("Plotting hypervolumes.", color = "funInit")
   
   for (i in seq_along(hv_list)) {
     hv <- hv_list[[i]]
     
     create_dir_if(out.dir)
     
-    cat("Plotting", cc$lightSteelBlue(names(hv_list[[i]])), "\n")
+    catn("Plotting", highcat(names(hv_list[[i]])))
     
     png(paste0(out.dir, "/hv_", names(hv_list)[i], ".png"), width = 800, height = 800, pointsize = 20)
     
@@ -14,4 +14,6 @@ plot_hypervolumes <- function(hv_list, out.dir) {
     
     dev.off()
   }
+  
+  vebcat("Plotting hypervolumes completed successfully", color = "funSuccess")
 }

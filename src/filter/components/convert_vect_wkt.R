@@ -1,12 +1,12 @@
-vect_to_wkt <- function(vect, min.x = F, max.x = F, min.y = F, max.y = F) {
-  cat(blue("Converting vector to Well-known-text format. \n"))
+vect_to_wkt <- function(vect, out.file, min.x = F, max.x = F, min.y = F, max.y = F) {
+  vebcat("Converting vector to Well-known-text format.", color = "funInit")
   
   if (class(vect) != "SpatVector") {
     stop("The input vect must be a SpatVector.")
   }
   
   if (is.na(crs(vect)) || crs(vect) == "") {
-    cat("No projection found, adding longlat \n")
+    catn("No projection found, adding longlat.")
     # Assign a CRS if it doesn't have one
     crs(vect) <- "+proj=longlat +datum=WGS84 +no_defs"
   }
@@ -22,7 +22,7 @@ vect_to_wkt <- function(vect, min.x = F, max.x = F, min.y = F, max.y = F) {
   if (min.y) ext_region[3] <- -90 
   if (max.y) ext_region[4] <- 90 
   
-  cat("Making GBIF friendly WKT \n")
+  catn("Making GBIF friendly WKT.")
   
   anticlockwise_wkt <- sprintf(
     "POLYGON((%s %s,%s %s,%s %s,%s %s,%s %s))",
@@ -45,13 +45,15 @@ vect_to_wkt <- function(vect, min.x = F, max.x = F, min.y = F, max.y = F) {
   # Combine the numbers back into a single string
   anticlockwise_wkt <- paste(numbers, collapse = " ")
   
-  cat("WKT: \n", cc$lightSteelBlue(anticlockwise_wkt), "\n")
+  catn("WKT: \n", highcat(anticlockwise_wkt))
   
-  create_dir_if("./outputs/filter/region")
-   
-  write(anticlockwise_wkt, paste0("./outputs/filter/region/", deparse(substitute(vect)),"-wkt.txt"))
+  out_file <- paste0(out.file, "/", deparse(substitute(vect)), "-wkt.txt")
   
-  cat(cc$lightGreen("Region converted to WKT. \n"))
+  catn("Writing file to:", colcat(out.file))
+  
+  write(anticlockwise_wkt, out_file)
+  
+  vebcat("Vector converted to WKT.", color = "funSuccess")
   
   return(anticlockwise_wkt)
 }

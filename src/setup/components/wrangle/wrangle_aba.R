@@ -1,11 +1,11 @@
 wrangle_aba <- function(column, verbose = F) {
-  cat(blue("Initiating ABA wrangling protocol \n"))
+  vebcat("Initiating ABA wrangling protocol", color = "funInit")
   # read CSV file
   aba_preformat <- fread("./resources/data-raw/aba.csv", header = F)
 
   ## format the ABA CSV file
   # Remove empty columns
-  if (verbose) cat("selecting columns \n")
+  vebcat("selecting columns", veb = verbose)
   aba_selected <- select(aba_preformat, -tail(seq_along(aba_preformat), 3))
 
   # Assign new column names using two rows
@@ -32,10 +32,10 @@ wrangle_aba <- function(column, verbose = F) {
   current_family <- ""
   current_genus <- ""
   
-  if (verbose) cat("Sorting names \n")
+  vebcat("Sorting names.", veb = verbose)
     
   for (i in seq_len(nrow(aba_selected))) {
-    if (verbose) cat("\rSequencing row:", cc$lightSteelBlue(i), " / ", cc$lightSteelBlue(nrow(aba_selected)), fill = F)
+    cat("\rSequencing row:", cc$lightSteelBlue(i), " / ", highcat(nrow(aba_selected)), fill = F)
     flush.console()
     # Get the text from the first column
     line <- as.character(aba_selected[i, 1])
@@ -105,9 +105,9 @@ wrangle_aba <- function(column, verbose = F) {
         aba_selected[i, "species"] <- species_name
       }
     }
-  }
+  };catn()
   
-  if (verbose) cat("\nFormatting df \n")
+  vebcat("Formatting df.", veb = verbose)
   ## Remove column 1 which is now the old information of class, family, genus, species and subSpecies
   aba_formatted <- aba_selected[, -1]
   ## Remove empty rows and rows with all columns NA
@@ -128,12 +128,12 @@ wrangle_aba <- function(column, verbose = F) {
   # Distinguish between present and absent data
   ## create a new dataset with species absent from the Arctic
   
-  if (verbose) cat("Creating conditions \n")
+  vebcat("Creating conditions.", veb = verbose)
   ## Create conditions
   c1 <- ifelse(aba_formatted$borderline == 1, TRUE, FALSE)
   c2 <- apply(aba_formatted[, 7:32], 1, function(x) all(x %in% c("-", "?", "**")))
   
-  if (verbose) cat("Making ABA present \n")
+  vebcat("Making ABA present.", veb = verbose)
   ## use the !conditions to get species present in the Arctic
   aba_present <- aba_formatted[!(c1 | c2), ]
   ## remove the rows with empty cell from column 7 to 33.
@@ -144,7 +144,7 @@ wrangle_aba <- function(column, verbose = F) {
   
   setnames(aba_present, old = "scientificName", new = column)
 
-  if (verbose) cat("Making ABA absent \n")
+  vebcat("Making ABA absent.", veb = verbose)
   ## use conditions to create a new dataset by choosing only those satisfying the conditions from the aba_formatted dataset
   aba_absent <- aba_formatted[c1 | c2, ]
   ## remove the rows with empty cell from column 7 to 33.
@@ -155,7 +155,7 @@ wrangle_aba <- function(column, verbose = F) {
   
   setnames(aba_absent, old = "scientificName", new = column)
 
-  if (verbose) cat("Writing out files. \n")
+  vebcat("Writing out files.", veb = verbose)
   
   create_dir_if("./outputs/setup/wrangle/aba")
   
@@ -168,7 +168,7 @@ wrangle_aba <- function(column, verbose = F) {
   set_df_utf8(aba_absent)
   fwrite(aba_absent, "./outputs/setup/wrangle/aba/aba-absent.csv", row.names = F, bom = T)
 
-  cat(cc$lightGreen("ABA wrangling protocol completed successfully. \n"))
+  vebcat("ABA wrangling protocol completed successfully.", color = "funSuccess")
   
   return(list(
     aba_present = aba_present,

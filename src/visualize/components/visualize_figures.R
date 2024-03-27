@@ -2,12 +2,12 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
   create_dir_if("./outputs/visualize/plots")
   
   # Figure 1A Whole CAVM
-  cat(blue("Creating histogram for the entire Region\n"))
+  vebcat("Creating histogram for the entire Region", color = "funInit")
   
   print(class(sp_cells))
   print(head(sp_cells, 3))
   
-  if (verbose) cat("Creating plot 1A. \n")
+  vebcat("Creating plot 1A.", veb = verbose)
   
   #sp_cells[, richness := ifelse(richness == 0, NA, richness)]
   # Remove NA values
@@ -33,6 +33,8 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
   if (plot.show) print(fig1A)
   
   ggsave("./outputs/visualize/plots/figure-1A.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, fig1A)
+  
+  vebcat("Frequency for the entire region successfully visualized", color = "funSuccess")
   
   # Figure 1B different regions
   vebcat("Creating histogram for each region in the", region.name, color = "funInit")
@@ -65,7 +67,7 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
   
   ggsave("./outputs/visualize/plots/figure-1B.jpeg",device = "jpeg", unit = "px", width = 2160, height = 2160, fig1B)
   
-  # Plot 1C - how many species [y] have a certain proportion of cells [x]
+  vebcat("Frequency for each floristic region successfully visualized", color = "funSuccess")
 }
 
 visualize_hotspots <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
@@ -114,7 +116,7 @@ visualize_hotspots <- function(rast, region, region.name, extent, projection, pr
 }
 
 visualize_highest_spread <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
-  vebcat("Visualizing Potential Species hotspots", color = "funInit")
+  vebcat("Visualizing highest spread", color = "funInit")
   
   catn("Checking crs.")
   rast <- check_crs(rast, projection, projection.method, verbose = verbose)
@@ -138,28 +140,32 @@ visualize_highest_spread <- function(rast, region, region.name, extent, projecti
   
   if (plot.show) print(fig2B)
   
-  cat("Saving plot.\n")
-  ggsave("./outputs/visualize/plots/figure-2B.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig2B)
+  fig2B_out <- "./outputs/visualize/plots/figure-2B.jpeg"
   
-  vebcat("Successfully visualized Potential Species hotspots", color = "funSuccess")
+  catn("Saving plot to:", colcat(fig2B_out, color = "output"))
+  ggsave(fig2B_out, device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig2B)
+  
+  vebcat("Successfully visualized highest spread", color = "funSuccess")
 }
 
 visualize_suitability <- function(rast, region, region.name, plot.show = F, verbose = F) {
   
+  vebcat("Visualizing suiability plot", color = "funInit")
+  
   if (!identical(crs(rast, proj = TRUE), crs(region, proj = TRUE))) {
-    cat("Reprojecting to laea.\n")
-    cat(crs(rast, proj = TRUE), "\n")
-    cat(crs(region, proj = TRUE), "\n")
-    cat(identical(crs(rast, proj = TRUE), crs(region, proj = TRUE)), "\n")
+    catn("Reprojecting to laea.")
+    catn(crs(rast, proj = TRUE))
+    catn(crs(region, proj = TRUE))
+    catn(identical(crs(rast, proj = TRUE), crs(region, proj = TRUE)))
     rast <- project(rast, laea_crs, method = "bilinear")
   }
   
-  cat("Acquiring min and max values.\n")
+  catn("Acquiring min and max values.")
   prob_min <- 0.001
   prob_max <- where.max(rast[[1]])[[3]]
   region_ext <- ext(region)
   
-  cat("Generating plot.\n")
+  catn("Generating plot.")
   fig3 <- ggplot() +
     geom_spatvector(data = region) +
     geom_spatraster(data = rast) +
@@ -176,10 +182,19 @@ visualize_suitability <- function(rast, region, region.name, plot.show = F, verb
       )
   
   if (plot.show) print(fig3)
-  ggsave("./outputs/visualize/plots/figure-3.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig3)
+  
+  fig3_out <- "./outputs/visualize/plots/figure-3.jpeg"
+  
+  catn("Saving plot to:", colcat(fig3_out, color = "output"))
+  
+  ggsave(fig3_out, device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig3)
+  
+  vebcat("Suitability plot successfully visualized", color = "funSuccess")
 }
 
 visualize_richness <- function(dt, axis.x, axis.y, fill, group, plot.show = F, verbose = F) {
+  vebcat("Visualizing composition plot", color = "funInit")
+  
   # Remove NAs
   dt <- dt[!is.na(dt[[fill]]), ]
   
@@ -212,8 +227,13 @@ visualize_richness <- function(dt, axis.x, axis.y, fill, group, plot.show = F, v
   
   if (plot.show) print(fig4)
   
-  ggsave("./outputs/visualize/plots/figure-4.jpeg", plot = fig4, width = 3000, height = 2160, device = "jpeg", unit="px")
+  fig4_out <- "./outputs/visualize/plots/figure-4.jpeg"
   
+  catn("Saving plot to:", colcat(fig4_out, color = "output"))
+  
+  ggsave(fig4_out, plot = fig4, width = 3000, height = 2160, device = "jpeg", unit="px")
+  
+  vebcat("Composition plot successfully visualized", color = "funSuccess")
 }
 
 visualize_sankey <- function(dt, taxon, level, plot.show = F, verbose = F) {
@@ -246,8 +266,11 @@ visualize_sankey <- function(dt, taxon, level, plot.show = F, verbose = F) {
   
   if (plot.show) print(fig5)
   
-  catn("Saving sankey plot.")
-  ggsave("./outputs/visualize/plots/figure-5.jpeg", device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig5)
+  fig5_out <- "./outputs/visualize/plots/figure-5.jpeg"
+  
+  catn("Saving plot to:", colcat(fig5_out, color = "output"))
+  
+  ggsave(fig5_out, device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig5)
 
   vebcat("Sankey plot successfully visualized", color = "funSuccess")
 }

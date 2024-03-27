@@ -6,7 +6,7 @@ wrangle_dfs <- function(src, column, dynamic.name.source) {
 
   results <- list()
   
-  if(dynamic.name.source == "file") {
+  if (dynamic.name.source == "file") {
     for (file in files) {
       name <- sub("\\.R$", "", file)
       
@@ -22,7 +22,7 @@ wrangle_dfs <- function(src, column, dynamic.name.source) {
         if (!"data.table" %in% class(get(name)) && !"data.frame" %in% class(get(name))) {
           stop(paste("The result of", func_name, "is not a 'data.table' or 'data.frame'."))
         } else {
-          cat(green(toString(class(get(name))), "\n"))
+          catn(toString(class(get(name))))
         }
       }
       
@@ -40,7 +40,7 @@ wrangle_dfs <- function(src, column, dynamic.name.source) {
         if (!"data.table" %in% class(obj) && !"data.frame" %in% class(obj)) {
           stop(paste("The object", name, "is not a 'data.table' or 'data.frame'."))
         } else {
-          cat(paste("The class of the object", name, "is", class(obj), "\n"))
+          catn(paste("The class of the object", name, "is", class(obj)))
         }
         
         # Assign the object to the results list

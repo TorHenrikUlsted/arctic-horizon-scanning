@@ -35,12 +35,12 @@ check_cpu_speed <- function(df.path, max.cores, sample.size = NULL, verbose, cou
   
   time.setup <<- as.numeric(30)
   
-  cat("Time setup (sec):", cc$lightSteelBlue(time.setup), "\n")
-  cat("time constant (sec):", cc$lightSteelBlue(estimated_time), "\n")
+  catn("Time setup (sec):", highcat(time.setup))
+  catn("time constant (sec):", highcat(estimated_time))
 }
 
 setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
-  cat(blue("Setting up raw data. \n"))
+  vebcat("Setting up raw data.", color = "funInit")
   
   if (!is.null(test) && length(test) > 0) {
     test <- wrangle_test(test = test, column, verbose = verbose)
@@ -55,8 +55,7 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
     checklist <- c(aba, ambio, glonaf)
   }
   
-  if (verbose) cat("dfs added to checklist: \n")
-  if (verbose) print(names(checklist))
+  vebprint(names(checklist), verbose, "dfs added to checklist:")
   
   checked_dfs <- syncheck_dfs(
     checklist, 
@@ -67,10 +66,10 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
     counter = counter
   )
   
-  if (verbose) cat("Combining no-matches. \n")
+  vebcat("Combining no-matches.", veb = verbose)
   
   if (all(sapply(checked_dfs, is.null))) {
-    cat("All data frames already exist. \n")
+    catn("All data frames already exist.")
     
   } else {
     combined_df <- data.frame()
@@ -79,10 +78,10 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
     for(i in 1:length(checked_dfs)){
       if (!is.null(checked_dfs[[i]]$wfo_one_nomatch) && nrow(checked_dfs[[i]]$wfo_one_nomatch) > 0) {
         if (names(checked_dfs)[i] != "") {
-          cat("Getting nomatches for:", cc$lightSteelBlue(names(checked_dfs)[i]), "\n")
+          catn("Getting nomatches for:", highcat(names(checked_dfs)[i]))
           
           checked_dfs[[i]]$wfo_one_nomatch$dfOrigin <- names(checked_dfs)[i]
-          cat("Adding an origin column with:", names(checked_dfs)[i], "\n")
+          catn("Adding an origin column with:", highcat(names(checked_dfs)[i]))
         }
         
         # rbind the wfo_one_nomatch data frame from each list
@@ -92,17 +91,17 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
     
     nomatch_combined <- combined_df[!duplicated(combined_df[[column]]), ]
     
-    cat("Writing combined no-matches to:", yellow("./outputs/setup/wrangle"), "\n")
+    catn("Writing combined no-matches to:", colcat("./outputs/setup/wrangle", color = "output"))
     
     if (nrow(nomatch_combined) > 0) {
-      cat("There were", cc$lightSteelBlue(nrow(nomatch_combined)), "species without matches. \n")
+      catn("There were", highcat(nrow(nomatch_combined)), "species without matches. \n")
       fwrite(nomatch_combined, "./outputs/setup/wrangle/combined-wfo-nomatch.csv", bom = T)
     } else {
-      cat("There were", cc$lightSteelBlue(0), "species without any matches. \n")
+      catn("There were", highcat(0), "species without any matches. \n")
     }
   }
   
-  cat(cc$lightGreen("raw data setup completed successfully. \n"))
+  vebcat("raw data setup completed successfully.", color = "funSuccess")
 }
 
 setup_region <- function() {
@@ -114,19 +113,19 @@ setup_region <- function() {
   if (!file.exists(greenland_file)) {
     tryCatch(
       {
-        cat(red("Could not find greenland shape. \n"))
-        cat("Downloading... \n")
+        vebcat("Could not find greenland shape.", color = "nonFatalError")
+        catn("Downloading...")
         download.file("https://dataverse.geus.dk/api/access/datafile/:persistentId?persistentId=doi:10.22008/FK2/PLNUEO/BNXG0B", destfile = greenland_file)
       },
       error = function(e) {
-        cat(cc$lightCoral("Failed to download greenland shape. \n"))
-        cat(e$message, "\n")
+        vebcat("Failed to download greenland shape.", color = "nonFatalError")
+        catn(e$message)
         
-        cat(cc$aquamarine("Opening download page for manual download. \n"))
+        vebcat("Opening download page for manual download.", color = "indicator")
         
         Sys.sleep(2000)
         
-        browseURL("https://dataverse.geus.dk/file.xhtml?persistentId=doi:10.22008/FK2/PLNUEO/BNXG0B&version=2.0")
+        utils::browseURL("https://dataverse.geus.dk/file.xhtml?persistentId=doi:10.22008/FK2/PLNUEO/BNXG0B&version=2.0")
       }
     )
   }
@@ -135,25 +134,25 @@ setup_region <- function() {
   glims_file <- "./resources/region/glims-db/glims_polygons.shp"
   
   if (!file.exists(glims_file)) {
-    cat(cc$lightCoral("Could not find glims shape. \n"))
-    cat("Downloading... \n")
+    vebcat("Could not find glims shape.", color = "nonFatalError")
+    catn("Downloading...")
     
     glims_url <- "https://daacdata.apps.nsidc.org/pub/DATASETS/nsidc0272_GLIMS_v1/NSIDC-0272_glims_db_north_20230725_v01.0.zip"
     
     download_status <- try(download.file(glims_url, destfile = glims_file), silent = TRUE)
     
     if (inherits(download_status, "try-error")) {
-      cat(cc$aquamarine("Opening download page for manual download. \n"))
+      vebcat("Opening download page for manual download.", color = "indicator")
       
       Sys.sleep(2000)
       
       utils::browseURL("https://nsidc.org/data/nsidc-0272/versions/1")
     }
     
-    cat("File downloaded, unzipping... \n")
+    catn("File downloaded, unzipping...")
     unzip(glims_file, exdir = "./resources/region/glims-db/")
     
-    cat("cleaning folder. \n")
+    catn("cleaning folder.")
     keep_files <- c("glims_polygons.dbf", "glims_polygons.prj", "glims_polygons.shp", "glims_polygons.shx")
     
     all_files <- list.files("./resources/region/glims_db/")
@@ -174,68 +173,92 @@ setup_region <- function() {
   
   region$cavm <- reproject_region(region$cavm, projection = "longlat", line_issue = T)
   
-  cat("Setting up Greenland shape. \n")
+  catn("Setting up Greenland shape.")
   crs(region$greenland) <- crs(stere_crs)
   
   region$greenland <- reproject_region(region$greenland, projection = "longlat")
   
-  if (identical(crs(region$cavm), crs(region$greenland))) cat(green("Cavm and Greenland crs are identical. \n")) else cat(red("Cavm and Greenland crs are not identical. \n"))
+  if (identical(crs(region$cavm), crs(region$greenland))) {
+    vebcat("Cavm and Greenland crs are identical.", color = "proSuccess")
+  } else {
+    vebcat("Cavm and Greenland crs are not identical.", color = "nonFatalError")  } 
   
   green_shape <- as.polygons(region$greenland[[9]])
   
   if (any(!is.valid(green_shape))) {
-    cat(red("Some geoms of greenland are invalid. \n"))
-    cat("Attempting to fix \n")
+    catn("Some geoms of greenland are invalid.")
+    catn("Attempting to fix.")
+    
     valid_gl <- makeValid(green_shape)
-    if (any(!is.valid(valid_gl))) stop(red("Failed to fix invalid geoms. \n")) else cat(green("Successfully made all geoms valid. \n"))
+    if (any(!is.valid(valid_gl))) {
+      stop("Failed to fix invalid geoms.")
+    } else {
+      vebcat("Successfully made all geoms valid.", color = "proSuccess")
+    } 
+    
   } else {
-    cat(green("All greenland geoms are valid. \n"))
+    catn("All greenland geoms are valid.")
+    
     valid_gl <- green_shape
   }
   
-  cat("Cropping Greenland Ice to cavm extents. \n")
+  catn("Cropping Greenland Ice to cavm extents.")
   green_cavm <- crop(valid_gl, ext(region$cavm))
   
-  cat("Erasing Greenland Ice from cavm. \n")
+  catn("Erasing Greenland Ice from cavm.")
   cavm_noice <- erase(region$cavm, green_cavm)
   
-  cat("Setting up GLIMS database shape. \n")
+  catn("Setting up GLIMS database shape.")
   region$glims <- reproject_region(region$glims, projection = "longlat")
   
-  if (identical(crs(cavm_noice), crs(region$glims))) cat(green("Cavm and glims crs are identical. \n")) else cat(red("Cavm and glims crs are not identical. \n"))
-  
-  cat("Checking for invalid geoms. \n")
-  if (any(!is.valid(region$glims))) {
-    cat(red("Some geoms of glims are invalid. \n"))
-    cat("Attempting to fix \n")
-    valid_glims <- makeValid(region$glims)
-    if (any(!is.valid(valid_glims))) stop(red("Failed to fix invalid geoms. \n")) else cat(green("Successfully made all geoms valid. \n"))
+  if (identical(crs(cavm_noice), crs(region$glims))) {
+    vebcat("Cavm and glims crs are identical.", color = "proSuccess")
   } else {
-    cat(green("All glims geoms are valid. \n"))
+    vebcat("Cavm and glims crs are not identical.", color = "nonFatalError")
   }
   
-  cat("Cropping glims to cavm extents. \n")
+  catn("Checking for invalid geoms.")
+  if (any(!is.valid(region$glims))) {
+    catn("Some geoms of glims are invalid.")
+    catn("Attempting to fix.")
+    
+    valid_glims <- makeValid(region$glims)
+    if (any(!is.valid(valid_glims))) {
+      stop("Failed to fix invalid geoms.")
+    } else {
+      vebcat("Successfully made all geoms valid.", color = "proSuccess")
+    }
+  } else {
+    catn("All glims geoms are valid.")
+  }
+  
+  catn("Cropping glims to cavm extents.")
   glims_cavm <- crop(valid_glims, ext(cavm_noice))
   
-  cat("Erasing glims from cavm. \n")
+  catn("Erasing glims from cavm.")
   cavm_noice <- erase(cavm_noice, glims_cavm)
   
   create_dir_if("./outputs/setup/region")
   
-  writeVector(cavm_noice, "./outputs/setup/region/cavm-noice.shp")
+  out_shape <- "./outputs/setup/region/cavm-noice.shp"
+  
+  catn("Writing vector to file:", colcat(out_shape, color = "output"))
+  writeVector(cavm_noice, out_shape)
   
   end_timer(region_setup_timer)
   
-  cat(cc$lightGreen("Region setup completed successfully. \n"))
+  vebcat("Region setup completed successfully.", color = "funSuccess")
   
   return(cavm_noice)
 }
 
 setup_region_hv <- function(biovars_region, out.dir, name, method) {
+  vebcat("Setting up region Hypervolume", color = "funInit")
+  
   region_filename <- paste0("./outputs/setup/region/", name, "/hypervolume-", method,".rds")
   
   if (file.exists(region_filename)) {
-    cat("Region hypervolume already exists. \n")
+    catn("Region hypervolume already exists, reading file.")
     region_hv <- readRDS(region_filename)
   } else {
     create_dir_if("./outputs/setup/region/logs")
@@ -269,7 +292,7 @@ setup_region_hv <- function(biovars_region, out.dir, name, method) {
 
 
 setup_hv_sequence <- function(min_disk_space, verbose = T) {
-  cat(blue("Initiating hypervolume sequence setup. \n"))
+  vebcat("Initiating hypervolume sequence setup.", color = "funInit")
   
   sp_list_setup <- list.files("./outputs/filter/test/test-small/chunk/species", full.names = TRUE)
   hv_setup_dir <- "./outputs/setup/hypervolume"
@@ -281,9 +304,9 @@ setup_hv_sequence <- function(min_disk_space, verbose = T) {
   
   
   if (file.exists(low_file)) {
-    cat("Low peak ram setup already run. \n")
+    catn("Low peak ram setup already run.")
   } else {
-    if (verbose) cat("Running low peak ram setup by using:", cc$lightSteelBlue(sp_list_setup[[1]]), "wait time: 3 min. \n")
+    catn("Running low peak ram setup by using", highcat(sp_list_setup[[1]]), "wait time: 3 min.")
     
     create_file_if(setup_check)
     
@@ -304,11 +327,11 @@ setup_hv_sequence <- function(min_disk_space, verbose = T) {
   } 
   
   if (file.exists(high_file)) {
-    cat("high peak ram setup already run. \n")
+    catn("high peak ram setup already run.")
       
   } else {
 
-    if (verbose) cat("Running high peak ram setup. wait time: 25 min. \n")
+    catn("Running high peak ram setup using", highcat(sp_list_setup[[2]]), "wait time: 25 min.")
     create_file_if(setup_check)
     
     ram_control <- start_mem_tracking(file.out = setup_check, stop_file = paste0(hv_setup_dir, "/stop-file.txt"))
@@ -335,7 +358,7 @@ setup_hv_sequence <- function(min_disk_space, verbose = T) {
   rm(sp_list_setup)
   invisible(gc())
   
-  cat(cc$lightGreen("hypervolume sequence setup completed successfully. \n"))
+  vebcat("hypervolume sequence setup completed successfully.", color = "funSuccess")
   
   return(list(
     low = peak_mem_low,

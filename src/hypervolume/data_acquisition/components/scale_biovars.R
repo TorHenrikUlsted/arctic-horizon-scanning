@@ -1,25 +1,25 @@
 scale_biovars <- function(biovars, verbose = F) {
   name = deparse(substitute(biovars))
-  if (verbose) cat(blue("Scaling biovariables", name,"\n"))
+  vebcat("Scaling biovariables", name, color = "funInit")
   
   save_dir <- "./outputs/hypervolume/data_processing/region"
   create_dir_if(save_dir)
   
   save_path <- paste0(save_dir, "/", name, "_scaled.rds")
-  if (verbose) cat("save_path:", save_path, "\n")
+  vebcat("save_path:", save_path, veb = verbose)
   
   # Check if the scaled data already exists
   if (file.exists(save_path)) {
-    if (verbose) cat("Scaled data found, loading from file. \n")
+    catn("Scaled data found, loading from file.")
     scaled_biovars <- readRDS(save_path)
-    if (verbose) cat(cc$lightGreen("Scaling biovariables completed successfully. \n"))
+    vebcat("Scaling biovariables completed successfully.", color = "funSuccess")
     return(scaled_biovars)
   }
   
   scaled_biovars <- biovars
   # Scale the dimensions
   for (i in 1:nlyr(scaled_biovars)) {
-    cat("Scaling", cc$lightSteelBlue(names(scaled_biovars)[i]), "\n")
+    catn("Scaling", highcat(names(scaled_biovars)[i]))
     # Extract the i-th layer
     layer <- biovars[[i]]
     
@@ -30,13 +30,13 @@ scale_biovars <- function(biovars, verbose = F) {
     scaled_biovars[[i]] <- layer_scaled
   }
   
-  if (verbose) cat("Renaming layers. \n")
+  vebcat("Renaming layers.", veb = verbose)
   names(scaled_biovars) <- names(biovars)
   
   # Save the scaled data
   saveRDS(scaled_biovars, save_path)
-  cat(name, "scaled data saved to file. \n")
+  catn(name, "scaled data saved to file:", colcat(save_path, color = "output"))
   
-  if (verbose) cat(cc$lightGreen("Scaling biovariables completed successfully. \n"))
+  vebcat("Scaling biovariables completed successfully.", color = "funSuccess")
   return(scaled_biovars)
 }

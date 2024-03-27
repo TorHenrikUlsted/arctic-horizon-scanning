@@ -1,9 +1,9 @@
 source_all("./src/hypervolume/data_acquisition/components")
 
-data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
-  cat(blue("Initiating data acquisition protocol \n"))
+data_acquisition <- function(shapefiles, show.plot, method, verbose, iteration, warn, err) {
+  vebcat("Initiating data acquisition protocol", color = "funInit")
   
-  if (verbose) cat(blue("Acquiring regions. \n"))
+  vebcat("Loading regions.", veb = verbose)
   
   shapefiles <- c(
     cavm = "./resources/region/cavm-noice/cavm-noice.shp"
@@ -20,12 +20,10 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
   
   for (i in seq_along(cavm_floreg)) {
     names(cavm_floreg)[i] <- paste("floreg", unique(cavm_floreg[[i]]$FLOREG), sep = "_")
-    if (verbose) cat("Renaming item", cc$lightSteelBlue(i), "to", cc$lightSteelBlue(names(cavm_floreg)[i]), "\n")
+    vebcat("Renaming item", highcat(i), "to", highcat(names(cavm_floreg)[i]), veb = verbose)
   }
   
-  if (verbose) cat(cc$lightGreen("Region acquisition completed successfully \n"))
-  
-  if (verbose) cat(blue("Acquiring WorldClim biovariables. \n"))
+  vebcat("Loading World Clim data.", veb = verbose)
   
   withCallingHandlers(
     {
@@ -35,9 +33,7 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     error = function(e) err(e, err_txt = "Error when getting worldClim data in iteration")
   )
   
-  if (verbose) cat(cc$lightGreen("Biovars_world acquired successfully \n"))
-  
-  if (verbose) cat(blue("Scaling biovars_world \n"))
+  vebcat("Scaling biovars", veb = verbose)
   
   withCallingHandlers(
     {
@@ -47,9 +43,7 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     error = function(e) err(e, err_txt = "Error when scaling biovars_world in iteration")
   )
   
-  if (verbose) cat(cc$lightGreen("Biovars_world scaled successfully \n"))
-  
-  if (verbose) cat(blue("Acquiring biovars_region \n"))
+  vebcat("Acquiring biovars_region.", veb = verbose)
   
   withCallingHandlers(
     {
@@ -59,9 +53,7 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     error = function(e) err(e, err_txt = "Error when acquiring region data in iteration")
   )
   
-  if (verbose) cat(cc$lightGreen("Biovars_region acquired successfully \n"))
-  
-  if (verbose) cat(cc$lightGreen("Acquiring biovars for floristic regions \n"))
+  vebcat("Acquiring biovars for floristic regions.", veb = verbose)
   
   withCallingHandlers(
     {
@@ -71,9 +63,7 @@ data_acquisition <- function(show.plot, method, verbose, iteration, warn, err) {
     error = function(e) err(e, err_txt = "Error when when acquiring floristic region data in iteration")
   )
   
-  if (verbose) cat(cc$lightGreen("Biovars_floreg acquired successfully \n"))
-  
-  cat(cc$lightGreen("Data acquisition protocol completed successfully \n\n"))
+  vebcat("Data acquisition protocol completed successfully", color = "funSuccess")
   
   return(list(
     biovars_world,
