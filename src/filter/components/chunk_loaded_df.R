@@ -1,16 +1,16 @@
 chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, iterations = NULL, verbose = T) {
-  cat(blue("Initiating loaded dataframe chunking protocol. \n"))
+  vebcat("Initiating loaded dataframe chunking protocol.", color = "funInit")
   
   if (is.vector(chunk.column) && length(chunk.column) > 1) {
-    if (verbose) cat("Found vector more than 1 in length, combining columns:", cc$lightSteelBlue(chunk.column), ".\n")
+    vebcat("Found vector more than 1 in length, combining columns:", highcat(chunk.column), veb = verbose)
     df$combined <- df[, do.call(paste, c(.SD, sep = " ")), .SDcols = chunk.column]
     chunk.column <- "combined"
   }
   
-  if (verbose) cat("Sorting data. \n")
+  vebcat("Sorting data.", veb = verbose)
   data <- df[order(df[[chunk.column]]), ]
   
-  if (verbose) cat("Splitting data into", chunk.column, "lists. \n")
+  vebcat("Splitting data into", highcat(chunk.column), "lists.", veb = verbose)
   data_list <- split(data, data[[chunk.column]])
   
   n_total <- length(data_list)
@@ -36,8 +36,8 @@ chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, 
     
     # Check if the last iteration is the same as the total number of iterations
     if(last_iteration >= n_total) {
-      cat("This data has already been chunked. \n")
-      return(cat(cc$lightGreen("Loaded dataframe chunking protocol completed successfully. \n")))
+      catn("This data has already been chunked.")
+      return(vebcat("Loaded dataframe chunking protocol completed successfully.", color = "funSuccess"))
     }
   }
   
@@ -46,7 +46,7 @@ chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, 
     iterations <- seq_along(data_list)
   }
   
-  cat("Chunking dataframe into files \n")
+  catn("Chunking dataframe into files")
   cat(sprintf("%8s | %16s | %8s \n", paste0("n_", chunk.name), paste0("total n_", chunk.name), "Remaining"))
   for(i in iterations) {
     tryCatch({
@@ -72,11 +72,12 @@ chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, 
       try(err_log <- file(err_log, open = "at"))
       sink(err_log, append = T, type = "output")
       
-      cat("Error in iteration", i, ":", e$message, "\n")
+      catn("Error in iteration", i, ":", e$message)
       
       sink(type = "output")
       close(err_log)
     })
-  }
-  cat(cc$lightGreen("\nLoaded dataframe chunking protocol completed successfully. \n"))
+  }; catn()
+  
+  vebcat("Loaded dataframe chunking protocol completed successfully.", color = "funSuccess")
 }

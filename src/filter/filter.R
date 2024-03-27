@@ -2,7 +2,7 @@ source_all("./src/filter/components")
 
 filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
   on.exit(closeAllConnections())
-  cat(blue("Initiating filtering sequence. \n"))
+  vebcat("Initiating filtering sequence", color = "seqInit")
   
   
   ##################################################
@@ -31,7 +31,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
   #                     load dfs                   #
   ##################################################
   
-  if (verbose) cat("Loading dfs. \n")
+  vebcat("Loading dfs.", veb = verbose)
   
   dfs <- select_wfo_column(
     filepath = "./resources/synonym-checked", 
@@ -58,17 +58,17 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
       refinedScientificName <- man_formatted[i, "refinedScientificName"]
       listOrigin <- as.character(man_formatted[i, "listOrigin"])
       
-      cat("Appending", cc$lightSteelBlue(refinedScientificName), "to", cc$lightSteelBlue(listOrigin), "\n")
+      catn("Appending", highcat(refinedScientificName), "to", highcat(listOrigin))
       
       # Check if scientificName or listOrigin is missing
       if (is.na(refinedScientificName) | is.na(listOrigin)) {
-        cat("Missing value in row ", i, "\n")
+        catn("Missing value in row ", i)
         next
       }
       
       # Check if listOrigin exists in dfs
       if (!listOrigin %in% names(dfs)) {
-        cat("Invalid listOrigin in row ", i, ": ", listOrigin, "\n")
+        catn("Invalid listOrigin in row ", i, ": ", listOrigin)
         next
       }
       
@@ -77,12 +77,11 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
       setnames(new_row, names(dfs[[listOrigin]]))
       new_row[1, ] <- c(scientificNameAuthorship, refinedScientificName)
       
-      #cat("Using column", cc$lightSteelBlue(names(dfs[[listOrigin]])), "for table 1 and", cc$lightSteelBlue(names(data.table(new_row))), "for table 2. \n")
       # Append the scientificName to the corresponding data table in dfs
       dfs[[listOrigin]] <- rbindlist(list(dfs[[listOrigin]], new_row))
     }
     
-    cat(cc$lightGreen("the manually formatted synonym checks have been successfully added to correct data frames. \n"))
+    vebcat("the manually formatted synonym checks have been successfully added to correct data frames.", veb = verbose)
     
     ##################################################
     #              combine aba ambio                 #
@@ -107,7 +106,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
     # First merge to only get species from both dfs
     glonaf_present <- merge(glonaf_species, arctic_present, by = "refinedScientificName")
     
-    cat(cc$lightSteelBlue(nrow(glonaf_present)), "GloNAF species already exist in the Arcitc. \n")
+    catn(highcat(nrow(glonaf_present)), "GloNAF species already exist in the Arcitc.")
     
     glonaf_absent <-  anti_join(glonaf_species, arctic_present, by = "refinedScientificName")
     
@@ -150,7 +149,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
       download.doi = "https://doi.org/10.15468/dl.882wum"
     )
     
-    cat("Filtering the GBIF list. \n")
+    catn("Filtering the GBIF list.")
     
     gbif_filtered <- gbif_sp_list %>% 
       dplyr::filter(taxonRank %in% c("SPECIES", "SUBSPECIES", "VARIETY", "FORM", "UNRANKED"))
@@ -158,23 +157,31 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
     gbif_sp_scientificName <- data.table(species = gbif_filtered$species, scientificName = gbif_filtered$scientificName)
     
     if (any(is.na(gbif_sp_scientificName))) {
-      cat(cc$lightCoral("Some species are NA, removing... \n"))
+      vebcat("Some species are NA, removing...", color = "nonFatalError")
       gbif_sp_scientificName <- data.table(gbif_sp_scientificName[!is.na(rowSums(gbif_sp_scientificName)), ])
       
-      if (any(is.na(gbif_sp_scientificName))) cat(cc$lightCoral("Failed to remove NA values. \n")) else cat(cc$lightGreen("NAs removed successfully. \n"))
+      if (any(is.na(gbif_sp_scientificName))) {
+        vebcat("Failed to remove NA values.", color = "nonFatalError")
+      } else {
+        vebcat("NAs removed successfully.", color = "proSuccess")
+      }
     } else {
-      cat(cc$lightGreen("No NAs found. \n"))
+      vebcat("No NAs found.", color = "proSuccess")
     }
     
     if (any(gbif_sp_scientificName == "")) {
-      cat(cc$lightCoral("Some species are blank, removing... \n"))
+      vebcat("Some species are blank, removing...", color = "nonFatalError")
       gbif_sp_scientificName <- data.table(gbif_sp_scientificName[rowSums(gbif_sp_scientificName != "") > 0, ])
-      if (any(is.na(gbif_sp_scientificName))) cat(cc$lightCoral("Failed to remove blank values. \n")) else cat(cc$lightGreen("blank values removed successfully. \n"))
+      if (any(is.na(gbif_sp_scientificName))) {
+        vebcat("Failed to remove blank values.", color = "nonFatalError")
+      } else {
+        vebcat("blank values removed successfully.", color = "proSuccess")
+      }
     } else {
-      cat(cc$lightGreen("No blank values found. \n"))
+      vebcat("No blank values found.", color = "proSuccess")
     }
     
-    cat("Removing duplicates. \n")
+    catn("Removing duplicates.")
     
     # Remove species that are already present in the Arctic
     gbif_sp_scientificName <-  anti_join(gbif_sp_scientificName, arctic_present, by = c("species" = "refinedScientificName"))
@@ -184,7 +191,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
     
     # Run synonym Check on these names, then run the entire process again
     if (file.exists("./outputs/filter/gbif-acquisition/wfo-one-uniq.csv")) {
-      cat("GBIF synonym check already conducted, reading file... \n")
+      catn("GBIF synonym check already conducted, reading file...")
       gbif_species <- fread("./outputs/filter/gbif-acquisition/wfo-one-uniq.csv")
     } else {
       names(gbif_sp_scientificName$scientificName) <- "rawName"
@@ -224,12 +231,12 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
     ##################################################
     
     
-    cat("Separating", cc$lightSteelBlue(nrow(gbif_species)), "gbif species into arctic present and absent. \n")
+    catn("Separating", highcat(nrow(gbif_species)), "gbif species into arctic present and absent.")
     
     # First merge to only get species from both dfs
     gbif_present <- merge(gbif_species, arctic_present, by = "refinedScientificName")
     
-    cat("GBIF has",  cc$lightSteelBlue(nrow(gbif_present)), "species already present in the Arctic. \n")
+    catn("GBIF has",  highcat(nrow(gbif_present)), "species already present in the Arctic.")
     
     # Remove species that are already present in the Arctic
     gbif_absent <-  anti_join(gbif_species, arctic_present, by = "refinedScientificName")
@@ -237,13 +244,12 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
     # Remove species already a part of the arctic_absent species
     gbif_arc_absent <-  anti_join(gbif_absent, arctic_absent, by = "refinedScientificName")
     
-    cat("Removed", cc$lightSteelBlue(nrow(gbif_absent) - nrow(gbif_arc_absent)), "GBIF species already existing in the Arctic absent list. \n")
+    catn("Removed", highcat(nrow(gbif_absent) - nrow(gbif_arc_absent)), "GBIF species already existing in the Arctic absent list.")
     
-    cat("There are", cc$lightSteelBlue(nrow(gbif_arc_absent)), "Unique GBIF species not in the Arctic absent list. \n")
+    catn("There are", highcat(nrow(gbif_arc_absent)), "Unique GBIF species not in the Arctic absent list.")
     
     # Update the absent list
     #arctic_absent = union_dfs(gbif_glo_absent, arctic_absent, verbose = T)
-    
     
     ##################################################
     #        Occurrence arctic absent download       #
@@ -295,7 +301,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
   
   if (!is.null(test)) {
     if (test == "small") {
-      cat("test_small data sample: \n")
+      catn("test_small data sample:")
       print(head(dfs$test_small$refinedScientificName, 3))
       
       out_dir <- "./outputs/filter/test/test-small"
@@ -324,7 +330,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
       sp_w_keys_out <- test_small_keys
       
     } else if (test == "big") {
-      cat("test_big data sample: \n")
+      catn("test_big data sample:")
       print(head(dfs$test_big$refinedScientificName, 3))
       
       out_dir <- "./outputs/filter/test/test-big"
@@ -350,7 +356,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
       chunk_dir <- paste0(out_dir, "/chunk")
       sp_w_keys_out <- test_big_keys
     } else {
-      cat(cc$lightCoral("Incorrect test input. \n"))
+      vebcat("Incorrect test input.", color = "nonFatalError")
     }
   }
   
@@ -384,7 +390,7 @@ filter_sequence <- function(test = NULL, cores.max = 1, verbose) {
     verbose = verbose
   )
   
-  cat(cc$lightGreen("Filtering sequence completed successfully. \n"))
+  vebcat("Filtering sequence completed successfully.", color = "seqSuccess")
   
   return(paste0(chunk_dir, "/species"))
 }

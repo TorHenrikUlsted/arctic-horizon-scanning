@@ -151,9 +151,7 @@ check_hv_output <- function(spec.list, hv.dir, hv.method, hv.projection, hv.inc.
           print(paste("Error at iteration", j, ":", e$message))
         }
       )
-    }
-
-    cat("\n")
+    }; catn()
 
     if (nrow(missing_rast) > 0 || nrow(wrong_crs) > 0 || nrow(wrong_extent) > 0) {
       if (nrow(missing_rast) > 0) {

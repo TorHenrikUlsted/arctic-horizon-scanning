@@ -1,11 +1,11 @@
 hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
   on.exit(closeAllConnections())
   
-  cat(blue("Initiating hypervolume sequence \n"))
+  vebcat("Initiating hypervolume sequence", color = "seqInit")
   
   parallell_timer <- start_timer("parallell_timer")
   
-  if (verbose) cat("Setting up hypervolume files and folders. \n")
+  vebcat("Setting up hypervolume files and folders.", veb = verbose)
   
   logs_dir <-   paste0(hv.dir, "/logs")
   proj_dir <-   paste0(hv.dir, "/projections")
@@ -50,34 +50,34 @@ hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projec
 
   if (is.null(iterations)) {
       node_its <- readLines(node_it)
-      cat("Node iterations:", node_its, "\n")
+      catn("Node iterations:", node_its)
       
       if (is.na(node_its[1])) {
-        cat("Node iterations file is null. \n")
+        catn("Node iterations file is null.")
         
         highest_it <- as.integer(readLines(highest_it_file))
         if (is.na(highest_it[1])) {
-          cat("Highest iteration is null. Assuming sequence has never been run before. \n")
+          catn("Highest iteration is null. Assuming sequence has never been run before.")
           start_iteration <- 0
         } else {
-          cat("Previous session completed successfully on iteration", cc$lightSteelBlue(highest_it), "\n")
-          cat("Input list is expected to take", cc$lightSteelBlue(length(spec.list)), "iterations. \n")
+          catn("Previous session completed successfully on iteration", highcat(highest_it))
+          catn("Input list is expected to take", highcat(length(spec.list)), "iterations.")
           start_iteration <- highest_it + 1
         }
         
       } else {
         node_int <- gsub("node", "", node_its)
         
-        cat("Node iterations from previous session:", node_int, "\n")
+        catn("Node iterations from previous session:", node_int)
         
         start_iteration <- as.integer(min(node_int))
         
-        cat("Start iteration:", cc$lightSteelBlue(start_iteration), "\n")
+        catn("Start iteration:", highcat(start_iteration))
       }
       
       if (start_iteration >= length(spec.list)) {
-        cat("Start iteration:", cc$lightSteelBlue(start_iteration), "number of species:", cc$lightSteelBlue(length(spec.list)), "\n")
-        stop(cc$lightCoral("STOP: Previous iteration is higher or the same as the number of species. \n"))
+        catn("Start iteration:", highcat(start_iteration), "number of species:", highcat(length(spec.list)))
+        stop("STOP: Previous iteration is higher or the same as the number of species.")
       }
       
       # If iterations is not provided, start from the highest saved iteration
@@ -88,7 +88,7 @@ hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projec
       cores.max <- min(length(batch_iterations), cores.max)
       cores.max.high <- min(cores.max, cores.max.high)
       
-      cat("Initiate from iteration:", cc$lightSteelBlue(i), "with", cc$lightSteelBlue(cores.max), "core(s), and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
+      catn("Initiate from iteration:", highcat(i), "with", highcat(cores.max), "core(s), and a high max of", highcat(cores.max.high), "\n")
     
   } else {
     batch_iterations <- iterations
@@ -96,15 +96,19 @@ hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projec
     cores.max <- min(length(batch_iterations), cores.max)
     cores.max.high <- min(cores.max, cores.max.high)
 
-    cat("Initiating specific iteration(s)", cc$lightSteelBlue(batch_iterations), "with", cc$lightSteelBlue(cores.max), "core(s),", "and a high max of", cc$lightSteelBlue(cores.max.high), "\n")
+    catn(
+      "Initiating specific iteration(s)", highcat(batch_iterations), 
+      "with", highcat(cores.max), "core(s),", 
+      "and a high max of", highcat(cores.max.high)
+    )
     
   }
   
-  if (verbose) cat("Creating cluster of cores. \n")
+  vebcat("Creating cluster of cores.", veb = verbose)
   
   cl <- makeCluster(cores.max)
   
-  if (verbose) cat("Including the necessary components in each core. \n")
+  vebcat("Including the necessary components in each core.", veb = verbose)
   
   clusterExport(cl, c("spec.list", "proj.incl.t", "method", "accuracy", "hv.dims", "hv.projection", "cores.max.high", "min.disk.space", "hv.dir", "show.plot", "verbose"), envir = environment())
   
@@ -118,21 +122,21 @@ hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projec
     source("./src/hypervolume/node.R")
   })
   
-  if (verbose) cat("Creating a vector for the results. \n")
+  vebcat("Creating a vector for the results.", veb = verbose)
 
   results <- vector("list", length(spec.list))
 
   current_disk_space <- get_disk_space("/export", units = "GB")
   
-  cat("\nRemaining disk space (GB) \n")
+  catn("\nRemaining disk space (GB)")
   cat(sprintf("%8s | %8s | %8s \n", "Minimum", "Current", "Remaining"))
   cat(sprintf("%8.2f | %8.2f | %8.0f \n", min.disk.space, current_disk_space, current_disk_space - min.disk.space))
   
-  cat("\nMemory allocation (GB) \n")
+  catn("\nMemory allocation (GB)")
   cat(sprintf("%8s | %8s | %8s \n", "Maximum", "Limit", "Current"))
   cat(sprintf("%8.2f | %8.2f | %8.0f \n", mem_total / 1024^3, mem_limit / 1024^3, get_mem_usage("used", format = "gb")))
   
-  cat("Hypervolume sequence has started, progress is being logged to:", yellow(logs_dir), "\n")
+  catn("Hypervolume sequence has started, progress is being logged to:", colcat(logs_dir, color = "output"))
   
   res <- clusterApplyLB(cl, batch_iterations, function(j) {
     ram_msg <- FALSE
@@ -158,7 +162,7 @@ hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projec
 
   results[batch_iterations] <- res
 
-  cat("Finishing up \n")
+  catn("Finishing up.")
 
   stopCluster(cl)
   
@@ -170,5 +174,5 @@ hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projec
   
   end_timer(parallell_timer)
 
-  cat(cc$lightGreen("Hypervolume sequence completed succesfully \n"))
+  veb("Hypervolume sequence completed succesfully", color = "seqSuccess")
 }

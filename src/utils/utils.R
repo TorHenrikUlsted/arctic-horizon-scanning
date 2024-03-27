@@ -57,68 +57,30 @@ cat("Creating reference list. \n")
 source("./src/utils/components/cite_packages.R")
 cite_packages(pkgs, formats = "bibtex")
 
-cat("Include the longlat and cavm laea CRS \n")
+cat("Loading condition handlers. \n")
+source("./src/utils/components/condition_handlers.R")
 
-laea_crs <- crs("+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84")
+cat("Loading memory handlers \n")
+source("./src/utils/components/memory_handlers.R")
 
-longlat_crs <- crs("+proj=longlat +datum=WGS84 +ellps=WGS84")
-
-mollweide_crs <- crs("+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
-
-stere_crs <- crs("+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs")
-
-cat("Load get_mem_usage")
-source("./src/utils/components/get_mem_use.R")
-
-cat("Calculate memory allocation. \n")
-mem_total <- get_mem_usage("total")
-mem_limit <- mem_total * 0.75
-total_cores <- detectCores() * 0.4
-
-cat("Loading WFO file. \n")
-source("./src/utils/components/get_wfo_backbone.R")
-
-cat("Loading WWF Ecoregion file. \n")
-source("./src/utils/components/get_wwf_ecoregions.R")
+cat("Loading helper functions.\n")
+source("./src/utils/components/helper_functions.R")
 
 cat("Loading time tracker. \n")
 source("./src/utils/components/time_tracker.R")
-
-cat("Loading utf8 function. \n")
-source("./src/utils/components/set_df_utf8.R")
-
-cat("Loading duplicate logger. \n")
-source("./src/utils/components/log_duplicates.R")
-
-cat("Loading source all function. \n")
-source("./src/utils/components/source_all.R")
-
-cat("Loading similarity check function. \n")
-source("./src/utils/components/stringdist_similarity_check.R")
 
 cat("Loading create if. \n")
 source("./src/utils/components/create_if.R")
 
 cat("Loading lock_file. \n")
-source("./src/utils/components/lock_file.R")
-
-cat("Loading input command check. \n")
-source("./src/utils/components/check_input_cmd.R")
+source("./src/utils/components/lock_handlers.R")
 
 cat("Loading conversions. \n")
 source("./src/utils/components/conversion.R")
 
-cat("Loading filter rows around split text. \n")
-source("./src/utils/components/filter_rows_around_split_txt.R")
+cat("Setting up loaders. \n")
+source("./src/utils/components/loader.R")
+load_wfo()
 
-cat("Loading extract name after prefix. \n")
-source("./src/utils/components/extract_name_after_prefix.R")
-
-cat("Loading get_disk_space function. \n")
-source("./src/utils/components/get_disk_space.R")
-
-cat("Loading Error handler function.\n")
-source("./src/utils/components/error_handler.R")
-
-cat("Loading hepler functions.\n")
-source("./src/utils/components/helper_functions.R")
+cat("Setting up config. \n")
+source("./src/utils/components/config.R")

@@ -1,9 +1,11 @@
 source_all("./src/hypervolume/data_analysis/components")
 
 data_analysis <- function(biovars_world, biovars_region, biovars_floreg, hv.dims, method, show.plot, verbose, iteration, warn, err) {
-  cat(blue("Initiating data analysis protocol \n"))
+  vebcat("Initiating data analysis protocol", color = "funInit")
   
-  if (is.null(hv.dims)) cat(red("hv.dims is NULL, has to be either 'manual', 'auto', or a vector of specific dimensions.\n"))
+  if (is.null(hv.dims)) {
+    vebcat("hv.dims is NULL, has to be either 'manual', 'auto', or a vector of specific dimensions.", color = "nonFatalError")
+  }
   
   withCallingHandlers(
     {
@@ -17,13 +19,13 @@ data_analysis <- function(biovars_world, biovars_region, biovars_floreg, hv.dims
     {
       # choose wanted correlation dimensions
       if (any(hv.dims == "manual")) {
-        cat(yellow("Manual mode\n"))
-        cat("Analyze the correlation matrix in the ./outputs/hypervolume/data_analysis/correlation folder and restart the process with specific dimensions. \n")
+        vbcat("Manual mode", color = "indicator")
+        catn("Analyze the correlation matrix in the ./outputs/hypervolume/data_analysis/correlation folder and restart the process with specific dimensions.")
         stop()
       } else if (any(hv.dims == "auto")) {
-        stop("Not in use yet, possible to add some functions to calculate the best suited variables/dimensions automatically.\n")
+        stop("Not in use yet, possible to add some functions to calculate the best suited variables/dimensions automatically.")
       } else if (is.vector(hv.dims)) {
-        cat("Using dimensions:", as.character(hv.dims), "\n")
+        catn("Using dimensions:", as.character(hv.dims))
         hv_dims <- hv.dims
       } else {
         stop("hv.dims is not vector format.\n")
@@ -50,7 +52,7 @@ data_analysis <- function(biovars_world, biovars_region, biovars_floreg, hv.dims
     error = function(e) err(e, err_txt = "Error when setting up region hypervolume")
   )
   
-  cat(cc$lightGreen("Data analysis protocol completed successfully \n\n"))
+  vebcat("Data analysis protocol completed successfully", color = "funSuccess")
   
   return(list(
     biovars_world,

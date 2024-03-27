@@ -1,7 +1,9 @@
 analyze_correlation <- function(raster_stack, file.out, threshold, plot = T, verbose = F) {
   
+  vebcat("Analyzing correlation", color = "funInit")
+  
   if (file.exists(paste0(file.out, "/correlation_matrix.csv"))) {
-    cat("Correlation analysis already exists at:",  paste0(file.out, "/correlation_matrix.csv"), "\n")
+    catn("Correlation analysis already exists at:",  paste0(file.out, "/correlation_matrix.csv"))
     return()
   }
   
@@ -11,14 +13,11 @@ analyze_correlation <- function(raster_stack, file.out, threshold, plot = T, ver
   
   stack_corr <- stack_corr$correlation
   
-  if (verbose) {
-    cat("Stack_corr$correlation:\n")
-    print(stack_corr)
-  }
+  vebprint(stack_corr, text = "Stack_corr$correlation:")
 
   # Create correlation plot
   if (plot == T) {
-    if (verbose) cat("Plotting correlation. \n")
+    vebcat("Plotting correlation.", veb = verbose)
     
     # Open a PNG device
     png(filename = paste0(file.out, "/corrplot_circle.png"), width = 1920, height = 1080, pointsize = 20)
@@ -39,10 +38,16 @@ analyze_correlation <- function(raster_stack, file.out, threshold, plot = T, ver
     dev.off()
     
   } else {
-    if (verbose) cat("Correlation plotting skipped. \n")
+    vebcat("Correlation plotting skipped.", veb = verbose)
   }
   
-  fwrite(stack_corr, paste0(file.out, "/correlation_matrix.csv"), row.names = T, bom = T)
+  file_out <- paste0(file.out, "/correlation_matrix.csv")
+  
+  catn("Writing correlation matrix to:", colcat(file_out, color = "output"))
+  
+  fwrite(stack_corr, file_out, row.names = T, bom = T)
+  
+  vebcat("Correlation analyzed successfully", color = "funSuccess")
   
   return(stack_corr)
 }

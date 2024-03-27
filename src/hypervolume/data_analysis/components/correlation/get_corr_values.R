@@ -1,5 +1,8 @@
 # Define the function
 important_biovars <- function(mat, threshold) {
+  
+  vebcat("Calculating the important variables", color = "funInit")
+  
   # Define the biovariables
   temp_vars <- list(year = c("bio_1", "bio_2", "bio_3", "bio_4", "bio_7"),
                     month = c("bio_5", "bio_6"),
@@ -90,12 +93,12 @@ important_biovars <- function(mat, threshold) {
                        precipQuarter = paste(precip_important$quarter, collapse = ", "))
   
   # Print the names of the variables in order of importance
-  cat("The 4 most important biovariables for temperature are:", result$tempMain, "\n")
-  cat("The 4 most important biovariables for precipitation are:", result$precipMain, "\n")
+  catn("The 4 most important biovariables for temperature are:", result$tempMain)
+  catn("The 4 most important biovariables for precipitation are:", result$precipMain)
   
   fdir <- "./outputs/data_analysis/correlation/"
   
-  if (!dir.exists(fdir)) dir.create(fdir, recursive = T)
+  create_dir_if(fdir)
   
   # Write the results to CSV files
   fwrite(result, paste0(fdir, "important_biovars_all.csv"), bom = T)
@@ -107,8 +110,14 @@ important_biovars <- function(mat, threshold) {
   #fwrite(ind_res, paste0(fdir, "important_biovars_ind.csv"), bom = T)
 
   for (bio in rownames(ind_res)) {
-    cat("The 4 most important biovariables for", bio, "are:", paste(ind_res[bio, 1:4], collapse = ", "), "\n")
+    catn("The 4 most important biovariables for", bio, "are:", paste(ind_res[bio, 1:4], collapse = ", "))
   }
   
-  return(list(temp = temp_important, precip = precip_important, individual = ind_res))
+  vebcat("Important variables calculated successfully", color = "funSuccess")
+  
+  return(list(
+    temp = temp_important, 
+    precip = precip_important, 
+    individual = ind_res
+  ))
 }

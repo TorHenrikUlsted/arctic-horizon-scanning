@@ -1,5 +1,5 @@
 clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterations = NULL, verbose = F) {
-  cat(blue("Initiating chunk cleaning protocol. \n"))
+  vebcat("Initiating chunk cleaning protocol.", color = "funInit")
   
   # Get the list of all chunk files
   chunk_files <- list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)
@@ -27,12 +27,12 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
     
     # Check if the last iteration is the same as the total number of iterations
     if(last_iteration >= n_total) {
-      cat("This data has already been cleaned.\n")
-      return(cat(cc$lightGreen("Chunk cleaning protocol completed successfully. \n")))
+      catn("This data has already been cleaned.")
+      return(vebcat("Chunk cleaning protocol completed successfully.", color = "funSuccess"))
     }
   }
   
-  cat("Cleaning chunk files \n")
+  catn("Cleaning chunk files")
   cat(sprintf("%5s | %8s | %16s | %8s \n", "File", "n_data", "Total n_data", "Remaining"))
   
   j <- 1
@@ -64,12 +64,12 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
       try(err_log <- file(err_log, open = "at"))
       sink(err_log, type = "output")
       
-      cat("Error in iteration", i, ":", e$message, "\n")
+      catn("Error in iteration", i, ":", e$message)
       
       sink(type = "output")
       close(err_log)
     })
-  }
+  }; catn()
   
-  cat(cc$lightGreen("\nChunk cleaning protocol completed successfully. \n"))
+  vebcat("Chunk cleaning protocol completed successfully.", color = "funSuccess")
 }

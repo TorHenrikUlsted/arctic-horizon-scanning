@@ -1,8 +1,8 @@
 hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, hv.projection, verbose, iteration, proj.dir, lock_hv_dir, cores.max.high, warn, err) {
-  cat(blue("Initiating hypervolume sequence \n"))
+  vebcat("Initiating hypervolume sequence", color = "funInit")
   
   ## Inclusion test to eliminate obvious non-overlaps
-  cat("Computing inclusion analysis. \n")
+  catn("Computing inclusion analysis. \n")
   
   withCallingHandlers(
     {
@@ -13,17 +13,17 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       
       cat(sprintf("%15s | %15s | %20s \n", "n_observations", "n_dimensions", "log(n_observations)"))
       cat(sprintf("%15.4f | %15.4f | %20.4f \n", nobs, ndim, log(nobs)))
-      cat("Samples per point:", cc$lightSteelBlue(spp), "\n")
+      catn("Samples per point:", highcat(spp))
       
       if (log(nobs) <= ndim) {
-        cat("log(n_observations)", cc$lightSteelBlue(log(nobs)), "smaller than n_dimensions,", cc$lightSteelBlue(ndim), "excluding from further analysis. \n")
+        catn("log(n_observations)", highcat(log(nobs)), "smaller than n_dimensions,", highcat(ndim), "excluding from further analysis. \n")
         
         return(list(
           n_observations = nobs,
           n_dimensions = ndim,
           samples_per_point = spp,
           random_points = nrp,
-          excluded = T,
+          excluded = TRUE,
           analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
           included_sp = c(rep(TRUE, 0), rep(FALSE, nobs))
         ))
@@ -39,22 +39,28 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
         verbose = verbose
       )
       
-      invisible(gc())
+      vebcat("Inclusion analysis completed successfully", color = "funSuccess")
       
-      cat(cc$lightGreen("inclusion analysis completed successfully \n"))
+      catn(
+        "Number of TRUE / FALSE = OVERLAP values:", 
+        highcat(sum(included_sp == T)), 
+        "/", 
+        highcat(sum(included_sp == F)), 
+        "=", 
+        highcat(format(sum(included_sp == T) / length(included_sp), nsmall = 2, big.mark = ","))
+      )
       
-      cat("Number of TRUE / FALSE = OVERLAP values:", cc$lightSteelBlue(sum(included_sp == T)), "/", cc$lightSteelBlue(sum(included_sp == F)), "=", cc$lightSteelBlue(format(sum(included_sp == T) / length(included_sp), nsmall = 2, big.mark = ",")), "\n")
       if (any(included_sp == T)) {
-        cat(green("Included for further hypervolume analysis. \n"))
+        vebcat("Included for further hypervolume analysis.", color = "proSuccess")
       } else {
-        cat(red("Excluded from further hypervolume analysis. \n"))
+        vebcat("Excluded from further hypervolume analysis.", color = "nonFatalError")
         
         return(list(
           n_observations = nobs,
           n_dimensions = ndim,
           samples_per_point = spp,
           random_points = nrp,
-          excluded = T,
+          excluded = TRUE,
           analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
           included_sp = included_sp
         ))
@@ -64,8 +70,6 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
     error = function(e) err(e, err_txt = "Error when analyzing hypervolume inclusion in iteration")
   )
   
-  invisible(gc())
-  
   analysis_msg <- FALSE
   mm <- FALSE
   ml <- get_mem_usage("total", "gb") * 0.8
@@ -74,13 +78,13 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
     mc <- get_mem_usage("used", "gb")
     
     if (!analysis_msg) {
-      cat("The node has entered the hypervolume analysis queue... \n")
+      catn("The node has entered the hypervolume analysis queue...")
       analysis_msg <- TRUE
     }
     
     if (mc >= ml) {
       if (!mm) {
-        cat("The node waiting for more available RAM before initiating the hypervolume analysis. \n")
+        catn("The node waiting for more available RAM before initiating the hypervolume analysis.")
         mm <- TRUE
       }
       
@@ -102,10 +106,10 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
   
   analysis_msg <- FALSE
   
-  cat("The node has exited the queue. \n")
+  catn("The node has exited the queue.")
   
   ## If included, continue with hypervolume analysis
-  cat("Computing hypervolume analysis. \n")
+  catn("Computing hypervolume analysis.")
   withCallingHandlers(
     {
       sp_hv <- hypervolume(sp_mat, name = spec.name, method = method, verbose = T)
@@ -115,21 +119,17 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
     error = function(e) err(e, err_txt = "Error when analyzing hypervolume in iteration")
   )
   
-  invisible(gc())
-  
   withCallingHandlers(
     {
       analyzed_hv_stats <- analyze_hv_stats(region_hv, sp_hv, spec.name, verbose = T)
       
-      cat("Hypervolume Statistics", method, "\n")
-      print(analyzed_hv_stats)
+      vebprint(analyzed_hv_stats, text = "Hypervolume Statistics:")
       
-      if (1 - analyzed_hv_stats[[4]] > 0) {
-        cat(sp_hv@Name, green("Included for further hypervolume analysis. \n"))
-      } else {
-        cat(sp_hv@Name, red("Excluded from further hypervolume analysis. \n"))
+      # If the region is unique and does not overlap with any of the species
+      if (analyze_hv_stats[[4]] == 1) {
+        catn(sp_hv@Name, colcat("Excluded from further hypervolume analysis.", color = "nonFatalError"))
         
-        if (verbose) cat("Unlocking analysis lock. \n")
+        vebcat("Unlocking analysis lock.", veb = verbose)
         unlock(lock_analysis)
         
         return(list(
@@ -137,25 +137,26 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
           n_dimensions = ndim,
           samples_per_point = spp,
           random_points = nrp,
-          excluded = T,
+          excluded = TRUE,
           analyzed_hv_stats = analyzed_hv_stats,
           included_sp = included_sp
         ))
+      } else {
+        catn(sp_hv@Name, colcat("Included for further hypervolume analysis.", color = "proSuccess"))
       }
+      
     },
     warning = function(w) warn(w, warn_txt = "Warning when analyzing statistics in iteration"),
     error = function(e) err(e, err_txt = "Error when analyzing statistics in iteration")
   )
-  
-  invisible(gc())
   
   withCallingHandlers(
     {
       proj_dir <- paste0(proj.dir, "/", method, "/", spec.name)
       create_dir_if(proj_dir)
       
-      cat("Projecting inclusion analysis. \n")
-      cat("Using the", accuracy, "inclusion accuracy. \n")
+      catn("Projecting inclusion analysis.")
+      catn("Using the", accuracy, "inclusion accuracy.")
       ## Projections for inclusion
       for (threshold in proj.incl.t) {
         inc_project <- hypervolume_project(
@@ -164,51 +165,58 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
           type = "inclusion",
           fast.or.accurate = accuracy,
           accurate.method.threshold = quantile(sp_hv@ValueAtRandomPoints, threshold),
-          verbose = T
+          verbose = TRUE
         )
+        
         names(inc_project) <- ("inclusionScore")
+        
         if (hv.projection == "laea") {
-          cat("Reprojecting to laea. \n")
+          catn("Reprojecting to laea.")
           inc_proj <- terra::project(inc_project, crs(laea_crs), method="near")
-        } else cat("Keeping longlat projection. \n")
-        writeRaster(inc_project, paste0(proj_dir, "/inclusion-", threshold, ".tif"), overwrite = T)
+        } else catn("Keeping longlat projection.")
+        
+        out_file <- paste0(proj_dir, "/inclusion-", threshold, ".tif")
+        vebcat("Writing out raster file:", colcat(out_file), color = "output")
+        writeRaster(inc_project, out_file, overwrite = TRUE)
+        
         rm(inc_project)
         invisible(gc())
       }
       
       
-      cat("Projecting probability analysis. \n")
+      catn("Projecting probability analysis.")
       ## Projections for probability
       prob_proj <- hypervolume_project(sp_hv, biovars_region, type = "probability", verbose = T)
       
       names(prob_proj) <- ("suitabilityScore")
       
       if (hv.projection == "laea") {
-        cat("Reprojecting to laea. \n")
+        catn("Reprojecting to laea.")
         prob_proj <- terra::project(prob_proj, crs(laea_crs), method = "bilinear")
-      } else cat("Keeping the longlat projection. \n")
+      } else catn("Keeping the longlat projection.")
       
-      if (verbose) cat("Writing out raster file:", paste0(proj_dir, "/probability.tif"), "\n")
-      writeRaster(prob_proj, paste0(proj_dir, "/probability.tif"), overwrite = T)
+      out_file <- paste0(proj_dir, "/probability.tif")
+      vebcat("Writing out raster file:", colcat(out_file), color = "output")
+      writeRaster(prob_proj, out_file, overwrite = T)
     },
     warning = function(w) warn(w, warn_txt = "Warning when projecting hypervolume in iteration"),
     error = function(e) err(e, err_txt = "Error when projecting hypervolume in iteration")
   )
   
-  if (verbose) cat("Unlocking analysis lock. \n")
+  vebcat("Unlocking analysis lock.", veb = verbose)
   unlock(lock_analysis)
   
   rm(prob_proj)
   invisible(gc())
   
-  cat(cc$lightGreen("Hypervolume sequence completed successfully. \n\n"))
+  veb("Hypervolume sequence completed successfully.", color = "funSuccess")
   
   return(list(
     n_observations = nobs,
     n_dimensions = ndim,
     samples_per_point = spp,
     random_points = nrp,
-    excluded = F,
+    excluded = FALSE,
     analyzed_hv_stats = analyzed_hv_stats,
     included_sp = included_sp
   ))

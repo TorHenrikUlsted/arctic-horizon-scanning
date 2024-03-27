@@ -1,7 +1,7 @@
 syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, counter) {
 
   synonym_lists <-  lapply(names(wrangled_dfs), function(name) {
-    if (verbose) cat("Running synonym Check on", cc$lightSteelBlue(name), "\n")
+    vebcat("Running synonym Check on", highcat(name), veb = verbose)
     
     split_name <- strsplit(name, "_")[[1]]
     parent_folder <- split_name[1]
@@ -29,7 +29,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, coun
       
       
       if (any(is.na(sp_synonyms$scientificName))) {
-        cat(cc$lightCoral("Some scientificNames are NA. \n"))
+        vebcat("Some scientificNames are NA.", color = "nonFatalError")
         
         sp_synonyms_na <- sp_synonyms[is.na(sp_synonyms$scientificName), ]
         
@@ -37,15 +37,20 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, coun
         
         sp_synonyms <- sp_synonyms[!is.na(sp_synonyms$scientificName), ]
         
-        if (any(is.na(sp_synonyms$scientificName))) cat(cc$lightCoral("Failed at removing NA scientificNames. \n")) else cat(cc$lightGreen("Successfully removed NA scientificNames. \n"))
+        if (any(is.na(sp_synonyms$scientificName))) {
+          vebcat("Failed at removing NA scientificNames.", color = "nonFatalError")
+        } else {
+          vebcat("Successfully removed NA scientificNames.", color = "proSuccess")
+        } 
+        
       } else {
-        cat("The WFO.match result is clean. \n")
+        catn("The WFO.match result is clean.")
       }
       
       # Select best match and remove duplications
       sp_checked <- check_syn_wfo_one(sp_synonyms, paste0(out_dir, file_path))
       
-      if (verbose) cat("Renaming file to resources/synonym-checked folder. \n")
+      vebcat("Renaming file to resources/synonym-checked folder.", veb = verbose)
       old_name <- paste0(out_dir, "/", child_folder, "/wfo-one-uniq.csv")
       new_name <- paste0(cut_dir, "/", parent_folder, "-", child_folder, "-wfo-one.csv")
       file.rename(from = old_name, to = new_name)
@@ -53,7 +58,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, coun
       return(setNames(list(sp_checked), name))
       
     } else {
-      cat(cc$lightSteelBlue(name), "already synonym checked. \n")
+      catn(highcat(name), "already synonym checked.")
     }
 
   })

@@ -3,17 +3,20 @@ check_syn_wfo <- function(checklist, column, folder, max.cores, verbose, counter
     stop("The input data is not in the 'data.table' or 'data.frame' format.", print(class(checklist)))
   }
   
+  vebcat("Initiating WFO synonym check", color = "funInit")
+  
   max.cores <- min(nrow(checklist), max.cores)
   
-  cat("Running the WFO synonym check with column:", cc$aquamarine(column), "for table: \n")
+  catn("Running the WFO synonym check with column:", colcat(column, color = "indicator"), "for table:")
   print(head(checklist, 3))
   
-  cat("Analyzing: ", magenta(nrow(checklist)), "species using", magenta(max.cores),"cores. \n")
+  catn("Analyzing: ", highcat(nrow(checklist)), "species using", highcat(max.cores),"cores.")
   
   if (!exists("time.const", where = .GlobalEnv)) {
     time.const <- 3.5
     time.setup = 30
   }
+  
   eta <- (nrow(checklist) * time.const) / max.cores + time.setup
   
   # Convert the estimated time to days, hours, minutes, and seconds
@@ -23,11 +26,11 @@ check_syn_wfo <- function(checklist, column, folder, max.cores, verbose, counter
   seconds <- round(eta %% 60, 2)
   
   
-  cat(magenta(paste("Estimated wait time:", days, "days", hours, "hours", minutes, "minutes", round(seconds, 2), "seconds\n")))
+  vebcat(paste("Estimated wait time:", days, "days", hours, "hours", minutes, "minutes", round(seconds, 2), "seconds"), color = "timer")
 
   wfo_timer <- start_timer("wfo_match")
   
-  cat("Sorting into chunks. \n")
+  catn("Sorting into chunks.")
   
   n_seq_chunk <- ceiling(nrow(checklist) / max.cores)
   
@@ -38,12 +41,12 @@ check_syn_wfo <- function(checklist, column, folder, max.cores, verbose, counter
   
   chunks <- split(checklist, rep(1:max.cores, each = ceiling(nrow(checklist) / max.cores), length.out = nrow(checklist)))
   
-  cat("Running WFO.match in", cc$lightSteelBlue(length(chunks)), "chunks with", cc$lightSteelBlue(ceiling(nrow(checklist) / max.cores)), "species in each chunk. \n")
+  catn("Running WFO.match in", highcat(length(chunks)), "chunks with", highcat(ceiling(nrow(checklist) / max.cores)), "species in each chunk.")
   
   node_hv_dir <- paste0(folder, "/wfo-match-nodes")
   create_dir_if(node_hv_dir)
   
-  cat("WFO.match progress can be found at:", yellow(node_hv_dir), "\n")
+  catn("WFO.match progress can be found at:", colcat(node_hv_dir, color = "indicator"))
   
   cl <- makeCluster(max.cores)
   
@@ -71,8 +74,8 @@ check_syn_wfo <- function(checklist, column, folder, max.cores, verbose, counter
     try(log_file_out <- file(log_file_out, open = "at"))
     sink(log_file_out, type = "message")
     
-    cat("Chunk number", i, "\n")
-    cat("chunk length", nrow(chunk), "\n")
+    catn("Chunk number", i)
+    catn("chunk length", nrow(chunk))
     
     tryCatch({
       matched_list <- WFO.match(spec.data = chunk, spec.name = column, WFO.file = WFO_file, verbose = verbose, counter = counter)
@@ -81,7 +84,7 @@ check_syn_wfo <- function(checklist, column, folder, max.cores, verbose, counter
       cat(e)
     })
     
-    cat("Node finished. \n")
+    catn("Node finished.")
     
     sink(type = "message")
     sink(type = "output")
@@ -92,7 +95,7 @@ check_syn_wfo <- function(checklist, column, folder, max.cores, verbose, counter
     return(matched_list)
   })
   
-  cat("Finishing up \n")
+  catn("Finishing up.")
   
   stopCluster(cl)
   
@@ -104,7 +107,7 @@ check_syn_wfo <- function(checklist, column, folder, max.cores, verbose, counter
 
   end_timer(wfo_timer)
 
-  cat(cc$aquamarine("WFO synonym check completed \n"))
+  vebcat("WFO synonym check completed", color = "funSuccess")
   
   return(wfo_checklist)
 }

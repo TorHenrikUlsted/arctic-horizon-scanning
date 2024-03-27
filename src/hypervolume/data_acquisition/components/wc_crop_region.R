@@ -1,30 +1,39 @@
 wc_to_region <- function(biovars, region, projection, show_plot = F, verbose = T) {
   
-  if (verbose) cat(blue("Initiating WorldClim to region crop protocol. \n"))
+  vebcat("Initiating WorldClim to region crop protocol.", color = "funInit")
 
   biovarsMask <- list()
   
   for (i in 1:terra::nlyr(biovars)) {
     biovar <- biovars[[i]]
     if (!isTRUE(identical(crs(biovar), crs(region)))) {
-      if (verbose) cat(red("Crs not identical: \n"), "Biovars: ", as.character(crs(biovar, proj = T, describe = T)), "\n", "Region", as.character(crs(region, proj = T, describe = T)), "\n", "Making them identical...", "\n")
+      vebcat(colcat("Crs not identical: \n", color = "nonFatalError"), 
+             "Biovars: ", as.character(crs(biovar, proj = T, describe = T)), 
+             "\n", "Region", as.character(crs(region, proj = T, describe = T)), 
+             "\n", "Making them identical...", veb = verbose)
         
         if (projection == "longlat") {
           
-          if (verbose) cat("Projecting to longlat. \n")
+          vebcat("Projecting to longlat.", veb = verbose)
           region <- project(region, crs(biovar))
           
         } else if (projection == "laea") {
           
-          if (verbose) cat("Projecting to laea for Layer", cc$lightSteelBlue(i), "/", cc$lightSteelBlue(length(1:terra::nlyr(biovars))),  "\n")
+          vebcat("Projecting to laea for Layer", highcat(i), "/", highcat(length(1:terra::nlyr(biovars))), veb = verbose)
           
           biovar <- terra::project(biovar, laea_crs)
           
         } else {
           stop("Missing or wrong use of projection parameter.")
         }
-
-      if (verbose) cat(green("Crs made identical: \n"),"Biovars: ", as.character(crs(biovar, proj = T, describe = T)), "\n","Region", as.character(crs(region, proj = T, describe = T)), "\n")
+      
+      vebcat("Crs made identical:", color = "proSuccess", veb = verbose)
+      vebcat(
+        "Biovars: ", as.character(crs(biovar, proj = T)), 
+        "\n","Region", as.character(crs(region, proj = T)),
+        veb = verbose
+      )
+      
       } else {
         if (projection == "longlat") {
           region <- project(region, crs(biovar))
@@ -36,7 +45,7 @@ wc_to_region <- function(biovars, region, projection, show_plot = F, verbose = T
       }
 
     # Crop WorldClim data to region
-    if (verbose) cat("Cropping and masking", cc$lightSteelBlue(sub("wc2.1_2.5m_", "", as.character(names(biovar)))), "\n")
+    vebcat("Cropping and masking", highcat(sub("wc2.1_2.5m_", "", as.character(names(biovar)))), veb = verbose)
     crop <- crop(biovar, region)
     masked <- mask(crop, region)
     biovarsMask <- c(biovarsMask, list(masked))
@@ -46,15 +55,15 @@ wc_to_region <- function(biovars, region, projection, show_plot = F, verbose = T
 
   if (show_plot == T) {
     for (i in 1:terra::nlyr(biovarsMask)) {
-      if (verbose) cat(paste0("Plotting bio_", as.character(i)), "\n")
+      vebcat(paste0("Plotting bio_", as.character(i)), veb = verbose)
       # Plot each raster
       plot(biovarsMask[[i]], main = paste("Biovar", i))
     }
   } else {
-    if (verbose) cat("Plotting skipped \n")
+    vebcat("Plotting skipped.", veb = verbose)
   }
 
-  if (verbose) cat(cc$aquamarine("WorldClim to region cropping protocol completed successfully \n"))
+  vebcat("WorldClim to region cropping protocol completed successfully", color = "funSuccess")
 
   
   names(biovars) <- sub("wc2.1_2.5m_", "", (names(biovars)))

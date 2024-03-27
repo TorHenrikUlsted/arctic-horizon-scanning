@@ -1,28 +1,28 @@
 get_sp_list <- function(taxon, region, region.name, file.name, download.key, download.doi) {
-  cat(blue("Initiating download of GBIF species list based on region. \n"))
+  vebcat("Initiating download of GBIF species list based on region.", color = "funInit")
 
   download_path <- dirname(file.name)
   create_dir_if(download_path)
 
-  cat("Getting species within the", cc$lightSteelBlue(taxon), "taxon. \n")
+  catn("Getting species within the", highcat(taxon), "taxon.")
 
   taxon_key <- name_backbone(taxon)$usageKey
 
   if(!is.null(region.name)) {
-    cat("Applying the", cc$lightSteelBlue(region.name), "region. \n")
+    catn("Applying the", highcat(region.name), "region.")
   } else {
-    cat("Region will NOT be applied. \n")
+    catn("Region will NOT be applied.")
   }
 
   out <- NULL
 
   if (is.null(download.key) & is.null(download.doi)) {
-    cat("No download Key or download.doi found \n")
+    catn("No download Key or download.doi found")
 
     u_input <- readline("Queue occurence download? Press [ENTER] to continue or [ESC] to exit.")
 
     if (u_input == "") {
-      cat("Creating occucrence queue \n")
+      catn("Creating occucrence queue.")
 
       predicates <- list(
         pred_in("taxonKey", taxon_key),
@@ -42,44 +42,44 @@ get_sp_list <- function(taxon, region, region.name, file.name, download.key, dow
 
       tryCatch(
         {
-          cat("Queueing download \n")
+          catn("Queueing download.")
           ## check status
           occ_download_wait(out)
           ## get the download Data and import to create dataframe
           gbif_sp_list <- occ_download_get(out, path = download_path, overwrite = T)
         },
         error = function(e) {
-          cat(red("Error when trying to get download. \n"))
+          vebcat("Error when trying to get download.", color = "fatalError")
           stop(e)
         }
       )
     } else {
-      stop("Process cancelled by user. \n")
+      stop("Process cancelled by user.")
     }
   } else {
-    if (!is.null(download.key)) cat("Downlad key found. \n")
-    if (!is.null(download.doi)) cat("download.doi found. \n")
+    if (!is.null(download.key)) catn("Downlad key found.")
+    if (!is.null(download.doi)) catn("download.doi found.")
     
     file_key <- paste0(download_path, "/", download.key, ".zip")
 
     tryCatch(
       {
         if (!file.exists(paste0(file.name, ".csv"))) {
-          cat("CSV file not found. \n")
+          catn("CSV file not found.")
           if (!file.exists(file_key)) {
-            cat("ZIP file not found. \n")
-            cat("Trying to install using download key", cc$lightSteelBlue(download.key), "\n")
+            catn("ZIP file not found.")
+            catn("Trying to install using download key", highcat(download.key))
             out <- occ_download_get(download.key, path = download_path, overwrite = TRUE)
           }
         } else {
-          cat("CSV file found. \n")
-          cat(cc$lightGreen("GBIF species list downloaded successfully. \n"))
+          catn("CSV file found.")
+          vebcat("GBIF species list downloaded successfully.", funSuccess)
           return(gbif_sp_list = fread(paste0(file.name, ".csv")))
         }
         
       },
       error = function(e) {
-        cat("Error when trying to install using download key. \n")
+        catn("Error when trying to install using download key.")
         stop(e)
       }
     )
@@ -89,7 +89,7 @@ get_sp_list <- function(taxon, region, region.name, file.name, download.key, dow
     {
       if (!file.exists(paste0(file.name, ".csv"))) {
         
-        cat("Unzipping GBIF file. \n")
+        catn("Unzipping GBIF file.")
 
         unzip(file_key, exdir = download_path)
 
@@ -99,26 +99,26 @@ get_sp_list <- function(taxon, region, region.name, file.name, download.key, dow
 
         csv <- paste0(file.name, ".csv")
 
-        cat("Reading GBIF CSV. \n")
+        catn("Reading GBIF CSV.")
         gbif_sp_list <- fread(csv, sep = "\t")
 
-        cat("Sample of data table: \n")
+        catn("Sample of data table:")
         print(head(gbif_sp_list, 3))
 
         gbif_sp_list <- set_df_utf8(gbif_sp_list)
 
         fwrite(gbif_sp_list, paste0(file.name, ".csv"), bom = T)
 
-        cat(cc$lightGreen("GBIF species list downloaded successfully. \n"))
+        vebcat("GBIF species list downloaded successfully.", color = "funSuccess")
 
         return(gbif_sp_list)
       }
     },
     error = function(e) { # 3
-      cat(red("Error when unzipping GBIF ZIP file:", e$message, "\n"))
+      vebcat("Error when unzipping GBIF ZIP file:", e$message, color = "nonFatalError")
       
       if (!file.exists(paste0(file.name, ".zip"))) {
-        cat("GBIF ZIP file not found. \n")
+        catn("GBIF ZIP file not found.")
         message("Taking you to the online site... ")
         Sys.sleep(3)
         browseURL(download.doi)

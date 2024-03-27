@@ -11,11 +11,13 @@ custom_colors <- function() {
   deepSkyBlue <- make_style("#00BFFF")
   dodgerBlue <- make_style("#1E90FF")
   timer <- make_style("#874949")
+  darkKhaki <- make_style("#BDB76B")
   
   return(
     list(
-      paleTurquoise = paleTurquoise,
+      indicator = paleTurquoise,
       debugLight = aquamarine,
+      output = darkKhaki,
       seqInit = dodgerBlue,
       funInit = deepSkyBlue,
       proInit = lightSkyBlue,

@@ -1,5 +1,7 @@
 select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combine = NULL, pattern = "*.csv", verbose = F) {
   
+  catn("Selecting WFO column")
+  
   # Check if filepath is a directory or a specific file
   if (file.info(filepath)$isdir) {
     csv_files <- list.files(path = filepath, pattern = "*.csv", full.names = TRUE)
@@ -12,18 +14,18 @@ select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combi
     df <- fread(file)
     
     if (is.vector(col.unique) && length(col.unique) > 1) {
-      if (verbose) cat("\nFound vector more than 1 in length, combining columns:", cc$lightSteelBlue(col.unique), ".\n")
+      vebcat("\nFound vector more than 1 in length, combining columns:", highcat(col.unique), veb = verbose)
       df$refinedScientificName <- apply(df[, ..col.unique, drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " "))
       df$refinedScientificName <- trimws(df$refinedScientificName)
       col.unique <- "refinedScientificName"
     }
     
     if (!is.null(col.select)) {
-      if (verbose) cat("Selecting the", cc$lightSteelBlue(col.select), "column(s) and using", cc$lightSteelBlue(col.unique), "as the unique column. \n")
+      vebcat("Selecting the", highcat(col.select), "column(s) and using", highcat(col.unique), "as the unique column.", veb = verbose)
       df_sel <- df %>% 
         select(all_of(c(col.select, col.unique)))
     } else {
-      if (verbose) cat("Using the", col.unique, "as unique column. \n")
+      vebcat("Using the", col.unique, "as unique column.", veb = verbose)
       df_sel <- df %>% 
         select(all_of(col.unique))
     }
@@ -32,10 +34,10 @@ select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combi
     
     n_orig <- nrow(df_sel)
     n_uniq <- nrow(df_uniq)
-    cat("\nList:", cc$lightSteelBlue(sub("-wfo-one.csv$", "", basename(file))), "\n")
+    catn("\nList:", highcat(sub("-wfo-one.csv$", "", basename(file))))
     cat(sprintf("%-10s | %s \n", "n_species", "unique(n_species)"))
-    cat(cc$lightSteelBlue(sprintf("%-10d | %d \n", n_orig, n_uniq)))
-    cat("\n")
+    cat(highcat(sprintf("%-10d | %d \n", n_orig, n_uniq)))
+    catn()
     
     return(df_uniq)
   })

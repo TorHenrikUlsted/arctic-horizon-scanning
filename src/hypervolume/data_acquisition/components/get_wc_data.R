@@ -1,6 +1,7 @@
 get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", version = "2.1", show.plot = F, verbose = F) {
   biovars <- list()
-  if (verbose) cat("Checking if files exist \n")
+  catn("Getting World Clim data.")
+  vebcat("Checking if files exist.", veb = verbose)
   # Check if all 19 biovariables are present, if not install
   for (i in 1:19) {
     dir_path <- paste0(path, "/wc", version, "_", res, "m/")
@@ -8,13 +9,13 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
     zip_file <- paste0(dir_path, "wc2.1_", res, "m_", var, ".zip")
     
     if (!file.exists(file_name)) {
-      cat(red(file_name, " is missing from the WorldClim data, looking for zip file... \n"))
+      vebcat(file_name, " is missing from the WorldClim data, looking for zip file...", color = "nonFatalError")
       
       if (!file.exists(zip_file)) {
-        cat("Could not find zip file, trying to download... \n")
+        catn("Could not find zip file, trying to download...")
  
       } else {
-        cat("Zip file located, unzipping... \n")
+        catn("Zip file located, unzipping...")
         unzip(zip_file, exdir = dir_path)
       }
       
@@ -23,17 +24,17 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
           r <- worldclim_global(var, res, path, version)
           
           if (!is.null(r)) {
-            cat(green("WorldClim data downloaded successfully. \n"))
+            vebcat("WorldClim data downloaded successfully.", color = "proSuccess")
             biovars[[length(biovars) + 1]] <- r
           } else {
-            cat(red("Failed to download worldClim data, is the server down? \n"))
+            vebcat("Failed to download worldClim data, is the server down?", color = "fatalError")
             message("Taking you to the site...")
             browseURL("https://www.worldclim.org/data/worldclim21.html")
             stop("Stopping, download failed")
           }
         },
         error = function(e) {
-          cat(red("Failed to download worldClim data \n"))
+          vebcat("Failed to download worldClim data", color = "fatalError")
           stop("Stopping, download failed")
         }
       )
@@ -45,12 +46,12 @@ get_wc_data = function(var = "bio", res = 2.5, path = "./resources/region", vers
   
   if (show.plot == T) {
     for (i in 1:length(biovars)) {
-      if (verbose) cat(paste0("Plotting bio_", as.character(i)), "\n")
+      vebcat(paste0("Plotting bio_", as.character(i)), veb = verbose)
       # Plot each raster
       plot(biovars[[i]], main = paste("Biovar", i))
     }
   } else {
-    if (verbose) cat("Plotting skipped \n")
+    vebcat("Plotting skipped.", veb = verbose)
   }
   
   biovars <- terra::rast(biovars)

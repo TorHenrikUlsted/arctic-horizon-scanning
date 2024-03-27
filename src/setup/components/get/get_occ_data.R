@@ -1,37 +1,29 @@
 get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key = NULL, download.doi = NULL) {
-  cat(blue("Initiating GBIF occurrence record download. \n"))
+  vebcat("Initiating GBIF occurrence record download.", color = "funInit")
 
   download_path <- dirname(file.name)
   create_dir_if(download_path)
 
   species_codes <- species_w_keys$usageKey
-
-  sp_na <- any(is.na(species_codes))
-
-  if (sp_na == T) {
-    cat(red("NA keys found, removing", cc$lightSteelBlue(length(which(sp_na))), "species. \n"))
-    species_codes <- species_codes[!is.na(species_codes)]
-  } else if (any(species_codes) == "") {
-    cat("Blank keys found, removing",  cc$lightSteelBlue(length(which(species_codes == ""))), "\n")
-    species_codes <- species_codes[species_codes != ""]
-  } else {
-    cat(cc$lightGreen("No blank keys, nor NAs found. \n"))
-  }
-
-  cat("Final number of species keys:", cc$lightSteelBlue(length(species_codes)), "\n")
-  cat("Species codes str: \n")
-  str(species_codes)
-
+  
+  catn("Number of species keys:", highcat(length(species_codes)))
+  vebprint(str(species_codes), text = "Species keys str:")
+  
   out <- NULL
 
   if (is.null(download.key) & is.null(download.doi)) {
-    cat(cc$aquamarine("No"), "download Key nor doi found \n")
-    if (is.null(region)) cat("Region is", cc$aquamarine("not"), "being applied. \n") else cat("Region", cc$aquamarine("is"), "being applied. \n")
+    catn(colcat("No", color = "indicator"), "download Key nor doi found.")
+    
+    if (is.null(region)) {
+      catn("Region is", colcat("not", color = "indicator"), "being applied.")
+    }  else {
+      catn("Region", colcat("is", color = "indicator"), "being applied. \n")
+    } 
 
     u_input <- readline("Queue occurence download? Press [ENTER] to continue or [ESC] to exit.")
 
     if (u_input == "") {
-      cat("Creating occucrence queue \n")
+      catn("Creating occucrence queue.")
 
       predicates <- list(
         pred_in("taxonKey", species_codes),
@@ -51,7 +43,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
 
       tryCatch(
         {
-          cat("Queueing download \n")
+          catn("Queueing download.")
           ## check status
           occ_download_wait(out)
           ## get the download Data and import to create dataframe
@@ -59,76 +51,75 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
           
           download.key <- gbif_occ_file$keyname
 
-          cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
+          vebcat("GBIF occurrences Successfully downloaded.", color = "funSuccess")
         },
         error = function(e) {
-          cat(red("An error has occurred: ", e$message, "\n"))
+          vebcat("An error has occurred: ", e$message, color = "nonFatalError")
         }
       )
     } else {
       stop("Process cancelled by user. \n")
     }
   } else {
-    if (!is.null(download.key)) cat("Downlad key found. \n")
-    if (!is.null(download.doi)) cat("Doi found. \n")
+    if (!is.null(download.key)) catn("Downlad key found.")
+    if (!is.null(download.doi)) catn("Doi found.")
   }
 
   tryCatch(
     {
       if (!file.exists(paste0(file.name, ".csv"))) {
         if (file.exists(paste0(download_path, "/", download.key, ".zip"))) {
-          cat("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found. \n")
+          catn("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found.")
         } else if (!file.exists(paste0(file.name, ".zip"))) {
           message("Trying to install by download key... ")
-          cat("Using download key:", download.key, "\n")
+          catn("Using download key:", download.key)
           out <- occ_download_get(download.key, path = download_path, overwrite = TRUE)
         } else {
-          cat("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found. \n")
+          catn("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found.")
         }
 
-        cat("Unzipping GBIF file. \n")
+        catn("Unzipping GBIF file.")
 
         unzip(paste0(download_path, "/", download.key, ".zip"), exdir = download_path)
 
         csv <- paste0(download_path, "/", download.key, ".csv")
         
-        cat("Renaming CSV file. \n")
+        catn("Renaming CSV file.")
 
         file.rename(from = csv, to = paste0(file.name, ".csv"))
         
         csv <- paste0(file.name, ".csv")
 
-        cat("Reading GBIF CSV. \n")
+        catn("Reading GBIF CSV.")
         gbif_occ_df <- fread(csv)
-
-        cat("Sample of data table: \n")
-        print(head(gbif_occ_df, 3))
+        
+        vebprint(head(gbif_occ_df, 3), text = "Sample of data table:")
 
         gbif_occ_df <- set_df_utf8(gbif_occ_df)
 
         fwrite(gbif_occ_df, paste0(file.name, ".csv"), bom = T)
 
-        cat(cc$lightGreen("GBIF occurrences Successfully downloaded. \n"))
+        vebcat("GBIF occurrences Successfully downloaded.", color = "funSuccess")
 
         return(gbif_occ_df)
       } else {
-        cat("GBIF Occurrence data found from", cc$lightSteelBlue(paste0(file.name, ".csv")), ".\n")
+        catn("GBIF Occurrence data found from", highcat(paste0(file.name, ".csv")))
         
         size <- file.size(paste0(file.name, ".csv")) / 1024^3 
         size <- round(size, digits = 2)
-        cat("File size:", cc$lightSteelBlue(size), "GB. \n")
+        catn("File size:", highcat(size), "GB.")
         
         if (size <= 5) {
-          cat("File size smaller than 5 GB, reading file... \n")
+          catn("File size smaller than 5 GB, reading file...")
           gbif_occ_df <- fread(paste0(file.name, ".csv"))
           return(gbif_occ_df)
         } else {
-          cat(cc$aquamarine("File size very big, using file chunking method. \n"))
+          vebcat("File size very big, using file chunking method.", color = "indicator")
         }
       }
     },
     error = function(e) { # 3
-      cat(red("An error has occurred: ", e$message, "\n"))
+      vebcat("An error has occurred: ", e$message, color = "nonFatalError")
 
       message("Taking you to the online site... ")
       browseURL(download.doi)
