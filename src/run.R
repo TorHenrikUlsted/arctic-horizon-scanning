@@ -1,6 +1,6 @@
 source("./src/utils/utils.R")
-source("./src/setup/setup.R")
-source("./src/filter/filter.R")
+source("./src/setup/setup_sequence.R")
+source("./src/filter/filter_sequence.R")
 source("./src/hypervolume/data_acquisition/data_acquisition.R")
 source("./src/hypervolume/data_analysis/data_analysis.R")
 source("./src/hypervolume/data_processing/data_processing.R")

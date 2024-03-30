@@ -73,7 +73,7 @@ get_sp_list <- function(taxon, region, region.name, file.name, download.key, dow
           }
         } else {
           catn("CSV file found.")
-          vebcat("GBIF species list downloaded successfully.", funSuccess)
+          vebcat("GBIF species list downloaded successfully.", color = "funSuccess")
           return(gbif_sp_list = fread(paste0(file.name, ".csv")))
         }
         
@@ -125,4 +125,48 @@ get_sp_list <- function(taxon, region, region.name, file.name, download.key, dow
       }
     }
   )
+}
+
+filter_gbif_list <- function(gbif_sp_list) {
+  catn("Filtering sp list.")
+  
+  gbif_filtered <- gbif_sp_list %>% 
+    dplyr::filter(taxonRank %in% c("SPECIES", "SUBSPECIES", "VARIETY", "FORM", "UNRANKED"))
+  
+  gbif_sp_scientificName <- data.table(
+    species = gbif_filtered$species, 
+    scientificName = gbif_filtered$scientificName
+  )
+  
+  if (any(is.na(gbif_sp_scientificName))) {
+    vebcat("Some species are NA, removing...", color = "nonFatalError")
+    gbif_sp_scientificName <- data.table(
+      gbif_sp_scientificName[!is.na(rowSums(gbif_sp_scientificName)), ]
+    )
+    
+    if (any(is.na(gbif_sp_scientificName))) {
+      vebcat("Failed to remove NA values.", color = "nonFatalError")
+    } else {
+      vebcat("NAs removed successfully.", color = "proSuccess")
+    }
+  } else {
+    vebcat("No NAs found.", color = "proSuccess")
+  }
+  
+  if (any(gbif_sp_scientificName == "")) {
+    vebcat("Some species are blank, removing...", color = "nonFatalError")
+    gbif_sp_scientificName <- data.table(
+      gbif_sp_scientificName[rowSums(gbif_sp_scientificName != "") > 0, ]
+    )
+    
+    if (any(is.na(gbif_sp_scientificName))) {
+      vebcat("Failed to remove blank values.", color = "nonFatalError")
+    } else {
+      vebcat("blank values removed successfully.", color = "proSuccess")
+    }
+  } else {
+    vebcat("No blank values found.", color = "proSuccess")
+  }
+  
+  return(gbif_sp_scientificName)
 }

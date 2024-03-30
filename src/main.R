@@ -1,7 +1,20 @@
+setup_sequence(
+  cores.max = total_cores,
+  verbose = FALSE
+)
+
 sp_dir <- filter_sequence(
+  # The function used to get species known in the region
+  spec.known = filter_arctic, 
+  # this function uses the spec.known to remove from spec.unknown
+  spec.unknown = filter_glonaf,
+  column = "scientificName",
   test = NULL,
-  cores.max = 12,
-  verbose = T
+  cores.max = total_cores,
+  region = NULL,
+  download.key = NULL,
+  download.doi = NULL,
+  verbose = TRUE
   )
 
 # Get file_names as a list
