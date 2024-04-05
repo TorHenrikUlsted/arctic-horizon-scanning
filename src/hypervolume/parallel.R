@@ -1,4 +1,4 @@
-hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
+hypervolume_sequence <- function(region, climate.var = "bio", climate.res = 2.5,spec.list, method, accuracy, hv.dims, hv.projection, proj.incl.t, iterations = NULL, cores.max.high = 1, cores.max = 1, min.disk.space, hv.dir, show.plot = F, verbose = T) {
   on.exit(closeAllConnections())
   
   vebcat("Initiating hypervolume sequence", color = "seqInit")
@@ -156,7 +156,23 @@ hypervolume_sequence <- function(spec.list, method, accuracy, hv.dims, hv.projec
       mem_used_gb <- get_mem_usage(type = "used", format = "gb")
     }
     
-    node_processing(j, spec.list, proj.incl.t, method, accuracy, hv.dims, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose)
+    node_processing(
+      j, 
+      region = region, 
+      climate.var = climate.var, 
+      climate.res = climate.res, 
+      spec.list = spec.list, 
+      proj.incl.t = proj.incl.t, 
+      method = method, 
+      accuracy = accuracy, 
+      hv.dims = hv.dims, 
+      hv.projection = hv.projection, 
+      cores.max.high = cores.max.high, 
+      min.disk.space = min.disk.space, 
+      hv.dir = hv.dir, 
+      show.plot = show.plot, 
+      verbose = verbose
+    )
     
   })
 

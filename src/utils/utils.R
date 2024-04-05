@@ -39,7 +39,7 @@ source("./src/utils/components/check_updates.R")
 updated <- check_updates(pkgs)
 
 if (updated) {
-  cat(yellow("Session needs to be restarted due to package updates or installations.\n"))
+  warning("Session needs to be restarted due to package updates or installations.\n")
   
   # Check if rstudioapi is available
   if ("package:rstudioapi" %in% search()) {
@@ -69,8 +69,8 @@ source("./src/utils/components/helper_functions.R")
 cat("Loading time tracker. \n")
 source("./src/utils/components/time_tracker.R")
 
-cat("Loading create if. \n")
-source("./src/utils/components/create_if.R")
+cat("Loading file_managers. \n")
+source("./src/utils/components/file_managers.R")
 
 cat("Loading lock_file. \n")
 source("./src/utils/components/lock_handlers.R")
@@ -80,7 +80,7 @@ source("./src/utils/components/conversion.R")
 
 cat("Setting up loaders. \n")
 source("./src/utils/components/loader.R")
-load_wfo()
+WFO_file <- load_wfo()
 
 cat("Setting up config. \n")
 source("./src/utils/components/config.R")

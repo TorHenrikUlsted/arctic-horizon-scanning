@@ -1,8 +1,35 @@
+setup_sequence(
+  hv.method = "box",
+  hv.accuracy = "accurate", 
+  hv.incl.t = 0.5,
+  hv.dims = c(18, 10, 3, 4),
+  cores.max = total_cores,
+  verbose = FALSE
+)
+
 sp_dir <- filter_sequence(
-  test = NULL,
-  cores.max = 12,
-  verbose = T
+  # The function used to get species known in the region
+  spec.known = filter_arctictest, 
+  # this function uses the spec.known to remove from spec.absent
+  spec.unknown = filter_glonaftest,
+  test = "small",
+  column = "scientificName",
+  coord.uncertainty = as.numeric(readLines("./outputs/hypervolume/data_acquisition/logs/coordinateUncertainty-m.txt")),
+  cores.max = total_cores,
+  region = NULL,
+  download.key = NULL,
+  download.doi = NULL,
+  verbose = FALSE
   )
+
+t <- fread("resources/manual-edit/wfo-nomatch-edited.csv")
+names(t) <- c("1", "scientificName", "3", "4", "5")
+t$combined <- t[, do.call(paste, c(.SD, sep = " ")), .SDcols = c("scientificName", "3")]
+names(t) <- c("1", "2", "3", "4", "5", "scientificName")
+
+s <- remove_authorship(t)
+print(s)
+
 
 # Get file_names as a list
 catn("Listing files in the directory:", highcat(sp_dir))
@@ -31,6 +58,9 @@ vebprint(max_cores$low, text = "Low load cores input into the Hypervolume sequen
 
 # Run the data_acquisition here instead of inside each node.
 hypervolume_sequence(
+  region = "./resources/region/cavm-noice/cavm-noice.shp",
+  climate.var = "bio",
+  climate.res = 2.5,
   spec.list = sp_list, # list of strings
   method = "box", #box approx 13 min, gaussian 1 hours 10 minutes
   accuracy = "accurate",

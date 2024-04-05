@@ -21,6 +21,8 @@ load_wfo <- function() {
   } else {
     WFO_file <- "./resources/wfo/classification.csv"
   }
+  
+  return(WFO_file)
 }
 
 load_wwf_ecoregions <- function() {
@@ -60,4 +62,41 @@ load_wwf_ecoregions <- function() {
   } else {
     cat("WWF Ecoregions found. \n")
   }
+}
+
+load_region <- function(region.file, verbose = FALSE) {
+  vebcat("Loading region", color = "funInit")
+  
+  if (!is.character(region.file)) {
+    vebcat("Region is not a filepath.", color = "fatalError")
+    stop()
+  }
+  
+  # Load the file using either rast or vect based on the file extension
+  if (grepl("\\.shp$", region.file)) {
+    region <- terra::vect(region.file)
+  } else if (grepl("\\.tif$", region.file) || grepl("\\.nc$", region.file)) {
+    region <- terra::rast(region.file)
+  } else {
+    stop("Unsupported file type", region.file)
+  }
+  
+  # Get and print the extent
+  ext_region <- ext(region)
+  original_crs <- crs(region, proj = TRUE)
+  
+  ext_region_printable <- as.vector(ext_region)
+  vebcat("Extent of region:", ext_region_printable, veb = verbose)
+  
+  # Check the original CRS
+  vebcat("Original CRS: ", original_crs, veb = verbose)
+  
+  # If the original CRS is not correctly defined, define it
+  if (is.na(original_crs) || original_crs == "") {
+    vebcat("Found blank or na crs. Needs manual processing", color = "nonFatalError")
+  }
+  
+  vebcat("Regions imported successfully", color = "funSuccess")
+  
+  return(region)
 }

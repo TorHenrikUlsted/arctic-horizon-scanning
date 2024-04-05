@@ -1,39 +1,53 @@
-hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, proj.incl.t, accuracy, hv.projection, verbose, iteration, proj.dir, lock_hv_dir, cores.max.high, warn, err) {
+hv_analysis <- function(sp_mat, method, spec.name, proj.incl.t, accuracy, hv.projection, iteration, proj.dir, lock_hv_dir, cores.max.high, verbose) {
   vebcat("Initiating hypervolume sequence", color = "funInit")
+  
+  catn("Reading raster files.")
+  biovars_region <- rast(".outputs/setup/region/biovars-region-subset.tif")
+  
+  region_hv <- rast(paste0(".outputs/setup/region/hypervolume-", method, ".rds"))
+  
+  # Remove those with too few observations
+  # Determined by the log(observations) being less than number of dimensions
+  catn("Analyzing for curse of dimensionality. \n")
+  
+  withCallingHandlers({
+    nobs <- nrow(sp_mat)
+    ndim <- ncol(sp_mat)
+    spp <- ceiling((10^(3 + sqrt(ndim))) / nobs)
+    nrp <- spp * nobs
+    
+    cat(sprintf("%15s | %15s | %20s \n", "n_observations", "n_dimensions", "log(n_observations)"))
+    cat(sprintf("%15.4f | %15.4f | %20.4f \n", nobs, ndim, log(nobs)))
+    catn("Samples per point:", highcat(spp))
+    
+    if (log(nobs) <= ndim) {
+      catn("log(n_observations)", highcat(log(nobs)), "smaller than n_dimensions,", highcat(ndim), "excluding from further analysis. \n")
+      
+      return(list(
+        n_observations = nobs,
+        n_dimensions = ndim,
+        samples_per_point = spp,
+        random_points = nrp,
+        excluded = TRUE,
+        analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
+        included_sp = c(rep(TRUE, 0), rep(FALSE, nobs))
+      ))
+    }
+  },
+  warning = function(w) warn(w, warn_txt = "Warning when analyzing curse of dimensionality", iteration = j),
+  error = function(e) err(e, err_txt = "Error when analyzing curse of dimensionality", iteration = j)
+  )
   
   ## Inclusion test to eliminate obvious non-overlaps
   catn("Computing inclusion analysis. \n")
   
   withCallingHandlers(
     {
-      nobs <- nrow(sp_mat)
-      ndim <- ncol(sp_mat)
-      spp <- ceiling((10^(3 + sqrt(ndim))) / nobs)
-      nrp <- spp * nobs
-      
-      cat(sprintf("%15s | %15s | %20s \n", "n_observations", "n_dimensions", "log(n_observations)"))
-      cat(sprintf("%15.4f | %15.4f | %20.4f \n", nobs, ndim, log(nobs)))
-      catn("Samples per point:", highcat(spp))
-      
-      if (log(nobs) <= ndim) {
-        catn("log(n_observations)", highcat(log(nobs)), "smaller than n_dimensions,", highcat(ndim), "excluding from further analysis. \n")
-        
-        return(list(
-          n_observations = nobs,
-          n_dimensions = ndim,
-          samples_per_point = spp,
-          random_points = nrp,
-          excluded = TRUE,
-          analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
-          included_sp = c(rep(TRUE, 0), rep(FALSE, nobs))
-        ))
-      }
-      
       included_sp <- hypervolume_inclusion_test(
         region_hv,
         sp_mat,
         reduction.factor = 1,
-        fast.or.accurate = "accurate",
+        fast.or.accurate = accuracy,
         fast.method.distance.factor = 1,
         accurate.method.threshold = quantile(region_hv@ValueAtRandomPoints, 0.5),
         verbose = verbose
@@ -66,8 +80,8 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
         ))
       }
     },
-    warning = function(w) warn(w, warn_txt = "Warning when analyzing hypervolume inclusion in iteration"),
-    error = function(e) err(e, err_txt = "Error when analyzing hypervolume inclusion in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when analyzing hypervolume inclusion", iteration = j),
+    error = function(e) err(e, err_txt = "Error when analyzing hypervolume inclusion", iteration = j)
   )
   
   analysis_msg <- FALSE
@@ -115,8 +129,8 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       sp_hv <- hypervolume(sp_mat, name = spec.name, method = method, verbose = T)
       
     },
-    warning = function(w) warn(w, warn_txt = "Warning when analyzing hypervolume in iteration"),
-    error = function(e) err(e, err_txt = "Error when analyzing hypervolume in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when analyzing hypervolume", iteration = j),
+    error = function(e) err(e, err_txt = "Error when analyzing hypervolume", iteration = j)
   )
   
   withCallingHandlers(
@@ -146,8 +160,8 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       }
       
     },
-    warning = function(w) warn(w, warn_txt = "Warning when analyzing statistics in iteration"),
-    error = function(e) err(e, err_txt = "Error when analyzing statistics in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when analyzing statistics", iteration = j),
+    error = function(e) err(e, err_txt = "Error when analyzing statistics", iteration = j)
   )
   
   withCallingHandlers(
@@ -199,8 +213,8 @@ hv_analysis <- function(sp_mat, biovars_region, region_hv, method, spec.name, pr
       vebcat("Writing out raster file:", colcat(out_file), color = "output")
       writeRaster(prob_proj, out_file, overwrite = T)
     },
-    warning = function(w) warn(w, warn_txt = "Warning when projecting hypervolume in iteration"),
-    error = function(e) err(e, err_txt = "Error when projecting hypervolume in iteration")
+    warning = function(w) warn(w, warn_txt = "Warning when projecting hypervolume", iteration = j),
+    error = function(e) err(e, err_txt = "Error when projecting hypervolume", iteration = j)
   )
   
   vebcat("Unlocking analysis lock.", veb = verbose)
