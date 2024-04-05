@@ -11,6 +11,14 @@ mollweide_crs <- crs("+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS8
 stere_crs <- crs("+proj=stere +lon_0=-45 +lat_0=90 +k=1 +R=6378273 +no_defs")
 
 #################
+#    Climate    #
+#################
+
+climate.var = "bio"
+
+climate.res = 2.5
+
+#################
 #    Memory     #
 #################
 
@@ -32,9 +40,15 @@ infraEpithet_designations <- c(
 )
 
 standard_infraEpithets <- c(
-  "ssp." = "subsp.", 
+  "ssp." = "subsp.", # the right side is the wanted standard
   "var." = "var.", 
   "f." = "f."
 )
 
-expected_wrangle_output <- 7
+ignored_designations <- c(
+  "aff.", # For species with affinity to another one (uncertain)
+  "agg.",  # aggregated species, no need for this word at the end
+  "s. lat.", # sensu lato --> species + lower taxon level
+  "coll.", # collection, do not need this word
+  "sp." # for species that are uncertain and only have author name after
+)

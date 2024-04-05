@@ -1,4 +1,4 @@
-filter_glonaf = function(spec.known, dfs, verbose = FALSE) {
+filter_glonaf = function(spec.present, dfs, verbose = FALSE) {
   ##############
   # Initialize
   ##############
@@ -18,7 +18,7 @@ filter_glonaf = function(spec.known, dfs, verbose = FALSE) {
     spec.out = "Glonaf Present",
     fun = function() {
       # First merge to only get species from both dfs
-      glonaf_present <- merge(glonaf_species, spec.known$present, by = column)
+      glonaf_present <- merge(glonaf_species, spec.present$present, by = column)
       
       return(glonaf_present)
     })
@@ -31,10 +31,10 @@ filter_glonaf = function(spec.known, dfs, verbose = FALSE) {
     spec.in = glonaf_species,
     spec.out = "Glonaf Absent",
     fun = function() {
-      glonaf_absent <-  dplyr::anti_join(glonaf_species, spec.known$present, by = column)
+      glonaf_absent <-  dplyr::anti_join(glonaf_species, spec.present$present, by = column)
       
       # Remove species in the absent list as well, and move those to the boreal species
-      glonaf_absent <-  dplyr::anti_join(glonaf_species, spec.known$absent, by = column)
+      glonaf_absent <-  dplyr::anti_join(glonaf_absent, spec.present$absent, by = column)
       
       return(glonaf_absent)
     })

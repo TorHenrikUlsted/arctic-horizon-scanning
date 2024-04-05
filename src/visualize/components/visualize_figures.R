@@ -275,7 +275,46 @@ visualize_sankey <- function(dt, taxon, level, plot.show = F, verbose = F) {
   vebcat("Sankey plot successfully visualized", color = "funSuccess")
 }
 
-
+visualize_connections <- function(dt, taxon, level, plot.show = F, verbose = F) {
+  vebcat("Visualizing data in a sankey plot", color = "funInit")
+  
+  wm <- get_world_map(projection = longlat_crs)
+  
+  dt_sank <- copy(dt)
+  
+  #dt_sank <- dt_sank[!is.na(dt_sank[[taxon]])]
+  #dt_sank <- dt_sank[complete.cases(dt_sank[[taxon]])]
+  
+  catn("Creating sankey plot.")
+  print(unique(dt_sank$country))
+  
+  fig5 <- ggplot(data = dt_sank, aes(axis1 = dt_sank[[level]], axis2 = country, y = relativeRichness)) +
+    scale_x_discrete(limits = c("Origin", "Destination"), expand = c(.1, .1)) +
+    labs(
+      y = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness"),
+      #fill = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))),
+      title = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness from origin region to Arctic region")
+    ) +
+    geom_flow() +
+    geom_stratum() +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
+    theme_minimal() +
+    theme(
+      axis.text = element_text(size = 10),
+      plot.title = element_text(vjust = 0.5, hjust = 0.5)
+    )
+  
+  
+  if (plot.show) print(fig5)
+  
+  fig5_out <- "./outputs/visualize/plots/figure-5.jpeg"
+  
+  catn("Saving plot to:", colcat(fig5_out, color = "output"))
+  
+  ggsave(fig5_out, device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig5)
+  
+  vebcat("Sankey plot successfully visualized", color = "funSuccess")
+}
 
 
 

@@ -25,15 +25,50 @@ find_min_data_col <- function(file_path, verbose = TRUE) {
   return(least_data_column)
 }
 
-set_df_utf8 <- function(df) {
-  for (name in names(df)[sapply(df, is.character)]) {
-    df[[name]] <- enc2utf8(df[[name]])
+set_dt_utf8 <- function(dt) {
+  for (name in names(dt)[sapply(dt, is.character)]) {
+    dt[[name]] <- enc2utf8(dt[[name]])
   }
 
-  return(df)
+  return(dt)
 }
 
-remove_infraEpithet <- function(spec) {
+# Used to only standardize, can be used with sapply for certain columns in df
+standardize_infraEpithet <- function(spec, verbose = FALSE) {
+  res <- spec
+  
+  for (s in names(standard_infraEpithets)) {
+    pattern <- paste0("(?i)\\b", gsub("\\.", "", s), "\\.?\\s+(\\w+)\\b")
+    
+    if (grepl(pattern, res)) {
+      epithet <- tolower(gsub(pattern, "\\1", res, perl = TRUE))
+      separator <- ifelse(grepl("\\.$", s), "", ". ")
+      replacement <- paste0(standard_infraEpithets[[s]], separator, " ", epithet)
+      res <- replacement
+      
+      break
+    }
+  }
+  
+  return(res)
+}
+
+remove_designations <- function(spec, verbose = FALSE) {
+  # Remove ignored designations
+  for (d in ignored_designations) {
+    pattern <- paste0("\\b", d, "\\b(?:\\s*\\([^)]+\\))?")
+    
+    spec <- gsub(pattern, "", spec)
+  }
+  
+  return(trimws(spec))
+}
+
+remove_infraEpithet <- function(spec, verbose = FALSE) {
+  # Remove ignored designations
+  
+  spec <- remove_designations(spec = spec, verbose = verbose)
+  
   for (d in infraEpithet_designations) {
     # Remove the designation and the name that follows it from the species name
     spec <- gsub(paste0("(\\s*\\(?\\s*(?i)", d, "\\.?\\s+)([^\\)]*)\\)?"), "", spec)
@@ -63,18 +98,7 @@ extract_infraEpithet <- function(spec, verbose = FALSE) {
 
   # Standardize the infraspecific epithet
   if (res != "") {
-    for (s in names(standard_infraEpithets)) {
-      pattern <- paste0("(?i)\\b", gsub("\\.", "", s), "\\.?\\s+(\\w+)\\b")
-
-      if (grepl(pattern, res)) {
-        epithet <- tolower(gsub(pattern, "\\1", res, perl = TRUE))
-        separator <- ifelse(grepl("\\.$", s), "", ". ")
-        replacement <- paste0(standard_infraEpithets[[s]], separator, " ", epithet)
-        res <- replacement
-
-        break
-      }
-    }
+    res <- standardize_infraEpithet(res, verbose = verbose)
   }
 
   vebprint(res, veb = verbose)
@@ -82,79 +106,42 @@ extract_infraEpithet <- function(spec, verbose = FALSE) {
   return(res)
 }
 
-# Used to only standardize, can be used with sapply for certain columns in df
-standardize_infraEpithet <- function(spec, verbose = FALSE) {
-  res <- spec
-
-  for (s in names(standard_infraEpithets)) {
-    pattern <- paste0("(?i)\\b", gsub("\\.", "", s), "\\.?\\s+(\\w+)\\b")
-
-    if (grepl(pattern, res)) {
-      epithet <- tolower(gsub(pattern, "\\1", res, perl = TRUE))
-      separator <- ifelse(grepl("\\.$", s), "", ". ")
-      replacement <- paste0(standard_infraEpithets[[s]], separator, " ", epithet)
-      res <- replacement
-
-      break
-    }
-  }
-
-  return(res)
-}
-
-select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combine = NULL, pattern = "*.csv", verbose = F) {
+order_by_apg <- function(input, by, verbose = FALSE) {
+  # Load apg4
+  apg <- fread("./resources/taxon/apg4/apg4.txt")
   
-  catn("Selecting WFO column")
+  apg_rank <- apg[taxonRank == by]
   
-  # Check if filepath is a directory or a specific file
-  if (file.info(filepath)$isdir) {
-    csv_files <- list.files(path = filepath, pattern = "*.csv", full.names = TRUE)
+  apg_vect <- apg_rank$scientificName
+  
+  non_apg <- setdiff(input, apg_vect)
+  
+  vebcat("non_apg:", veb = verbose)
+  vebprint(non_apg, veb = verbose)
+  
+  input_apg <- input[!input %in% non_apg]
+  
+  vebcat("input without non_apgs:", veb = verbose)
+  vebprint(input_apg, veb = verbose)
+  
+  vebcat("Ordering apgs", veb = verbose)
+  if (is.vector(input)) {
+    ordered_apg <- apg_vect[apg_vect %in% input_apg]
+    
+    # Add the others
+    non_apg_order <- c("Lycopodiales", "Selaginellales", "Equisetales", "Osmundales", "Salviniales", "Cyatheales", "Polypodiales", "Ephedrales", "Pinales")
+    
+    ordered <- c(non_apg_order, ordered_apg)
+    print(ordered)
   } else {
-    csv_files <- filepath
+    setorderv(input, cols = apg_rank[[by]])
   }
   
-  # make a list of data frames based on the different CSV files and also check for any "no matches" then add those to their own data frame.
-  df_list <- lapply(csv_files, function(file) {
-    df <- fread(file)
-    
-    if (is.vector(col.unique) && length(col.unique) > 1) {
-      vebcat("\nFound vector more than 1 in length, combining columns:", highcat(col.unique), veb = verbose)
-      df$refinedScientificName <- apply(df[, ..col.unique, drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " "))
-      df$refinedScientificName <- trimws(df$refinedScientificName)
-      col.unique <- "refinedScientificName"
-    }
-    
-    if (!is.null(col.select)) {
-      vebcat("Selecting the", highcat(col.select), "column(s) and using", highcat(col.unique), "as the unique column.", veb = verbose)
-      df_sel <- df %>% 
-        select(all_of(c(col.select, col.unique)))
-    } else {
-      vebcat("Using the", col.unique, "as unique column.", veb = verbose)
-      df_sel <- df %>% 
-        select(all_of(col.unique))
-    }
-    
-    df_uniq <- df_sel[!duplicated(df_sel[[col.unique]]), ]
-    
-    n_orig <- nrow(df_sel)
-    n_uniq <- nrow(df_uniq)
-    catn("\nList:", highcat(sub("-wfo-one.csv$", "", basename(file))))
-    cat(sprintf("%-10s | %s \n", "n_species", "unique(n_species)"))
-    cat(highcat(sprintf("%-10d | %d \n", n_orig, n_uniq)))
-    catn()
-    
-    return(df_uniq)
-  })
-  
-  names(df_list) <- sub("-wfo-one.csv$", "", basename(csv_files))
-  names(df_list) <- gsub("-", "_", names(df_list))
-  
-  
-  return(df_list = df_list)
+  return(ordered)
 }
 
 ##########################
-#         Terra          #
+#        Spatial         #
 ##########################
 
 extract_ext_to_dt <- function(raster, value = "value", cells = TRUE) {
@@ -260,40 +247,6 @@ fix_shape <- function(shape, verbose = FALSE) {
   }
 }
 
-order_by_apg <- function(input, by, verbose = FALSE) {
-  # Load apg4
-  apg <- fread("./resources/taxon/apg4/apg4.txt")
-
-  apg_rank <- apg[taxonRank == by]
-
-  apg_vect <- apg_rank$scientificName
-
-  non_apg <- setdiff(input, apg_vect)
-
-  vebcat("non_apg:", veb = verbose)
-  vebprint(non_apg, veb = verbose)
-
-  input_apg <- input[!input %in% non_apg]
-
-  vebcat("input without non_apgs:", veb = verbose)
-  vebprint(input_apg, veb = verbose)
-
-  vebcat("Ordering apgs", veb = verbose)
-  if (is.vector(input)) {
-    ordered_apg <- apg_vect[apg_vect %in% input_apg]
-
-    # Add the others
-    non_apg_order <- c("Lycopodiales", "Selaginellales", "Equisetales", "Osmundales", "Salviniales", "Cyatheales", "Polypodiales", "Ephedrales", "Pinales")
-
-    ordered <- c(non_apg_order, ordered_apg)
-    print(ordered)
-  } else {
-    setorderv(input, cols = apg_rank[[by]])
-  }
-
-  return(ordered)
-}
-
 find_peaks <- function(data, prominence = 0.1) {
   # Identify local maxima using diff
   peaks <- which(diff(data) > 0 & diff(c(data, 0)) < 0)
@@ -302,6 +255,74 @@ find_peaks <- function(data, prominence = 0.1) {
   filtered_peaks <- peaks[data[peaks] - data[peaks - 1] >= prominence & data[peaks] - data[peaks + 1] >= prominence]
 
   return(filtered_peaks)
+}
+
+calc_lat_res <- function(lat_res, long_res, latitude = 0, unit.out = "km", verbose = FALSE) {
+  
+  lat_distance <- lat_res * 111.32
+  
+  long_deg_size <- 111.32 * cos(latitude * pi / 180)
+  long_distance <- long_res * long_deg_size
+  
+  vebprint(lat_distance, text = "Latitude distance:")
+  vebprint(long_distance, text = "Longitude distance:")
+  
+  # Find the highest resolution
+  highest_res <- min(lat_distance, long_distance)
+  
+  vebprint(highest_res, text = "highest Resolution:")
+  
+  if (unit.out == "km") {
+    return(highest_res)
+  } else if (unit.out == "m") {
+    return(floor(highest_res * 1000))
+  }
+}
+
+calc_coord_uncertainty <- function(region, unit.out = "km", dir.out, verbose = FALSE) {
+  
+  catn("Calculating CoordinateUncertainty.")
+  
+  out_file <- paste0(dir.out, "/coordinateUncertainty-", unit.out, ".txt")
+  
+  create_dir_if(dir.out)
+  create_file_if(out_file)
+  
+  if (is.character(region)) {
+    region <- rast(region)
+  }
+  
+  res_lat <- terra::res(region)[2]
+  res_long <- terra::res(region)[1]
+  
+  # Get latitude based on northern or southern hemisphere
+  region_ext <- terra::ext(region)
+  
+  vebprint(region_ext, text = "Region Extent:")
+  
+  if (as.numeric(region_ext[4]) > 0) {
+    lat <- as.numeric(region_ext[4]) # northern hemisphere
+  } else {
+    lat <- as.numeric(region_ext[3]) # Southern hemisphere
+  }
+  
+  vebprint(lat, text = "Latitude:")
+  
+  max_res <- calc_lat_res(
+    res_lat, 
+    res_long, 
+    lat,
+    unit.out = unit.out, 
+    verbose = verbose
+  )
+  
+  catn("Writing file to:", colcat(out_file, color = "output"))
+  
+  writeLines(as.character(max_res), out_file)
+  
+  catn("Lowest CoordinateUncertainty:", colcat(max_res, color = "indicator"))
+  
+  return(max_res)
 }
 
 ##########################

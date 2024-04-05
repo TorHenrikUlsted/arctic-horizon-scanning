@@ -1,4 +1,75 @@
-filter_test <- function(test = "small") {
+filter_test_known <- function(dfs, column, verbose = FALSE) {
+  tp <- dfs[["test_present"]]
+  
+  setnames(tp, old = colnames(tp), new = column)
+  
+  return(list(
+    present = tp
+  ))
+}
+
+filter_test_small <- function(known.filtered, dfs, column, verbose = FALSE) {
+  test_dir <- "./outputs/filter/test-small"
+  
+  create_dir_if(test_dir)
+  
+  tp <- known.filtered$present
+  
+  ts <- dfs[["test_small"]]
+  
+  setnames(ts, old = colnames(ts), new = column)
+  
+  vebprint(ts, text = "test_small dt:")
+  
+  # Remove known tests from the test lists
+  test_small <- write_filter_fun(
+    file.out = paste0(test_dir, "/test-small-final.csv"),
+    spec.in = ts,
+    fun = function() {
+      ts <- dplyr::anti_join(ts, tp, by = column)
+      return(ts)
+    }
+  )
+  
+  return(list(
+    spec = test_small,
+    dir = test_dir
+  ))
+}
+
+filter_test_big <- function(known.filtered, dfs, column, verbose = FALSE) {
+  test_dir <- "./outputs/filter/test-big"
+  
+  create_dir_if(test_dir)
+  
+  tp <- known.filtered$present
+  
+  tb <- dfs[["test_big"]]
+  
+  setnames(tb, old = colnames(tb), new = column)
+  
+  vebprint(tb, text = "test_big dt:")
+  
+  # Remove known tests from the test lists
+  test_big <- write_filter_fun(
+    file.out = paste0(test_dir, "/test-big-final.csv"),
+    spec.in = tb,
+    fun = function() {
+      # First merge to only get species from both dfs
+      ts <- dplyr::anti_join(tb, tp, by = column)
+      
+      return(ts)
+    })
+  
+  return(list(
+    spec = test_big,
+    dir = test_dir
+  ))
+}
+
+
+
+filter_test_st <- function(test = "small") {
   if (test == "small") {
     catn("test_small data sample:")
     print(head(dfs$test_small[[column]], 3))

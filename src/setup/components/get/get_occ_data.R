@@ -1,13 +1,13 @@
-get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key = NULL, download.doi = NULL) {
+get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncertainty, download.key = NULL, download.doi = NULL) {
   vebcat("Initiating GBIF occurrence record download.", color = "funInit")
 
   download_path <- dirname(file.name)
   create_dir_if(download_path)
 
-  species_codes <- species_w_keys$usageKey
+  species_keys <- species_w_keys$usageKey
   
-  catn("Number of species keys:", highcat(length(species_codes)))
-  vebprint(str(species_codes), text = "Species keys str:")
+  catn("Number of species keys:", highcat(length(species_keys)))
+  vebprint(str(species_keys), text = "Species keys str:")
   
   out <- NULL
 
@@ -17,8 +17,16 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
     if (is.null(region)) {
       catn("Region is", colcat("not", color = "indicator"), "being applied.")
     }  else {
-      catn("Region", colcat("is", color = "indicator"), "being applied. \n")
+      catn("Region", colcat("is", color = "indicator"), "being applied.")
     } 
+    
+    if (is.null(coord.uncertainty)) {
+      catn("Coordinate Uncertainty is:", colcat("not", color = "indicator"), "being applied.")
+    } else {
+      catn("Coordinate Uncertainty is:", colcat(coord.uncertainty, color = "indicator"))
+    }
+    
+    catn()
 
     u_input <- readline("Queue occurence download? Press [ENTER] to continue or [ESC] to exit.")
 
@@ -26,14 +34,17 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, download.key 
       catn("Creating occucrence queue.")
 
       predicates <- list(
-        pred_in("taxonKey", species_codes),
+        pred_in("taxonKey", species_keys),
         pred_in("basisOfRecord", c("HUMAN_OBSERVATION", "PRESERVED_SPECIMEN")),
         pred("hasCoordinate", TRUE),
         pred("hasGeospatialIssue", FALSE),
         pred("occurrenceStatus", "PRESENT"),
         pred_gte("year", 1970),
-        pred_lte("coordinateUncertaintyInMeters", 4700) # 2.5 min res = 4.63 km at equator, WorldClim Cell size in km = 111.32 * cos(60 * pi/180) * 2.5 / 60 ≈ 2.8 km in the boreal belt and 1.9 km in the arctic.
       )
+      
+      if (!is.null(coord.uncertainty)) {
+        predicates <- c(predicates, list(pred_lte("coordinateUncertaintyInMeters", coord.uncertainty)))
+      }
       
       if (!is.null(region)) {
         predicates <- c(predicates, list(pred("geometry", region)))

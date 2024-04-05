@@ -84,7 +84,6 @@ chunk_file <- function(file_path, chunk.name, chunk.column, chunk.dir, chunk.siz
     )
   )
   
-  
   i <- i_start
   while(TRUE) {
     tryCatch({
@@ -110,6 +109,10 @@ chunk_file <- function(file_path, chunk.name, chunk.column, chunk.dir, chunk.siz
           data$combined <- apply(data[, ..chunk.column, drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " "))
           data$combined <- trimws(data$combined)
           new_column <- "combined"
+        } else {
+          data <- remove_authorship(data, synonym_file)
+          
+          chunk.column <- "combined"
         }
       }, error = function(e) {
         catn("Error when combining columns.")
@@ -146,9 +149,7 @@ chunk_file <- function(file_path, chunk.name, chunk.column, chunk.dir, chunk.siz
       
       tryCatch({
         lapply(names(data_list), function(x) {
-          #catn("length of x", x)
           file_name <- paste0(chunk.dir, "/", chunk.name, "/", gsub(" ", "-", x), ".csv")
-          #catn("File name:", file_name)
           
           if(!file.exists(file_name)) {
             fwrite(data_list[[x]], file_name, bom = T)
@@ -192,12 +193,16 @@ chunk_file <- function(file_path, chunk.name, chunk.column, chunk.dir, chunk.siz
 # Chunk loadable df
 #####################
 
-chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, iterations = NULL, verbose = T) {
+chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, iterations = NULL, verbose = FALSE) {
   vebcat("Initiating loaded dataframe chunking protocol.", color = "funInit")
   
   if (is.vector(chunk.column) && length(chunk.column) > 1) {
     vebcat("Found vector more than 1 in length, combining columns:", highcat(chunk.column), veb = verbose)
     df$combined <- df[, do.call(paste, c(.SD, sep = " ")), .SDcols = chunk.column]
+    chunk.column <- "combined"
+  } else {
+    df <- remove_authorship(df, verbose = verbose)
+    
     chunk.column <- "combined"
   }
   
@@ -241,11 +246,11 @@ chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, 
   }
   
   catn("Chunking dataframe into files")
-  cat(sprintf("%8s | %16s | %8s \n", paste0("n_", chunk.name), paste0("total n_", chunk.name), "Remaining"))
+  cat(sprintf("%10s | %16s | %8s \n", paste0("n_", chunk.name), paste0("total n_", chunk.name), "Remaining"))
   for(i in iterations) {
     tryCatch({
       x <- names(data_list)[i]
-      cat(sprintf("\r%8.0f | %16.0f | %8.0f", i, n_total, n_total - i))
+      cat(sprintf("\r%10.0f | %16.0f | %8.0f", i, n_total, n_total - i))
       flush.console()
       
       # Replace spaces with hyphens in x
@@ -283,8 +288,11 @@ chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, 
 clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterations = NULL, verbose = F) {
   vebcat("Initiating chunk cleaning protocol.", color = "funInit")
   
+  
   # Get the list of all chunk files
   chunk_files <- list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)
+  
+  vebprint(chunk_files, text = "chunk_files:", veb = verbose)
   
   if(is.null(iterations)) {
     iterations <- seq_along(chunk_files)
@@ -315,20 +323,61 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
   }
   
   catn("Cleaning chunk files")
-  cat(sprintf("%5s | %8s | %16s | %8s \n", "File", "n_data", "Total n_data", "Remaining"))
+  cat(sprintf("%6s | %10s | %10s \n", "total", "iteration", "Remaining"))
   
-  j <- 1
+  for (i in iterations) {
+    cat(sprintf("\r%6.0f | %10.0f | %10.0f", n_total, i, n_total - i))
+    flush.console()
+    
+    strings <- gsub("\\s+", "", sp_w_keys$species)
+    
+    file_name <- chunk_files[i]
+    
+    name <- basename(file_name)
+    
+    name <- gsub(".csv", "", name)
+    
+    name <- gsub("-", " ", name)
+    
+    name <- gsub("\\s+", "", name)
+    
+    # Fuzzy match 1 letter
+    matches <- agrepl(name, strings, max.distance = 0.001)
+    
+    if (name %in% strings || any(matches)) {
+      next
+    } else {
+      vebcat("\nRemoving", highcat(name), veb = verbose)
+      file.remove(file_name)
+    }
+    
+  };catn()
+  
+  chunk_files <- list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)
+  
+  iterations <- seq_along(chunk_files)
+  
+  n_total <- length(iterations)
+  
+  catn("Cleaning rows in chunked files.")
+  cat(sprintf("%6s | %10s | %10s \n", "total", "iteration", "Remaining"))
   # Loop over each chunk file
   for(i in iterations) {
     tryCatch({
       # Progress indicator
-      cat(sprintf("\r%5.0f | %8.0f | %16.0f | %8.0f", j, i, n_total, n_total - i))
+      cat(sprintf("\r%6.0f | %10.0f | %0.0f", n_total, i, n_total - i))
+      flush.console()
       
       # Read the chunk file
       chunk_data <- fread(chunk_files[i])
       
+      strings <- gsub("\\s+", "", sp_w_keys$species)
+      
       # Filter rows where scientificName matches with the scientificName of sp_w_keys
-      cleaned_data <- chunk_data[combined %in% sp_w_keys$refinedScientificName, ]
+      cleaned_data <- chunk_data[sapply(gsub("\\s+", "", combined), function(name) {
+        matches <- agrepl(name, strings, max.distance = 1)
+        name %in% strings || any(matches)
+      }), ]
       
       # Check if cleaned_data is empty
       if (nrow(cleaned_data) == 0) {
@@ -341,7 +390,6 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
       
       writeLines(as.character(i), last_iteration_file)
       
-      j + 1
     }, error = function(e) {
       try(err_log <- file(err_log, open = "at"))
       sink(err_log, type = "output")
@@ -352,6 +400,16 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
       close(err_log)
     })
   }; catn()
+  
+    chunk_files <- gsub("\\s+", "", gsub("-", "", gsub(".csv", "", basename(list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)))))
+  missing_files <- chunk_files[!(chunk_files %in% gsub("\\s+", "", sp_w_keys$species))]
+  
+  if (length(missing_files) > 0) {
+    vebcat("These species are not found as exact matches in the species keys", color = "indicator")
+    print(missing_files)
+  } else {
+    catn("All chunk files are present in sp_w_keys$species.")
+  }
   
   vebcat("Chunk cleaning protocol completed successfully.", color = "funSuccess")
 }

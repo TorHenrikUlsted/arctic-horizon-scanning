@@ -42,8 +42,7 @@ check_system_speed <- function(df.path, test.name = "cpu-speed", sample.size = N
   
   time_const <- as.numeric(estimated_time)
   
-  catn("Time setup (sec):", highcat(time.setup))
-  catn("time constant (sec):", highcat(estimated_time))
+  catn("time constant (sec):", highcat(time_const))
   
   return(time_const)
 }

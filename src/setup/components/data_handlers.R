@@ -52,7 +52,82 @@ wrangle_dfs <- function(src, column, dynamic.name.source) {
   return(results)
 }
 
-syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, counter) {
+wrangle_if <- function(fun.name, column, verbose = FALSE) {
+  fun <- get(fun.name)
+  
+  name <- sub("^wrangle_", "", fun.name)
+  
+  vebcat("List name:", highcat(name), veb = verbose)
+  
+  dir <- paste0("./outputs/setup/wrangle/", name)
+  create_dir_if(dir)
+  
+  formatted_out <- paste0(dir, "/", name, "-formatted.csv")
+  
+  present_out <- paste0(dir, "/", name, "-present.csv")
+  if (!file.exists(present_out)) present_out = NULL
+  
+  absent_out <- paste0(dir, "/", name, "-absent.csv")
+  if (!file.exists(absent_out)) absent_out = NULL
+  
+  if ((!is.null(present_out) || !is.null(absent_out))) {
+    catn(highcat(name), "already wrangled, loading files..")
+    
+    res <- list()
+    
+    if (!is.null(present_out)) res$present <- fread(present_out, sep = "\t")
+    if (!is.null(absent_out)) res$absent <- fread(absent_out, sep = "\t")
+    
+    catn("files loaded.")
+  } else {
+    vebcat("Initiating", name, "wrangling protocol.", color = "funInit")
+    
+    res <- fun(name = name, column = column, verbose = verbose)
+    
+    vebcat(name, "wrangling protocol successfully completed.", color = "funSuccess")
+  }
+  
+  result <- list()
+  if (!is.null(res$present)) result[[paste0(name, "_present")]] <- res$present
+  if (!is.null(res$absent)) result[[paste0(name, "_absent")]] <- res$absent
+    
+  return(result)
+}
+
+wrangle_all <- function(column, verbose = FALSE) {
+  tryCatch({
+    all_funs <- ls(envir = .GlobalEnv)[sapply(mget(ls(envir = .GlobalEnv), envir = .GlobalEnv), is.function)]
+    
+    wrangle_funs <- grep("^wrangle_", all_funs, value = TRUE)
+    
+    wrangle_funs <- setdiff(wrangle_funs, c("wrangle_all", "wrangle_dfs", "wrangle_template", "wrangle_if"))
+    
+    vebprint(wrangle_funs, text = "all Wrangle functions:")
+    
+    results <- list()
+    
+    for (fun_name in wrangle_funs) {
+      name <- sub("^wrangle_", "", fun_name)
+      
+      vebcat("Wrangling function:", fun_name, veb = verbose)
+      
+      res <- wrangle_if(fun.name = fun_name, column = column, verbose = verbose)
+      
+      for (sublist_name in names(res)) {
+        results[[paste0(name, "$", sublist_name)]] <- res[[sublist_name]]
+      }
+      
+      names(results) <- gsub(".*\\$", "", names(results))
+    }
+  }, error = function(e) {
+    vebcat("Error occurred when trying to wrangle all file.", color = "fatalError")
+    stop(e$message)
+  })
+  
+  return(results)
+}
+
+syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, counter) {
   
   synonym_lists <-  lapply(names(wrangled_dfs), function(name) {
     vebcat("Running synonym Check on", highcat(name), veb = verbose)
@@ -76,7 +151,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, coun
         checklist = wrangled_dfs[[name]],
         column = column,
         folder = paste0(out_dir, "/", child_folder),
-        max.cores = max.cores,
+        cores.max = cores.max,
         verbose = verbose,
         counter = counter
       )
@@ -121,36 +196,14 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, max.cores, verbose, coun
   return(synonym_lists)
 }
 
-setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
+setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) {
   vebcat("Setting up raw data.", color = "funInit")
   
   files_dir <- "./resources/synonym-checked"
   file_ext <- "-wfo-one.csv"
   files <- list.files(files_dir)
-  wrangled_files <- c(
-    paste0("aba-present", file_ext), 
-    paste0("aba-absent", file_ext),
-    paste0("ambio-present", file_ext),
-    paste0("ambio-absent", file_ext),
-    paste0("glonaf-species", file_ext)
-  )
   
-  if (!is.null(test) && length(test) > 0) {
-    test <- wrangle_test(test = test, column, verbose = verbose)
-    
-    checklist <- test  
-    
-  } else {
-    if (all(wrangled_files %in% files)) {
-      checklist <- NULL
-    } else {
-      aba <- wrangle_aba(column, verbose = verbose)
-      ambio <- wrangle_ambio(column, verbose = verbose)
-      glonaf <- wrangle_glonaf(column, verbose = verbose)
-      
-      checklist <- c(aba, ambio, glonaf)
-    }
-  }
+  checklist <- wrangle_all(column = column, verbose = verbose)
   
   if (!is.null(checklist)) {
     vebprint(names(checklist), verbose, "dfs added to checklist:")
@@ -159,7 +212,7 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
       checklist, 
       column,
       out.dir = "./outputs/setup/wrangle", 
-      max.cores = max.cores, 
+      cores.max = cores.max, 
       verbose = verbose, 
       counter = counter
     )
@@ -193,6 +246,7 @@ setup_raw_data <- function(column, test = NULL, max.cores, verbose, counter) {
       
       if (nrow(nomatch_combined) > 0) {
         catn("There were", highcat(nrow(nomatch_combined)), "species without matches. \n")
+        vebcat("These need to be checked manually.", color = "indicator")
         fwrite(nomatch_combined, "./outputs/setup/wrangle/combined-wfo-nomatch.csv", bom = T)
       } else {
         catn("There were", highcat(0), "species without any matches. \n")

@@ -72,8 +72,6 @@ load_region <- function(region.file, verbose = FALSE) {
     stop()
   }
   
-  prj = projection
-  
   # Load the file using either rast or vect based on the file extension
   if (grepl("\\.shp$", region.file)) {
     region <- terra::vect(region.file)

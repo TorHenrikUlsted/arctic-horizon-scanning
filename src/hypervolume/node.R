@@ -1,4 +1,4 @@
-node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose) {
+node_processing <- function(j, region, climate.var, climate.res, spec.list, proj.incl.t, method, accuracy, hv.dims, hv.projection, cores.max.high, min.disk.space, hv.dir, show.plot, verbose) {
   current_disk_space <- get_disk_space("/export", units = "GB")
   skip_to_end <- FALSE
 
@@ -113,43 +113,80 @@ node_processing <- function(j, spec.list, proj.incl.t, method, accuracy, hv.dims
     {
       vebcat("Creating warning and error functions.", veb = verbose)
       # Create warning and error functions
-      warn <- function(w, warn_txt) {
-        warn_msg <- conditionMessage(w)
-        warn_con <- file(warn_file, open = "a")
-        writeLines(paste(warn_txt, "in iteration", j, ":", warn_msg), warn_con)
-        close(warn_con)
-        invokeRestart(findRestart("muffleWarning"))
-      }
-
-      err <- function(e, err_txt) {
-        err_msg <- conditionMessage(e)
-        err_con <- file(err_file, open = "a")
-        writeLines(paste(err_txt, "in iteration", j, ":", err_msg), err_con)
-        close(err_con)
-        stop(e)
-      }
+ 
 
       while (!skip_to_end) {
         catn("Running main sequence.")
 
-        acq_data <- data_acquisition(show.plot, method, verbose = verbose, iteration = j, warn = warn, err = err)
-
-        invisible(gc())
-
-        ana_data <- data_analysis(biovars_world = acq_data[[1]], biovars_region = acq_data[[2]], biovars_floreg = acq_data[[3]], hv.dims, method, show.plot, verbose = verbose, iteration = j, warn = warn, err = err)
-
-        invisible(gc())
-
-        processed_data <- data_processing(spec, biovars_world = ana_data[[1]], spec.name, method, verbose = verbose, iteration = j, warn = warn, err = err)
+        acq_data <- data_acquisition(
+          shapefile = region, 
+          climate.var = climate.var, 
+          climate.res = climate.res, 
+          method = method, 
+          iteration = j, 
+          show.plot = show.plot, 
+          verbose = verbose,
+          warn.file = warn_file,
+          err.file = err_file
+        )
         
-        invisible(gc())
+        ana_data <- data_analysis(
+          biovars_world = acq_data[[1]], 
+          biovars_region = acq_data[[2]], 
+          hv.dims = hv.dims, 
+          method = method, 
+          show.plot = show.plot, 
+          verbose = verbose, 
+          iteration = j,
+          warn.file = warn_file,
+          err.file = err_file
+        )
+        
+        biovars_world <- terra::subset(biovars_world, hv_dims)
+        
+        biovars_region <- terra::subset(biovars_region, hv_dims)
+        
+        # check if need to setup, or read setup region
+        region_hv <- setup_region_hv(
+          biovars_region, 
+          out.dir = "./outputs/hypervolume/data_analysis/region", 
+          name = "cavm", 
+          method = method
+        )
 
+        processed_data <- data_processing(
+          spec, 
+          biovars_world = ana_data[[1]], 
+          spec.name, 
+          method, 
+          verbose = verbose, 
+          iteration = j,
+          warn.file = warn_file,
+          err.file = err_file
+        )
+        
         if (is.list(processed_data) && processed_data$excluded == TRUE) {
           skip_to_end <- TRUE
           break
         }
 
-        analyzed_hv <- hv_analysis(processed_data, biovars_region = ana_data[[2]], region_hv = ana_data[[4]], method, spec.name, proj.incl.t, accuracy, hv.projection, verbose = verbose, iteration = j, proj_dir, lock_hv_dir, cores.max.high, warn = warn, err = err)
+        analyzed_hv <- hv_analysis(
+          processed_data, 
+          biovars_region = ana_data[[2]], 
+          region_hv = ana_data[[4]], 
+          method = method, 
+          spec.name = spec.name, 
+          proj.incl.t = proj.incl.t, 
+          accuracy = accuracy, 
+          hv.projection = hv.projection, 
+          verbose = verbose, 
+          iteration = j, 
+          proj_dir = proj_dir, 
+          lock_hv_dir = lock_hv_dir, 
+          cores.max.high = cores.max.high,
+          warn.file = warn_file,
+          err.file = err_file
+        )
 
         catn("Appending data to csv file.")
 

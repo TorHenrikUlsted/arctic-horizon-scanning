@@ -21,6 +21,35 @@ print_function_args <- function() {
   catn()
 }
 
+warn <- function(w, warn.file, warn.txt, iteration = NULL) {
+  warn_msg <- conditionMessage(w)
+  create_file_if(warn.file)
+  warn_con <- file(warn.file, open = "a")
+  
+  if (!is.null(iteration)) {
+    writeLines(paste(warn.txt, "in iteration", iteration, ":", warn_msg), warn_con)
+  } else {
+    writeLines(paste(warn.txt, ":", warn_msg), warn_con)
+  }
+  
+  close(warn_con)
+  invokeRestart(findRestart("muffleWarning"))
+}
+
+err <- function(e, err.file, err.txt, iteration = NULL) {
+  err_msg <- conditionMessage(e)
+  create_file_if(err.file)
+  err_con <- file(err.file, open = "a")
+  
+  if (!is.null(iteration)) {
+    writeLines(paste(err.txt, "in iteration", iteration, ":", err_msg), err_con)
+  } else {
+    writeLines(paste(err.txt, ":", err_msg), err_con)
+  }
+  close(err_con)
+  stop(e)
+}
+
 vebprint <- function(x, veb = TRUE, text = NULL) {
   if (veb) {
     if (!is.null(text)) {
