@@ -25,12 +25,12 @@ find_min_data_col <- function(file_path, verbose = TRUE) {
   return(least_data_column)
 }
 
-set_dt_utf8 <- function(dt) {
-  for (name in names(dt)[sapply(dt, is.character)]) {
-    dt[[name]] <- enc2utf8(dt[[name]])
+set_df_utf8 <- function(df) {
+  for (name in names(df)[sapply(dt, is.character)]) {
+    df[[name]] <- enc2utf8(df[[name]])
   }
 
-  return(dt)
+  return(df)
 }
 
 # Used to only standardize, can be used with sapply for certain columns in df
@@ -325,9 +325,6 @@ calc_coord_uncertainty <- function(region, unit.out = "km", dir.out, verbose = F
   return(max_res)
 }
 
-##########################
-#       Parallel         #
-##########################
 load_sp_rast <- function(spec.filename) {
   sp_name <- basename(dirname(spec.filename))
 
@@ -338,7 +335,15 @@ load_sp_rast <- function(spec.filename) {
 }
 
 ##########################
-#      File system       #
+#        Objects         #
+##########################
+
+get_obj_name <- function(...) {
+  sapply(as.list(match.call())[-1], deparse)
+}
+
+##########################
+#         System         #
 ##########################
 
 source_all <- function(dir) {

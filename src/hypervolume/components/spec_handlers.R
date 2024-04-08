@@ -1,11 +1,11 @@
 prepare_species <- function(dt, projection, verbose = T) {
-  if (!is.data.frame(dt)) {
-    stop("Input must be a data.frame or data.table")
+  if (!is.data.table(dt)) {
+    stop("Input must be a data.table")
   }
   
   vebcat("Preparing species", color = "funInit")
   
-  vebprint(head(df, 3), text = "Data frame sample:")
+  vebprint(head(dt, 3), text = "Data frame sample:")
   
   vebcat("Getting Long/Lat values.", veb = verbose)
   
@@ -21,7 +21,7 @@ prepare_species <- function(dt, projection, verbose = T) {
   
   vebcat("Cleaning species using coordinateCleaner.", veb = verbose)
   
-  prep_dir <- "./outputs/hypervolume/data_processing/prep"
+  prep_dir <- "./outputs/hypervolume/prep"
   
   create_dir_if(prep_dir)
   # "flag" sets adds true/false to the corresponding tests

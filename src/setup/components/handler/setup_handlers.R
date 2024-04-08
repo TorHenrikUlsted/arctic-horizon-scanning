@@ -1,4 +1,64 @@
-setup_region_hv <- function(biovars_region, out.dir, method) {
+setup_climate <- function(shapefile, iteration, plot.show, verbose, warn.file, err.file) {
+  vebcat("Initiating data acquisition protocol", color = "funInit")
+  
+  withCallingHandlers(
+    {
+      biovars_world <- get_wc_data(
+        var = climate.var, 
+        res = climate.res, 
+        plot.show = plot.show, 
+        verbose = verbose
+      )
+    },
+    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when getting worldClim data", iteration = iteration),
+    error = function(e) err(e, err.file = err.file, err.txt = "Error when getting worldClim data", iteration = iteration)
+  )
+  
+  vebcat("Scaling biovars", veb = verbose)
+  
+  withCallingHandlers(
+    {
+      biovars_world <- scale_biovars(
+        biovars_world, 
+        verbose = verbose
+      )
+    },
+    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when scaling biovars_world", iteration = iteration),
+    error = function(e) err(e, err.file = err.file, err.txt = "Error when scaling biovars_world", iteration = iteration)
+  )
+  
+  vebcat("Acquiring biovars_region.", veb = verbose)
+  
+  withCallingHandlers(
+    {
+      biovars_region <- wc_to_region(
+        biovars_world,
+        shapefile = shapefile, 
+        projection = "longlat",
+        plot.show = plot.show,
+        verbose = verbose
+      )
+    },
+    warning =  function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when acquiring region data", iteration = iteration),
+    error = function(e) err(e, err.file = err.file, err.txt = "Error when acquiring region data", iteration = iteration)
+  )
+  
+  coord_uncertainty <- calc_coord_uncertainty(
+    region = biovars_region,
+    unit.out = "m",
+    dir.out = "./outputs/hypervolume/data_acquisition/logs",
+    verbose = verbose
+  )
+  
+  vebcat("Data acquisition protocol completed successfully", color = "funSuccess")
+  
+  return(list(
+    world = biovars_world,
+    region = biovars_region
+  ))
+}
+
+setup_hv_region <- function(biovars_region, out.dir, method) {
   vebcat("Setting up region Hypervolume", color = "funInit")
 
   region_out <- paste0(paste0(out.dir), "/hypervolume-", method, ".rds")
@@ -62,7 +122,7 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.incl.t, verbose = TRUE)
 
     ram_control <- start_mem_tracking(file.out = setup_check, stop_file = paste0(hv_setup_dir, "/stop-file.txt"))
 
-    parallell_processing(
+    hypercolume_sequence(
       spec.list = sp_list_setup[[1]],
       method = hv.method, # box approx 13 min, gaussian 1 hours 10 minutes
       accuracy = hv.accuracy,
@@ -86,7 +146,7 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.incl.t, verbose = TRUE)
 
     # Run a hypervolume sequence of sax. opp.
 
-    parallell_processing(
+    hypercolume_sequence(
       spec.list = sp_list_setup[[3]], # list of strings
       method = hv.method, # box approx 13 min, gaussian 1 hours 10 minutes
       accuracy = hv.accuracy,
