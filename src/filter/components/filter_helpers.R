@@ -283,7 +283,7 @@ chunk_protocol <- function(
   if (is.vector(chunk.col)) {
     chunk.col = "combined"
   }
-  
+
   clean_chunks(
     chunk.name = chunk.name,
     chunk.column = chunk.col, 

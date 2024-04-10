@@ -160,8 +160,7 @@ convert_spatial_dt <- function(spatial, verbose = FALSE) {
 }
 
 reproject_region <- function(region, projection, line_issue = F, show_plot = F, verbose = T) {
-  region_name <- strsplit(deparse(substitute(region)), "\\$")[[1]][[2]]
-  catn("Reprojecting", region_name)
+  catn("Reprojecting region")
 
   if (line_issue == T) {
     catn("Attempting to fix line issues.")
@@ -184,7 +183,7 @@ reproject_region <- function(region, projection, line_issue = F, show_plot = F, 
 
     region_longlat <- rbind(proj_west, proj_east)
 
-    if (show_plot == T) plot(region)
+    if (show_plot == T) plot(region_longlat)
 
     return(region_longlat)
   }
@@ -212,7 +211,7 @@ reproject_region <- function(region, projection, line_issue = F, show_plot = F, 
 
   if (!isTRUE(identical(crs(region), prj))) {
     vebcat("Original CRS not identical to current CSR.", veb = verbose)
-    vebcat("Reprojecting", highcat(region_name), "to: ", crs(prj, proj = T), veb = verbose)
+    vebcat("Reprojecting region to: ", crs(prj, proj = T), veb = verbose)
 
     reproj_region <- terra::project(region, prj)
 
@@ -223,7 +222,7 @@ reproject_region <- function(region, projection, line_issue = F, show_plot = F, 
     }
   } else {
     vebcat("Original CRS identical to current CSR.", veb = verbose)
-    vebcat(region_name, "reprojected successfully.", color = "funSuccess")
+    vebcat("Region reprojected successfully.", color = "funSuccess")
   }
 
   return(reproj_region)
