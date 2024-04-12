@@ -159,72 +159,63 @@ convert_spatial_dt <- function(spatial, verbose = FALSE) {
   return(dt)
 }
 
-reproject_region <- function(region, projection, line_issue = F, show_plot = F, verbose = T) {
+reproject_region <- function(region, projection, issue.line = FALSE, issue.threshold = 0.00001, verbose = FALSE) {
   catn("Reprojecting region")
-
-  if (line_issue == T) {
+  
+  if (issue.line == T) {
     catn("Attempting to fix line issues.")
-
+    
     catn("Getting extents.")
     ext_east <- terra::ext(ext(region)$xmin, 0, ext(region)$ymin, ext(region)$ymax)
-    ext_west <- terra::ext(0.00001, ext(region)$xmax, ext(region)$ymin, ext(region)$ymax)
-
+    ext_west <- terra::ext(issue.threshold, ext(region)$xmax, ext(region)$ymin, ext(region)$ymax)
+    
     catn("Cropping in half.")
     vect_east <- terra::crop(region, ext_east)
     vect_west <- terra::crop(region, ext_west)
-
+    
     catn("Reprojecting to longlat.")
     proj_east <- terra::project(vect_east, longlat_crs)
     catn("Plotting left side.")
-    plot(proj_east)
+    if (verbose) plot(proj_east)
     proj_west <- terra::project(vect_west, longlat_crs)
     catn("plotting right side.")
-    plot(proj_west)
-
+    if (verbose) plot(proj_west)
+    
     region_longlat <- rbind(proj_west, proj_east)
-
-    if (show_plot == T) plot(region_longlat)
-
+    
+    if (verbose) plot(region_longlat)
+    
     return(region_longlat)
   }
-
-
+  
+  
   if (projection == "longlat") {
     catn("Choosing", highcat("longlat"), "coordinate system.")
-
-    if (grepl("+proj=longlat", crs(region, proj = T), fixed = TRUE) == FALSE) {
-      catn("Is not longlat, will be reprojected.")
-    }
-
-    print(crs(longlat_crs, proj = T))
     prj <- longlat_crs
   } else if (projection == "laea") {
-    catn("Choosing", highcat("polar"), "coordinate system. \n")
-    if (grepl("+proj=laea", crs(region, proj = T), fixed = TRUE) == FALSE) {
-      vebcat("Is not polar.", color = "nonFatalError")
-    }
+    catn("Choosing", highcat("laea"), "coordinate system.")
     prj <- laea_crs
   } else {
     stop("You can only choose projection 'longlat' or 'laea'.")
   }
-
-
-  if (!isTRUE(identical(crs(region), prj))) {
+  
+  
+  if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
     vebcat("Original CRS not identical to current CSR.", veb = verbose)
-    vebcat("Reprojecting region to: ", crs(prj, proj = T), veb = verbose)
-
+    catn("Reprojecting region to:\n", highcat(crs(prj, proj = T)))
+    
     reproj_region <- terra::project(region, prj)
-
-    if (!isTRUE(identical(crs(reproj_region), prj))) {
+    
+    if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
       vebcat("Reprojection completed successfully", color = "funSuccess")
     } else {
-      vebcat("Reprojection failed.", color = "nonFatalError")
+      vebcat("Reprojection failed.", color = "fatalError")
     }
   } else {
-    vebcat("Original CRS identical to current CSR.", veb = verbose)
-    vebcat("Region reprojected successfully.", color = "funSuccess")
+    catn("CRS already correct.")
+    reproj_region <- region
   }
-
+  
   return(reproj_region)
 }
 
