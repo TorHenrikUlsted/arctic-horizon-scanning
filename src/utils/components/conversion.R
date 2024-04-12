@@ -21,16 +21,9 @@ to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
 
 check_crs <- function(object, projection, projection.method, verbose = FALSE) {
   
-  if (verbose) {
-    cat("Input object:\n")
-    print(object)
-    
-    cat("Input projection:\n")
-    print(crs(projection, proj = TRUE))
-    
-    cat("Input projection.method:\n")
-    print(projection.method)
-  }
+  vebprint(object, verbose, "Input object:")
+  vebprint(crs(projection, proj = TRUE), verbose, "Input projection:")
+  vebprint(projection.method, verbose, "Input prjection method:")
   
   if (!identical(crs(object, proj = TRUE), crs(projection, proj = TRUE))) {
     catn("Reprojecting", highcat(as.character(crs(object, proj = TRUE))), "-->", highcat(as.character(crs(projection, proj = TRUE))), "\n")

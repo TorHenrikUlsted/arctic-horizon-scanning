@@ -13,6 +13,7 @@ pkgs = c(
   "sf",
   "sp",
   "ggplot2",
+  "ggnewscale",
   "tidyterra",
   "scales",
   "rnaturalearth",

@@ -73,7 +73,7 @@ download_region_if <- function(region.file, download.link, download.page) {
       
       utils::browseURL(download.page)
       
-      stop()
+      stop("Could not automatically download region. Stopping...")
     }
     
   } else {

@@ -1,4 +1,5 @@
-visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, plot.color, plot.shade, plot.show = FALSE, verbose = FALSE) {
+visualize_freqpoly <- function(sp_cells, region, region.name, vis.x, vis.color, vis.shade, vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
+  
   create_dir_if("./outputs/visualize/plots")
   
   # Figure 1A Whole CAVM
@@ -9,79 +10,158 @@ visualize_freqpoly <- function(sp_cells, region, region.name, plot.x, plot.y, pl
   
   vebcat("Creating plot 1A.", veb = verbose)
   
+  vis_x <- sp_cells[[vis.x]]
   #sp_cells[, richness := ifelse(richness == 0, NA, richness)]
   # Remove NA values
-  sp_cells <- sp_cells[!is.na(sp_cells[[plot.x]]), ]
+  sp_cells <- sp_cells[!is.na(vis_x), ]
   
   # Remove Inf values
-  sp_cells <- sp_cells[sp_cells[[plot.x]] != Inf, ]
-
+  sp_cells <- sp_cells[vis_x != Inf, ]
   
-  fig1A <- ggplot(sp_cells, aes_string(x = plot.x) ) +
-    # After_Stat accesses ggplot processed data, count represents the count of data points in each bin of the histogram
-    geom_freqpoly(binwidth = 0.1, aes(y = after_stat(count) / sum(after_stat(count))) ) +
-    geom_text() +
+  # Remove 0 values
+  sp_cells <- sp_cells[vis_x != 0, ]
+  
+  vis_x <- sp_cells[[vis.x]]
+  
+  min_lim <- 0
+  max_lim <- max(vis_x)
+  vis_breaks <- c(1,5,10,50,100,500,1000, max_lim)
+  
+    #sp_cells, aes(x = vis_x)
+  # After_Stat accesses ggplot processed data, count represents the count of data points in each bin of the histogram. Count is cell with that value. So we divide cell by total cells
+  fig1A <- ggplot(sp_cells, aes(x = vis_x)) +
+    geom_freqpoly(
+      binwidth = 0.1, 
+      aes(y = after_stat(count) / sum(after_stat(count)), color = after_stat(x)),
+      na.rm = TRUE,
+      show.legend = TRUE
+    ) +
+    scale_color_viridis_b(
+      option = "B",
+      guide = guide_legend(reverse = TRUE),
+      limits = (c(min_lim, max_lim)),
+      breaks = vis_breaks
+    ) +
     labs(
-      x = "Species Richness (log10)", 
-      y = "Proportion of cells in Arctic CAVM", 
-      title = paste0("Potential Door-knocker Species Richness in ", region.name)
+      x = "Potential Species Richness (log10)", 
+      y = paste0("Proportion of cells in the ", region.name), 
+      title = if (vis.title) paste0("Potential New Alien Species Richness in the ", region.name),
+      color = "Potential Species Richness"
       ) +
     scale_x_log10(labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
     theme_minimal() + 
-    theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
+    theme(
+      plot.title = element_text(
+        color = "black", 
+        vjust = -0.5, 
+        hjust = 0.5, 
+        size = 14, 
+        face = "bold.italic"
+      ),
+      axis.text = element_text(size = 10),
+      axis.text.x = element_text(
+        hjust = 0.5
+      )
+    ) 
   
   if (plot.show) print(fig1A)
   
-  ggsave("./outputs/visualize/plots/figure-1A.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, fig1A)
+  # Calculate the peaks
+  fig_data <- as.data.table(ggplot_build(fig1A)$data[[1]])
+
+  peak_data <- find_peaks(fig_data, column = "y", threshold = NULL, verbose = verbose)
+    
+  peak_data <- peak_data %>% 
+    mutate(cellCount = count, count = round(10^x))
+  
+  # Add text labels at the peaks
+  fig1A <- fig1A + geom_text(
+    data = peak_data, 
+    aes(x = count, y = y, label = count),
+    vjust = -0.5,
+    hjust = 0.5
+  )
+  
+  ggsave("./outputs/visualize/plots/figure-1A.jpeg", device = "jpeg", unit = "px", width = 3000, height = 2160, fig1A)
+  
+  
+# ----------- Sub regions -------------- #
   
   vebcat("Frequency for the entire region successfully visualized", color = "funSuccess")
   
   # Figure 1B different regions
   vebcat("Creating histogram for each region in the", region.name, color = "funInit")
   
-  # Order by plot.color
-  sp_cells <- sp_cells[order(sp_cells[[plot.color]]), ]
-  sp_cells[[plot.color]] <- factor(sp_cells[[plot.color]], levels = unique(sp_cells[[plot.color]]))
+  # Order by vis.color
+  sp_cells <- sp_cells[order(sp_cells[[vis.color]]), ]
+  sp_cells[[vis.color]] <- factor(sp_cells[[vis.color]], levels = unique(sp_cells[[vis.color]]))
+  
+  vis_x <- sp_cells[[vis.x]]
+  vis_color <- sp_cells[[vis.color]]
+  vis_shade <- sp_cells[[vis.shade]]
   
   # ADD shades of country for each floreg
-  plcol <- eval(as.factor(sp_cells[[plot.color]]))
-  plshd <- eval(as.factor(sp_cells[[plot.shade]]))
+  plcol <- as.factor(vis_color)
+  plshd <- as.factor(vis_shade)
+  vis_amax <- 1
+  vis_amin <- 0.1
   
-  fig1B <- ggplot(sp_cells, aes_string(x = plot.x, color = plcol, fill = plshd))  +
-    # ..count.. / sum(..count..) calculates the proportion of cells at each species richness value for each region within each bin of the histogram
-    geom_freqpoly(binwidth = 0.1, aes(y =  after_stat(count) / sum(after_stat(count))) ) + 
-    scale_color_viridis_d(guide = "legend", option = "B") + 
+  vebprint(levels(plcol), verbose, text = "Color levels:")
+  vebprint(levels(plshd), verbose, text = "Shade levels:")
+  
+  fig1B <- ggplot(sp_cells, aes(x = vis_x, color = plcol, alpha = plshd))  +
+    geom_freqpoly(
+      binwidth = 0.1, 
+      aes(y =  after_stat(count) / sum(after_stat(count)))
+      ) + 
+    scale_color_viridis_d(guide = "legend", option = "B") +
+    scale_alpha_discrete(guide = "none", range = c(vis_amin, vis_amax)) +
     labs(
-      x = "Species Richness (log10)", 
-      y = "Relative Cell Frequency", 
-      title = paste0("Potential Species Richness in Different Regions of ", region.name), 
+      x = "Potential Species Richness (log10)", 
+      y = paste0("Proportion of cells in the different regions of the ", region.name), 
+      title = if (vis.title) paste0("Potential New Alien Species Richness in Different Regions of the ", region.name), 
       color = "Country", 
-      linetype = "Floristic Province"
+      alpha = "Floristic Province"
     ) +
     scale_y_continuous(limits = c(0, NA), labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
     scale_x_log10(labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
     theme_minimal() + 
-    theme(plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 14, face = "bold.italic"))
+    theme(
+      plot.title = element_text(
+        color = "black", 
+        vjust = -0.5, 
+        hjust = 0,
+        size = 14, 
+        face = "bold.italic"
+      )
+    )
   
   if (plot.show) print(fig1B)
   
-  ggsave("./outputs/visualize/plots/figure-1B.jpeg",device = "jpeg", unit = "px", width = 2160, height = 2160, fig1B)
+  ggsave("./outputs/visualize/plots/figure-1B.jpeg",device = "jpeg", unit = "px", width = 3000, height = 2160, fig1B)
   
   vebcat("Frequency for each floristic region successfully visualized", color = "funSuccess")
 }
 
-visualize_hotspots <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
+# ---------- Hot spots ----------- #
+
+visualize_hotspots <- function(rast, region, region.name, extent, projection, projection.method, vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Potential Species hotspots", color = "funInit")
   
   catn("Checking crs.")
   rast <- check_crs(rast, projection, projection.method)
-  region <- check_crs(region, projection, projection.method)
+  region <- check_crs(region, projection, "near")
+  
+  catn("Removing 0 values.")
+  # Remove 0 values
+  #rast_0 <- ifel(rast == 0, rast, NA)
+  #rast <- ifel(rast == 0, NA, rast)
 
   catn("Getting min and max values.")
-  min_lim <- where.min(rast)
-  min_lim <- min(min_lim[, 3])
+  min_lim <- 0
   max_lim <- where.max(rast)
   max_lim <- max(max_lim[, 3])
+  vis_breaks <- c(1,5,10,50,100,500,1000, max_lim)
   catn("Plotting hotspots.")
   
   fig2A <- ggplot() +
@@ -89,31 +169,30 @@ visualize_hotspots <- function(rast, region, region.name, extent, projection, pr
     geom_spatraster(data = rast) +
     scale_fill_viridis_b(
       option = "B", 
-      #palette = "E",
       guide = guide_legend(reverse = TRUE),
-      #direction = -1,
-      #trans = "log1p",
       limits = (c(min_lim, max_lim)),
-      breaks = c(0,1,5,10,50,100,500,1000, max_lim),
+      breaks = vis_breaks,
       labels = function(x) format((x), big.mark = ",", scientific = FALSE, digits = 2),
       na.value = "transparent"
     ) +
-    labs(title = paste0("Potential door-knocker species hotspots in the CAVM"), fill = "Species Richness") +
+    labs(title = if (vis.title) paste0("Potential New Alien Species Hotspots in the ", region.name), fill = "Potential Species Richness") +
     coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
-    theme_minimal() + 
+    theme_minimal() +
     theme(
       plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
-      legend.title = element_text(size = 5),
+      legend.title = element_text(size = 8, hjust = 0),
       legend.text = element_text(size = 8)
     )
   
   if (plot.show) print(fig2A)
   
   catn("Saving plot.")
-  ggsave("./outputs/visualize/plots/figure-2A.jpeg", device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig2A)
+  ggsave("./outputs/visualize/plots/figure-2A.jpeg", device = "jpeg", unit = "px", width = 2700, height = 2160, plot = fig2A)
   
   vebcat("Successfully visualized Potential Species hotspots", color = "funSuccess")
 }
+
+# ---------- Hot spots 2B ----------- #
 
 visualize_highest_spread <- function(rast, region, region.name, extent, projection, projection.method, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing highest spread", color = "funInit")
@@ -128,9 +207,19 @@ visualize_highest_spread <- function(rast, region, region.name, extent, projecti
     geom_spatvector(data = region) +
     geom_spatraster(data = rast) +
     facet_wrap(~lyr, ncol = 3, labeller = label_wrap_gen(width = 20)) +
-    scale_fill_whitebox_c(palette = "muted", breaks = c(0, 1), labels = c("No Overlap", "Overlap"), guide = guide_legend(reverse = TRUE)) +
-    labs(title = paste0("Species with Highest Potential Spread in the CAVM"), fill = "Overlap Value") +
-    coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
+    scale_fill_whitebox_c(
+      palette = "muted", 
+      breaks = c(0, 1), 
+      labels = c("No Climatic Overlap", "Climatic Overlap"), 
+      guide = guide_legend(reverse = TRUE)
+    ) +
+    labs(
+      title = if (vis.title) paste0("Species with Highest Potential Spread in the", region.name), 
+      fill = "Overlap Value") +
+    coord_sf(
+      xlim = c(extent$xmin, extent$xmax), 
+      ylim = c(extent$ymin, extent$ymax)
+    ) +
     theme_minimal() + 
     theme(
       plot.title = element_text(color = "black", vjust = -0.5, size = 12, face = "bold.italic"),
@@ -143,14 +232,19 @@ visualize_highest_spread <- function(rast, region, region.name, extent, projecti
   fig2B_out <- "./outputs/visualize/plots/figure-2B.jpeg"
   
   catn("Saving plot to:", colcat(fig2B_out, color = "output"))
-  ggsave(fig2B_out, device = "jpeg", unit = "px", width = 2160, height = 2160, plot = fig2B)
+  ggsave(fig2B_out, device = "jpeg", unit = "px", width = 2700, height = 2160, plot = fig2B)
   
   vebcat("Successfully visualized highest spread", color = "funSuccess")
 }
 
-visualize_suitability <- function(rast, region, region.name, plot.show = F, verbose = F) {
+# ---------- Suitability ----------- #
+
+visualize_suitability <- function(rast, region, region.name, vis.title = FALSE, plot.show = F, verbose = F) {
   
   vebcat("Visualizing suiability plot", color = "funInit")
+  
+  rast <- check_crs(rast, projection, projection.method)
+  region <- check_crs(region, projection, projection.method)
   
   if (!identical(crs(rast, proj = TRUE), crs(region, proj = TRUE))) {
     catn("Reprojecting to laea.")
@@ -171,13 +265,18 @@ visualize_suitability <- function(rast, region, region.name, plot.show = F, verb
     geom_spatraster(data = rast) +
     scale_fill_whitebox_c(palette = "muted", limits = c(prob_min, prob_max), breaks = c(seq(100, prob_max, by = 100)), guide = guide_legend(reverse = TRUE)) +
     facet_wrap(~lyr, nrow = 3) +
-    labs(x = "Longitude", y = "Latitude", title = paste0("Predicted species distribution in ", region.name), fill = "Suitability Score", color = "Country") +
+    labs(
+      title = if (vis.title) paste0("Predicted species distribution in ", region.name), 
+      fill = "Potential Species Suitability", 
+      color = "Country"
+    ) +
     coord_sf(xlim = c(region_ext$xmin, region_ext$xmax), ylim = c(region_ext$ymin, region_ext$ymax)) +
     theme_minimal() + 
     theme(
       plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 10, face = "bold.italic"),
       axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
       axis.text.y = element_text(size = 8),
+      legend.text = element_text(size = 5),
       strip.text = element_text(size = 10)
       )
   
@@ -192,37 +291,34 @@ visualize_suitability <- function(rast, region, region.name, plot.show = F, verb
   vebcat("Suitability plot successfully visualized", color = "funSuccess")
 }
 
-visualize_richness <- function(dt, axis.x, axis.y, fill, group, plot.show = F, verbose = F) {
+visualize_richness <- function(dt, vis.x, vis.x.sort, vis.y, vis.fill, vis.group, plot.show = F, verbose = F) {
   vebcat("Visualizing composition plot", color = "funInit")
   
   # Remove NAs
-  dt <- dt[!is.na(dt[[fill]]), ]
+  dt <- dt[!is.na(dt[[vis.fill]]), ]
+  
+  vebprint(length(unique(dt[[vis.x]])), verbose, "Length of Unique Sub Regions:")
+  
+  # Order dt by vis.x.sort column
+  dt <- dt[order(dt[[vis.x.sort]])]
+  
+  lvl_order <- unique(dt[[vis.x]])
+  
+  dt[[vis.x]] <- factor(dt[[vis.x]], levels = lvl_order)
   
   # Reorder the bars
-  dt[[axis.x]] <- as.factor(dt[[axis.x]])
-  dt[[fill]] <- as.factor(dt[[fill]])
+  dt[[vis.fill]] <- factor(dt[[vis.fill]])
   
-  #vebcat("Before sorting:", veb = verbose)
-  #vebprint(levels(dt[[fill]]), veb = verbose)
+  levels(dt[[vis.fill]]) <- order_by_apg(levels(dt[[vis.fill]]), by = vis.fill, verbose = verbose)
   
-  levels(dt[[fill]]) <- order_by_apg(levels(dt[[fill]]), by = fill, verbose = verbose)
-  
-  # Order the entire data table by the group parameter
-  #dt <- dt[order(dt[[group]]), ]
-  # Order the levels of the x axis by the sorted dt 
-  #dt[[axis.x]] <- factor(dt[[axis.x]], levels = unique(dt[[axis.x]]))
-  
-  #vebcat("After sorting:", veb = verbose)
-  #vebprint(levels(dt[[fill]]), veb = verbose)
-  
-  fig4 <- ggplot(dt, aes(x = dt[[axis.x]], y = dt[[axis.y]], fill = dt[[fill]] )) +
+  fig4 <- ggplot(dt, aes(x = dt[[vis.x]], y = dt[[vis.y]], fill = dt[[vis.fill]] )) +
     geom_bar(stat = "identity", position = "stack") +
     scale_fill_whitebox_d(palette = "muted") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
     labs(
       x = "Floristic Region", 
-      y = "Relative Richness", 
-      fill = paste0(toupper(substr(fill, 1, 1)), substr(fill, 2, nchar(fill)))
+      y = "Potential Relative Richness", 
+      fill = paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill)))
     )
   
   if (plot.show) print(fig4)

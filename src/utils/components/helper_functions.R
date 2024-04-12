@@ -132,12 +132,37 @@ order_by_apg <- function(input, by, verbose = FALSE) {
     non_apg_order <- c("Lycopodiales", "Selaginellales", "Equisetales", "Osmundales", "Salviniales", "Cyatheales", "Polypodiales", "Ephedrales", "Pinales")
     
     ordered <- c(non_apg_order, ordered_apg)
-    print(ordered)
+    
   } else {
     setorderv(input, cols = apg_rank[[by]])
   }
   
   return(ordered)
+}
+
+find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
+  vebcat("Find Peaks Function:", veb = verbose)
+  vebprint(data, verbose, "Input Data:")
+  # Identify local maxima using diff
+  peaks <- which(diff(sign(diff(data[[column]]))) < 0) + 1
+  
+  vebprint(peaks, verbose, "peaks:")
+  
+  # Filter based on threshold (difference from neighbors)
+  if (!is.null(threshold)) {
+    filtered_peaks <- peaks[data[[column]][peaks] - data[[column]][peaks - 1] >= threshold & data[[column]][peaks] - data[[column]][peaks + 1] >= threshold]
+  } else {
+    filtered_peaks <- peaks
+  }
+  
+  vebprint(filtered_peaks, verbose, "Filtered Peaks:")
+  
+  out <- data[filtered_peaks, ]
+  
+  vebprint(out, text = "Out Data:", veb = verbose)
+  
+  # Return a data frame that only includes the peaks
+  return(out)
 }
 
 ##########################
@@ -159,73 +184,63 @@ convert_spatial_dt <- function(spatial, verbose = FALSE) {
   return(dt)
 }
 
-reproject_region <- function(region, projection, line_issue = F, show_plot = F, verbose = T) {
-  region_name <- strsplit(deparse(substitute(region)), "\\$")[[1]][[2]]
-  catn("Reprojecting", region_name)
-
-  if (line_issue == T) {
+reproject_region <- function(region, projection, issue.line = FALSE, issue.threshold = 0.00001, verbose = FALSE) {
+  catn("Reprojecting region")
+  
+  if (issue.line == T) {
     catn("Attempting to fix line issues.")
-
+    
     catn("Getting extents.")
     ext_east <- terra::ext(ext(region)$xmin, 0, ext(region)$ymin, ext(region)$ymax)
-    ext_west <- terra::ext(0.00001, ext(region)$xmax, ext(region)$ymin, ext(region)$ymax)
-
+    ext_west <- terra::ext(issue.threshold, ext(region)$xmax, ext(region)$ymin, ext(region)$ymax)
+    
     catn("Cropping in half.")
     vect_east <- terra::crop(region, ext_east)
     vect_west <- terra::crop(region, ext_west)
-
+    
     catn("Reprojecting to longlat.")
     proj_east <- terra::project(vect_east, longlat_crs)
     catn("Plotting left side.")
-    plot(proj_east)
+    if (verbose) plot(proj_east)
     proj_west <- terra::project(vect_west, longlat_crs)
     catn("plotting right side.")
-    plot(proj_west)
-
+    if (verbose) plot(proj_west)
+    
     region_longlat <- rbind(proj_west, proj_east)
-
-    if (show_plot == T) plot(region)
-
+    
+    if (verbose) plot(region_longlat)
+    
     return(region_longlat)
   }
-
-
+  
+  
   if (projection == "longlat") {
     catn("Choosing", highcat("longlat"), "coordinate system.")
-
-    if (grepl("+proj=longlat", crs(region, proj = T), fixed = TRUE) == FALSE) {
-      catn("Is not longlat, will be reprojected.")
-    }
-
-    print(crs(longlat_crs, proj = T))
     prj <- longlat_crs
   } else if (projection == "laea") {
-    catn("Choosing", highcat("polar"), "coordinate system. \n")
-    if (grepl("+proj=laea", crs(region, proj = T), fixed = TRUE) == FALSE) {
-      vebcat("Is not polar.", color = "nonFatalError")
-    }
+    catn("Choosing", highcat("laea"), "coordinate system.")
     prj <- laea_crs
   } else {
     stop("You can only choose projection 'longlat' or 'laea'.")
   }
-
-
-  if (!isTRUE(identical(crs(region), prj))) {
+  
+  
+  if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
     vebcat("Original CRS not identical to current CSR.", veb = verbose)
-    vebcat("Reprojecting", highcat(region_name), "to: ", crs(prj, proj = T), veb = verbose)
-
+    catn("Reprojecting region to:\n", highcat(crs(prj, proj = T)))
+    
     reproj_region <- terra::project(region, prj)
-
-    if (!isTRUE(identical(crs(reproj_region), prj))) {
+    
+    if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
       vebcat("Reprojection completed successfully", color = "funSuccess")
     } else {
-      vebcat("Reprojection failed.", color = "nonFatalError")
+      vebcat("Reprojection failed.", color = "fatalError")
     }
   } else {
-    vebcat("Original CRS identical to current CSR.", veb = verbose)
-    vebcat(region_name, "reprojected successfully.", color = "funSuccess")
+    catn("CRS already correct.")
+    reproj_region <- region
   }
-
+  
   return(reproj_region)
 }
 
@@ -245,16 +260,6 @@ fix_shape <- function(shape, verbose = FALSE) {
 
     return(shape)
   }
-}
-
-find_peaks <- function(data, prominence = 0.1) {
-  # Identify local maxima using diff
-  peaks <- which(diff(data) > 0 & diff(c(data, 0)) < 0)
-
-  # Filter based on prominence (difference from neighbors)
-  filtered_peaks <- peaks[data[peaks] - data[peaks - 1] >= prominence & data[peaks] - data[peaks + 1] >= prominence]
-
-  return(filtered_peaks)
 }
 
 calc_lat_res <- function(lat_res, long_res, latitude = 0, unit.out = "km", verbose = FALSE) {
