@@ -5,11 +5,18 @@ tryCatch({
 })  
   
 pkgs = c(
+  "data.table",
   "rgbif",
   "dplyr",
   "WorldFlora",
   "geodata",
   "terra",
+  "CoordinateCleaner",
+  "spThin",
+  "hypervolume",
+  "crayon",
+  "corrplot",
+  "parallel",
   "sf",
   "sp",
   "ggplot2",
@@ -22,16 +29,9 @@ pkgs = c(
   "heatmaply",
   "plotrix",
   "viridis",
-  "data.table",
-  "CoordinateCleaner",
-  "spThin",
   "stringdist",
   "stringr",
-  "parallel",
-  "progressr",
-  "crayon",
-  "corrplot",
-  "hypervolume"
+  "progressr"
 )
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))

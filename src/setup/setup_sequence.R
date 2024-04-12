@@ -24,31 +24,31 @@ setup_sequence <- function(hv.method, hv.accuracy, hv.incl.t, hv.dims = NULL, co
   
   system.speed.wfo <<- wfo_speed
   
-  setup_raw_data(
-    column = "rawName",
-    cores.max = cores.max,
-    verbose = verbose,
-    counter = 10
-  )
-  
-  region_shape <- setup_region()
-  
-  biovars <- data_acquisition(
-    region_shape,
-    iteration = 1, 
-    show.plot = FALSE, 
-    verbose = verbose, 
-    warn.file = warn_out,
-    err.file = err_out
-  )
-  
-  analyzed_data <- analyze_correlation(
-    biovars$region, 
-    file.out = paste0(setup_dir, "/correlation"), 
-    verbose = verbose
-  )
-  
   if (is.null(hv.dims)) {
+    setup_raw_data(
+      column = "rawName",
+      cores.max = cores.max,
+      verbose = verbose,
+      counter = 500
+    )
+    
+    region_shape <- setup_region()
+    
+    biovars <- setup_climate(
+      region_shape,
+      iteration = 1, 
+      show.plot = FALSE, 
+      verbose = verbose, 
+      warn.file = warn_out,
+      err.file = err_out
+    )
+    
+    analyzed_data <- analyze_correlation(
+      biovars$region, 
+      file.out = paste0(setup_dir, "/correlation"), 
+      verbose = verbose
+    )
+    
     vebcat("Check the correlation matrix and pick climate variables, Stopping process", color = "fatalError")
     stop("")
   } else {
@@ -61,7 +61,7 @@ setup_sequence <- function(hv.method, hv.accuracy, hv.incl.t, hv.dims = NULL, co
     biovars_region <- terra::subset(biovars$region, hv.dims)
     if (!file.exists(br_out)) writeRaster(biovars_region, br_out)
     
-    region_hv <- setup_region_hv(
+    region_hv <- setup_hv_region(
       biovars$region, 
       out.dir = paste0(setup_dir, "/region"), 
       method = hv.method
