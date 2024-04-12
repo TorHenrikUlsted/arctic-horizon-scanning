@@ -46,35 +46,10 @@ setup_region <- function(verbose = FALSE) {
   
   resource_dir <- "./resources/region"
   
-  greenland_ice <- paste0(resource_dir, "/promice/basalmelt.nc")
-  
-  glims_zip <- paste0(resource_dir, "/glims-db/glims-db.zip")
-  glims_shp <- paste0(resource_dir, "/glims_db/glims_polygons.shp")
-  
-  result_shp <- paste0(resource_dir, "/cavm-noice/cavm-noice.shp")
+  result_shp <- paste0("./outputs/setup/region/cavm-noice/cavm-noice.shp")
+  create_dir_if(dirname(result_shp))
   
   if (!file.exists(result_shp)) {
-    download_region_if(
-      region.file = greenland_ice,
-      download.link = "https://dataverse.geus.dk/api/access/datafile/:persistentId?persistentId=doi:10.22008/FK2/PLNUEO/BNXG0B",
-      download.page = "https://dataverse.geus.dk/file.xhtml?persistentId=doi:10.22008/FK2/PLNUEO/BNXG0B&version=2.0"
-    )
-    
-    greenland <- load_region(
-      region.file = greenland_ice, 
-      verbose = verbose
-    )
-    
-    download_region_if(
-      region.file = glims_zip,
-      download.link = NULL,
-      download.page = "https://nsidc.org/data/nsidc-0272/versions/1"
-    )
-    
-    glims <- load_region(
-      glims_shp, 
-      verbose = verbose
-    )
     
     cavm_shp <- paste0(resource_dir, "/cavm2003/cavm.shp")
     
@@ -83,81 +58,76 @@ setup_region <- function(verbose = FALSE) {
       verbose = verbose
     )
     
-    # Remove Lake (19), Lagoon (20), Non-Arctic (21)
-    #cavm <- cavm[cavm$VEGPHYS != 19, ]
-    #cavm <- cavm[cavm$VEGPHYS != 20, ]
+    # Reproject first becaus of line issue
+    cavm <- reproject_region(
+      cavm, 
+      projection = "longlat", 
+      issue.line = TRUE
+    )
+    
+    catn("Removing non-Arctic regions.")
+    # Remove Non-Arctic (21) ice Sheet (0), and glaciers (1)
     cavm <- cavm[cavm$VEGPHYS != 21, ]
+    cavm <- cavm[cavm$FLOREG != 0, ]
+    cavm <- cavm[cavm$LAND != 1, ]
     
-    cavm_desc <- fread("./resources/region/cavm2003-desc.csv")
+    catn("Converting CAVM to PAF floristic regions.")
+    # Give space to the new FLOREG regions
+    cavm$FLOREG <- ifelse(cavm$FLOREG >= 11 & cavm$FLOREG <= 23, cavm$FLOREG + 1, cavm$FLOREG)
     
-    index <- match(cavm$FLOREG, cavm$FLOREG)
+    cavm$FLOREG <- ifelse(cavm$FLOREG >= 14 & cavm$FLOREG <= 24, cavm$FLOREG + 1, cavm$FLOREG)
     
-    cavm$country <- cavm$country[index]
-    cavm$floristicProvince <- cavm$floristicProvince[index]
+    cavm$ID <- 1:nrow(cavm)
     
-    # s <- vect("resources/region/cavm-noice/cavm-noice.shp")
-    # 
-    # s <- s[s$VEGPHYS != 19, ]
-    # s <- s[s$VEGPHYS != 20, ]
-    # s <- s[s$VEGPHYS != 21, ]
+    # Split Iceland and Jan Mayen
+    jan_mayen <- which(cavm$FLOREG == 10 & cavm$LAND == 6)[4] # row index
     
-    # s_desc <- fread("./resources/region/cavm2003-desc.csv")
-    # 
-    # index <- match(s$FLOREG, s$FLOREG)
-    # 
-    # s$country <- s$country[index]
-    # s$floristicProvince <- s$floristicProvince[index]
+    cavm$FLOREG[jan_mayen] <- 11
     
-    #writeVector(s, "./outputs/setup/region/cavm-noice.shp")
+    # Split Svalbard and Franz Josef Land
+    svalbard_jfl <- subset(cavm, cavm$FLOREG == 13)
     
+    svalbard_jfl_geom <- geom(svalbard_jfl) # 41 polygons, use coordinates
     
-    cavm <- reproject_region(cavm, projection = "longlat", line_issue = TRUE)
+    index <- svalbard_jfl_geom[svalbard_jfl_geom[, 3] >= 40, ] # Get all polygons above the coordinates
     
-    catn("Setting up Greenland shape.")
-    crs(greenland) <- stere_crs
+    franz_josef <- svalbard_jfl[unique(index[,  1])]
     
-    greenland <- reproject_region(greenland, projection = "longlat")
+    cavm$FLOREG[cavm$ID %in% franz_josef$ID] <- 14
     
-    if (identical(crs(cavm, proj = TRUE), crs(greenland, proj = TRUE))) {
-      vebcat("Cavm and Greenland crs are identical.", color = "proSuccess")
-    } else {
-      vebcat("Cavm and Greenland crs are not identical.", color = "nonFatalError")  } 
+    # Combine FLOREG values
+    # Get indeces and replace them with a given number
+    new_floregs <- list(
+      north_alaska = list(old = c(1, 3), new = 1),
+      hudson_bay = list(old = c(5, 6), new = 5),
+      greenland_west = list(old = c(81, 82, 83, 84), new = 81),
+      greenland_east = list(old = c(91, 92, 93), new = 91)
+    )
     
-    green_shape <- as.polygons(greenland[[9]])
-    
-    valid_gl <- fix_shape(green_shape)
-    
-    catn("Cropping Greenland Ice to cavm extents.")
-    green_cavm <- crop(valid_gl, ext(cavm))
-    
-    catn("Erasing Greenland Ice from cavm.")
-    cavm_noice <- erase(cavm, green_cavm)
-    
-    catn("Setting up GLIMS database shape.")
-    glims <- reproject_region(glims, projection = "longlat")
-    
-    if (identical(crs(cavm_noice, proj = TRUE), crs(glims, proj = TRUE))) {
-      vebcat("Cavm and glims crs are identical.", color = "proSuccess")
-    } else {
-      vebcat("Cavm and glims crs are not identical.", color = "nonFatalError")
+    for(nf in names(new_floregs)) {
+      indices <- which(cavm$FLOREG %in% new_floregs[[nf]]$old)
+      cavm$FLOREG[indices] <- new_floregs[[nf]]$new
     }
     
-    valid_glims <- fix_shape(glims)
+    # Add region descriptions
+    cavm_desc <- fread("./resources/region/cavm2003-desc.csv")
     
-    catn("Cropping glims to cavm extents.")
-    glims_cavm <- crop(valid_glims, ext(cavm_noice))
+    index <- match(cavm$FLOREG, cavm_desc$FLOREG)
     
-    catn("Erasing glims from cavm.")
-    cavm_noice <- erase(cavm_noice, glims_cavm)
+    cavm$country <- cavm_desc$country[index]
+    cavm$floregName <- cavm_desc$floristicProvince[index]
     
-    create_dir_if("./outputs/setup/region")
+    if (all(terra::is.valid(cavm))) {
+      vebcat("Cavm shape is valid", color = "proSuccess")
+    } else {
+      vebcat("Cavm shape is invalid", color = "fatalError")
+      stop("ERROR: was not able to make a valid shapefile.")
+    }
     
-    out_shp <- "./outputs/setup/region/cavm-noice.shp"
+    create_dir_if(dirname(result_shp))
     
-    catn("Writing vector to file:", colcat(out_shape, color = "output"))
-    writeVector(cavm_noice, out_shape)
-    
-    file.copy(out_shape, result_shp)
+    catn("Writing vector to file:", colcat(out_shp, color = "output"))
+    writeVector(cavm, result_shp)
   }
   
   end_timer(region_setup_timer)

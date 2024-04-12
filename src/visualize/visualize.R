@@ -34,27 +34,13 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   #     Load varaibles     #
   ##########################
   
-  warn <- function(w, warn_txt) {
-    warn_msg <- conditionMessage(w)
-    warn_con <- file(warn_file, open = "a")
-    writeLines(paste(warn_txt, ":", warn_msg), warn_con)
-    close(warn_con)
-    invokeRestart(findRestart("muffleWarning"))
-  }
-  
-  err <- function(e, err_txt) {
-    err_msg <- conditionMessage(e)
-    err_con <- file(err_file, open = "a")
-    writeLines(paste(err_txt, ":", err_msg), err_con)
-    close(err_con)
-  }
-  
   sp_dirs <- list.dirs(paste0(hv.dir, "/projections/", hv.method))
   
   # Remove the directory name
   sp_dirs <- sp_dirs[-1]
   
-  cavm <- load_region("./resources/region/cavm-noice/cavm-noice.shp")
+  cavm <- load_region("./resources/region/cavm2003/cavm.shp")
+  cavm <- load_region("./outputs/setup/region/cavm-noice/cavm-noice.shp")
   
   cavm <- handle_region(cavm)
   
