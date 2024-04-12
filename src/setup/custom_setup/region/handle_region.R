@@ -5,6 +5,41 @@ handle_region <- function(region) {
   return(region)
 }
 
+handle_region_dt <- function(dt) {
+  # add east to west order
+  we <- c(
+    "North Alaska - Yukon Territory",
+    "Western Alaska",
+    "Central Canada",
+    "Hudson Bay - Labrador",
+    "Ellesmere-North Greenland",
+    "Western Greenland",
+    "Eastern Greenland",
+    "North Iceland",
+    "Jan Mayen",
+    "North Fennoscandia",
+    "Svalbard",
+    "Franz Joseph Land",
+    "Kanin-Pechora",
+    "Polar Ural - Novaya Zemlya",
+    "Yamal - Gydan",
+    "Anabar - Olenyek",
+    "Taimyr - Severnaya Zemlya",
+    "Kharaulakh",
+    "Yana - Kolyma",
+    "West Chukotka",
+    "Wrangel Island",
+    "South Chukotka",
+    "East Chukotka"
+  )
+  
+  we_dt <- data.table(floristicProvince = we, we = 1:length(we))
+  
+  dt <- dt[we_dt, on = .(floristicProvince)]
+  
+  return(dt)
+}
+
 setup_region <- function(verbose = FALSE) {
   vebcat("Initiating Region setup.", color = "funInit")
   region_setup_timer <- start_timer("region-setup-timer")
@@ -49,8 +84,8 @@ setup_region <- function(verbose = FALSE) {
     )
     
     # Remove Lake (19), Lagoon (20), Non-Arctic (21)
-    cavm <- cavm[cavm$VEGPHYS != 19, ]
-    cavm <- cavm[cavm$VEGPHYS != 20, ]
+    #cavm <- cavm[cavm$VEGPHYS != 19, ]
+    #cavm <- cavm[cavm$VEGPHYS != 20, ]
     cavm <- cavm[cavm$VEGPHYS != 21, ]
     
     cavm_desc <- fread("./resources/region/cavm2003-desc.csv")

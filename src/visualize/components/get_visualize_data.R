@@ -121,6 +121,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
     catn("Converting region to data table.")
     region_dt <- as.data.frame(region)
     region_dt <- as.data.table(region_dt)
+    region_dt <- handle_region_dt(region_dt)
     region_dt[, ID := .I]
     
     vebprint(head(region_dt, 3), verbose)

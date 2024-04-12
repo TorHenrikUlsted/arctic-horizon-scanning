@@ -132,12 +132,37 @@ order_by_apg <- function(input, by, verbose = FALSE) {
     non_apg_order <- c("Lycopodiales", "Selaginellales", "Equisetales", "Osmundales", "Salviniales", "Cyatheales", "Polypodiales", "Ephedrales", "Pinales")
     
     ordered <- c(non_apg_order, ordered_apg)
-    print(ordered)
+    
   } else {
     setorderv(input, cols = apg_rank[[by]])
   }
   
   return(ordered)
+}
+
+find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
+  vebcat("Find Peaks Function:", veb = verbose)
+  vebprint(data, verbose, "Input Data:")
+  # Identify local maxima using diff
+  peaks <- which(diff(sign(diff(data[[column]]))) < 0) + 1
+  
+  vebprint(peaks, verbose, "peaks:")
+  
+  # Filter based on threshold (difference from neighbors)
+  if (!is.null(threshold)) {
+    filtered_peaks <- peaks[data[[column]][peaks] - data[[column]][peaks - 1] >= threshold & data[[column]][peaks] - data[[column]][peaks + 1] >= threshold]
+  } else {
+    filtered_peaks <- peaks
+  }
+  
+  vebprint(filtered_peaks, verbose, "Filtered Peaks:")
+  
+  out <- data[filtered_peaks, ]
+  
+  vebprint(out, text = "Out Data:", veb = verbose)
+  
+  # Return a data frame that only includes the peaks
+  return(out)
 }
 
 ##########################
@@ -245,16 +270,6 @@ fix_shape <- function(shape, verbose = FALSE) {
 
     return(shape)
   }
-}
-
-find_peaks <- function(data, prominence = 0.1) {
-  # Identify local maxima using diff
-  peaks <- which(diff(data) > 0 & diff(c(data, 0)) < 0)
-
-  # Filter based on prominence (difference from neighbors)
-  filtered_peaks <- peaks[data[peaks] - data[peaks - 1] >= prominence & data[peaks] - data[peaks + 1] >= prominence]
-
-  return(filtered_peaks)
 }
 
 calc_lat_res <- function(lat_res, long_res, latitude = 0, unit.out = "km", verbose = FALSE) {

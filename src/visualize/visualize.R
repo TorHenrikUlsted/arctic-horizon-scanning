@@ -54,14 +54,9 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   # Remove the directory name
   sp_dirs <- sp_dirs[-1]
   
-  # Load the cavm region
-  shapefiles = c(
-    cavm = "./resources/region/cavm-noice/cavm-noice.shp"
-  )
+  cavm <- load_region("./resources/region/cavm-noice/cavm-noice.shp")
   
-  regions <- import_regions(shapefiles, "./outputs/visualize/region")
-  
-  cavm <- handle_region(regions$region.cavm)
+  cavm <- handle_region(cavm)
   
   cavm_laea <- terra::project(cavm, laea_crs)
   
@@ -107,10 +102,12 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   visualize_freqpoly(
     sp_cells = freq_stack, 
     region = cavm, 
-    region.name = "CAVM", 
-    plot.x = "richness",
-    plot.color = "country", 
-    plot.shade = "floristicProvince"
+    region.name = "Arctic", 
+    vis.x = "richness",
+    vis.title = TRUE,
+    vis.color = "country", 
+    vis.shade = "floristicProvince",
+    verbose = FALSE
   )
   
   ##########################
@@ -129,14 +126,16 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   )
   
   world_map <- get_world_map(projection = laea_crs)
+  
  
   visualize_hotspots(
     rast = hotspot_raster,
     region = world_map,
     extent = cavm_laea_ext,
-    region.name = "CAVM",
+    region.name = "Arctic",
     projection  = laea_crs,
-    projection.method = "near"
+    projection.method = "near",
+    vis.title = TRUE
   )
   
   inc_cover <- parallel_spec_handler(
@@ -159,7 +158,7 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   visualize_highest_spread(
     rast = inc_cover,
     region = world_map,
-    region.name = "CAVM",
+    region.name = "Arctic",
     extent = cavm_laea_ext,
     projection  = laea_crs,
     projection.method = "near",
@@ -193,7 +192,7 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   visualize_suitability(
     rast = prob_stack, 
     region = cavm_laea, 
-    region.name = "CAVM"
+    region.name = "Arctic"
   )
   
   ##########################
@@ -215,16 +214,18 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   # Calculate richness for specified taxon
   richness_dt <- calculate_taxon_richness(taxon_richness, "order")
   
-  richness_dt <- order_by_apg(richness_dt, by = "order")
+  richness_dt <- handle_region_dt(richness_dt)
   
   print(head(richness_dt, 3))
   
   visualize_richness(
-    dt = richness_dt, 
-    axis.x = "floristicProvince", 
-    axis.y = "relativeRichness", 
-    fill = "order",
-    group = "order",
+    dt = richness_dt,
+    region.name = "Arctic",
+    vis.x = "floristicProvince", 
+    vis.x.sort = "sn",
+    vis.y = "relativeRichness", 
+    vis.fill = "order",
+    vis.group = "order",
     verbose = FALSE
   )
   
