@@ -39,9 +39,8 @@ visualize_sequence <- function(spec.list, out.dir, hv.dir, hv.method, x.threshol
   # Remove the directory name
   sp_dirs <- sp_dirs[-1]
   
-  cavm <- load_region("./resources/region/cavm2003/cavm.shp")
   cavm <- load_region("./outputs/setup/region/cavm-noice/cavm-noice.shp")
-  
+
   cavm <- handle_region(cavm)
   
   cavm_laea <- terra::project(cavm, laea_crs)

@@ -119,3 +119,76 @@ plot_hypervolumes <- function(hv_list, out.dir) {
   
   vebcat("Plotting hypervolumes completed successfully", color = "funSuccess")
 }
+
+check_hv_results <- function(res, init.dt, hv.dir, hv.incl.threshold = 0.5, verbose = FALSE) {
+  catn("Checking hypervolume output.")
+  check <- TRUE
+  
+  # Check column names
+  missing_columns <- init.dt[!names(init.dt) %in% names(res)]
+  extra_columns <- names(res)[!names(res) %in% names(init.dt)]
+  
+  if (extra_columns > 0) {
+    catn("Length of output data table is higher than expected.")
+    vebprint(extra_columns, text = "Extra columns:")
+    check <- FALSE
+  }
+  
+  if (missing_columns > 0) {
+    catn("Length of output data table is lower than expected.")
+    vebprint(missing_columns, text = "missing columns:")
+    check <- FALSE
+  }
+  
+  # Check duplicate entries
+  stats_file <- paste0(hv.dir, "/stats.csv")
+  
+  existing_names <- unique(fread(stats_file, select = "cleanName"))
+  
+  out_name <- unique(res$cleanName)
+  
+  if (length(out_name) > 1) {
+    catn("Multiple unique names found:", out_name)
+    check <- FALSE
+  }
+  
+  if (out_name %in% existing_names) {
+    catn(out_name, "already in stats csv file.")
+    check <- FALSE
+  }
+  
+  # Check Projection outputs
+  proj_dir <- paste0(hv.dir, "/projections/", out_name)
+  all_files <- list.files(path = proj_dir, pattern = "\\.tif$", full.names = TRUE)
+  prob_files <- list.files(path = proj_dir, pattern = "probability\\.tif$", full.names = TRUE)
+  inc_files <- list.files(path = proj_dir, pattern = "inclusion\\.tif$", full.names = TRUE)
+  
+  # check dir length
+  if (length(list.files(proj_dir)) > length(hv.incl.threshold) + 1) {
+    catn("There are too many projection files in:", proj_dir)
+    check <- FALSE
+  } else if (length(list.files(proj_dir)) < length(hv.incl.threshold) + 1) {
+    catn("There are too few projection files in:", proj_dir)
+    check <- FALSE
+  }
+  
+  # check crs
+  for (i in 1:length(all_files)) {
+    file <- all_files[[i]]
+    
+    r <- rast(file)
+    
+    r_crs <- terra::crs(r, proj = TRUE)
+    
+    e_crs <- terra::crs(longlat_crs, proj = TRUE)
+    
+    if (!identical(r_crs, e_crs)) {
+      catn("The CRS is not identical:", proj_dir)
+      vebprint(e_crs, text = "Expected CRS:")
+      vebprint(r_crs, text = "output CRS:")
+      check <- FALSE
+    }
+  }
+  
+  return(check)
+} 

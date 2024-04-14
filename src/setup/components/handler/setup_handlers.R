@@ -46,7 +46,7 @@ setup_climate <- function(shapefile, iteration, plot.show, verbose, warn.file, e
   coord_uncertainty <- calc_coord_uncertainty(
     region = biovars_region,
     unit.out = "m",
-    dir.out = "./outputs/hypervolume/data_acquisition/logs",
+    dir.out = "./outputs/setup/logs",
     verbose = verbose
   )
   
@@ -99,17 +99,18 @@ setup_hv_region <- function(biovars_region, out.dir, method) {
   return(region_hv)
 }
 
-setup_hv_sequence <- function(hv.method, hv.accuracy, hv.incl.t, verbose = TRUE) {
+setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold = 0.5, verbose = TRUE) {
   vebcat("Initiating hypervolume sequence setup.", color = "funInit")
 
-  sp_list_setup <- list.files("./outputs/filter/test/test-small/chunk/species", full.names = TRUE)
+  sp_list_setup <- list.files("./outputs/filter/test-small/chunk/species", full.names = TRUE)
   
   hv_setup_dir <- "./outputs/setup/hypervolume"
-  create_dir_if(hv_setup_dir)
+  hv_logs_dir <- paste0(hv_setup_dir, "/logs/setup-check.txt")
+  create_dir_if(hv_logs_dir) # Recursive
 
-  setup_check <- paste0(hv_setup_dir, "/logs/setup-check.txt")
-  low_file <- paste0(hv_setup_dir, "/logs/peak-mem-low.txt")
-  high_file <- paste0(hv_setup_dir, "/logs/peak-mem-high.txt")
+  setup_check <- paste0(hv_logs_dir, "/setup-check.txt")
+  low_file <- paste0(hv_logs_dir, "/peak-mem-low.txt")
+  high_file <- paste0(hv_logs_dir, "/peak-mem-high.txt")
 
   min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 
@@ -124,15 +125,15 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.incl.t, verbose = TRUE)
 
     hypercolume_sequence(
       spec.list = sp_list_setup[[1]],
-      method = hv.method, # box approx 13 min, gaussian 1 hours 10 minutes
-      accuracy = hv.accuracy,
-      hv.projection = "longlat",
-      proj.incl.t = hv.incl.t,
       iterations = 1,
       min.disk.space = min_disk_space,
-      hv.dir = hv_setup_dir,
+      verbose = TRUE,
+      hv.method = hv.method, 
+      hv.accuracy = hv.accuracy, 
+      hv.dims = hv.dims, 
+      hv.incl.threshold = hv.incl.threshold
     )
-
+   
     stop_mem_tracking(ram_control, low_file, paste0(hv_setup_dir, "/stop-file.txt"))
   }
 
@@ -145,16 +146,15 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.incl.t, verbose = TRUE)
     ram_control <- start_mem_tracking(file.out = setup_check, stop_file = paste0(hv_setup_dir, "/stop-file.txt"))
 
     # Run a hypervolume sequence of sax. opp.
-
     hypercolume_sequence(
-      spec.list = sp_list_setup[[3]], # list of strings
-      method = hv.method, # box approx 13 min, gaussian 1 hours 10 minutes
-      accuracy = hv.accuracy,
-      hv.projection = "longlat",
-      proj.incl.t = hv.incl.t,
+      spec.list = sp_list_setup[[3]],
       iterations = 1,
       min.disk.space = min_disk_space,
-      hv.dir = hv_setup_dir,
+      verbose = TRUE,
+      hv.method = hv.method, 
+      hv.accuracy = hv.accuracy, 
+      hv.dims = hv.dims, 
+      hv.incl.threshold = hv.incl.threshold
     )
 
     stop_mem_tracking(ram_control, high_file, paste0(hv_setup_dir, "/stop-file.txt"))

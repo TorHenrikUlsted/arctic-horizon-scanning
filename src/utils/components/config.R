@@ -52,3 +52,6 @@ ignored_designations <- c(
   "coll.", # collection, do not need this word
   "sp." # for species that are uncertain and only have author name after
 )
+
+
+

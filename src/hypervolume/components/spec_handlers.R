@@ -1,3 +1,52 @@
+most_used_name <- function(x, max.number = 1) {
+  name <- unique(x)
+  
+  if (length(name) > max.number) {
+    vebcat("Found too many different strings.", color = "nonFatalError")
+    
+    freq_table <- table(x)
+    
+    name <- names(which.max(freq_table))
+  }
+  
+  return(name)
+}
+
+condense_taxons <- function(spec.dt, verbose = FALSE) {
+  catn("Condensing taxon columns.")
+  
+  cols_to_select <- c("kingdom", "phylum", "class", "order", "family", "genus", "species", "infraspecificEpithet", "taxonRank", "scientificName")
+  
+  taxon_cols <- spec.dt[, ..cols_to_select]
+  ct_cols <- data.table(matrix(ncol = length(cols_to_select), nrow = 1)) # condensed taxon cols
+  setnames(ct_cols, names(taxon_cols))
+  
+  for (i in 1:length(taxon_cols)) {
+    column <- taxon_cols[[i]]
+    
+    name <- most_used_name(column)
+    
+    ct_cols[[1, i]] <- name
+  }
+  
+  return(ct_cols)
+}
+
+condense_country <- function(spec.dt, verbose = FALSE) {
+  catn("Condensing country columns.")
+  
+  cols_to_select <- c("countryCode", "decimalLongitude", "decimalLatitude")
+  
+  country_cols <- spec.dt[, ..cols_to_select]
+  
+  country_coords <- country_cols[, .(
+    mean_long = mean(decimalLongitude, na.rm = TRUE), 
+    mean_lat = mean(decimalLatitude, na.rm = TRUE)), 
+    by = "countryCode"]
+  
+  return(country_coords)
+}
+
 prepare_species <- function(dt, projection, verbose = T) {
   if (!is.data.table(dt)) {
     stop("Input must be a data.table")

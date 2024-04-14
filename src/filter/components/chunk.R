@@ -106,27 +106,27 @@ chunk_file <- function(file_path, chunk.name, chunk.column, chunk.dir, chunk.siz
       tryCatch({
         
         if (is.vector(chunk.column) && length(chunk.column) > 1) {
-          data$combined <- apply(data[, ..chunk.column, drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " "))
-          data$combined <- trimws(data$combined)
-          new_column <- "combined"
+          data$cleanName <- apply(data[, ..chunk.column, drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " "))
+          data$cleanName <- trimws(data$cleanName)
+          chunk.column <- "cleanName"
         } else {
           data <- remove_authorship(data, synonym_file)
           
-          chunk.column <- "combined"
+          chunk.column <- "cleanName"
         }
       }, error = function(e) {
-        catn("Error when combining columns.")
+        catn("Error when cleaned columns.")
         catn(e$message)
         
-        catn("Length unique combined column:", length(unique(data[[new_column]])))
-        catn("Str new_column:")
-        print(str(head(new_column, 2)))
+        catn("Length unique cleaned column:", length(unique(data[[chunk.column]])))
+        catn("Str chunk.column:")
+        print(str(head(chunk.column, 2)))
       })
       
       # Order and split the data
       tryCatch({
-        data <- data[order(data[[new_column]]), ]
-        data_list <- split(data, data[[new_column]])
+        data <- data[order(data[[chunk.column]]), ]
+        data_list <- split(data, data[[chunk.column]])
         # Remove list items with blank names
         data_list <- data_list[names(data_list) != ""]
       }, error = function(e) {
@@ -142,7 +142,7 @@ chunk_file <- function(file_path, chunk.name, chunk.column, chunk.dir, chunk.siz
       cat(
         sprintf(
           "\r%6.0f | %14.0f | %20.0f | %13s | %14.0f | %18.0f",
-          i, nrow(data), length(unique(data[[new_column]])), class(data_list), total_chunks, ceiling((total_rows - (i * chunk.size)) / chunk.size)
+          i, nrow(data), length(unique(data[[chunk.column]])), class(data_list), total_chunks, ceiling((total_rows - (i * chunk.size)) / chunk.size)
         )
       )
       flush.console()
@@ -193,17 +193,17 @@ chunk_file <- function(file_path, chunk.name, chunk.column, chunk.dir, chunk.siz
 # Chunk loadable df
 #####################
 
-chunk_loaded_df <- function(df, chunk.name = "output", chunk.column, chunk.dir, iterations = NULL, verbose = FALSE) {
+chunk_loaded_df <- function(df, chunk.name = "species", chunk.column, chunk.dir, iterations = NULL, verbose = FALSE) {
   vebcat("Initiating loaded dataframe chunking protocol.", color = "funInit")
   
   if (is.vector(chunk.column) && length(chunk.column) > 1) {
     vebcat("Found vector more than 1 in length, combining columns:", highcat(chunk.column), veb = verbose)
-    df$combined <- df[, do.call(paste, c(.SD, sep = " ")), .SDcols = chunk.column]
-    chunk.column <- "combined"
+    df$cleanName <- df[, do.call(paste, c(.SD, sep = " ")), .SDcols = chunk.column]
+    chunk.column <- "cleanName"
   } else {
     df <- remove_authorship(df, verbose = verbose)
     
-    chunk.column <- "combined"
+    chunk.column <- "cleanName"
   }
   
   vebcat("Sorting data.", veb = verbose)
@@ -374,7 +374,7 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
       strings <- gsub("\\s+", "", sp_w_keys$species)
       
       # Filter rows where scientificName matches with the scientificName of sp_w_keys
-      cleaned_data <- chunk_data[sapply(gsub("\\s+", "", combined), function(name) {
+      cleaned_data <- chunk_data[sapply(gsub("\\s+", "", chunk_data[[chunk.column]]), function(name) {
         matches <- agrepl(name, strings, max.distance = 1)
         name %in% strings || any(matches)
       }), ]

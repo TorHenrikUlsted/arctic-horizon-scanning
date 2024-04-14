@@ -79,9 +79,14 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
 
 # --------------------------- Process node ---------------------------- #
 
-process_node <- function(pro.dir, iteration, identifier, spec.list, columns.to.read, verbose, fun) {
+process_node <- function(pro.dir, iteration, identifier, spec.list, columns.to.read, init.dt, hv.incl.threshold = 0.5, verbose, warn, err, fun) {
   log_dir <- paste0(pro.dir, "/logs")
-  sp_node_log <- paste0(log_dir, "/", iteration, "-", gsub(" ", "-", spec.name), "-log.txt")
+  
+  spec_filename <- spec.list[[iteration]]
+  spec_name <- gsub(".csv", "", basename(spec_filename))
+  spec_name <- trimws(spec_name)
+  
+  sp_node_log <- paste0(log_dir, "/", iteration, "_", gsub(" ", "-", spec_name), "-log.txt")
   create_file_if(sp_node_log)
   
   try(sp_node_log <- file(sp_node_log, open = "at"))
@@ -90,19 +95,24 @@ process_node <- function(pro.dir, iteration, identifier, spec.list, columns.to.r
   
   spec <- fread(spec_filename, select = columns.to.read)
   
+  spec <- spec[spec$occurrenceStatus == "PRESENT", ]
+  
+  spec <- spec[, "occurrenceStatus" := NULL]
+  
   nobs <- nrow(spec)
   
   vebprint(head(spec, 2), text = "spec:")
-  
-  spec_filename <- spec.list[[iteration]]
-  spec_name <- gsub(".csv", "", basename(spec_filename))
-  spec_name <- trimws(spec_name)
   
   catn("Run Iteration", highcat(iteration))
   catn("Node Identifier:", identifier, "\n")
   catn("Using Species:", highcat(spec.name))
   catn("Using Species:", highcat(spec_filename))
   catn("Species observations:", nobs)
+  
+  # Condense data
+  spec_condensed <- condense_taxons(spec.dt = spec)
+  
+  cntry_condensed <- condense_country(spec.dt = spec)
   
   tryCatch({
     res <- fun(spec, spec_name)
@@ -113,6 +123,17 @@ process_node <- function(pro.dir, iteration, identifier, spec.list, columns.to.r
     sink(type = "output")
     close(sp_node_log)
   })
+  
+  cbmnd_res <- cbind(res, spec_condensed)
+  
+  # Duplicate the rows to match the length of cntry_condensed
+  rep_cbmnd_res <- cbmnd_res[rep(seq_len(nrow(cbmnd_res)), nrow(cntry_condensed)), ]
+  
+  final_res <- cbind(rep_cbmnd_res, cntry_condensed)
+  
+  vebprint(final_res, verbose, "Final Result:")
+  
+  res <- check_results(final_res, pro.dir, init.dt = init.dt, verbose = verbose)
   
   while (TRUE) {
     if (!while_msg) {
@@ -130,6 +151,18 @@ process_node <- function(pro.dir, iteration, identifier, spec.list, columns.to.r
     }
   }
   while_msg <- FALSE
+  
+  if (res) {
+    fwrite(final_res, paste0(pro.dir, "/stats.csv"), append = T, bom = T)
+  } else {
+    err_con <- file(err, open = "a")
+    
+    writeLines(paste0(
+      "Hypervolume sequence failed the output check for node", iteration
+    ), err_con)
+    
+    close(err_con)
+  }
   
   node_con <- file(node_it, open = "r")
   

@@ -21,8 +21,9 @@ hypervolume_sequence <- function(
   stats_file <- paste0(hv_dir, "/stats.csv")
   
   if (!file.exists(stats_file)) {
-    dt <- data.table(
-      species = character(0),
+    init_dt <- data.table(
+      cleanName = character(0),
+      iteration = integer(0),
       observations = integer(0),
       dimensions = integer(0),
       samplesPerPoint = integer(0),
@@ -33,10 +34,23 @@ hypervolume_sequence <- function(
       fracVolumeSpecies = numeric(0),
       fracVolumeRegion = numeric(0),
       overlapRegion = numeric(0),
-      includedOverlap = numeric(0)
+      includedOverlap = numeric(0),
+      kingdom = character(0), 
+      phylum = character(0), 
+      class = character(0),
+      order = character(0),
+      family = character(0), 
+      genus = character(0), 
+      species = character(0),
+      infraspecificEpithet = character(0),
+      taxonRank = character(0), 
+      scientificName = character(0),
+      countryCode = character(0), 
+      mean_long = numeric(0),
+      mean_lat = numeric(0)
     )
     
-    fwrite(dt, stats_file, row.names = F, bom = T)
+    fwrite(init_dt, stats_file, row.names = F, bom = T)
   }
   
   custom_exports = c(
@@ -94,17 +108,28 @@ hypervolume_sequence <- function(
       min.disk.space = min.disk.space,
       spec.list = spec.list,
       columns.to.read = c(
-        "species", 
+        "kingdom",
+        "phylum",
+        "class",
+        "order",
+        "family",
+        "genus",
+        "species",
+        "infraspecificEpithet",
+        "taxonRank",
+        "scientificName",
+        "cleanName",
         "decimalLongitude", 
         "decimalLatitude", 
         "coordinateUncertaintyInMeters", 
-        "coordinatePrecision", 
-        "countryCode", 
-        "stateProvince", 
+        "countryCode",
+        "occurrenceStatus",
+        "stateProvince",
         "year"
       ),
       min.disk.space = min.disk.space,
       cores.max.high = cores.max.high,
+      init.dt = init_dt,
       verbose = verbose,
       hv.incl.threshold = incl.threshold, 
       hv.method = , 

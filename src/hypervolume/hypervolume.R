@@ -238,7 +238,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         )
 
         names(inc_project) <- ("inclusionScore")
-        out_file <- paste0(proj_dir, "/inclusion-", threshold, ".tif")
+        out_file <- paste0(proj_dir, "/", threshold, "-inclusion", ".tif")
 
         vebcat("Writing out raster file:", colcat(out_file), color = "output")
         writeRaster(inc_project, out_file, overwrite = TRUE)
