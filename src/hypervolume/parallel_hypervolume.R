@@ -5,6 +5,7 @@ hypervolume_sequence <- function(
     cores.max = 1,
     min.disk.space = 1,
     verbose = FALSE,
+    hv.dir,
     hv.method, 
     hv.accuracy, 
     hv.dims, 
@@ -16,62 +17,89 @@ hypervolume_sequence <- function(
   
   parallell_timer <- start_timer("parallell_timer")
   
-  process_dir <- paste0("./outputs/hypervolume/", method, "-sequence")
+  hv_dir <- paste0(hv.dir, "/", hv.method, "-sequence")
+  
+  create_dir_if(hv_dir)
   
   stats_file <- paste0(hv_dir, "/stats.csv")
+  removed_file <- paste0(hv_dir, "/removed-species.csv")
+  
+  init_dt <- data.table(
+    cleanName = character(0),
+    iteration = integer(0),
+    observations = integer(0),
+    dimensions = integer(0),
+    samplesPerPoint = integer(0),
+    randomPoints = integer(0),
+    excluded = logical(0),
+    jaccard = numeric(0),
+    sorensen = numeric(0),
+    fracVolumeSpecies = numeric(0),
+    fracVolumeRegion = numeric(0),
+    realizedNiche = numeric(0),
+    overlapRegion = numeric(0),
+    includedOverlap = numeric(0),
+    kingdom = character(0), 
+    phylum = character(0), 
+    class = character(0),
+    order = character(0),
+    family = character(0), 
+    genus = character(0), 
+    species = character(0),
+    infraspecificEpithet = character(0),
+    taxonRank = character(0), 
+    scientificName = character(0),
+    countryCode = character(0),
+    country = character(0),
+    meanLong = numeric(0),
+    meanLat = numeric(0)
+  )
   
   if (!file.exists(stats_file)) {
-    init_dt <- data.table(
-      cleanName = character(0),
-      iteration = integer(0),
-      observations = integer(0),
-      dimensions = integer(0),
-      samplesPerPoint = integer(0),
-      randomPoints = integer(0),
-      excluded = logical(0),
-      jaccard = numeric(0),
-      sorensen = numeric(0),
-      fracVolumeSpecies = numeric(0),
-      fracVolumeRegion = numeric(0),
-      overlapRegion = numeric(0),
-      includedOverlap = numeric(0),
-      kingdom = character(0), 
-      phylum = character(0), 
-      class = character(0),
-      order = character(0),
-      family = character(0), 
-      genus = character(0), 
-      species = character(0),
-      infraspecificEpithet = character(0),
-      taxonRank = character(0), 
-      scientificName = character(0),
-      countryCode = character(0), 
-      mean_long = numeric(0),
-      mean_lat = numeric(0)
-    )
-    
     fwrite(init_dt, stats_file, row.names = F, bom = T)
   }
   
   custom_exports = c(
-    hv.incl.threshold, 
+    hv.dir,
     hv.method, 
     hv.accuracy, 
-    hv.dims
+    hv.dims, 
+    hv.incl.threshold
   )
   
   custom_evals = c(
     "./src/utils/utils.R",
-    "./src/setup/setup.R",
-    "./src/hypervolume/data_acquisition/data_acquisition.R",
-    "./src/hypervolume/data_analysis/data_analysis.R",
-    "./src/hypervolume/data_processing/data_processing.R",
-    "./src/hypervolume/hv_analysis/hv_analysis.R",
-    "./src/hypervolume/node.R"
+    "./src/setup/setup_sequence.R",
+    "./src/hypervolume/hypervolume.R",
+    "./src/hypervolume/node_hypervolume.R",
+    "./src/hypervolume/parallel_hypervolume.R"
   )
   
+  spec_count_dt <- count_observations(
+    spec.list = spec.list,
+    dimensions = hv.dims,
+    verbose = verbose
+  )
+  
+  spec_removed <- spec_count_dt[removed == TRUE, ]
+  spec_removed[, filename := NULL]
+
+  fwrite(spec_removed, removed_file, bom = TRUE)
+
+  spec_count_dt <- spec_count_dt[removed == FALSE, ]
+
+  setorder(spec_count_dt, meanLat)
+  
+  print(spec_count_dt)
+
+  spec_list <- spec_count_dt$filename
+
+  vebprint(head(spec_list, 10), verbose, "species list sample:")
+  
+  stop()
+  
   parallel <- setup_parallel(
-    par.dir = process_dir,
+    par.dir = hv_dir,
     spec.list = spec.list,
     iterations = iterations,
     cores.max = cores.max,
@@ -83,8 +111,10 @@ hypervolume_sequence <- function(
   )
   
   results <- vector("list", length(spec.list))
+  
+  vebprint(clusterEvalQ(parallel$cl, ls()), veb = verbose, text = "All cluster variables:")
 
-  res <- clusterApplyLB(cl, parallel$batch, function(j) {
+  res <- clusterApplyLB(parallel$cl, parallel$batch, function(j) {
     ram_msg <- FALSE
     # RAM check
     mem_used_gb <- get_mem_usage(type = "used", format = "gb")
@@ -102,10 +132,9 @@ hypervolume_sequence <- function(
       mem_used_gb <- get_mem_usage(type = "used", format = "gb")
     }
     
-    node_processing(
-      process.dir = hv.dir,
+    node_hypervolume(
+      process.dir = par.dir,
       iteration = j,
-      min.disk.space = min.disk.space,
       spec.list = spec.list,
       columns.to.read = c(
         "kingdom",
@@ -131,10 +160,10 @@ hypervolume_sequence <- function(
       cores.max.high = cores.max.high,
       init.dt = init_dt,
       verbose = verbose,
-      hv.incl.threshold = incl.threshold, 
-      hv.method = , 
-      hv.accuracy, 
-      hv.dims
+      hv.incl.threshold = hv.incl.threshold, 
+      hv.method = hv.method, 
+      hv.accuracy = hv.accuracy, 
+      hv.dims = hv.dims
     )
   
   })
@@ -143,15 +172,21 @@ hypervolume_sequence <- function(
 
   catn("Finishing up.")
 
-  stopCluster(cl)
+  stopCluster(parallel$cl)
   
   prev_highest_it <- as.integer(readLines(parallel$highest.iteration))
+  
+  if (length(prev_highest_it) == 0) prev_highest_it <- 0
 
   highest_iteration <- max(unlist(lapply(results, function(res) res$iteration)))
   
-  if (highest_iteration > prev_highest_it) writeLines(as.character(highest_iteration), highest_it_file)
+  if (highest_iteration >= prev_highest_it) {
+    catn("Highest iteration:", highcat(highest_iteration))
+    catn("Expected total iteration:", highcat(length(spec.list)))
+    writeLines(as.character(highest_iteration), parallel$highest.iteration)
+  }
   
   end_timer(parallell_timer)
 
-  veb("Hypervolume sequence completed succesfully", color = "seqSuccess")
+  vebcat("Hypervolume sequence completed succesfully", color = "seqSuccess")
 }

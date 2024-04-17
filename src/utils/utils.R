@@ -25,6 +25,7 @@ pkgs = c(
   "scales",
   "rnaturalearth",
   "rnaturalearthdata",
+  "countrycode",
   "ggalluvial",
   "heatmaply",
   "plotrix",

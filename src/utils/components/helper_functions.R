@@ -284,46 +284,67 @@ calc_lat_res <- function(lat_res, long_res, latitude = 0, unit.out = "km", verbo
   }
 }
 
-calc_coord_uncertainty <- function(region, unit.out = "km", dir.out, verbose = FALSE) {
-  
-  catn("Calculating CoordinateUncertainty.")
+calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "km", dir.out, verbose = FALSE) {
   
   out_file <- paste0(dir.out, "/coordinateUncertainty-", unit.out, ".txt")
   
-  create_dir_if(dir.out)
-  create_file_if(out_file)
-  
-  if (is.character(region)) {
-    region <- rast(region)
-  }
-  
-  res_lat <- terra::res(region)[2]
-  res_long <- terra::res(region)[1]
-  
-  # Get latitude based on northern or southern hemisphere
-  region_ext <- terra::ext(region)
-  
-  vebprint(region_ext, text = "Region Extent:")
-  
-  if (as.numeric(region_ext[4]) > 0) {
-    lat <- as.numeric(region_ext[4]) # northern hemisphere
+  if (file.exists(out_file)) {
+    max_res <- as.numeric(readLines(out_file))
   } else {
-    lat <- as.numeric(region_ext[3]) # Southern hemisphere
+    catn("Calculating CoordinateUncertainty.")
+    
+    create_dir_if(dir.out)
+    create_file_if(out_file)
+    
+    if (is.character(region)) {
+      region <- rast(region)
+    }
+    
+    if (terra::nlyr(region) > 1) {
+      region <- terra::subset(region, 1)
+    }
+    
+    region_ext <- terra::ext(region)
+    
+    vebprint(region_ext, text = "Region Extent:")
+    
+    if (projection == "longlat") {
+      projection = longlat_crs
+      region <- check_crs(region, projection = projection, projection.method = "near")
+      res_lat <- terra::res(region)[2]
+      res_long <- terra::res(region)[1]
+      # Get latitude based on northern or southern hemisphere
+      if (as.numeric(region_ext[4]) > 0) {
+        lat <- as.numeric(region_ext[4]) # northern hemisphere
+      } else {
+        lat <- as.numeric(region_ext[3]) # Southern hemisphere
+      }
+      
+      vebprint(lat, text = "Latitude:")
+      
+      max_res <- calc_lat_res(
+        res_lat, 
+        res_long, 
+        lat,
+        unit.out = unit.out, 
+        verbose = verbose
+      )
+    } else if (projection == "laea") {
+      projection = laea_crs
+      region <- check_crs(region, projection = projection, projection.method = "near")
+      max_res <- floor(terra::res(region)[1])
+      
+      if (unit.out == "km") {
+        max_res <- (max_res / 1000)
+      } 
+    } else {
+      stop("Error: only 'longlat' or 'laea' is available as projection parameters.")
+    }
+    
+    catn("Writing file to:", colcat(out_file, color = "output"))
+    
+    writeLines(as.character(max_res), out_file)
   }
-  
-  vebprint(lat, text = "Latitude:")
-  
-  max_res <- calc_lat_res(
-    res_lat, 
-    res_long, 
-    lat,
-    unit.out = unit.out, 
-    verbose = verbose
-  )
-  
-  catn("Writing file to:", colcat(out_file, color = "output"))
-  
-  writeLines(as.character(max_res), out_file)
   
   catn("Lowest CoordinateUncertainty:", colcat(max_res, color = "indicator"))
   

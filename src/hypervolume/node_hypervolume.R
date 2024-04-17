@@ -3,8 +3,8 @@ node_hypervolume <- function(
     iteration,
     spec.list,
     columns.to.read,
-    min.disk.space,
-    cores.max.high,
+    min.disk.space = 1,
+    cores.max.high = 1,
     init.dt,
     verbose = FALSE,
     hv.incl.threshold, 
@@ -14,6 +14,8 @@ node_hypervolume <- function(
   ) {
   
   tryCatch({
+    node_timer <- start_timer(paste0("node", iteration))
+    
     node <- setup_node(
       pro.dir = process.dir,
       iteration = iteration,
@@ -23,22 +25,27 @@ node_hypervolume <- function(
     
     process_node(
       pro.dir = process.dir,
-      iteration = iteration,
       identifier = node$identifier,
+      lock.dir = node$locks,
+      lock.setup = node$lock.setup,
+      node.it.log = node$it.log,
+      iteration = iteration,
       spec.list = spec.list,
       columns.to.read = columns.to.read,
       init.dt = init.dt,
       hv.incl.threshold = hv.incl.threshold,
       verbose = verbose,
-      warn = node$warn,
-      err = node$err,
+      warn = node$warn.file,
+      err = node$err.file,
       fun = function(spec, spec.name) {
         
         skip_to_end <- FALSE
         proj_dir <- paste0(process.dir, "/projections")
-        pro_locks_dir <- paste0(node$locks, "/hv-locks")
+        pro_locks_dir <- paste0(dirname(node$locks), "/hypervolume")
         
         create_dir_if(c(proj_dir, pro_locks_dir))
+        
+        nobs <- nrow(spec)
         
         catn("Log observations:", log(nobs))
         catn("Expected dimensions:", length(hv.dims))
@@ -62,6 +69,7 @@ node_hypervolume <- function(
           )
           
           if (is.list(processed_data) && processed_data$excluded == TRUE) {
+            vebcat("Setting skip_to_end to TRUE.", veb = verbose)
             skip_to_end <- TRUE
             break
           }
@@ -72,10 +80,10 @@ node_hypervolume <- function(
             spec.name = spec.name, 
             incl_threshold = hv.incl.threshold, 
             accuracy = hv.accuracy, 
-            projection = hv.projection, 
             iteration = iteration, 
             hv.dir = process.dir,
-            lock.dir = lock_hv_dir, 
+            lock.dir = pro_locks_dir,
+            proj.dir = proj_dir,
             cores.max.high = cores.max.high,
             verbose = verbose,
             warn.file = node$warn,
@@ -85,7 +93,7 @@ node_hypervolume <- function(
           catn("Appending data to csv file.")
           
           final_res <- data.table(
-            cleanName = spec.name,
+            cleanName = gsub("-", " ", spec.name),
             iteration = iteration,
             observations = analyzed_hv[[1]],
             dimensions = analyzed_hv[[2]],
@@ -93,9 +101,10 @@ node_hypervolume <- function(
             randomPoints = analyzed_hv[[4]],
             excluded = analyzed_hv[[5]],
             jaccard = analyzed_hv[[6]][[1]],
-            sørensen = analyzed_hv[[6]][[2]],
+            sorensen = analyzed_hv[[6]][[2]],
             fracVolumeSpecies = analyzed_hv[[6]][[3]],
             fracVolumeRegion = analyzed_hv[[6]][[4]],
+            realizedNiche = 1 - analyzed_hv[[6]][[3]],
             overlapRegion = 1 - analyzed_hv[[6]][[4]],
             includedOverlap = sum(analyzed_hv[[7]] == T) / length(analyzed_hv[[7]])
           )
@@ -109,7 +118,7 @@ node_hypervolume <- function(
           catn("Appending data to csv file.")
           
           final_res <- data.table(
-            cleanName = spec.name,
+            cleanName = gsub("-", " ", spec.name),
             iteration = iteration,
             observations = nobs,
             dimensions = length(hv.dims),
@@ -117,9 +126,10 @@ node_hypervolume <- function(
             randomPoints = 0,
             excluded = TRUE,
             jaccard = 0,
-            sørensen = 0,
+            sorensen = 0,
             fracVolumeSpecies = 0,
             fracVolumeRegion = 0,
+            realizedNiche = 1,
             overlapRegion = 1,
             includedOverlap = 0
           )
@@ -130,6 +140,8 @@ node_hypervolume <- function(
         return(final_res)
       }
     )
+    
+    end_timer(node_timer)
     
   },
   warning = function(w) warn(w, warn.file = node$warn, warn.txt = "Warning in node", iteration = iteration),
@@ -142,6 +154,8 @@ node_hypervolume <- function(
   rm(list = setdiff(ls(), "iteration"))
   
   invisible(gc())
+  
+  print(iteration)
   
   return(list(
     iteration = iteration

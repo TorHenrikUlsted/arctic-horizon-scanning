@@ -1,4 +1,4 @@
-setup_climate <- function(shapefile, iteration, plot.show, verbose, warn.file, err.file) {
+setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FALSE, warn.file, err.file) {
   vebcat("Initiating data acquisition protocol", color = "funInit")
   
   withCallingHandlers(
@@ -6,7 +6,7 @@ setup_climate <- function(shapefile, iteration, plot.show, verbose, warn.file, e
       biovars_world <- get_wc_data(
         var = climate.var, 
         res = climate.res, 
-        plot.show = plot.show, 
+        show.plot = show.plot, 
         verbose = verbose
       )
     },
@@ -35,7 +35,7 @@ setup_climate <- function(shapefile, iteration, plot.show, verbose, warn.file, e
         biovars_world,
         shapefile = shapefile, 
         projection = "longlat",
-        plot.show = plot.show,
+        show.plot = show.plot,
         verbose = verbose
       )
     },
@@ -45,8 +45,9 @@ setup_climate <- function(shapefile, iteration, plot.show, verbose, warn.file, e
   
   coord_uncertainty <- calc_coord_uncertainty(
     region = biovars_region,
+    projection = "laea",
     unit.out = "m",
-    dir.out = "./outputs/setup/logs",
+    dir.out = "./outputs/setup/region",
     verbose = verbose
   )
   
@@ -67,7 +68,7 @@ setup_hv_region <- function(biovars_region, out.dir, method) {
     catn("Region hypervolume already exists, reading file.")
     region_hv <- readRDS(region_out)
   } else {
-    log_dir <- "./outputs/setup/region/logs"
+    log_dir <- paste0(dirname(out.dir), "/logs")
     create_dir_if(log_dir)
 
     region_log_out <- paste0(log_dir, "/region-hv-", method, "-output.txt")
@@ -105,59 +106,61 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
   sp_list_setup <- list.files("./outputs/filter/test-small/chunk/species", full.names = TRUE)
   
   hv_setup_dir <- "./outputs/setup/hypervolume"
-  hv_logs_dir <- paste0(hv_setup_dir, "/logs/setup-check.txt")
+  hv_logs_dir <- paste0(hv_setup_dir, "/", hv.method, "-sequence/setup-check")
   create_dir_if(hv_logs_dir) # Recursive
 
-  setup_check <- paste0(hv_logs_dir, "/setup-check.txt")
+  stop_file <- paste0(hv_logs_dir, "/stop-file.txt")
   low_file <- paste0(hv_logs_dir, "/peak-mem-low.txt")
   high_file <- paste0(hv_logs_dir, "/peak-mem-high.txt")
 
   min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
-
+  
   if (file.exists(low_file)) {
     catn("Low peak ram setup already run.")
   } else {
     catn("Running low peak ram setup by using", highcat(sp_list_setup[[1]]), "wait time: 3 min.")
 
-    create_file_if(setup_check)
+    create_file_if(low_file)
 
-    ram_control <- start_mem_tracking(file.out = setup_check, stop_file = paste0(hv_setup_dir, "/stop-file.txt"))
+    ram_control <- start_mem_tracking(low_file, stop_file)
 
-    hypercolume_sequence(
-      spec.list = sp_list_setup[[1]],
+    hypervolume_sequence(
+      spec.list = sp_list_setup,
       iterations = 1,
       min.disk.space = min_disk_space,
       verbose = TRUE,
+      hv.dir = hv_setup_dir,
       hv.method = hv.method, 
       hv.accuracy = hv.accuracy, 
       hv.dims = hv.dims, 
       hv.incl.threshold = hv.incl.threshold
     )
    
-    stop_mem_tracking(ram_control, low_file, paste0(hv_setup_dir, "/stop-file.txt"))
+    stop_mem_tracking(ram_control, stop_file)
   }
 
   if (file.exists(high_file)) {
     catn("high peak ram setup already run.")
   } else {
-    catn("Running high peak ram setup using", highcat(sp_list_setup[[2]]), "wait time: 25 min.")
-    create_file_if(setup_check)
+    catn("Running high peak ram setup using", highcat(sp_list_setup[[3]]), "wait time: 25 min.")
+    create_file_if(high_file)
 
-    ram_control <- start_mem_tracking(file.out = setup_check, stop_file = paste0(hv_setup_dir, "/stop-file.txt"))
+    ram_control <- start_mem_tracking(high_file, stop_file)
 
     # Run a hypervolume sequence of sax. opp.
-    hypercolume_sequence(
-      spec.list = sp_list_setup[[3]],
-      iterations = 1,
+    hypervolume_sequence(
+      spec.list = sp_list_setup,
+      iterations = 3,
       min.disk.space = min_disk_space,
       verbose = TRUE,
+      hv.dir = hv_setup_dir,
       hv.method = hv.method, 
       hv.accuracy = hv.accuracy, 
       hv.dims = hv.dims, 
       hv.incl.threshold = hv.incl.threshold
     )
 
-    stop_mem_tracking(ram_control, high_file, paste0(hv_setup_dir, "/stop-file.txt"))
+    stop_mem_tracking(ram_control, stop_file)
   }
 
   peak_mem_low <- as.numeric(readLines(low_file))

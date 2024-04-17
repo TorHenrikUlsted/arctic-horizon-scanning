@@ -42,7 +42,7 @@ union_dfs <- function(df1, df2, verbose = F) {
   return(merged_df)
 }
 
-select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combine = NULL, pattern = "*.csv", verbose = F) {
+select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combine = NULL, pattern = "*.csv", verbose = FALSE) {
   
   catn("Selecting WFO column")
   
@@ -78,10 +78,12 @@ select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combi
     
     n_orig <- nrow(df_sel)
     n_uniq <- nrow(df_uniq)
-    catn("\nList:", highcat(sub("-wfo-one.csv$", "", basename(file))))
-    cat(sprintf("%-10s | %s \n", "n_species", "unique(n_species)"))
-    cat(highcat(sprintf("%-10d | %d \n", n_orig, n_uniq)))
-    catn()
+   if (verbose) {
+     catn("\nList:", highcat(sub("-wfo-one.csv$", "", basename(file))))
+     cat(sprintf("%-10s | %s \n", "n_species", "unique(n_species)"))
+     cat(highcat(sprintf("%-10d | %d \n", n_orig, n_uniq)))
+     catn()
+   }
     
     return(df_uniq)
   })
@@ -146,9 +148,9 @@ write_filter_fun <- function(file.out, spec.in, fun) {
   
   result <- fun()
   
-  catn(highcat(nrow(result)), "species output")
-  
   catn(highcat(nrow(spec.in) - nrow(result)), "Species removed:")
+  
+  catn(highcat(nrow(result)), "species output")
   
   catn("Writing species to:", colcat(file.out, color = "output"))
   
@@ -172,7 +174,8 @@ get_occurrence <- function(spec, file.out, region = NULL, coord.uncertainty = 46
     region = region,
     coord.uncertainty = coord.uncertainty,
     download.key = download.key,
-    download.doi = download.doi
+    download.doi = download.doi,
+    verbose = verbose
   )
   
   return(list(
@@ -212,7 +215,7 @@ remove_authorship <- function(dt, verbose = FALSE) {
   
   signs <- c("×")
   
-  dt[, combined := sapply(scientificName, function(x) {
+  dt[, cleanName := sapply(scientificName, function(x) {
     components <- strsplit(x, " ")[[1]]
     result <- c(components[1], components[2])
     
@@ -281,7 +284,7 @@ chunk_protocol <- function(
   
   # If chunk_loaded_df or chunk_file has a vector input, then "combined" must be used as chunk.column parameter, else the same as chunk_loaded_df. chunk.name has to be the same for all.
   if (is.vector(chunk.col)) {
-    chunk.col = "combined"
+    chunk.col = "cleanName"
   }
 
   clean_chunks(

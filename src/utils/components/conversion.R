@@ -25,9 +25,13 @@ check_crs <- function(object, projection, projection.method, verbose = FALSE) {
   vebprint(crs(projection, proj = TRUE), verbose, "Input projection:")
   vebprint(projection.method, verbose, "Input prjection method:")
   
+  if (is.null(crs(object)) || is.null(crs(projection))) {
+    stop("Either the object or the projection has an empty CRS.")
+  }
+  
   if (!identical(crs(object, proj = TRUE), crs(projection, proj = TRUE))) {
     catn("Reprojecting", highcat(as.character(crs(object, proj = TRUE))), "-->", highcat(as.character(crs(projection, proj = TRUE))), "\n")
-    object <- project(object, projection, method = projection.method)
+    object <- terra::project(object, projection, method = projection.method)
   }  
   
   return(object)

@@ -8,18 +8,23 @@ source("./src/visualize/visualize.R")
 source("./src/main.R")
 
 main(
-  spec.known = NULL,
-  speck.unknown,
+  spec.known = filter_arctic,
+  spec.unknown = filter_glonaf,
   test = NULL,
   column = "scientificName",
-  coord.uncertainty = 4600,
+  coord.uncertainty = NULL,
   region = NULL,
-  download.key = NULL,
-  download.doi = NULL,
+  download.key = "0186013-240321170329656",
+  download.doi = "https://doi.org/10.15468/dl.awqjxw",
   hv.iterations = NULL,
   hv.method = "box",
   hv.accuracy = "accurate",
-  hv.dims = NULL,
+  hv.dims = c(18, 10, 3, 4),
   hv.incl.threshold = 0.5,
+  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
   verbose = FALSE
 )
+
+# glonaf keys
+# download.key = 0186013-240321170329656
+# download.doi = https://doi.org/10.15468/dl.awqjxw

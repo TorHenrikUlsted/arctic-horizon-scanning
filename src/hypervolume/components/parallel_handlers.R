@@ -1,18 +1,19 @@
 setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.high, min.disk.space, verbose = FALSE, custom.exports, custom.evals) {
-  parallell_timer <- start_timer("parallell_timer")
 
   vebcat("Setting up hypervolume files and folders.", veb = verbose)
 
   logs_dir <- paste0(par.dir, "/logs")
 
-  create_dir_if(c(par.dir, logs_dir, stats_dir))
+  create_dir_if(logs_dir)
 
   ram_usage <- paste0(logs_dir, "/ram-usage.txt")
   node_it_file <- paste0(logs_dir, "/node-iterations.txt")
   highest_it_file <- paste0(logs_dir, "/highest_iteration.txt")
+  warn_file <- paste0(logs_dir, "/warning.txt")
+  err_file <- paste0(logs_dir, "/error.txt")
 
-  create_file_if(c(node_it, highest_it_file), keep = TRUE)
-  create_file_if(c(ram_usage, err_file, warn_file))
+  create_file_if(c(node_it_file, highest_it_file), keep = TRUE)
+  create_file_if(c(ram_usage, warn_file, err_file))
   
   if (!is.null(iterations)) {
     
@@ -24,26 +25,26 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     node_its <- readLines(node_it_file)
     vebcat("Node iterations:", node_its, veb = verbose)
     
-    if (!is.na(node_its[1])) {
-      node_it <- gsub("node", "", node_its)
-      
-      vebcat("Node iterations from previous session:", node_it, veb = verbose)
-      
-      start_iteration <- as.integer(min(node_it)) # This one will not have run
-      
-      catn("Start iteration:", highcat(start_iteration))
-    } else {
-      catn("Node iterations file is null.")
+    if (is.na(node_its[1]) || node_its[1] == "") {
+      catn("Node iterations file is empty.")
       
       highest_it <- as.integer(readLines(highest_it_file))
       if (is.na(highest_it[1])) {
         catn("Highest iteration is null. Assuming sequence has never been run before.")
-        start_iteration <- 0
+        start_iteration <- 1
       } else {
         catn("Previous session completed successfully on iteration", highcat(highest_it))
         catn("Input list is expected to take", highcat(length(spec.list)), "iterations.")
         start_iteration <- highest_it + 1
       }
+    } else {
+      node_it <- gsub("node", "", node_its)
+      
+      vebcat("Node iterations from previous session:", node_it, veb = verbose)
+      
+      start_iteration <- as.integer(min(node_it)) 
+      
+      catn("Start iteration:", highcat(start_iteration))
     }
     
     if (start_iteration >= length(spec.list)) {
@@ -61,27 +62,28 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
   
   cores_max <- min(length(batch_iterations), cores.max)
   
-  catn("Creating cluster of", cores_max, "cores.", veb = verbose)
+  catn("Creating cluster of", highcat(cores_max), "core(s).")
   
-  cl <- makeCluster(cores.max)
-  
+  cl <- makeCluster(cores_max)
+
   vebcat("Including the necessary components in each core.", veb = verbose)
-  
+
   cluster_params <- c(
-    "par.dir", 
-    "spec.list", 
-    "iterations", 
-    "cores.max", 
-    "cores.max.high", 
-    "min.disk.space", 
+    "par.dir",
+    "spec.list",
+    "iterations",
+    "cores.max",
+    "cores.max.high",
+    "min.disk.space",
     "verbose",
-    names(custom.exports)
+    names(custom.exports),
+    "custom.evals"
   )
-  
+
   clusterExport(cl, cluster_params, envir = environment())
-  
+
   clusterEvalQ(cl, {
-    for (file in cluster.evals) {
+    for (file in custom.evals) {
       source(file)
     }
   })
@@ -101,6 +103,8 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
   catn("Hypervolume sequence has started, progress is being logged to:", colcat(logs_dir, color = "output"))
 
   return(list(
+    cl = cl,
+    cores = cores_max,
     ram.use = ram_usage,
     batch = batch_iterations,
     highest.iteration = highest_it_file
