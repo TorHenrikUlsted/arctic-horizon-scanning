@@ -3,14 +3,14 @@ source_all("./src/hypervolume/components")
 process_species <- function(spec.dt, spec.name, method, points.projection = "longlat", verbose = F, iteration, warn.file, err.file) {
   vebcat("Initiating data processing protocol.", color = "funInit")
 
-  biovars_world <- rast(".outputs/setup/region/biovars-world-subset.tif")
+  biovars_world <- rast("./outputs/setup/region/biovars-world-subset.tif")
 
   vebcat("Starting species data process.", veb = verbose)
 
   withCallingHandlers(
     {
       sp_points <- prepare_species(
-        spec.dt = spec.dt,
+        dt = spec.dt,
         projection = "longlat",
         verbose = verbose
       )
@@ -26,8 +26,8 @@ process_species <- function(spec.dt, spec.name, method, points.projection = "lon
     ))
   }
 
-  vebprint(sp_points, verbose, "Processed environment data sample:")
-  vebcat("Using biovars:", highcat(names(biovars_world)), veb = verbose)
+  vebprint(sp_points, verbose, "Processed species data sample:")
+  vebcat("Using biovars:", names(biovars_world), veb = verbose)
   vebcat("Starting processing of environment data.", veb = verbose)
 
   withCallingHandlers(
@@ -49,21 +49,20 @@ process_species <- function(spec.dt, spec.name, method, points.projection = "lon
   return(sp_mat)
 }
 
-hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, iteration, hv.dir, cores.max.high, verbose, warn.file, err.file) {
+hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, iteration, hv.dir, lock.dir, proj.dir, cores.max.high, verbose, warn.file, err.file) {
   vebcat("Initiating hypervolume sequence", color = "funInit")
 
-  locks_dir <- paste0(hv.dir, "/locks/hypervolume")
-  proj_dir <- paste0(hv.dir, "/projection/", spec.name)
+  proj_dir <- paste0(proj.dir, "/", spec.name)
 
-  create_dir_if(c(locks_dir, proj_dir))
+  create_dir_if(lock.dir)
 
   catn("Reading raster files.")
-  biovars_region <- rast(".outputs/setup/region/biovars-region-subset.tif")
-
+  biovars_region <- rast("./outputs/setup/region/biovars-region-subset.tif")
+  
   # check if need to setup, or read setup region
   region_hv <- setup_hv_region(
     biovars_region,
-    out.dir = ".outputs/setup/region",
+    out.dir = "./outputs/setup/region",
     method = method
   )
 
@@ -107,7 +106,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
     {
       included_sp <- hypervolume_inclusion_test(
         region_hv,
-        sp_mat,
+        spec.mat,
         reduction.factor = 1,
         fast.or.accurate = accuracy,
         fast.method.distance.factor = 1,
@@ -166,11 +165,11 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
 
       Sys.sleep(10)
     } else {
-      if (is.locked(locks_dir, lock.n = cores.max.high)) {
+      if (is.locked(lock.dir, lock.n = cores.max.high)) {
         Sys.sleep(10)
       } else {
         Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
-        lock_analysis <- lock(locks_dir, lock.n = cores.max.high)
+        lock_analysis <- lock(lock.dir, lock.n = cores.max.high)
         if (!is.null(lock_analysis) && file.exists(lock_analysis)) {
           break
         }
@@ -189,18 +188,21 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       sp_hv <- hypervolume(spec.mat, name = spec.name, method = method, verbose = T)
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when analyzing hypervolume", iteration = iteration),
-    error = function(e) err(e, err.file = err.file, err.txt = "Error when analyzing hypervolume", iteration = iteration)
+    error = function(e) {
+     unlock(lock_analysis)
+      err(e, err.file = err.file, err.txt = "Error when analyzing hypervolume", iteration = iteration)
+    }
   )
 
   withCallingHandlers(
     {
-      analyzed_hv_stats <- analyze_hv_stats(region_hv, sp_hv, spec.name, verbose = verbose)
+      analyzed_hv_stats <- analyze_hv_stats(sp_hv, region_hv, spec.name, verbose = verbose)
 
       vebprint(analyzed_hv_stats, text = "Hypervolume Statistics:")
-
+      
       # If the region is unique and does not overlap with any of the species
-      if (analyze_hv_stats[[4]] == 1) {
-        catn(sp_hv@Name, colcat("Excluded from further hypervolume analysis.", color = "nonFatalError"))
+      if (analyzed_hv_stats[[4]] == 0) {
+        catn(spec.name, colcat("Excluded from further hypervolume analysis.", color = "nonFatalError"))
 
         vebcat("Unlocking analysis lock.", veb = verbose)
         unlock(lock_analysis)
@@ -215,17 +217,22 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           included_sp = included_sp
         ))
       } else {
-        catn(sp_hv@Name, colcat("Included for further hypervolume analysis.", color = "proSuccess"))
+        catn(spec.name, colcat("Included for further hypervolume analysis.", color = "proSuccess"))
       }
     },
-    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when analyzing statistics", iteration = j),
-    error = function(e) err(e, err.file = err.file, err.txt = "Error when analyzing statistics", iteration = j)
+    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when analyzing statistics", iteration = iteration),
+    error = function(e) {
+      unlock(lock_analysis)
+      err(e, err.file = err.file, err.txt = "Error when analyzing statistics", iteration = iteration)
+    }
   )
 
   withCallingHandlers(
     {
+      create_dir_if(proj_dir)
       catn("Projecting inclusion analysis.")
-      catn("Using the", accuracy, "inclusion accuracy.")
+      catn("Using the", paste0("'",accuracy,"'"), "inclusion accuracy.")
+      catn("Using", incl_threshold, "threshold(s).")
       ## Projections for inclusion
       for (threshold in incl_threshold) {
         inc_project <- hypervolume_project(
@@ -238,7 +245,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         )
 
         names(inc_project) <- ("inclusionScore")
-        out_file <- paste0(proj_dir, "/inclusion-", threshold, ".tif")
+        out_file <- paste0(proj_dir, "/", threshold, "-inclusion", ".tif")
 
         vebcat("Writing out raster file:", colcat(out_file), color = "output")
         writeRaster(inc_project, out_file, overwrite = TRUE)
@@ -260,19 +267,22 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       out_file <- paste0(proj_dir, "/probability.tif")
 
       vebcat("Writing out raster file:", colcat(out_file), color = "output")
-      writeRaster(prob_proj, out_file, overwrite = T)
+      writeRaster(prob_proj, out_file, overwrite = TRUE)
+      
+      rm(prob_proj)
+      invisible(gc())
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when projecting hypervolume", iteration = iteration),
-    error = function(e) err(e, err.file = err.file, err.txt = "Error when projecting hypervolume", iteration = iteration)
+    error = function(e) {
+      unlock(lock_analysis)
+      err(e, err.file = err.file, err.txt = "Error when projecting hypervolume", iteration = iteration)
+    } 
   )
 
   vebcat("Unlocking analysis lock.", veb = verbose)
   unlock(lock_analysis)
 
-  rm(prob_proj)
-  invisible(gc())
-
-  veb("Hypervolume sequence completed successfully.", color = "funSuccess")
+  vebcat("Hypervolume analysis completed successfully.", color = "funSuccess")
 
   return(list(
     n_observations = nobs,

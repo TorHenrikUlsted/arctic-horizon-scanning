@@ -1,18 +1,16 @@
 source_all("./src/filter/components")
 source_all("./src/filter/custom_filters")
 
-filter_sequence <- function(spec.known, spec.unknown, test = NULL, column = "scientificName", chunk.name = "species", coord.uncertainty, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, verbose = FALSE) {
+filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL, column = "scientificName", chunk.name = "species", coord.uncertainty =  NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, verbose = FALSE) {
   
   on.exit(closeAllConnections())
   vebcat("Initiating filtering sequence", color = "seqInit")
-  
   
   ##################################################
   #                     setup                      #
   ##################################################
   
   filter_timer = start_timer("filter_timer")
-  on.exit(end_timer(filter_timer))
   
   vebcat("Loading dfs.", veb = verbose)
   
@@ -29,6 +27,10 @@ filter_sequence <- function(spec.known, spec.unknown, test = NULL, column = "sci
     column = column,
     verbose = verbose
   )
+  
+  if (is.null(coord.uncertainty)) {
+    coord.uncertainty <- as.numeric(readLines("./outputs/setup/region/coordinateUncertainty-m.txt"))
+  }
     
     ####################
     # Filter lists  
@@ -39,21 +41,21 @@ filter_sequence <- function(spec.known, spec.unknown, test = NULL, column = "sci
     
     if (test == "small") {
       spec.unknown <- get("filter_test_small")
-      download.key = "0056255-231120084113126"
-      download.doi = "https://doi.org/10.15468/dl.9v7s8g"
+      download.key = "0180552-240321170329656"
+      download.doi = "https://doi.org/10.15468/dl.xzxdpx"
     } else if (test == "big") {
       spec.unknown <- get("filter_test_big")
-      download.key = "0048045-231120084113126"
-      download.doi = "https://doi.org/10.15468/dl.t9kk65"
+      download.key = "0180885-240321170329656"
+      download.doi = "https://doi.org/10.15468/dl.sgf54g"
     } else {
       vebcat("Test has to be either 'small' or 'big'.", color = "fatalError")
-      return(NULL)
+      stop("Change the test parameter.")
     }
-  }
-    
+  } 
+  
   if (!is.null(spec.known)) {
     known <- spec.known(
-      dfs = dfs, 
+      dfs = dfs,
       column = column,
       verbose = verbose
     )
@@ -61,19 +63,20 @@ filter_sequence <- function(spec.known, spec.unknown, test = NULL, column = "sci
     known <- NULL
   }
   
-  vebprint(known, text = "known output:")
-
+  vebprint(known, text = "known output:", veb = verbose)
+  
   if (is.null(spec.unknown)) {
     vebcat("Error, spec.unknown is NULL.", color = "fatalError")
     return(NULL)
   } else {
     unknown <- spec.unknown(
       known.filtered = known,
-      dfs = dfs, # This is if you have multiple dfs and need to remove to avoid duplicates
+      dfs = dfs,
       column = column,
       verbose = verbose
     )
   }
+    
   
     ###############################
     # Unknown Occurrence download
@@ -107,13 +110,15 @@ filter_sequence <- function(spec.known, spec.unknown, test = NULL, column = "sci
     spec.occ = sp_occ,
     spec.keys = unknown_occ$keys,
     chunk.name = chunk.name,
-    chunk.col = column,
+    chunk.col = "cleanName",
     chunk.dir = chunk_dir,
     chunk.size = chunk.size,
     cores.max = 1,
     iterations = chunk.iterations,
     verbose = verbose
   )
+  
+  end_timer(filter_timer)
   
   vebcat("Filtering sequence completed successfully.", color = "seqSuccess")
   

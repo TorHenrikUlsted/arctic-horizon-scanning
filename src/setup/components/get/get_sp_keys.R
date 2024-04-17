@@ -89,5 +89,7 @@ get_sp_keys <- function(sp_names, out.dir, verbose = F) {
     fwrite(sp_w_keys, out_file, row.names = F, bom = T)
   }
   
+  vebcat("GBIF Species keys download completed successfully.", color = "funSuccess")
+  
   return(sp_w_keys)
 }

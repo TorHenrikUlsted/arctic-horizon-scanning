@@ -1,13 +1,15 @@
-analyze_hv_stats <- function(region_hv, sp_hv, spec.name, verbose) {
-  catn("Analyzing hypervolume for", highcat(sp_hv@Name), "species. \n")
+analyze_hv_stats <- function(sp_hv, region_hv, spec.name, verbose) {
+  catn("Analyzing hypervolume for", highcat(sp_hv@Name))
   
   hv_set <- hypervolume_set(sp_hv, region_hv, check.memory = F)
   
   hv_stats <- hypervolume_overlap_statistics(hv_set)
   
   sp_surviv_region <- 1 - hv_stats[[4]]
+  sp_realized_niche <- 1 - hv_stats[[3]]
   
-  catn("Volume of", spec.name, "overlap in the CAVM", highcat(sp_surviv_region))
+  catn("Volume of", spec.name, "potential overlap in the region:", highcat(sp_surviv_region))
+  catn("Volume of", spec.name, "Realized potential niche range:", highcat(sp_realized_niche))
   
   return(hv_stats)
 }
@@ -119,3 +121,114 @@ plot_hypervolumes <- function(hv_list, out.dir) {
   
   vebcat("Plotting hypervolumes completed successfully", color = "funSuccess")
 }
+
+check_hv_results <- function(res, init.dt, hv.dir, hv.incl.threshold = 0.5, verbose = FALSE) {
+  catn("Checking hypervolume output.")
+  check <- TRUE
+  vebprint(names(init.dt), verbose, "Init data table:")
+  vebprint(names(res), verbose, "Res data table:")
+  
+  vebcat("Checking missing and extra columns.", veb = verbose)
+  
+  # Check column names
+  missing_columns <- names(init.dt)[!names(init.dt) %in% names(res)]
+  extra_columns <- names(res)[!names(res) %in% names(init.dt)]
+  
+  if (length(extra_columns) > 0 || length(missing_columns) > 0) {
+    catn("Found", length(names(res)), "columns.")
+    catn("Expected", length(names(init.dt)), "columns.")
+  }
+  
+  if (length(extra_columns) > 0) {
+    catn("Length of output data table is higher than expected.")
+    vebprint(extra_columns, text = "Extra columns:")
+    check <- FALSE
+  }
+  
+  if (length(missing_columns) > 0) {
+    catn("Length of output data table is lower than expected.")
+    vebprint(missing_columns, text = "missing columns:")
+    check <- FALSE
+  }
+  
+  vebcat("Checking duplicate entires.", veb = verbose)
+  
+  # Check duplicate entries
+  stats_file <- paste0(hv.dir, "/stats.csv")
+  
+  existing_names <- unique(fread(stats_file, select = "cleanName")$cleanName)
+  
+  out_name <- unique(res$cleanName)
+  
+  vebprint(out_name, veb = verbose, text = "out_name")
+  vebprint(existing_names, veb = verbose, text = "Existing names:")
+  
+  if (length(out_name) > 1) {
+    catn("Multiple unique names found:", out_name)
+    check <- FALSE
+  } 
+  
+  if (length(existing_names) != 0 & out_name %in% existing_names) {
+    catn(out_name, "already in stats csv file.")
+    check <- FALSE
+  }
+  
+  vebcat("Finished checking duplicates.", veb = verbose)
+  
+  if (all(res$excluded == FALSE)) {
+    
+    vebcat("Checking projections.", veb = verbose)
+    
+    # Check Projection outputs
+    proj_dir <- paste0(hv.dir, "/projections/", gsub(" ", "-", out_name))
+    all_files <- list.files(path = proj_dir, pattern = "\\.tif$", full.names = TRUE)
+    prob_files <- list.files(path = proj_dir, pattern = "probability\\.tif$", full.names = TRUE)
+    inc_files <- list.files(path = proj_dir, pattern = "inclusion\\.tif$", full.names = TRUE)
+    
+    # check dir length
+    if (length(all_files) > length(hv.incl.threshold) + 1 
+        || length(all_files) < length(hv.incl.threshold) + 1) {
+      catn("Looked for files in:", proj_dir)
+      catn("Found", length(all_files), "files.")
+      catn("Expected", (length(hv.incl.threshold) + 1), "files.")
+    }
+    
+    if (length(all_files) > length(hv.incl.threshold) + 1) {
+      catn("There are too many projection files in:", proj_dir)
+      check <- FALSE
+    } else if (length(all_files) < length(hv.incl.threshold) + 1) {
+      catn("There are too few projection files in:", proj_dir)
+      check <- FALSE
+    }
+    
+    # check crs
+    for (i in 1:length(all_files)) {
+      file <- all_files[[i]]
+      
+      print(file)
+      
+      r <- rast(file)
+      
+      print(r)
+      
+      r_crs <- terra::crs(r, proj = TRUE)
+      
+      e_crs <- terra::crs(longlat_crs, proj = TRUE)
+      
+      if (!identical(r_crs, e_crs)) {
+        catn("The CRS is not identical:", proj_dir)
+        vebprint(e_crs, text = "Expected CRS:")
+        vebprint(r_crs, text = "output CRS:")
+        check <- FALSE
+      }
+    }
+  } else if (!all(res$excluded == FALSE) & any(res$excluded == FALSE)) {
+    catn("Some of the results, but not all, return FALSE. This is should not be possible..")
+    check <- FALSE
+  }
+  
+  if (check) catn("Finisihed hypervolume result check with NO faults.")
+  if (!check) catn("Finisihed hypervolume result check WITH faults.")
+  
+  return(check)
+} 

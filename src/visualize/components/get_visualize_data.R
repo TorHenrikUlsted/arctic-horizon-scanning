@@ -1,99 +1,34 @@
-get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, err) {
+get_stats_data <- function(out.dir, hv.dir, hv.method, projection = "longlat", verbose = F, warn, err) {
   vebcat("Initializing stats data.", color = "funInit")
   # Define directories
   vis_stats_dir <- "./outputs/visualize/stats"
+  create_dir_if(vis_stats_dir)
   
-  if (!file.exists("./outputs/visualize/stats/included-species.csv") || !file.exists("./outputs/visualize/stats/excluded-species.csv") ) {
-    stats_src <- paste0(hv.dir, "/stats/box-stats.csv")
-    sp_stats <- cleaned_data
+  inc_sp_out <- paste0(vis_stats_dir, "/included-species.csv")
+  exc_sp_out <- paste0(vis_stats_dir, "/excluded-species.csv")
+  
+  if (!file.exists(inc_sp_out) || !file.exists(exc_sp_out) ) {
+    stats_src <- paste0(hv.dir, "/", hv.method, "-sequence/stats.csv")
     
-    # Get clean species csv
-    excluded_sp <- sp_stats %>% filter(excluded == TRUE)
+    stats <- fread(stats_src)
     
-    fwrite(excluded_sp, paste0(vis_stats_dir, "/uniq-excluded-species.csv"), bom = TRUE)
+    included_sp <- stats[excluded == FALSE, ]
     
-    included_sp <- sp_stats %>% filter(excluded == FALSE)
-    
-    fwrite(included_sp, paste0(vis_stats_dir, "/uniq-included-species.csv"), bom = TRUE)
-    
-    # Get the region for the species
-    glonaf_wfo_one <- fread("./resources/synonym-checked/glonaf-species-wfo-one.csv")
-    
-    gwo <- glonaf_wfo_one %>%
-      select(rawName.ORIG) %>%
-      # Get the refined scientificNames as used in the hypervolume method
-      mutate(species = apply(glonaf_wfo_one[, c("genus", "specificEpithet", "infraspecificEpithet"), drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " ")))
-    
-    gwo$species <- trimws(gwo$species)
-    # Swap space with line to match the sp-stats
-    gwo$species <- gsub(" ", "-", gwo$species)
-    
-    colnames(gwo) <- c("origName", "species")
-    
-    # Remove duplicates
-    gwo <- gwo[!duplicated(gwo$species)]
-    
-    # Match the names with the sp_stats
-    gwo_stats <- sp_stats %>%
-      left_join(gwo, by = "species")
-    
-    # Get the region id
-    glonaf_orig_df <- fread("./resources/data-raw/glonaf.csv")
-    
-    godf <- glonaf_orig_df %>%
-      select(standardized_name, region_id)
-    
-    colnames(godf) <- c("origName", "regionId")
-    
-    glonaf_orig_region <- fread("./resources/region/glonaf-region-desc.csv")
-    
-    gor <- glonaf_orig_region %>% select(region_id, country_ISO, country)
-    
-    colnames(gor) <- c("regionId", "countryIso", "country")
-    
-    # Match the gwo_stats and godf --- Some will have multiple region ids
-    matched_glonaf <- merge(gwo_stats, godf, by = "origName")
-    
-   vebcat("Number of rows when appending region ids:", highcat(nrow(matched_glonaf)), veb = verbose)
-    
-    # Remove duplicates based on combined region id and standardized name
-    matched_dups <- nrow(matched_glonaf[duplicated(paste(matched_glonaf$standardized_name, matched_glonaf$region_id)), ])
-    vebcat("Number of duplicates after appending region id:", highcat(matched_dups), veb = verbose)
-    
-    if (matched_dups > 0) {
-      matched_glonaf <- matched_glonaf[!duplicated(paste(matched_glonaf$standardized_name, matched_glonaf$region_id)), ]
-      
-     vebcat("Number of duplicates after removal:", highcat(nrow(matched_glonaf[duplicated(paste(matched_glonaf$standardized_name, matched_glonaf$region_id)), ])), veb = verbose)
-      
-      vebcat("Number of rows after finishing appending region ids:", highcat(nrow(matched_glonaf)), veb = verbose)
-    }
-    
-    # Append region info
-    matched_stats <- merge(matched_glonaf, gor, by = "regionId")
-    
-    matched_stats <- matched_stats %>%
-      select(species, origName, observations, dimensions, samplesPerPoint, randomPoints, excluded, jaccard, sorensen, fracVolumeSpecies, fracVolumeRegion, overlapRegion, includedOverlap, regionId, countryIso, country)
-    
-    # Seperate into included and excluded species
-    
-    included_sp <- matched_stats %>% filter(excluded == FALSE)
+    fwrite(included_sp, inc_sp_out, bom = TRUE)
     
     vebcat("Number of included species:", highcat(nrow(included_sp)), veb = verbose)
     
-    create_dir_if("./outputs/visualize/stats")
+    excluded_sp <- stats[excluded == TRUE, ]
     
-    fwrite(included_sp, paste0(vis_stats_dir, "/included-species.csv"), bom = TRUE)
+    fwrite(excluded_sp, exc_sp_out, bom = TRUE)
     
-    excluded_sp <- matched_stats %>% filter(excluded == TRUE)
+    vebcat("Number of excluded species:", highcat(nrow(excluded_sp)), veb = verbose)
     
-    vebcat("Number of included species:", highcat(nrow(excluded_sp)), veb = verbose)
-    
-    fwrite(excluded_sp, paste0(vis_stats_dir, "/excluded-species.csv"), bom = TRUE)
+    rm(stats)
+    invisible(gc())
     
   } else {
-    included_sp <- fread(paste0(vis_stats_dir, "/included-species.csv"))
-    
-    excluded_sp <- fread(paste0(vis_stats_dir, "/excluded-species.csv"))
+    included_sp <- fread(inc_sp_out)
   }
   
   vebcat("Stats successfully initialised.", color = "funSuccess")
@@ -104,6 +39,12 @@ get_stats_data <- function(cleaned_data, hv.dir, hv.method, verbose = F, warn, e
 get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
   
   init <- function(spec.filename, region, verbose) {
+    vebcat("Initiating get inclusion cell.", color = "funInit")
+    
+    if (is.null(region)) {
+      vebcat("Missing region.")
+      return(NULL)
+    }
     
     sp_rast <- load_sp_rast(spec.filename)
     
@@ -115,7 +56,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
     catn("Extracting raster from region.")
     sp_region <- terra::extract(sp_rast, region, cells = TRUE, na.rm = FALSE)
     sp_region <- data.table(sp_region)
-    
+    names(sp_region) <- c("ID", "richness", "cell") # Richness because each cell can only hold 0 or 1 for each species.
     vebprint(head(sp_region, 3), verbose)
     
     catn("Converting region to data table.")
@@ -127,7 +68,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
     vebprint(head(region_dt, 3), verbose)
     
     catn("Merging raster_dt and region_dt.")
-    sp_regions_dt <- merge(sp_region, region_dt[, .(ID, FLOREG, country, floristicProvince)], by = "ID")
+    sp_regions_dt <- merge(sp_region, region_dt, by = "ID")
     sp_regions_dt[, ID := NULL]
     
     vebprint(head(sp_regions_dt, 3), verbose)
@@ -137,18 +78,20 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
     sp_dt <- terra::extract(sp_rast, ext(sp_rast), cells = TRUE)
     sp_dt <- as.data.frame(sp_dt)
     sp_dt <- as.data.table(sp_dt)
-    names(sp_dt) <- c("cell", "richness") # Richness because each cell can only hold 0 or 1 for each species.
+    names(sp_dt) <- c("cell", "toRemove")
+    sp_dt[, toRemove := NULL]
     
     catn("Merging raster cells with region by cells.")
-    cell_regions_dt <- merge(sp_dt, sp_regions_dt[, .(cell, FLOREG, country, floristicProvince)], by = "cell", all = TRUE)
-    
+    cell_regions_dt <- merge(sp_dt, sp_regions_dt, by = "cell", all = TRUE)
     cell_regions_dt <- unique(cell_regions_dt, by = "cell")
     cell_regions_dt <- cell_regions_dt[order(cell_regions_dt$cell)]
+    
+    vebcat("get inclusion cell initialized successfully.", color = "funSuccess")
     
     return(cell_regions_dt)
   }
   
-  execute <- function(spec.filename, region, verbose) {
+  execute <- function(spec.filename, shape, verbose) {
     
     catn("Initiating data table.")
     sp_name <- basename(dirname(spec.filename[1]))
@@ -230,10 +173,10 @@ get_inclusion_cell <- function(spec.filename, region = NULL, verbose = FALSE) {
   ))
 }
 
-convert_template_raster <- function(input.values, hv.dir, hv.method, hv.project.method, projection, projection.method = "near", verbose = F) {
+convert_template_raster <- function(input.values, hv.proj.dir, hv.method, hv.project.method, projection, projection.method = "near", verbose = F) {
   
   vebcat("Converting raster", color = "funInit")
-  sp_dirs <- list.dirs(paste0(hv.dir, "/projections/", hv.method))
+  sp_dirs <- list.dirs(hv.proj.dir)
   # Remove the directory name
   sp_dirs <- sp_dirs[-1]
   
@@ -253,22 +196,24 @@ convert_template_raster <- function(input.values, hv.dir, hv.method, hv.project.
   return(template)
 }
 
-get_world_map <- function(projection, scale = "medium", pole = "north") {
+get_world_map <- function(projection, scale = "medium", pole = NULL) {
   vebcat("Setting up world Map.", color = "funInit")
   
   world_map <- ne_countries(scale = scale, returnclass = "sf")
   
   world_map <- vect(world_map)
   
-  if (pole == "north") {
-    equator_extent <- ext(-180, 180, 0, 90)
-  } else if (pole == "south") {
-    equator_extent <- ext(-180, 180, -90, 0)
-  } else {
-    stop("pole has to be either 'south' or 'north'.")
+  if (!is.null(pole)) {
+    if (pole == "north") {
+      equator_extent <- ext(-180, 180, 0, 90)
+    } else if (pole == "south") {
+      equator_extent <- ext(-180, 180, -90, 0)
+    } else {
+      stop("pole has to be either 'south' or 'north'.")
+    }
+    
+    world_map <- crop(world_map, equator_extent)
   }
-  
-  world_map <- crop(world_map, equator_extent)
   
   world_map <- project(world_map, projection)
   

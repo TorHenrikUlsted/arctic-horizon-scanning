@@ -1,4 +1,115 @@
-prepare_species <- function(dt, projection, verbose = T) {
+count_observations <- function(spec.list, dimensions, verbose = FALSE) {
+  catn("Removing species with too few observations.")
+  
+  removed_species <- data.table(
+    species = character(0),
+    observations = integer(0),
+    logObservations = integer(0),
+    dimensions = integer(0),
+    removed = logical(0),
+    meanLat = numeric(0),
+    filename = character(0)
+  )
+  
+  for (i in 1:length(spec.list)) {
+    cat("\rChecking file", i, "/", length(spec.list))
+    spec <- spec.list[[i]]
+    spec_name <- basename(gsub(".csv", "", spec))
+    spec_dt <- fread(spec, select = "decimalLatitude")
+    
+    nobs <- nrow(spec_dt)
+    
+    removed <- FALSE
+    meanLat <- 0
+    
+    if (log(nobs) <= length(dimensions)) {
+      removed <- TRUE
+    } else {
+      meanLat <- mean(spec_dt$decimalLatitude, na.rm = TRUE)
+    }
+    
+    removed_species <- rbind(removed_species, data.table(
+      species = gsub("-", " ", spec_name),
+      observations = nobs,
+      logObservations = round(log(nobs), digits = 3),
+      dimensions = length(dimensions),
+      removed = removed,
+      meanLat = meanLat,
+      filename = spec
+    ))
+  }; catn()
+  
+  return(removed_species)
+}
+
+most_used_name <- function(x, max.number = 1) {
+  name <- unique(x)
+  
+  if (length(name) > max.number) {
+    vebcat("Found too many different strings.", color = "nonFatalError")
+    
+    freq_table <- table(x)
+    
+    name <- names(which.max(freq_table))
+  }
+  
+  return(name)
+}
+
+condense_taxons <- function(spec.dt, verbose = FALSE) {
+  catn("Condensing taxon columns.")
+  
+  cols_to_select <- c("kingdom", "phylum", "class", "order", "family", "genus", "species", "infraspecificEpithet", "taxonRank", "scientificName")
+  
+  taxon_cols <- spec.dt[, ..cols_to_select]
+  ct_cols <- data.table(matrix(ncol = length(cols_to_select), nrow = 1)) # condensed taxon cols
+  setnames(ct_cols, names(taxon_cols))
+  
+  for (i in 1:length(taxon_cols)) {
+    column <- taxon_cols[[i]]
+    
+    name <- most_used_name(column)
+    
+    ct_cols[[1, i]] <- name
+  }
+  
+  return(ct_cols)
+}
+
+condense_country <- function(spec.dt, verbose = FALSE) {
+  catn("Condensing country columns.")
+  
+  cols_to_select <- c("countryCode", "decimalLongitude", "decimalLatitude")
+  
+  country_cols <- spec.dt[, ..cols_to_select]
+  
+  country_coords <- country_cols[, .(
+    meanLong = mean(decimalLongitude, na.rm = TRUE), 
+    meanLat = mean(decimalLatitude, na.rm = TRUE)), 
+    by = "countryCode"]
+  
+  code_list <- list(
+    XK = "Kosovo"
+  )
+  
+  country_coords[, country := sapply(countryCode, function(code) {
+    if (code %in% names(code_list)) {
+      return(code_list[[code]])
+    } else if (code %in% countrycode::codelist$iso2c) {
+      return(countrycode(code, "iso2c", "country.name"))
+    } else {
+      warning(paste("Invalid countryCode:", code))
+      return(NA)
+    }
+  })]
+  
+  # sort
+  setcolorder(country_coords, c("countryCode", "country", "meanLong", "meanLat"))
+  
+  return(country_coords)
+}
+
+prepare_species <- function(dt, projection = "longlat", verbose = T) {
   if (!is.data.table(dt)) {
     stop("Input must be a data.table")
   }
@@ -9,7 +120,9 @@ prepare_species <- function(dt, projection, verbose = T) {
   
   vebcat("Getting Long/Lat values.", veb = verbose)
   
-  dt <- dt[!duplicated(dt, by = .("decimalLongitude", "decimalLatitude", "species"))]
+  dt <- dt[!duplicated(dt, by = c("decimalLongitude", "decimalLatitude", "species"))]
+  
+  vebcat("Getting species without any coordinates.", veb = verbose)
   
   no_coords_sp <- dt[, .N, by = species][N == 0]
   
@@ -146,7 +259,9 @@ prepare_environment <- function(sp_points, biovars, verbose = T) {
   
   # Extract environmental values for each point
   for (i in 1:terra::nlyr(biovars)) {
-    vebcat("Extracting biovariable for:", highcat(names(biovars)), veb = verbose)
+    vebcat("Extracting biovariable for:", highcat(names(biovars)[i]), veb = verbose)
+    
+    vebprint(biovars[[i]], veb = verbose, text = "Biovar sample:")
     
     env_values[, i] <- terra::extract(biovars[[i]], sp_points, df=TRUE, ID = FALSE)[,1]
   }

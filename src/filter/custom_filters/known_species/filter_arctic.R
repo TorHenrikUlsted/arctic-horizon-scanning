@@ -1,4 +1,4 @@
-filter_arctic <- function(dfs, verbose = FALSE) {
+filter_arctic <- function(dfs, column, verbose = FALSE) {
   
   ##############
   # Initialize
@@ -27,7 +27,6 @@ filter_arctic <- function(dfs, verbose = FALSE) {
   arctic_absent <- write_filter_fun(
     file.out = "./outputs/filter/arctic/arctic-absent-final.csv",
     spec.in = arctic_absent,
-    spec.out = "Arctic Absent",
     fun = function() {
       
       # Also remove all arctic_present from absent in case some standard names have changed
@@ -37,8 +36,8 @@ filter_arctic <- function(dfs, verbose = FALSE) {
     })
   
   return(list(
-    arctic_present = arctic_present,
-    arctic_absent = arctic_absent
+    present = arctic_present,
+    absent = arctic_absent
   ))
 }
 
@@ -87,7 +86,6 @@ filter_arctictest = function(dfs, verbose = FALSE) {
   combined_absent <- write_filter_fun(
     file.out = paste0(dir_name, "/", common_name, "-absent-final.csv"),
     spec.in = combined_absent,
-    spec.out = paste0(data_common, "Absent"),
     fun = function() {
       
       combined_absent <-  dplyr::anti_join(combined_absent, combined_present, by = column)

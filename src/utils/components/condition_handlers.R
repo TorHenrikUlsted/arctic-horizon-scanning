@@ -85,7 +85,14 @@ vebcat <- function(..., color = NULL, veb = TRUE) {
     text <- do.call(paste, c(list(sep = " "), as.character(args)))
     
     if (!is.null(color)) {
-      cat(cc[[color]](text), "\n")
+      if (color == "funInit" || color == "seqInit" || color == "proInit") {
+        cat("\n", cc[[color]](text), "\n")
+      } else if (color == "funSuccess" || color == "seqSuccess" || color == "proSuccess") {
+        cat("", cc[[color]](text), "\n\n")
+      } else {
+        cat(cc[[color]](text), "\n")  
+      }
+      
     } else {
       cat(text, "\n")
     }

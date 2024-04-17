@@ -106,7 +106,7 @@ scale_biovars <- function(biovars, verbose = F) {
   return(scaled_biovars)
 }
 
-wc_to_region <- function(biovars, shapefile, projection, plot.show = FALSE, verbose = FALSE) {
+wc_to_region <- function(biovars, shapefile, projection, show.plot = FALSE, verbose = FALSE) {
   
   vebcat("Initiating WorldClim to region crop protocol.", color = "funInit")
   
@@ -171,7 +171,7 @@ wc_to_region <- function(biovars, shapefile, projection, plot.show = FALSE, verb
     
     biovarsMask <- terra::rast(biovarsMask)
     
-    if (plot.show) {
+    if (show.plot) {
       for (i in 1:terra::nlyr(biovarsMask)) {
         vebcat(paste0("Plotting bio_", as.character(i)), veb = verbose)
         # Plot each raster

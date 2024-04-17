@@ -33,9 +33,9 @@ handle_region_dt <- function(dt) {
     "East Chukotka"
   )
   
-  we_dt <- data.table(floristicProvince = we, we = 1:length(we))
+  we_dt <- data.table(floregName = we, westEast = 1:length(we))
   
-  dt <- dt[we_dt, on = .(floristicProvince)]
+  dt <- dt[we_dt, on = .(floregName)]
   
   return(dt)
 }
@@ -51,7 +51,7 @@ setup_region <- function(verbose = FALSE) {
   
   if (!file.exists(result_shp)) {
     
-    cavm_shp <- paste0(resource_dir, "/cavm2003/cavm.shp")
+    cavm_shp <- paste0(resource_dir, "/cavm2003/cavm.shp") # Add download_if
     
     cavm <- load_region(
       cavm_shp, 
@@ -116,6 +116,8 @@ setup_region <- function(verbose = FALSE) {
     
     cavm$country <- cavm_desc$country[index]
     cavm$floregName <- cavm_desc$floristicProvince[index]
+    cavm$floregLong <- cavm_desc$floregLong[index]
+    cavm$floregLat <- cavm_desc$floregLat[index]
     
     if (all(terra::is.valid(cavm))) {
       vebcat("Cavm shape is valid", color = "proSuccess")
@@ -126,7 +128,7 @@ setup_region <- function(verbose = FALSE) {
     
     create_dir_if(dirname(result_shp))
     
-    catn("Writing vector to file:", colcat(out_shp, color = "output"))
+    catn("Writing vector to file:", colcat(result_shp, color = "output"))
     writeVector(cavm, result_shp)
   }
   

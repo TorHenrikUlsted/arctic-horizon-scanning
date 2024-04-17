@@ -1,4 +1,4 @@
-parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun.init, fun.execute, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
+parallel_spec_dirs <- function(spec.dirs, dir, shape, hv.project.method, fun.init, fun.execute, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
 
   if (verbose) {
     print_function_args()
@@ -29,37 +29,45 @@ parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun.in
   
   init_res <- parallel_init(
     spec.filename = sp_filename, 
-    region = region, 
+    shape = shape, 
     fun.init = fun.init,
     file.log = peak_log, 
     file.stop = stop_file,
     verbose = verbose
   )
   
+  if (length(sp_dirs) == 0) {
+    catn(highcat(length(sp_dirs)), "species left after the initiation, returning.")
+    return(list(init.res = init_res, exec.res = NULL))
+  }
+  
   timer_res <- end_timer(init_timer)
 
-  peak_mem_core <- as.numeric(readLines(peak_log))
+  peak_ram <- as.numeric(readLines(peak_log))
   
-  cores_max <- floor(remain_mem / peak_mem_core)
+  max_cores <- calc_num_cores(
+    ram.high = peak_ram, 
+    verbose =  FALSE
+  )
+  print(sp_dirs)
   
   if (test > 0) { # use test numbers if above 0
-    cores_max <-  min(test, cores_max, total_cores)
+    max_cores <-  min(test, max_cores, total_cores)
   } else {
-    cores_max <- min(length(sp_dirs), cores_max, total_cores)
+    max_cores <- min(length(sp_dirs), max_cores, total_cores)
   }
   
   catn("Creating cluster of", cores_max, "core(s).")
   
-  cl <- makeCluster(cores_max)
+  cl <- makeCluster(max_cores)
   
   clusterEvalQ(cl, {
     source("./src/utils/utils.R")
     source_all("./src/visualize/components")
-    source("./src/setup/components/region/import_regions.R")
   })
   
   # Get the exports that are not null
-  export_vars <- c("sp_dirs", "region", "hv.project.method", "fun.execute", "batch", "node.log.append", "test", "verbose" , "node_dir", "ram_log")
+  export_vars <- c("sp_dirs", "shape", "hv.project.method", "fun.execute", "batch", "node.log.append", "test", "verbose" , "node_dir", "ram_log")
   
   export_vars <- export_vars[sapply(export_vars, function(x) !is.null(get(x)))]
   
@@ -144,7 +152,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun.in
       catn("\nParallel processing execute function.")
       dt <- fun.execute(
         spec.filename = sp_filename, 
-        region = region,
+        shape = shape,
         verbose = verbose
       )
       
@@ -173,7 +181,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, region, hv.project.method, fun.in
   }
 }
 
-parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.method = "inclusion-0.5", n = NULL, out.order = NULL, fun, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
+parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, hv.project.method = "inclusion-0.5", n = NULL, out.order = NULL, fun, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
   if (verbose) {
     print_function_args()
   }
@@ -220,7 +228,7 @@ parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.meth
     parallel_res <- parallel_spec_dirs(
       spec.dirs = spec.dirs,
       dir = values_sub_dir,
-      region = region,
+      shape = shape,
       hv.project.method = hv.project.method, 
       fun.init = fun_init,
       fun.execute = fun_execute,
@@ -233,12 +241,19 @@ parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.meth
     vebprint(head(parallel_res, 3), verbose)
     
     catn("Running post processing.")
-    
     # Run the post process
-    process_res <- fun_process(
-      parallel.res = parallel_res,
-      verbose = verbose
-    )
+    if (is.null(parallel_res$exec.res)) {
+      process_res <- parallel_res$init.res
+    } else {
+      if (length(parallel_res) > 1) {
+        process_res <- fun_process(
+          parallel.res = parallel_res,
+          verbose = verbose
+        )  
+      } else {
+        parallel_process_single
+      }
+    }
     
     if (!is.null(out.order)) {
       process_res <- process_res[order(-process_res[[out.order]]), ]
@@ -258,16 +273,14 @@ parallel_spec_handler <- function(spec.dirs, dir, region = NULL, hv.project.meth
   return(process_res)
 }
 
-parallel_init <- function(spec.filename, region, hv.project.method, fun.init, file.log, file.stop, verbose) {
+parallel_init <- function(spec.filename, shape, hv.project.method, fun.init, file.log, file.stop, verbose) {
  
   tryCatch({
     # Initiate memory control
     ram_control <- start_mem_tracking(file.out = file.log, file.stop = file.stop)
     
-    if (!is.null(region)) {
-      regions <- import_regions(region, "./outputs/visualize/logs/region")
-      region <- handle_region(regions[[1]])
-    }
+    region <- load_region(shape)
+    region <- handle_region(region)
     
     vebprint(class(fun.init), veb = verbose)
     vebprint(spec.filename, veb = verbose)

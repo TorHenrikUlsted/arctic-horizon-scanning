@@ -1,9 +1,9 @@
 main <- function(
     spec.known = NULL,
-    speck.unknown,
+    spec.unknown = NULL,
     test = NULL,
     column = "scientificName",
-    coord.uncertainty = 4600,
+    coord.uncertainty = NULL,
     region = NULL,
     download.key = NULL,
     download.doi = NULL,
@@ -12,9 +12,27 @@ main <- function(
     hv.accuracy = "accurate",
     hv.dims = NULL,
     hv.incl.threshold = 0.5,
+    vis.shape = NULL,
     verbose = FALSE
   ) {
   
+  if (is.null(spec.unknown) & is.null(test)) {
+    vebcat("Error: cannot have both spec.unknown and test as NULL.", color = "fatalError")
+    stop("Add function to spec.unknown or use test = 'small' or test = 'big'.")
+  }
+  
+  if (!is.null(test)) {
+    if (test == "small") {
+      hv_dir <- paste0("./outputs/hypervolume/test-small")
+      vis_dir <- paste0("./outputs/visualize/test-small")
+    } else if (test == "big") {
+      hv_dir <- paste0("./outputs/hypervolume/test-big")
+      vis_dir <- paste0("./outputs/visualize/test-big")
+    }
+  } else {
+    hv_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
+    vis_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
+  }
   
   max_cores <- calc_num_cores(
     ram.high = total_cores, 
@@ -26,23 +44,21 @@ main <- function(
     hv.accuracy = "accurate", 
     hv.incl.t = 0.5,
     hv.dims = c(18, 10, 3, 4),
-    cores.max = max_cores,
-    verbose = FALSE
+    cores.max = max_cores$total,
+    verbose = TRUE
   )
   
   sp_dir <- filter_sequence(
-    # The function used to get species known in the region
-    spec.known = filter_arctictest, 
-    # this function uses the spec.known to remove from spec.absent
-    spec.unknown = filter_glonaftest,
-    test = "small",
-    column = "scientificName",
-    coord.uncertainty = as.numeric(readLines("./outputs/hypervolume/data_acquisition/logs/coordinateUncertainty-m.txt")),
+    spec.known = spec.known, 
+    spec.unknown = spec.unknown,
+    test = test,
+    column = column,
+    coord.uncertainty = coord.uncertainty,
     cores.max = max_cores,
-    region = NULL,
-    download.key = NULL,
-    download.doi = NULL,
-    verbose = FALSE
+    region = region,
+    download.key = download.key,
+    download.doi = download.doi,
+    verbose = verbose
   )
   
   # Get file_names as a list
@@ -54,8 +70,13 @@ main <- function(
   
   min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
   
-  # Check memory peak of one node by conducting a test run as well as setting up the entire hypervolume sequence
-  peak_ram <- setup_hv_sequence(min_disk_space)
+  peak_ram <- setup_hv_sequence(
+    hv.method = hv.method, 
+    hv.accuracy = hv.accuracy, 
+    hv.dims = hv.dims, 
+    hv.incl.threshold = hv.incl.threshold, 
+    verbose = verbose
+  )
   
   max_cores <- calc_num_cores(
     ram.high = peak_ram$high, 
@@ -73,23 +94,26 @@ main <- function(
   # Run the data_acquisition here instead of inside each node.
   hypervolume_sequence(
     spec.list = sp_list,
-    iterations = NULL, 
+    iterations = hv.iterations, 
     cores.max.high = cores_max_high,
     cores.max = cores_max_total,
     min.disk.space = min_disk_space,
-    verbose = TRUE,
-    hv.method = "box", #box approx 13 min, gaussian 1 hours 10 minutes, 
-    hv.accuracy = "accurate", 
-    hv.dims = c(18, 10, 3, 4), 
-    hv.incl.threshold = 0.5
+    verbose = verbose,
+    hv.dir = hv_dir,
+    hv.method = hv.method, #box approx 13 min, gaussian 1 hours 10 minutes, 
+    hv.accuracy = hv.accuracy, 
+    hv.dims = hv.dims, 
+    hv.incl.threshold = hv.incl.threshold
   )
   
   #as.numeric(gsub("node", "", readLines("outputs/hypervolume/sequence/logs/node-iterations.txt")))
   
   visualize_sequence(
-    out.dir = "./outputs/visualize", 
-    hv.dir = "./outputs/hypervolume/sequence", 
-    hv.method = "box", 
-    verbose = FALSE
+  out.dir = vis_dir,
+    shape = vis.shape,
+    hv.dir = hv_dir, 
+    hv.method = hv.method, 
+    projection = "laea",
+    verbose = verbose
   )
 }

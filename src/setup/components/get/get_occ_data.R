@@ -1,4 +1,4 @@
-get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncertainty, download.key = NULL, download.doi = NULL) {
+get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncertainty, download.key = NULL, download.doi = NULL, verbose = FALSE) {
   vebcat("Initiating GBIF occurrence record download.", color = "funInit")
 
   download_path <- dirname(file.name)
@@ -7,7 +7,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
   species_keys <- species_w_keys$usageKey
   
   catn("Number of species keys:", highcat(length(species_keys)))
-  vebprint(str(species_keys), text = "Species keys str:")
+  vebprint(head(species_keys, 3), verbose, "Species keys sample:")
   
   out <- NULL
 
@@ -39,7 +39,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
         pred("hasCoordinate", TRUE),
         pred("hasGeospatialIssue", FALSE),
         pred("occurrenceStatus", "PRESENT"),
-        pred_gte("year", 1970),
+        pred_gte("year", 1970)
       )
       
       if (!is.null(coord.uncertainty)) {
@@ -59,9 +59,12 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
           occ_download_wait(out)
           ## get the download Data and import to create dataframe
           gbif_occ_file <- occ_download_get(out, path = download_path, overwrite = T)
+          gbif_occ_file <- as.character(gbif_occ_file)
           
-          download.key <- gbif_occ_file$keyname
-
+          downloaded_file_path <- sub(".*Path: (.*). File size.*", "\\1", gbif_occ_file)
+          
+          download.key <- gsub(".zip", "", basename(downloaded_file_path))
+          
           vebcat("GBIF occurrences Successfully downloaded.", color = "funSuccess")
         },
         error = function(e) {
@@ -99,35 +102,26 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
 
         file.rename(from = csv, to = paste0(file.name, ".csv"))
         
-        csv <- paste0(file.name, ".csv")
-
-        catn("Reading GBIF CSV.")
-        gbif_occ_df <- fread(csv)
-        
+      } else {
+        catn("GBIF Occurrence data found at:", highcat(paste0(file.name, ".csv")))
+      }
+      
+      size <- file.size(paste0(file.name, ".csv")) / 1024^3 
+      size <- round(size, digits = 2)
+      catn("File size:", highcat(size), "GB.")
+      
+      if (size <= 5) {
+        catn("File size smaller than 5 GB, reading file...")
+        gbif_occ_df <- fread(paste0(file.name, ".csv"))
         vebprint(head(gbif_occ_df, 3), text = "Sample of data table:")
-
-        gbif_occ_df <- set_df_utf8(gbif_occ_df)
-
-        fwrite(gbif_occ_df, paste0(file.name, ".csv"), bom = T)
-
-        vebcat("GBIF occurrences Successfully downloaded.", color = "funSuccess")
-
+        vebcat("GBIF occurrences Successfully Loaded.", color = "funSuccess")
         return(gbif_occ_df)
       } else {
-        catn("GBIF Occurrence data found from", highcat(paste0(file.name, ".csv")))
-        
-        size <- file.size(paste0(file.name, ".csv")) / 1024^3 
-        size <- round(size, digits = 2)
-        catn("File size:", highcat(size), "GB.")
-        
-        if (size <= 5) {
-          catn("File size smaller than 5 GB, reading file...")
-          gbif_occ_df <- fread(paste0(file.name, ".csv"))
-          return(gbif_occ_df)
-        } else {
-          vebcat("File size very big, using file chunking method.", color = "indicator")
-        }
+        vebcat("File size very big, using file chunking method.", color = "indicator")
       }
+      
+      vebcat("GBIF occurrences Successfully acquired.", color = "funSuccess")
+      
     },
     error = function(e) { # 3
       vebcat("An error has occurred: ", e$message, color = "nonFatalError")

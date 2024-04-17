@@ -1,4 +1,4 @@
-visualize_freqpoly <- function(sp_cells, region, region.name, vis.x, vis.color, vis.shade, vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
+visualize_freqpoly <- function(sp_cells, region, region.name, vis.x, vis.color, vis.shade,vis.shade.name, vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
   
   create_dir_if("./outputs/visualize/plots")
   
@@ -84,10 +84,11 @@ visualize_freqpoly <- function(sp_cells, region, region.name, vis.x, vis.color, 
   
   ggsave("./outputs/visualize/plots/figure-1A.jpeg", device = "jpeg", unit = "px", width = 3000, height = 2160, fig1A)
   
+  vebcat("Frequency for the entire region successfully visualized", color = "funSuccess")
+  
   
 # ----------- Sub regions -------------- #
   
-  vebcat("Frequency for the entire region successfully visualized", color = "funSuccess")
   
   # Figure 1B different regions
   vebcat("Creating histogram for each region in the", region.name, color = "funInit")
@@ -121,7 +122,7 @@ visualize_freqpoly <- function(sp_cells, region, region.name, vis.x, vis.color, 
       y = paste0("Proportion of cells in the different regions of the ", region.name), 
       title = if (vis.title) paste0("Potential New Alien Species Richness in Different Regions of the ", region.name), 
       color = "Country", 
-      alpha = "Floristic Province"
+      alpha = vis.shade.name
     ) +
     scale_y_continuous(limits = c(0, NA), labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
     scale_x_log10(labels = function(x) format(x, big.mark = ",", scientific = FALSE)) +
@@ -165,7 +166,7 @@ visualize_hotspots <- function(rast, region, region.name, extent, projection, pr
   catn("Plotting hotspots.")
   
   fig2A <- ggplot() +
-    geom_spatvector(data = world_map) +
+    geom_spatvector(data = region) +
     geom_spatraster(data = rast) +
     scale_fill_viridis_b(
       option = "B", 
@@ -371,45 +372,68 @@ visualize_sankey <- function(dt, taxon, level, plot.show = F, verbose = F) {
   vebcat("Sankey plot successfully visualized", color = "funSuccess")
 }
 
-visualize_connections <- function(dt, taxon, level, plot.show = F, verbose = F) {
+visualize_connections <- function(dt, plot.show = F, verbose = F) {
   vebcat("Visualizing data in a sankey plot", color = "funInit")
   
   wm <- get_world_map(projection = longlat_crs)
   
-  dt_sank <- copy(dt)
+  con_dt <- copy(dt)
   
-  #dt_sank <- dt_sank[!is.na(dt_sank[[taxon]])]
-  #dt_sank <- dt_sank[complete.cases(dt_sank[[taxon]])]
+  # Handle endcoords and floristicprovince if needed
   
-  catn("Creating sankey plot.")
-  print(unique(dt_sank$country))
+  con_dt <- con_dt[!is.na(con_dt$country), ]
   
-  fig5 <- ggplot(data = dt_sank, aes(axis1 = dt_sank[[level]], axis2 = country, y = relativeRichness)) +
-    scale_x_discrete(limits = c("Origin", "Destination"), expand = c(.1, .1)) +
+  # then calc mean_lat and _mean_long for each countryCode
+  # Count the number of unique species for each countryCode
+  dt_means <- con_dt[, .(meanLongOrig = mean(meanLong, na.rm = TRUE), 
+                         meanLatOrig = mean(meanLat, na.rm = TRUE),
+                         meanLongDest = mean(longDest, na.rm = TRUE),
+                         meanLatDest = mean(latDest, na.rm = TRUE),
+                     species_count = uniqueN(cleanName)), 
+                 by = .("country", "floristicProvince")]
+  # Get endLong and endLat
+  
+  catn("Creating connections plot.")
+
+  ggplot(data = dt_means) +
+    geom_spatvector(data = world_map) +
+    scale_x_continuous(name = "Longitude", breaks = seq(-180, 180, 30)) +
+    scale_y_continuous(name = "Latitude", breaks = seq(-90, 90, 15)) +
+    geom_point(aes(x = meanLong, y = meanLat, color = "Origin")) +
+    geom_point(aes(x = endLong, y = endLat, color = "Destination")) +
     labs(
-      y = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness"),
+      color = c("Regions"),
+      #    color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Count"),
       #fill = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))),
-      title = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness from origin region to Arctic region")
+      title = "Richness from origin region to Arctic region"
     ) +
-    geom_flow() +
-    geom_stratum() +
-    geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
+    new_scale_color() +
+    geom_segment(aes(x = meanLong, y = meanLat, xend = endLong, yend = endLat, color = species_count)) +
+    scale_size_continuous(range = c(1, 1.5)) +
+    scale_colour_viridis_c(
+      option = "B", 
+      guide = guide_legend(reverse = TRUE),
+      #limits = (c(min_lim, max_lim)),
+      #breaks = vis_breaks,
+      labels = function(x) format((x), big.mark = ",", scientific = FALSE, digits = 2),
+      na.value = "transparent"
+    ) +
+    labs(color = "Order Count") +
     theme_minimal() +
     theme(
       axis.text = element_text(size = 10),
       plot.title = element_text(vjust = 0.5, hjust = 0.5)
     )
+    
+  if (plot.show) print(fig6)
   
+  fig6_out <- "./outputs/visualize/plots/figure-6.jpeg"
   
-  if (plot.show) print(fig5)
+  catn("Saving plot to:", colcat(fig6_out, color = "output"))
   
-  fig5_out <- "./outputs/visualize/plots/figure-5.jpeg"
+  ggsave(fig6_out, device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig6)
   
-  catn("Saving plot to:", colcat(fig5_out, color = "output"))
-  
-  ggsave(fig5_out, device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig5)
-  
-  vebcat("Sankey plot successfully visualized", color = "funSuccess")
+  vebcat("Connection plot successfully visualized", color = "funSuccess")
 }
 
 
