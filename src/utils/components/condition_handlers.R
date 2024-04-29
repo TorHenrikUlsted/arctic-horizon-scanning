@@ -23,7 +23,7 @@ print_function_args <- function() {
 
 warn <- function(w, warn.file, warn.txt, iteration = NULL) {
   warn_msg <- conditionMessage(w)
-  create_file_if(warn.file)
+  create_file_if(warn.file, keep = TRUE)
   warn_con <- file(warn.file, open = "a")
   
   if (!is.null(iteration)) {
@@ -38,7 +38,7 @@ warn <- function(w, warn.file, warn.txt, iteration = NULL) {
 
 err <- function(e, err.file, err.txt, iteration = NULL) {
   err_msg <- conditionMessage(e)
-  create_file_if(err.file)
+  create_file_if(err.file, keep = TRUE)
   err_con <- file(err.file, open = "a")
   
   if (!is.null(iteration)) {

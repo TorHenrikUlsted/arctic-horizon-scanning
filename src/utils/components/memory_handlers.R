@@ -1,3 +1,22 @@
+format_mem_unit <- function(value, unit.in = "b", unit.out = "b") {
+  
+  units <- c("b", "kb", "mb", "gb", "tb")
+  factors <- c(1, 1024, 1024^2, 1024^3, 1024^4)
+  names(factors) <- units
+  
+  if (!(unit.in %in% units) | !(unit.out %in% units)) {
+    return(vebcat("Invalid unit. Choose 'b', 'kb', 'mb', 'gb', or 'tb'.", color = "nonFatalError"))
+  }
+  
+  value_bytes <- value * factors[unit.in]
+  
+  value_formatted <- value_bytes / factors[unit.out]
+  
+  names(value_formatted) <- unit.out
+  
+  return(value_formatted)
+}
+
 # Function to get current memory usage
 get_mem_usage <- function(type = "free", format = "b") {
   # Call free command and get the output
@@ -17,22 +36,25 @@ get_mem_usage <- function(type = "free", format = "b") {
     stop("Invalid type. Choose 'free', 'total', or 'used'.")
   }
   
-  # Transform to specified format
-  if (format == "b") {
-    mem_usage <- mem_usage * 1024^2
-  } else if (format == "kb") {
-    mem_usage <- mem_usage * 1024
-  } else if (format == "mb") {
-    mem_usage <- mem_usage
-  } else if (format == "gb") {
-    mem_usage <- mem_usage / 1024
-  } else if (format == "tb") {
-    mem_usage <- mem_usage / 1024^2
-  } else {
-    stop("Invalid format. Choose 'b', 'kb', 'mb', 'gb', or 'tb'.")
-  }
+  mem_usage <- format_mem_unit(mem_usage, unit.in = "mb", unit.out = format)
   
-  return(mem_usage)
+  return(unname(mem_usage))
+}
+
+get_process_mem_use <- function(unit = "gb") {
+  pid <- Sys.getpid()
+  
+  ram <- system2("ps", args=c("-p", pid, "-o", "rss="), stdout = TRUE)
+  
+  ram <- as.numeric(ram)
+  
+  ram <- format_mem_unit(ram, unit.in = "kb", unit.out = unit)
+  
+  ram <- round(ram, 3)
+  
+  catn("Current process RAM in", unit, highcat(unname(ram)))
+  
+  return(unname(ram))
 }
 
 start_mem_tracking <- function(file.out, file.stop) {
@@ -100,8 +122,14 @@ stop_mem_tracking <- function(control, file.stop) {
 
 calc_num_cores <- function(ram.high, ram.low = 0, verbose = FALSE) {
   # Ratio of high ram cores
-  high_core_ratio <- (3/4)
-  low_core_ratio <- (1/4)
+  if (ram.low == 0) {
+    high_core_ratio <- 1
+    low_core_ratio <- 0
+  } else {
+    high_core_ratio <- (3/4)
+    low_core_ratio <- (1/4)
+  }
+  
   # Calc ram the process will use
   high_load_cores <- floor(total_cores * high_core_ratio)
   low_load_cores <- floor(total_cores - high_load_cores)

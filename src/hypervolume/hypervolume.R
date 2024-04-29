@@ -1,6 +1,6 @@
 source_all("./src/hypervolume/components")
 
-process_species <- function(spec.dt, spec.name, method, points.projection = "longlat", verbose = F, iteration, warn.file, err.file) {
+process_species <- function(spec.dt, spec.name, process.dir, method, points.projection = "longlat", verbose = F, iteration, warn.file, err.file) {
   vebcat("Initiating data processing protocol.", color = "funInit")
 
   biovars_world <- rast("./outputs/setup/region/biovars-world-subset.tif")
@@ -11,6 +11,7 @@ process_species <- function(spec.dt, spec.name, method, points.projection = "lon
     {
       sp_points <- prepare_species(
         dt = spec.dt,
+        process.dir = process.dir,
         projection = "longlat",
         verbose = verbose
       )
@@ -37,6 +38,10 @@ process_species <- function(spec.dt, spec.name, method, points.projection = "lon
         biovars_world,
         verbose = verbose
       )
+      
+      # remove sp_points to save ram
+      rm(sp_points)
+      invisible(gc())
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when preparing environment", iteration = iteration),
     error = function(e) err(e, err.file = err.file, err.txt = "Error when preparing environment", iteration = iteration)
@@ -90,7 +95,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           samples_per_point = spp,
           random_points = nrp,
           excluded = TRUE,
-          analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
+          analyzed_hv_stats = c(0,0,1,1),
           included_sp = c(rep(TRUE, 0), rep(FALSE, nobs))
         ))
       }
@@ -118,14 +123,14 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
 
       catn(
         "Number of TRUE / FALSE = OVERLAP values:",
-        highcat(sum(included_sp == T)),
+        highcat(sum(included_sp == TRUE)),
         "/",
-        highcat(sum(included_sp == F)),
+        highcat(sum(included_sp == FALSE)),
         "=",
-        highcat(format(sum(included_sp == T) / length(included_sp), nsmall = 2, big.mark = ","))
+        highcat(format(sum(included_sp == TRUE) / length(included_sp), nsmall = 2, big.mark = ","))
       )
 
-      if (any(included_sp == T)) {
+      if (any(included_sp == TRUE)) {
         vebcat("Included for further hypervolume analysis.", color = "proSuccess")
       } else {
         vebcat("Excluded from further hypervolume analysis.", color = "nonFatalError")
@@ -136,7 +141,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           samples_per_point = spp,
           random_points = nrp,
           excluded = TRUE,
-          analyzed_hv_stats = c(rep(0, 2), rep(0, 2)),
+          analyzed_hv_stats = c(0,0,1,1),
           included_sp = included_sp
         ))
       }
@@ -156,20 +161,18 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       catn("The node has entered the hypervolume analysis queue...")
       analysis_msg <- TRUE
     }
-
     if (mc >= ml) {
       if (!mm) {
         catn("The node waiting for more available RAM before initiating the hypervolume analysis.")
         mm <- TRUE
       }
-
       Sys.sleep(10)
     } else {
       if (is.locked(lock.dir, lock.n = cores.max.high)) {
         Sys.sleep(10)
       } else {
         Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
-        lock_analysis <- lock(lock.dir, lock.n = cores.max.high)
+        lock_analysis <- lock(lock.dir, lock.n = cores.max.high, paste0("Locked by ", iteration, "_", spec.name))
         if (!is.null(lock_analysis) && file.exists(lock_analysis)) {
           break
         }
@@ -201,7 +204,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       vebprint(analyzed_hv_stats, text = "Hypervolume Statistics:")
       
       # If the region is unique and does not overlap with any of the species
-      if (analyzed_hv_stats[[4]] == 0) {
+      if (analyzed_hv_stats[[4]] == 1) {
         catn(spec.name, colcat("Excluded from further hypervolume analysis.", color = "nonFatalError"))
 
         vebcat("Unlocking analysis lock.", veb = verbose)
@@ -218,6 +221,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         ))
       } else {
         catn(spec.name, colcat("Included for further hypervolume analysis.", color = "proSuccess"))
+        
       }
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when analyzing statistics", iteration = iteration),
@@ -235,6 +239,12 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       catn("Using", incl_threshold, "threshold(s).")
       ## Projections for inclusion
       for (threshold in incl_threshold) {
+        out_file <- paste0(proj_dir, "/", threshold, "-inclusion", ".tif")
+        if (file.exists(out_file)) {
+          catn(threshold, "-inclusion analysis file already exists.")
+          next
+        }
+        
         inc_project <- hypervolume_project(
           sp_hv,
           biovars_region,
@@ -245,7 +255,6 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         )
 
         names(inc_project) <- ("inclusionScore")
-        out_file <- paste0(proj_dir, "/", threshold, "-inclusion", ".tif")
 
         vebcat("Writing out raster file:", colcat(out_file), color = "output")
         writeRaster(inc_project, out_file, overwrite = TRUE)
@@ -254,23 +263,29 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         invisible(gc())
       }
 
-      catn("Projecting probability analysis.")
-      ## Projections for probability
-      prob_proj <- hypervolume_project(
-        sp_hv,
-        biovars_region,
-        type = "probability",
-        verbose = verbose
-      )
-
-      names(prob_proj) <- ("suitabilityScore")
+     
       out_file <- paste0(proj_dir, "/probability.tif")
-
-      vebcat("Writing out raster file:", colcat(out_file), color = "output")
-      writeRaster(prob_proj, out_file, overwrite = TRUE)
       
-      rm(prob_proj)
-      invisible(gc())
+      if (!file.exists(out_file)) {
+        catn("Projecting probability analysis.")
+        
+        prob_proj <- hypervolume_project(
+          sp_hv,
+          biovars_region,
+          type = "probability",
+          verbose = verbose
+        )
+        
+        names(prob_proj) <- ("suitabilityScore")
+        
+        vebcat("Writing out raster file:", colcat(out_file), color = "output")
+        writeRaster(prob_proj, out_file, overwrite = TRUE)
+        
+        rm(prob_proj)
+        invisible(gc())
+      } else {
+        catn("Probability analysis file already exists.")
+      }
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when projecting hypervolume", iteration = iteration),
     error = function(e) {

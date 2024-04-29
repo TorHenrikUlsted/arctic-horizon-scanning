@@ -20,6 +20,18 @@ to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
 }
 
 check_crs <- function(object, projection, projection.method, verbose = FALSE) {
+  tryCatch({
+    crs(projection, proj = TRUE)
+  },
+    error = function(e) {
+      vebcat("Error when trying to get crs.", color = "fatalError")
+      catn("Example of Accepted format:")
+      catn("+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84")
+      catn("Example of not accepted format:")
+      catn("laea")
+      stop("Check if input projection is a real crs and not a string name.")
+    }
+  )
   
   vebprint(object, verbose, "Input object:")
   vebprint(crs(projection, proj = TRUE), verbose, "Input projection:")

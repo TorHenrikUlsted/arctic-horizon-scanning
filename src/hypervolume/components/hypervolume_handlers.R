@@ -154,7 +154,7 @@ check_hv_results <- function(res, init.dt, hv.dir, hv.incl.threshold = 0.5, verb
   vebcat("Checking duplicate entires.", veb = verbose)
   
   # Check duplicate entries
-  stats_file <- paste0(hv.dir, "/stats.csv")
+  stats_file <- paste0(hv.dir, "/stats/stats.csv")
   
   existing_names <- unique(fread(stats_file, select = "cleanName")$cleanName)
   

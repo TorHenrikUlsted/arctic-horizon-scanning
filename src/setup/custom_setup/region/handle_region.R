@@ -6,6 +6,17 @@ handle_region <- function(region) {
 }
 
 handle_region_dt <- function(dt) {
+  region_names <- list(
+    subRegionCode = "FLOREG",
+    subRegionName = "floregName",
+    subRegionLong = "floregLong",
+    subRegionLat = "floregLat"
+  )
+  
+  for (i in seq_along(region_names)) {
+    setnames(dt, region_names[[i]], names(region_names)[i])
+  }
+  
   # add east to west order
   we <- c(
     "North Alaska - Yukon Territory",
@@ -33,9 +44,9 @@ handle_region_dt <- function(dt) {
     "East Chukotka"
   )
   
-  we_dt <- data.table(floregName = we, westEast = 1:length(we))
+  we_dt <- data.table(subRegionName = we, westEast = 1:length(we))
   
-  dt <- dt[we_dt, on = .(floregName)]
+  dt <- dt[we_dt, on = .(subRegionName)]
   
   return(dt)
 }

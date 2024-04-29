@@ -25,6 +25,8 @@ main(
   verbose = FALSE
 )
 
+it <- as.numeric(gsub("node", "", readLines("outputs/hypervolume/glonaf/box-sequence/logs/node-iterations.txt")))
+
 # glonaf keys
 # download.key = 0186013-240321170329656
 # download.doi = https://doi.org/10.15468/dl.awqjxw

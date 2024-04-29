@@ -110,6 +110,35 @@ order_by_apg <- function(input, by, verbose = FALSE) {
   # Load apg4
   apg <- fread("./resources/taxon/apg4/apg4.txt")
   
+  # order
+  gpg <- c(
+    "Cycadales",
+    "Ginkgoales",
+    "Araucariales",
+    "Cupressales",
+    "Pinales",
+    "Ephedrales",
+    "Welwitchiales",
+    "Gnetales"
+  )
+  # order
+  ppg <- c(
+    "Lycopodiales",
+    "Isoetales",
+    "Selaginellales",
+    "Equisetales",
+    "Psilotales",
+    "Ophioglossales",
+    "Marattiales",
+    "Osmundales",
+    "Hymenophyllales",
+    "Gleicheniales",
+    "Schizaeales",
+    "Salviniales",
+    "Cyatheales",
+    "Polypodiales"
+  )
+  
   apg_rank <- apg[taxonRank == by]
   
   apg_vect <- apg_rank$scientificName
@@ -126,12 +155,20 @@ order_by_apg <- function(input, by, verbose = FALSE) {
   
   vebcat("Ordering apgs", veb = verbose)
   if (is.vector(input)) {
+    # Order the angiosperms
     ordered_apg <- apg_vect[apg_vect %in% input_apg]
     
-    # Add the others
-    non_apg_order <- c("Lycopodiales", "Selaginellales", "Equisetales", "Osmundales", "Salviniales", "Cyatheales", "Polypodiales", "Ephedrales", "Pinales")
+    # Order the gymnosperms
+    ordered_gpg <- input[order(match(input, gpg))]
     
-    ordered <- c(non_apg_order, ordered_apg)
+    ordered_gpg <- ordered_gpg[!is.na(ordered_gpg)]
+    
+    # order the pteridophytes
+    ordered_ppg <- input[order(match(input, ppg))]
+    
+    ordered_ppg <- ordered_ppg[!is.na(ordered_ppg)]
+    
+    ordered <- c(ordered_ppg, ordered_gpg, ordered_apg)
     
   } else {
     setorderv(input, cols = apg_rank[[by]])
@@ -169,11 +206,25 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
-extract_ext_to_dt <- function(raster, value = "value", cells = TRUE) {
-  rast_extr <- terra::extract(raster, ext(raster), cells = cells)
+extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells = TRUE) {
+  catn("Extracting Raster and converting to data table.")
+  
+  if (is.null(region)) {
+    extract_by <- ext(raster)
+  } else {
+    extract_by <- region
+  }
+  
+  rast_extr <- terra::extract(raster, extract_by, cells = cells)
+  rast_dt <- as.data.frame(rast_extr)
   rast_dt <- as.data.table(rast_extr)
-  names(rast_dt) <- c("cell", value)
-
+  
+  if (is.null(region)) {
+    names(rast_dt) <- c("cell", value)
+  } else {
+    names(rast_dt) <- c("ID", value, "cell")
+  }
+  
   return(rast_dt)
 }
 
@@ -213,15 +264,20 @@ reproject_region <- function(region, projection, issue.line = FALSE, issue.thres
     return(region_longlat)
   }
   
-  
   if (projection == "longlat") {
     catn("Choosing", highcat("longlat"), "coordinate system.")
     prj <- longlat_crs
   } else if (projection == "laea") {
     catn("Choosing", highcat("laea"), "coordinate system.")
     prj <- laea_crs
+  } else if (projection == "mollweide") {
+    catn("Choosing", highcat("mollweide"), "coordinate system.")
+    prj <- mollweide_crs
+  } else if (projection == "stere") {
+    catn("Choosing", highcat("stere"), "coordinate system.")
+    prj <- stere_crs
   } else {
-    stop("You can only choose projection 'longlat' or 'laea'.")
+    stop("You can only choose projection 'longlat', 'laea', 'stere', or 'mollweide'.")
   }
   
   
@@ -360,12 +416,74 @@ load_sp_rast <- function(spec.filename) {
   return(sp_rast)
 }
 
+edit_crs <- function(crs.string, string.key, string.new, verbose = FALSE) {
+  string.key <- toupper(string.key)
+  
+  # Split the keyword if it contains a number
+  keyword_parts <- strsplit(string.key, "[[:digit:]]+", perl = TRUE)[[1]]
+  keyword_num <- as.numeric(gsub("[^[:digit:]]", "", string.key))
+  if (is.na(keyword_num)) keyword_num <- 1
+  
+  # Split the CRS string into parts
+  crs_parts <- strsplit(crs.string, "\n", fixed = TRUE)[[1]]
+  
+  vebprint(crs_parts, verbose, "CRS parts:")
+  
+  # Find the parts that start with the keyword
+  keyword_parts <- grep(paste0("\\b", keyword_parts, "\\b\\[\""), crs_parts)
+  
+  vebprint(keyword_parts, verbose, "Keyword parts:")
+  
+  # Check if the keyword exists in the CRS string
+  if (length(keyword_parts) >= keyword_num) {
+    # Replace the name following the keyword
+    crs_parts[keyword_parts[keyword_num]] <- gsub("(?<=\\[\\\").*?(?=\\\")", string.new, crs_parts[keyword_parts[keyword_num]], perl = TRUE)
+    
+    # Combine the CRS parts back into a string
+    new_crs <- paste(crs_parts, collapse = "\n")
+  } else {
+    catn("Keyword not found in the string.")
+    # If the keyword doesn't exist, return the original CRS string
+    new_crs <- crs.string
+  }
+  
+  return(new_crs)
+}
+
+##########################
+#        ggplot          #
+##########################
+
+save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir, save.device = "jpeg", save.unit = "px", vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
+  
+  vebprint(save.plot, veb = plot.show)
+  title_dir <- paste0(save.dir, "/title")
+  no_title_dir <- paste0(save.dir, "/no-title")
+  
+  create_dir_if(c(title_dir, no_title_dir))
+  
+  if (vis.title) {
+    fig_out <- paste0(title_dir, "/", save.name, "-title.", save.device)
+  } else {
+    fig_out <- paste0(no_title_dir, "/", save.name, ".", save.device)    
+  }
+  
+  catn("Saving plot to:", colcat(fig_out, color = "output"))
+  ggsave(fig_out, device = save.device, unit = save.unit, width = save.width, height = save.height, plot = save.plot)
+}
+
+
 ##########################
 #        Objects         #
 ##########################
 
 get_obj_name <- function(...) {
   sapply(as.list(match.call())[-1], deparse)
+}
+
+get_mode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
 }
 
 ##########################

@@ -30,7 +30,7 @@ main <- function(
       vis_dir <- paste0("./outputs/visualize/test-big")
     }
   } else {
-    hv_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
+    hv_dir <- paste0("./outputs/hypervolume/", gsub("filter_", "", deparse(substitute(spec.unknown))))
     vis_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
   }
   
@@ -70,6 +70,8 @@ main <- function(
   
   min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
   
+  invisible(gc())
+  
   peak_ram <- setup_hv_sequence(
     hv.method = hv.method, 
     hv.accuracy = hv.accuracy, 
@@ -105,8 +107,6 @@ main <- function(
     hv.dims = hv.dims, 
     hv.incl.threshold = hv.incl.threshold
   )
-  
-  #as.numeric(gsub("node", "", readLines("outputs/hypervolume/sequence/logs/node-iterations.txt")))
   
   visualize_sequence(
   out.dir = vis_dir,
