@@ -1,4 +1,5 @@
 check_coords_orientation <- function(geom_input) {
+  catn("Checking coordinate orientation")
   # Convert the WKT string to an sf object
   if (!inherits(geom_input, "SpatVector")) {
     spat_obj <- vect(geom_input)  
@@ -19,14 +20,14 @@ check_coords_orientation <- function(geom_input) {
   
   # Check the orientation and print a message
   if (signed_area > 0) {
-    cat(cc$paleTurquoise("The orientation is counter-clockwise (GBIF friendly).\n"))
+    vebcat("The orientation is counter-clockwise (GBIF friendly).", color = "indicator")
     orientation <- "counter-clockwise"
   } else if (signed_area < 0) {
-    cat(cc$paleTurquoise("The orientation is clockwise.\n"))
+    vebcat("The orientation is clockwise.", color = "indicator")
     orientation <- "clockwise"
   } else {
-    stop(red("STOP: The WKT does not have a clear orientation. \n"))
+    stop("STOP: The WKT does not have a clear orientation. \n")
   }
- 
+  
   return(orientation)
 }

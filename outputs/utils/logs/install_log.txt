@@ -1,8 +1,0 @@
-The library path for the package  data.table  is not writable. Installing the package in a personal library.
-Error in install.packages : type 'binary' is not supported on this platform
-The library path for the package  dplyr  is not writable. Installing the package in a personal library.
-Error in install.packages : type 'binary' is not supported on this platform
-The library path for the package  sp  is not writable. Installing the package in a personal library.
-Error in install.packages : type 'binary' is not supported on this platform
-The library path for the package  stringr  is not writable. Installing the package in a personal library.
-Error in install.packages : type 'binary' is not supported on this platform
