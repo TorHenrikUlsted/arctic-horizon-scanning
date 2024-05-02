@@ -13,6 +13,15 @@ main <- function(
     hv.dims = NULL,
     hv.incl.threshold = 0.5,
     vis.shape = NULL,
+    vis.projection = "laea",
+    vis.title = TRUE,
+    vis.region.name = "Region", 
+    vis.subregion.name = "Sub Region", 
+    vis.composition.taxon = "order", 
+    vis.gradient = "viridis", 
+    vis.save.device = "jpeg", 
+    vis.save.unit = "px",
+    plot.show = FALSE,
     verbose = FALSE
   ) {
   
@@ -32,6 +41,7 @@ main <- function(
   } else {
     hv_dir <- paste0("./outputs/hypervolume/", gsub("filter_", "", deparse(substitute(spec.unknown))))
     vis_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
+    expected_res_name <- gsub("filter_", "", deparse(substitute(spec.unknown)))
   }
   
   max_cores <- calc_num_cores(
@@ -109,11 +119,21 @@ main <- function(
   )
   
   visualize_sequence(
-  out.dir = vis_dir,
+    out.dir = vis_dir,
+    res.expected = expected_res_name,
     shape = vis.shape,
     hv.dir = hv_dir, 
-    hv.method = hv.method, 
-    projection = "laea",
+    hv.method = hv.method,
+    vis.projection = vis.projection,
+    vis.title = vis.title,
+    vis.region.name = vis.region.name,
+    vis.subregion.name = vis.subregion.name,
+    vis.composition.taxon = vis.composition.taxon,
+    vis.gradient = vis.gradient,
+    vis.save.device = vis.save.device,
+    vis.save.unit = vis.save.unit,
+    plot.show = plot.show,
     verbose = verbose
   )
+  
 }

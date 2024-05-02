@@ -140,15 +140,17 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
       catn("Running node for:")
       
       if (!batch) {
-        catn("Iteration", i)
-        catn(sp_name)
-        catn(sp_dir)
-        catn(sp_filename, "\n")
+        catn("Iteration:", i)
+        catn("Species:", sp_name)
+        catn("Species Directory:\n", sp_dir)
+        catn("Species Filename:\n", sp_filename)
+        catn()
       } else {
         if (test > 0) sp_filename <- sp_filename[1:3]
         catn("Batch", i)
         catn("Number of species:", length(sp_dir))
-        catn("Number of filenames:", length(sp_filename), "\n")
+        catn("Number of filenames:", length(sp_filename))
+        catn()
       }
       
       vebprint(shape, verbose, "Shape:")
@@ -199,7 +201,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   }
 }
 
-parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv.project.method = "0.5-inclusion", n = NULL, out.order = NULL, fun, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
+parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv.project.method = "0.5-inclusion", col.n = NULL, out.order = NULL, fun, batch = FALSE, test = 0, node.log.append = TRUE, verbose = FALSE) {
   if (verbose) {
     print_function_args()
   }
@@ -262,7 +264,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
       verbose = verbose
     )
     
-    catn("Length of init results:", highcat(length(parallel_res$init.res)))
+    catn("Length of init results:", highcat(1))
     catn("Length of execute results:", highcat(length(parallel_res$exec.res)))
     
     vebprint(parallel_res$init.res, verbose, "Parallel init result:")
@@ -286,13 +288,24 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
   }
   
   if (!is.null(out.order)) {
-    process_res <- process_res[order(-process_res[[out.order]]), ]
+    if (grepl("-", out.order)) {
+      process_res <- process_res[order(-process_res[[gsub("-", "", out.order)]]), ]
+    } else {
+      process_res <- process_res[order(process_res[[out.order]]), ]
+    }
+    
   }
   
-  if (is.null(n)) {
-    catn("n is not used, returning the whole table")
+  if (is.null(col.n)) {
+    catn("col.n is not used, returning the whole table")
   } else {
-    process_res <- process_res[1:n, ]
+    # Syntax is: "column-number"
+    split_str <- str_split(col.n, "-")[[1]]
+    column <- split_str[[1]]
+    number <- split_str[[2]]
+    
+    process_res <- unique(process_res, by = column)
+    process_res <- process_res[1:number, ]
   }
   
   vebcat("Successfully acquired", basename(dir), "for all",  hv.project.method, "rasters.", color = "funSuccess")
@@ -335,7 +348,7 @@ parallel_init <- function(spec.filename, shape, extra, hv.project.method, fun.in
   return(init_res)
 }
 
-parallel_process_single <- function(parallel.res, verbose) {
+parallel_process_single <- function(parallel.res, extra, verbose) {
   catn("Using the single processor.")
   merged_dt <- rbindlist(list(parallel.res$init.res, rbindlist(parallel.res$exec.res)), fill = TRUE)
   

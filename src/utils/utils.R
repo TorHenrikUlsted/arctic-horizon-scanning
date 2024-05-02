@@ -23,7 +23,6 @@ pkgs = c(
   "ggnewscale",
   "ggrepel",
   "ggpubr",
-  "gridExtra",
   "tidyterra",
   "scales",
   "rnaturalearth",
@@ -35,7 +34,7 @@ pkgs = c(
   "viridis",
   "stringdist",
   "stringr",
-  "progressr"
+  "knitr"
 )
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))

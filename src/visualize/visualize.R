@@ -1,27 +1,19 @@
 source_all("./src/visualize/components")
 
-visualize_sequence <- function(out.dir = "./outputs/visualize", shape, projection = "longlat", hv.dir, hv.method = "box", vis.title = TRUE, verbose = FALSE) {
-  
-  # Test params
-  out.dir = "./outputs/visualize/glonaf"
-  shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp"
-  projection = "laea"
-  hv.dir = "./outputs/hypervolume/glonaf"
-  hv.method = "box"
-  verbose = TRUE
+visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, shape,  hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.gradient = "viridis", vis.save.device = "jpeg", vis.save.unit = "px", plot.show = FALSE, verbose = FALSE) {
   
   ##########################
   #       Load dirs        #
   ##########################
   hv_proj_dir <- paste0(hv.dir, "/", hv.method, "-sequence/projections")
   vis_dir <- paste0(out.dir, "/", hv.method, "-sequence")
+  stats_dir <- paste0(vis_dir, "/stats")
   log_dir <- paste0(vis_dir, "/logs")
-  get_vis_log <- paste0(log_dir, "/get-visualize-data")
-  rast_dir <- paste0(get_vis_log, "/rasters")
+  rast_dir <- paste0(log_dir, "/rasters")
   plot_dir <- paste0(vis_dir, "/plots")
   
   # create dirs
-  create_dir_if(c(log_dir, rast_dir, plot_dir))
+  create_dir_if(c(stats_dir, log_dir, rast_dir, plot_dir))
   
   ##########################
   #       Load files       #
@@ -30,6 +22,15 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", shape, projectio
   warn_file <- paste0(log_dir, "/", hv.method, "-warning.txt")
   err_file <- paste0(log_dir, "/", hv.method, "-error.txt")
   stats_file <- paste0(hv.dir, "/", hv.method, "-sequence/stats/stats.csv")
+  expected_res_file <- paste0("./outputs/filter/", res.expected, "/", res.expected, "-absent-final.csv")
+  res_file <- paste0(hv.dir, "/", hv.method, "-sequence/stats/stats.csv")
+  if (vis.title) {
+    existing_plots <- basename(list.files(paste0(plot_dir, "/title")))
+    exp_title <- "-title"
+  } else {
+    existing_plots <- basename(list.files(paste0(plot_dir, "/no-title")))
+    exp_title <- ""
+  }
   
   create_file_if(c(warn_file, err_file))
   
@@ -44,11 +45,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", shape, projectio
   
   region <- load_region(shape)
 
-  if (projection == "longlat") {
+  if (vis.projection == "longlat") {
     region <- handle_region(region)
     region_ext <- ext(region)
     out_projection <- longlat_crs
-  } else if (projection == "laea") {
+  } else if (vis.projection == "laea") {
     region <- terra::project(region, laea_crs)
     region_ext <- ext(region)
     out_projection <- laea_crs
@@ -57,332 +58,586 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", shape, projectio
   ##########################
   #       Check data       #
   ##########################
-  # Check the output if it is in the expected format and length
-  #checked_data <- check_hv_output(sp_dirs, hv.dir, hv.method, hv.projection, hv.inc.t = 0.5, verbose = FALSE)
-  
-  # Clean the output data - 9 hours
-  #cleaned_data <- clean_hv_output(checked_data, out.dir, hv.dir, hv.projection, verbose = T)
+
+  # Clean species that are not supposed to be there
+  stats_clean <- clean_output_species(
+    out.dir = stats_dir,
+    dt.result = res_file,
+    dt.expected = expected_res_file,
+    clean.dirs = hv_proj_dir,
+    verbose = FALSE
+  )
   
   # Get stats csv file
-  sp_stats <- get_stats_data(vis_dir, hv.dir, hv.method, verbose = verbose, warn = warn, err = err)
+  sp_stats <- filter_stats_data(
+    stats_clean,
+    stats_dir,
+    hv.dir = hv.dir, 
+    hv.method = hv.method, 
+    verbose = verbose
+  )
   
-  catn("Found", highcat(length(sp_dirs)), "species and", highcat(length(unique(sp_stats$cleanName))), "projections.")
+  catn("Found", highcat(length(sp_dirs)), "projections and", highcat(length(unique(sp_stats$cleanName))), "Species.")
   
-  if (length(sp_dirs) < length(unique(sp_stats$cleanName))) {
-    stop("More projections than species found.")
-  } else if (length(sp_dirs) > length(unique(sp_stats$cleanName))) {
-    stop("More species than projections found.")
+  if (length(sp_dirs) > length(unique(sp_stats$cleanName))) {
+    stop("Found more projections than species.")
+  } else if (length(sp_dirs) < length(unique(sp_stats$cleanName))) {
+    stop("Found more species than projections.")
   }
   
   ##########################
-  #        Figure 1        #
+  #     Get cell data      #
   ##########################
   
+  template_file <- list.dirs(hv_proj_dir)[2]
+  template_file <- paste0(template_file, "/0.5-inclusion.tif")
+  
+  # Get which cells the sub regions are in
+  region_cell <- get_region_cells(
+    shape = shape,
+    template.filename = template_file,
+    out.dir = log_dir,
+    verbose = FALSE
+  )
+  
+  # Get the cell richness
   inc_dt <- parallel_spec_handler(
     spec.dirs = sp_dirs, 
-    dir = paste0(get_vis_log, "/cell"), 
+    dir = paste0(log_dir, "/cell"),
     shape = shape,
     hv.project.method = "0.5-inclusion",
-    test = 0,
     fun = get_inclusion_cell,
     batch = TRUE,
     node.log.append = FALSE,
-    verbose = FALSE
+    verbose = verbose
   )
+  
+  
+  # combine cell richness and region cell occupancy
+  region_richness_cell <- merge(inc_dt, region_cell, by = "cell", all = TRUE)
   
   # Get number of cells per floristic region to calculate proportional values to each region and make them comparable
-  freq_stack <- inc_dt[!is.na(inc_dt$richness)]
   
-  #freq_stack <- freq_stack[, ncellsRegion := .N, by = floregName]
+##########################
+#        Figure 1        #
+##########################
   
- # freq_stack <- freq_stack[, propCells := ncellsRegion / nrow(freq_stack), by = floregName]
-  visualize_freqpoly(
-    spec.cells = freq_stack, 
-    region = region, 
-    region.name = "Arctic", 
-    vis.x = "richness",
-    vis.title = TRUE,
-    vis.color = "country", 
-    vis.shade = "floregName",
-    vis.shade.name = "FloristicProvince",
-    vis.binwidth = 1,
-    vis.x.scale = "sqrt",
-    vis.peak.threshold = 0.001,
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    verbose = FALSE
-  )
+  fig_name <- paste0("figure-1A", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Frequency Figures.", color = "indicator")
+  } else {
+    freq_stack <- region_richness_cell[!is.na(region_richness_cell$cellRichness)]
+    freq_stack <- freq_stack[!is.na(freq_stack$subRegionName)]
+    
+    visualize_freqpoly(
+      spec.cells = freq_stack, 
+      region = region, 
+      region.name = vis.region.name,
+      vis.x = "cellRichness",
+      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.title = vis.title,
+      vis.color = "country", 
+      vis.shade = "subRegionName",
+      vis.shade.name = vis.subregion.name,
+      vis.binwidth = 1,
+      vis.x.scale = "log",
+      vis.peak.threshold = 0.001,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      verbose = verbose
+    )
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "2;Potential Frequency",
+    )
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "See figure 1A descriptive for result numbers."
+    )
+    
+    rm(freq_stack)
+    invisible(gc())
+  }
   
   ##########################
   #        Figure 2        #
   ##########################
-  
+
   # Figure 2: Stack inclusion tif files and calculate species in each cell to get potential hotspots
   
-  # Convert to raster by using a template
-  hotspot_raster <- convert_template_raster(
-    input.values = inc_dt$richness,
-    hv.proj.dir = hv_proj_dir, 
-    hv.method = hv.method,
-    hv.project.method = "0.5-inclusion",
-    projection = out_projection,
-    out.dir = rast_dir
-  )
-  
-  world_map <- get_world_map(projection = out_projection)
- 
-  visualize_hotspots(
-    rast = hotspot_raster,
-    region = world_map,
-    extent = region_ext,
-    region.name = "Arctic",
-    projection  = out_projection,
-    vis.gradient = "viridis-B",
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    vis.title = TRUE
-  )
+  fig_name <- paste0("figure-2", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Hotspots Figure.", color = "indicator")
+  } else {
+    
+    # Convert to raster by using a template
+    hotspot_raster <- convert_template_raster(
+      input.values = region_richness_cell$cellRichness,
+      template.filename = template_file,
+      projection = out_projection,
+      projection.method = "near",
+      out.dir = rast_dir,
+      verbose = verbose
+    )
+    
+    world_map <- get_world_map(projection = out_projection)
+    
+    visualize_hotspots(
+      rast = hotspot_raster,
+      region = world_map,
+      extent = region_ext,
+      region.name = vis.region.name,
+      projection  = out_projection,
+      vis.gradient = paste0(vis.gradient, "-B"),
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
+      vis.title = vis.title,
+      verbose = verbose
+    )
+    
+    res_hotspots_nums <- region_richness_cell[, .SD[which.max(cellRichness)], by = subRegionName]
+    res_hotspots_nums <- res_hotspots_nums[!is.na(res_hotspots_nums$subRegionName)]
+    res_hotspots_nums <- res_hotspots_nums[, .(cellRichness, subRegionName, country)]
+    setnames(res_hotspots_nums, "cellRichness", "richnessPeaks")
+    setorder(res_hotspots_nums, -richnessPeaks)
+    
+    mdwrite(
+      post_seq_nums, 
+      heading = "2;Hotspots",
+      data = res_hotspots_nums,
+    )
+    
+    rm(hotspot_raster, world_map)
+    invisible(gc())
+  }
   
   ##########################
   #        Figure 3A       #
   ##########################
   
-  inc_cover_files <- parallel_spec_handler(
-    spec.dirs = sp_dirs, 
-    dir = paste0(get_vis_log, "/coverage"),
-    hv.project.method = "0.5-inclusion",
-    n = 9,
-    out.order = "coverage",
-    fun = get_inc_coverage,
-    verbose = FALSE
-  )
+  fig_name <- paste0("figure-3A", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Potential Area of Occupancy Figure.", color = "indicator")
+  } else {
   
-  inc_cover <- stack_projections(
-    filenames = inc_cover_files$filename, 
-    projection = out_projection, 
-    projection.method = "near",
-    out.dir = paste0(get_vis_log, "/stack-coverage"),
-    binary = TRUE,
-    verbose = TRUE
-  )
-  
-  dist_fig <- visualize_distributions(
-    rast = inc_cover,
-    region = world_map,
-    region.name = "the Arctic",
-    extent = region_ext,
-    projection  = out_projection,
-    vis.gradient = "viridis-b",
-    vis.wrap = 3,
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    vis.title = TRUE,
-    verbose = FALSE
-  )
+    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv")
+    
+    paoo_files <- parallel_spec_handler(
+      spec.dirs = sp_dirs,
+      shape = shape,
+      dir = dirname(dirname(paoo_file)),
+      hv.project.method = "0.5-inclusion",
+      col.n = "species-9",
+      out.order = "-TPAoO",
+      fun = get_paoo,
+      verbose = verbose
+    )
+    
+    paoo <- stack_projections(
+      filenames = paoo_files$filename, 
+      projection = out_projection, 
+      projection.method = "near",
+      out.dir = paste0(log_dir, "/stack-aoo"),
+      binary = TRUE,
+      verbose = verbose
+    )
+    
+    world_map <- get_world_map(projection = out_projection)
+    
+    visualize_paoo(
+      rast = paoo,
+      region = world_map,
+      region.name = vis.region.name,
+      extent = region_ext,
+      projection  = out_projection,
+      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.wrap = 3,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
+      vis.title = vis.title,
+      verbose = verbose
+    )
+    
+    paoo_md <- paoo_files[, 1:7]
+    
+    mdwrite(
+      post_seq_nums, 
+      heading = "2;Highest Potential Area of Occupancy",
+      data = paoo_md,
+    )
+    
+    rm(paoo_files, paoo, world_map)
+    invisible(gc())
+  }
   
   ##########################
   #        Figure 3B       #
   ##########################
   
-  # Figure 3: Stack probability tif files and use the highest numbers to get a color gradient
-  # Get the max values of all probability raster files
-  prob_vals <- parallel_spec_handler(
-    spec.dirs = sp_dirs,
-    dir = paste0(get_vis_log, "/suitability"),
-    hv.project.method = "probability",
-    n = 9,
-    out.order = "mean",
-    fun = get_prob_stats,
-    verbose = verbose
-  )
-  
-  # Read the rasters with the highest max values
-  prob_stack <- stack_projections(
-    filenames = prob_vals$filename, 
-    projection = out_projection, 
-    projection.method = "bilinear",
-    out.dir = paste0(get_vis_log, "/stack-suitability-", "mean"),
-    verbose = verbose
-  )
-  
-  suit_fig <- visualize_suitability(
-    stack = prob_stack, 
-    region = world_map, 
-    region.name = "the Arctic",
-    extent = region_ext,
-    projection = laea_crs,
-    vis.gradient = "viridis-b",
-    vis.unit = "mean",
-    vis.wrap = 3,
-    vis.title = TRUE,
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    verbose = FALSE
-  )
-  
+  fig_name <- paste0("figure-3B", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Suitability Figure.", color = "indicator")
+  } else {
+    # Figure 3: Stack probability tif files and use the highest numbers to get a color gradient
+    # Get the max values of all probability raster files
+    prob_mean <- parallel_spec_handler(
+      spec.dirs = sp_dirs,
+      shape = shape,
+      dir = paste0(log_dir, "/suitability"),
+      hv.project.method = "probability",
+      col.n = "species-9",
+      out.order = "-totalMean",
+      fun = get_prob_stats,
+      verbose = verbose
+    )
+    
+    # Read the rasters with the highest max values
+    prob_stack <- stack_projections(
+      filenames = prob_mean$filename, 
+      projection = out_projection, 
+      projection.method = "bilinear",
+      out.dir = paste0(log_dir, "/stack-suitability-", "mean"),
+      verbose = verbose
+    )
+    
+    world_map <- get_world_map(projection = out_projection)
+    
+    visualize_suitability(
+      stack = prob_stack, 
+      region = world_map, 
+      region.name = vis.save.region,
+      extent = region_ext,
+      projection = laea_crs,
+      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.unit = "mean",
+      vis.wrap = 3,
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
+      verbose = verbose
+    )
+    
+    prob_vals_md <- copy(prob_vals)
+    prob_vals_md <- prob_vals_md[, filename := NULL]
+    
+    mdwrite(
+      post_seq_nums,
+      heading = paste0(
+        "2;Highest Potential Mean Climatic Suitability\n\n",
+        "See figure 3D for comparison between **potential area of occupancy** and **potential climatic suitability**  "
+      ),
+      data = prob_vals_md,
+    )
+    
+    rm(prob_mean, prob_stack, world_map)
+    invisible(gc())
+  }
   
   ##########################
   #        Figure 3C       #
   ##########################
   
-  
-  prob_median <- parallel_spec_handler(
-    spec.dirs = sp_dirs,
-    dir = paste0(get_vis_log, "/suitability"),
-    hv.project.method = "probability",
-    n = 9,
-    out.order = "median",
-    fun = get_prob_stats,
-    verbose = verbose
-  )
-  
-  median_stack <- stack_projections(
-    filenames = prob_median$filename, 
-    projection = out_projection, 
-    projection.method = "bilinear",
-    out.dir = paste0(get_vis_log, "/stack-suitability-", "median"),
-    verbose = verbose
-  )
-  
-  
-  prob_max <- parallel_spec_handler(
-    spec.dirs = sp_dirs,
-    dir = paste0(get_vis_log, "/suitability"),
-    hv.project.method = "probability",
-    n = 9,
-    out.order = "max",
-    fun = get_prob_stats,
-    verbose = verbose
-  )
-  
-  max_stack <- stack_projections(
-    filenames = prob_max$filename, 
-    projection = out_projection, 
-    projection.method = "bilinear",
-    out.dir = paste0(get_vis_log, "/stack-suitability-", "max"),
-    verbose = verbose
-  )
-  
-
-  visualize_suit_units(
-    stack.mean = prob_stack,
-    stack.median = median_stack,
-    stack.max = max_stack,
-    region = world_map, 
-    region.name = "the Arctic",
-    extent = region_ext,
-    projection = laea_crs,
-    vis.gradient = "viridis-b",
-    vis.wrap = 1,
-    vis.title = TRUE,
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    verbose = FALSE
-  )
+  fig_name <- paste0("figure-3C", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Suitability Units Figure.", color = "indicator")
+  } else {
+    
+    prob_stacks <- c("totalMean", "totalMedian", "totalMax")
+    prob_list <- list(length(prob_stacks))
+    
+    for (i in 1:length(prob_stacks)) {
+      stack_val <- prob_stacks[i]
+      
+      prob_vals <- parallel_spec_handler(
+        spec.dirs = sp_dirs,
+        dir = paste0(log_dir, "/suitability"),
+        hv.project.method = "probability",
+        col.n = "species-9",
+        out.order = paste0("-", stack_val),
+        fun = get_prob_stats,
+        verbose = verbose
+      )
+      
+      vals_stack <- stack_projections(
+        filenames = prob_vals$filename, 
+        projection = out_projection, 
+        projection.method = "bilinear",
+        out.dir = paste0(log_dir, "/stack-suitability-", stack_val),
+        verbose = verbose
+      )
+      
+      prob_list[[i]] <- vals_stack
+    }
+    
+    world_map <- get_world_map(projection = out_projection)
+    
+    visualize_suit_units(
+      stack.mean = prob_list[[1]],
+      stack.median = prob_list[[2]],
+      stack.max = prob_list[[3]],
+      region = world_map, 
+      region.name = vis.region.name,
+      extent = region_ext,
+      projection = out_projection,
+      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.wrap = 1,
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
+      return = TRUE,
+      plot.show = plot.show,
+      verbose = verbose
+    )
+    
+    rm(prob_list, world_map)
+    invisible(gc())
+  }
   
   ##########################
   #        Figure 3D       #
   ##########################
   
-  prob_cover_files <- gsub("0.5-inclusion", "probability", inc_cover_files$filename)
+  fig_name <- paste0("figure-3D-7-9", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Potential Area of Occupancy x Suitability Figure.", color = "indicator")
+  } else {
+    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv")
+    
+    paoo_files <- parallel_spec_handler(
+      spec.dirs = sp_dirs,
+      shape = shape,
+      dir = dirname(dirname(paoo_file)),
+      hv.project.method = "0.5-inclusion",
+      col.n = "species-9",
+      out.order = "-TPAoO",
+      fun = get_paoo,
+      verbose = verbose
+    )
   
-  prob_cover <- stack_projections(
-    filenames = prob_cover_files, 
-    projection = out_projection, 
-    projection.method = "bilinear",
-    out.dir = paste0(get_vis_log, "/stack-prob-cover"),
-    binary = FALSE,
-    verbose = TRUE
-  )
-  
-  visualize_dist_suit(
-    stack.distribution = inc_cover,
-    stack.suitability = prob_cover,
-    region = world_map, 
-    region.name = "the Arctic",
-    extent = region_ext,
-    projection = laea_crs,
-    vis.gradient = "viridis-b",
-    vis.wrap = 1,
-    vis.title = TRUE,
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    verbose = FALSE
-  )
-  
+    paoo_files_subset <- copy(paoo_files$filename)
+    
+    prob_paoo_files <- gsub("0.5-inclusion", "probability", paoo_files_subset)
+    
+    figure_names <- c("1-3", "4-6", "7-9")
+    batch <- length(prob_paoo_files) / length(figure_names)
+    
+    for (i in 1:batch) {
+      start_i <- (i - 1) * batch + 1
+      end_i <- i * batch
+      
+      prob_batch <- prob_paoo_files[start_i:end_i]
+      paoo_batch <- paoo_files_subset[start_i:end_i]
+      f_names <- figure_names[i]
+      
+      paoo_files <- stack_projections(
+        filenames = paoo_batch, 
+        projection = out_projection, 
+        projection.method = "near",
+        out.dir = paste0(log_dir, "/stack-aoo"),
+        binary = TRUE,
+        verbose = verbose
+      )
+      
+      prob_files <- stack_projections(
+        filenames = prob_batch, 
+        projection = out_projection, 
+        projection.method = "bilinear",
+        out.dir = paste0(log_dir, "/stack-prob-aoo"),
+        binary = FALSE,
+        verbose = verbose
+      )
+      
+      world_map <- get_world_map(projection = out_projection)
+      
+      visualize_dist_suit(
+        stack.distribution = paoo_files,
+        stack.suitability = prob_files,
+        region = world_map, 
+        region.name = vis.region.name,
+        extent = region_ext,
+        projection = out_projection,
+        vis.gradient = paste0(vis.gradient, "-B"),
+        vis.wrap = 1,
+        vis.title = vis.title,
+        save.dir = plot_dir,
+        save.name = paste0("figure-3D-", f_names),
+        save.device = vis.save.device,
+        save.unit = vis.save.unit,
+        verbose = verbose
+      )
+    }
+    
+    rm(paoo_files, prob_files, world_map)
+    invisible(gc())
+  }
   
   ##########################
   #        Figure 4        #
   ##########################
-  # Figure 4: stacked barplot wtih taxa per floristic region
   
-  region_richness_dt <- parallel_spec_handler(
-    spec.dirs = sp_dirs, 
-    dir = paste0(get_vis_log, "/region-richness"),
-    shape = shape,
-    extra = paste0(get_vis_log, "/cell/0.5-inclusion/cell.csv"), # Has to be the same as inc_dt
-    hv.project.method = "0.5-inclusion", 
-    fun = get_region_richness, 
-    verbose = TRUE
-  )
-  
-  setnames(region_richness_dt, "species", "cleanName")
-  
-  setnames(sp_stats, "country", "originCountry")
-  setnames(sp_stats, "countryCode", "originCountryCode")
-  setnames(sp_stats, "meanLong", "originMeanLong")
-  setnames(sp_stats, "meanLat", "originMeanLat")
-  
-  merged_dt <- merge(region_richness_dt, sp_stats, by = "cleanName", allow.cartesian = TRUE)
-  
-  # Calculate richness for specified taxon
-  richness_dt <- calculate_taxon_richness(merged_dt, "order")
-  
-  print(head(richness_dt, 3))
-  source_all("./src/visualize/components")
-  visualize_richness(
-    dt = richness_dt,
-    region.name = "the Arctic",
-    vis.x = "subRegionName", 
-    vis.x.sort = "we",
-    vis.y = "relativeRichness", 
-    vis.fill = "order",
-    vis.group = "order",
-    vis.gradient = "viridis-b",
-    vis.title = TRUE,
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    verbose = FALSE
-  )
-  
+  fig_name <- paste0("figure-4B", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Composition Figure.", color = "indicator")
+  } else {
+    
+    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
+    # Figure 4: stacked barplot wtih taxa per sub region
+    
+    region_richness_dt <- get_region_richness(
+      paoo.file <- paoo_file,
+      stats.file <- sp_stats
+    )
+    
+    # Calculate richness for specified taxon
+    richness_dt <- calculate_taxon_richness(
+      region_richness_dt, 
+      vis.composition.taxon,
+    )
+    
+    richness_group_dt <- get_order_group(
+      richness_dt
+    )
+    
+    visualize_richness(
+      dt = richness_group_dt,
+      region.name = vis.region.name,
+      vis.x = "subRegionName", 
+      vis.x.sort = "westEast",
+      vis.y = "relativeRichness", 
+      vis.fill = vis.composition.taxon,
+      vis.group = "group",
+      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      verbose = verbose
+    )
+    
+    richness_group_md <- richness_group_dt[, .(group, relativeRichness, subRegionName)]
+    
+    richness_group_md <- richness_group_md[, totalRelativeRichness := sum(relativeRichness), by = .(group, subRegionName)]
+    richness_group_md[, relativeRichness := NULL]
+    
+    catn("Writing taxonomic composition to markdown file.")
+    
+    mdwrite(
+      post_seq_nums, 
+      heading = "2;Potential Taxonomic Composition"
+    )
+    
+    richness_ppg_md <- richness_group_md[(group == "pteridophyte")]
+    richness_ppg_md <- unique(richness_ppg_md, by = "subRegionName")
+    
+    mdwrite(
+      post_seq_nums, 
+      heading = "3;Pteridophytes",
+      data = richness_ppg_md
+    )
+    
+    richness_gpg_md <- richness_group_md[(group == "gymnosperm")]
+    richness_gpg_md <- unique(richness_gpg_md, by = "subRegionName")
+    
+    mdwrite(
+      post_seq_nums, 
+      heading = "3;Gymnosperms",
+      data = richness_gpg_md
+    )
+    
+    richness_apg_md <- richness_group_md[(group == "angiosperm")]
+    richness_apg_md <- unique(richness_apg_md, by = "subRegionName")
+    
+    
+    mdwrite(
+      post_seq_nums, 
+      heading = "3;Angiosperms",
+      data = richness_apg_md
+    )
+    
+    rm(region_richness_dt, richness_dt, richness_group_dt, richness_group_md)
+    invisible(gc())
+  }
   
   ##########################
   #        Figure 5        #
   ##########################
   
-  connections_dt <- get_connections(
-    dt = richness_dt,
-    subset = "order",
-    verbose = verbose
-  )
-  
-  connections_points <- get_con_points(
-    dt = connections_dt,
-    verbose = verbose
-  )
-  
-  
-  source_all("./src/visualize/components")
-  # Figure 5: Sankey with floristic regions 
-  visualize_connections(
-    dt = connections_dt,
-    taxon = "Order",
-    region.name = "the Arctic",
-    vis.gradient = "viridis-b",
-    vis.title = TRUE,
-    save.dir = plot_dir,
-    save.device = "jpeg",
-    verbose = TRUE
-  )
+  fig_name <- paste0("figure-5C", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Connections figure.", color = "indicator")
+  } else {
+    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
+    # Figure 4: stacked barplot wtih taxa per sub region
+    
+    region_richness_dt <- get_region_richness(
+      paoo.file <- paoo_file,
+      stats.file <- sp_stats
+    )
+    
+    # Calculate richness for specified taxon
+    richness_dt <- calculate_taxon_richness(
+      region_richness_dt, 
+      vis.composition.taxon,
+    )
+    
+    richness_group_dt <- get_order_group(
+      richness_dt
+    )
+    
+    taxon_names <- c("species", "family", "order")
+    figure_names <- c("A", "B", "C")
+    connections_md <- copy(richness_group_dt)
+    
+    for (i in 1:length(taxon_names)) {
+      taxon <- taxon_names[i]
+      figure <- figure_names[i]
+      
+      connections_dt <- get_connections(
+        dt = richness_group_dt,
+        taxon = taxon,
+        verbose = verbose
+      )
+      
+      # Figure 5: Sankey with floristic regions 
+      visualize_connections(
+        dt = connections_dt,
+        taxon = taxon,
+        region.name = vis.region.name,
+        vis.gradient = paste0(vis.gradient, "-B"),
+        vis.title = vis.title,
+        save.dir = plot_dir,
+        save.device = vis.save.device,
+        save.unit = vis.save.unit,
+        save.name = paste0("figure-5", figure),
+        plot.show = plot.show,
+        verbose = verbose
+      )
+    }
+    
+    connections_md <- get_connections(
+      dt = richness_group_dt,
+      taxon = "species",
+      verbose = verbose
+    )
+    
+    connections_md[, connectionCounts := sum(nLines, na.rm = TRUE), by = "subRegionName"]
+    connections_md <- connections_md[, .(connectionCounts, subRegionName, subRegionLong, subRegionLat)]
+    connections_md <- unique(connections_md, by = "subRegionName")
+    setorder(connections_md, -subRegionLat)
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "2;Potential Connection Counts",
+      data = connections_md
+    )
+    
+    rm(connections_md, connections_dt, region_richness_dt, richness_dt, richness_group_dt)
+    invisible(gc())
+  }
   
 }

@@ -2,7 +2,7 @@
 #     Frequency 1A      #
 #########################
 
-visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color, vis.shade,vis.shade.name, vis.title = FALSE, vis.binwidth = 1, vis.x.scale = "log10", vis.peak.threshold = NULL, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color, vis.shade,vis.shade.name, vis.gradient = "viridis-B", vis.title = FALSE, vis.binwidth = 1, vis.x.scale = "log10", vis.peak.threshold = NULL, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
   
   create_dir_if(save.dir)
   
@@ -25,7 +25,7 @@ visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color
   spec.cells <- spec.cells[vis_x != Inf, ]
   
   # Remove 0 values
-  spec.cells <- spec.cells[vis_x != 0, ]
+  #spec.cells <- spec.cells[vis_x != 0, ]
   
   vis_x <- spec.cells[[vis.x]]
   
@@ -54,16 +54,17 @@ visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color
       na.rm = TRUE,
       show.legend = TRUE
     ) +
-    scale_color_viridis_b(
-      option = "B",
-      guide = guide_legend(reverse = TRUE),
+    ggplot.filler(
+      gradient = vis.gradient,
+      scale.type = "color-b",
+      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       breaks = vis_breaks
     ) +
     labs(
       x = paste0("Potential Species Richness ", if(!is.null(vis.x.scale)) {paste0("(", vis.x.scale, ")")} ), 
       y = paste0("Proportion of cells in ", region.name), 
       title = if (vis.title) paste0("Potential New Alien Species Richness in ", region.name),
-      color = "Potential New Alien Richness"
+      color = "Potential Species Richness"
       ) +
     scale_y_continuous(breaks = seq(0, 1, by = 0.01)) +
     theme_minimal() + 
@@ -76,9 +77,12 @@ visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color
         face = "bold.italic"
       ),
       axis.text = element_text(size = 10),
-      axis.text.x = element_text(
-        hjust = 0.5
-      )
+      axis.text.x = element_text(hjust = 0.5),
+      axis.title.x = element_text(color = "#575757"),
+      axis.title.y = element_text(color = "#575757"),
+      legend.text = element_text(size = 8),
+      legend.title = element_text(size = 10, hjust = 0.5),
+      legend.position = "bottom"
     )
   
   if (!is.null(vis.x.scale)) {
@@ -179,7 +183,12 @@ if (is.null(vis.x.scale)) {
       binwidth = 0.1, 
       aes(y =  after_stat(count) / sum(after_stat(count)))
       ) + 
-    scale_color_viridis_d(guide = "legend", option = "B") +
+    ggplot.filler(
+      gradient = vis.gradient,
+      scale.type = "color-d",
+      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
+      breaks = vis_breaks
+    ) +
     scale_alpha_discrete(guide = "none", range = c(vis_amin, vis_amax)) +
     labs(
       x = paste0("Potential Species Richness ", if(!is.null(vis.x.scale)) {paste0("(", vis.x.scale, ")")}), 
@@ -197,7 +206,10 @@ if (is.null(vis.x.scale)) {
         hjust = 0,
         size = 14, 
         face = "bold.italic"
-      )
+      ),
+      legend.text = element_text(size = 8),
+      legend.title = element_text(size = 10, hjust = 0.5),
+      legend.position = "bottom"
     )
   
   if (!is.null(vis.x.scale)) {
@@ -223,29 +235,29 @@ if (is.null(vis.x.scale)) {
 #       Hotspots 2      #
 #########################
 
-visualize_hotspots <- function(rast, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+visualize_hotspots <- function(raster, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Potential Species hotspots", color = "funInit")
-  
-  catn("Checking crs.")
-  rast <- check_crs(rast, projection, "near")
-  region <- check_crs(region, projection, "near")
+  # 
+  # catn("Checking crs.")
+  # #raster <- check_crs(raster, projection, "near")
+  # region <- check_crs(region, projection, "near")
 
   catn("Getting min and max values.")
   min_lim <- 0
-  max_lim <- where.max(rast)
+  max_lim <- where.max(raster)
   max_lim <- max(max_lim[, 3])
   vis_breaks <- c(1,5,10,50,100,200,400,700,900, max_lim)
   catn("Plotting hotspots.")
   
   fig2A <- ggplot() +
     geom_spatvector(data = region) +
-    geom_spatraster(data = rast) +
+    geom_spatraster(data = raster) +
     ggplot.filler(
       gradient = vis.gradient,
-      scale.variable = "b",
+      scale.type = "fill-b",
       limits = c(min_lim, max_lim), 
       breaks = vis_breaks,
-      guide = guide_legend(reverse = TRUE, title.position = "top", label.position = "bottom", nrow = 1),
+      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       na.value = "transparent"
     ) + 
     labs(
@@ -262,7 +274,7 @@ visualize_hotspots <- function(rast, region, region.name, extent, projection, vi
   
   save_ggplot(
     save.plot = fig2A, 
-    save.name = "figure-2A",
+    save.name = "figure-2",
     save.width = 3050, 
     save.height = 3000,
     save.dir = save.dir, 
@@ -280,8 +292,8 @@ visualize_hotspots <- function(rast, region, region.name, extent, projection, vi
 #    Distribution 3A    #
 #########################
 
-visualize_distributions <- function(rast, region, region.name, extent, projection, projection.method, vis.gradient ="viridis-b", vis.wrap = FALSE, vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
-  vebcat("Visualizing species with highest distributions", color = "funInit")
+visualize_paoo <- function(rast, region, region.name, extent, projection, projection.method, vis.gradient ="viridis-b", vis.wrap = FALSE, vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", return = FALSE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+  vebcat("Visualizing species with highest Potential Area of occupancy", color = "funInit")
   
   catn("Checking crs.")
   rast <- check_crs(rast, projection, projection.method, verbose = verbose)
@@ -294,14 +306,15 @@ visualize_distributions <- function(rast, region, region.name, extent, projectio
     geom_spatraster(data = rast) +
     ggplot.filler(
       gradient = vis.gradient,
+      scale.type = "fill-c",
       breaks = c(0, 1), 
       labels =  c("0", "1"),
       end = 0.6,
-      guide = guide_legend(reverse = TRUE, title.position = "top", label.position = "bottom", nrow = 1),
+      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       na.value = "transparent"
     ) + 
     labs(
-      title = if (vis.title) paste0("New Aliens with Highest Potential Area of Occupancy in ", region.name), 
+      title = if (vis.title) paste0("Potential New Aliens with Highest Potential Area of Occupancy in ", region.name), 
       fill = "Potential Area of occupancy") +
     coord_sf(
       xlim = c(extent$xmin, extent$xmax), 
@@ -335,16 +348,16 @@ visualize_distributions <- function(rast, region, region.name, extent, projectio
     )
   }
   
-  vebcat("Successfully visualized highest spread", color = "funSuccess")
+  vebcat("Successfully visualized highest Potential Area of Occupancy", color = "funSuccess")
   
-  return(fig3A)
+  if(return) return(fig3A)
 }
 
 #########################
 #    Suitability 3B     #
 #########################
 
-visualize_suitability <- function(stack, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = TRUE, vis.title = FALSE, save.dir, save.name = "figure-3B", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_suitability <- function(stack, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = TRUE, vis.title = FALSE, save.dir, save.name = "figure-3B", save.device = "jpeg", save.unit = "px", plot.save = TRUE, return = FALSE, plot.show = FALSE, verbose = FALSE) {
   
   vebcat("Visualizing suitability plot", color = "funInit")
   
@@ -371,9 +384,10 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
     geom_spatraster(data = stack) +
     ggplot.filler(
       gradient = vis.gradient,
+      scale.type = "fill-c",
       limits = c(min_lim, max_lim), 
       breaks = c(seq(min_lim, max_lim, by = 50), max_lim), 
-      guide = guide_legend(reverse = TRUE, title.position = "top", label.position = "bottom", nrow = 1),
+      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       na.value = "transparent"
     ) + 
     labs(
@@ -420,14 +434,14 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
   
   vebcat("Suitability plot successfully visualized", color = "funSuccess")
   
-  return(fig3B)
+  if(return) return(fig3B)
 }
 
 ##########################################
 #         suitability Units 3C           #
 ##########################################
 
-visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = NULL, vis.title = FALSE, save.dir, save.name = "figure-3C", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = NULL, vis.title = FALSE, save.dir, save.name = "figure-3C", save.device = "jpeg", save.unit = "px", return = TRUE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   
   n <- vis.wrap * 3
   
@@ -437,15 +451,17 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
   
   fig_mean <- visualize_suitability(
     stack = stack_mean,
-    region = world_map, 
+    region = region, 
     region.name = region.name,
-    extent = region_ext,
-    projection = laea_crs,
+    extent = extent,
+    projection = projection,
     vis.gradient = vis.gradient,
     vis.wrap = vis.wrap,
-    save.dir = plot_dir,
+    save.dir = save.dir,
     save.device = save.device,
+    return = return,
     plot.save = FALSE,
+    plot.show = plot.show,
     verbose = verbose
   ) 
   
@@ -453,15 +469,17 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
   
   fig_median <- visualize_suitability(
     stack = stack_median,
-    region = world_map, 
+    region = region, 
     region.name = region.name,
-    extent = region_ext,
-    projection = laea_crs,
+    extent = extent,
+    projection = projection,
     vis.gradient = vis.gradient,
     vis.wrap = vis.wrap,
-    save.dir = plot_dir,
+    save.dir = save.dir,
     save.device = save.device,
+    return = return,
     plot.save = FALSE,
+    plot.show = plot.show,
     verbose = verbose
   )
   
@@ -469,17 +487,20 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
   
   fig_max <- visualize_suitability(
     stack = stack_max,
-    region = world_map, 
+    region = region, 
     region.name = region.name,
-    extent = region_ext,
-    projection = laea_crs,
+    extent = extent,
+    projection = projection,
     vis.gradient = vis.gradient,
     vis.wrap = vis.wrap,
-    save.dir = plot_dir,
+    save.dir = save.dir,
     save.device = save.device,
+    return = return,
     plot.save = FALSE,
     verbose = verbose
   )
+  
+  catn("Arranging plots.")
   
   fig3C <- ggarrange(
     fig_mean, fig_median, fig_max,
@@ -506,119 +527,134 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
 #     Distribution + suitability 3D      #
 ##########################################
 
-visualize_dist_suit <- function(stack.distribution, stack.suitability, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = NULL, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_dist_suit <- function(stack.distribution, stack.suitability, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = NULL, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", return = TRUE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   
   n <- vis.wrap * 3
   
   dist_raster <- stack.distribution[[1:n]]
   suit_raster <- stack.suitability[[1:n]]
   
-    fig_dist <- visualize_distributions(
+    fig_dist <- visualize_paoo(
       rast = dist_raster,
-      region = world_map,
+      region = region,
       region.name = region.name,
-      extent = region_ext,
-      projection  = out_projection,
+      extent = extent,
+      projection  = projection,
       vis.gradient = vis.gradient,
       vis.wrap = vis.wrap,
-      save.dir = plot_dir,
+      save.dir = save.dir,
+      return = return,
       plot.save = FALSE,
       verbose = verbose
     )
     
     fig_suit <- visualize_suitability(
       stack = suit_raster,
-      region = world_map, 
+      region = region, 
       region.name = region.name,
-      extent = region_ext,
-      projection = laea_crs,
+      extent = extent,
+      projection = projection,
       vis.gradient = vis.gradient,
       vis.wrap = vis.wrap,
-      save.dir = plot_dir,
+      save.dir = save.dir,
       save.device = save.device,
+      return = return,
       plot.save = FALSE,
       verbose = verbose
     )
     
   fig3D <- ggarrange(
     fig_dist, fig_suit,
-    labels = c("Distribution", "Suitability"),
+    labels = c("Potential Area of Occupancy", "Potential Suitability"),
     ncol = 1,
     nrow = 2
   )
   
   save_ggplot(
     save.plot = fig3D, 
-    save.name = "figure-3D",
-    save.width = 2700, 
-    save.height = 3000,
+    save.name = save.name,
+    save.width = 3200, 
+    save.height = 3200,
     save.dir = save.dir, 
     save.device = save.device,
     save.unit = save.unit,
-    vis.title = vis.title, 
+    vis.title = vis.title,
     plot.show = plot.show, 
     verbose = verbose
   )
 }
 
+##########################
+#    Richness 4A & B     #
+##########################
 
 visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fill, vis.group, vis.gradient, vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = F, verbose = F) {
   vebcat("Visualizing composition plot", color = "funInit")
   
-  # Remove NAs
-  #dt <- dt[!is.na(dt[[vis.fill]]), ]
+  dt_copy <- copy(dt)
   
-  print(dt)
-  
-  vebprint(length(unique(dt[[vis.x]])), text = "Length of Unique Sub Regions:")
+  vebcat("Number of Sub Regions:", highcat(length(unique(dt_copy[[vis.x]]))))
   # 
   # # Order dt by vis.x.sort column
-  # dt <- dt[order(dt[[vis.x.sort]])]
+  #setorder(dt, get(vis.x.sort))
+  dt_copy <- dt_copy[order(dt_copy[[vis.x.sort]])]
   
-  print(dt)
+  lvl_order <- unique(dt_copy[[vis.x]])
   
-  lvl_order <- unique(dt[[vis.x]])
-  
-  dt[[vis.x]] <- factor(dt[[vis.x]], levels = lvl_order)
+  dt_copy[[vis.x]] <- factor(dt_copy[[vis.x]], levels = lvl_order)
   
   # Reorder the bars
-  dt[[vis.fill]] <- factor(dt[[vis.fill]])
+  dt_copy[[vis.fill]] <- factor(dt_copy[[vis.fill]])
   
-  levels(dt[[vis.fill]]) <- order_by_apg(levels(dt[[vis.fill]]), by = vis.fill, verbose = verbose)
+  levels(dt_copy[[vis.fill]]) <- by_order_group(levels(dt_copy[[vis.fill]]), by = vis.fill, verbose = verbose)
   
-  print(levels(dt[[vis.fill]]))
+  vebprint(levels(dt_copy[[vis.fill]]), verbose, "Final Levels:")
   
-  fig4 <- ggplot(dt, aes(x = dt[[vis.x]], y = dt[[vis.y]], fill = dt[[vis.fill]] )) +
-    geom_bar(stat = "identity", position = "stack") +
+  p1 <-  geom_bar(stat = "identity", position = "stack")
+  p2 <- ggplot.filler(
+    gradient = vis.gradient,
+    scale.type = "fill-d",
+    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 3),
+    na.value = "transparent"
+  )
+  p3 <- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  p4 <- labs(
+    x = "Floristic Province",
+    y = paste0("Potential Relative ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Richness"),
+   if (vis.title) title = paste0("Potential New Alien ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Composition in ", region.name),
+    fill = paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill)))
+  )
+  p5 <- theme_minimal()
+  p6 <- theme(
+    plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
+    axis.text.x = element_text(size = 10, angle = 70, hjust = 1),
+    axis.text.y = element_text(size = 10),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 10, hjust = 0.5),
+    legend.position = "bottom",
+  )
+  
+  fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + p1+p2+p3+p4+p5+p6
+  if (plot.show) print(fig4A)
+  
+  fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) + p1+
     ggplot.filler(
-      gradient = vis.gradient,
-      scale.variable = "d",
-      guide = guide_legend(reverse = FALSE),
-      na.value = "transparent"
-    ) + 
-    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    labs(
-      x = "Floristic Region",
-      y = "Potential Relative Species Richness",
-      title = paste0("Potential New Alien ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Composition in ", region.name),
-      fill = paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill)))
-    ) +
-    theme_minimal() + 
-    theme(
-      plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
-      axis.text.x = element_text(size = 10, angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 10),
-      legend.text = element_text(size = 10),
-      legend.title = element_text(size = 10, hjust = 0.5),
-    )
+    gradient = vis.gradient,
+    scale.type = "fill-d",
+    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
+    na.value = "transparent"
+  ) +
+    p3+p4+p5+p6
   
-  if (plot.show) print(fig4)
+  if (plot.show) print(fig4B)
   
   save_ggplot(
-    save.plot = fig4, 
-    save.name = "figure-4",
-    save.width = 5000, 
-    save.height = 4000,
+    save.plot = fig4A, 
+    save.name = "figure-4A",
+    save.width = 4700, 
+    save.height = 4300,
     save.dir = save.dir, 
     save.device = save.device,
     save.unit = save.unit,
@@ -627,102 +663,119 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
     verbose = verbose
   )
   
+  save_ggplot(
+    save.plot = fig4B, 
+    save.name = "figure-4B",
+    save.width = 4700, 
+    save.height = 4300,
+    save.dir = save.dir, 
+    save.device = save.device,
+    save.unit = save.unit,
+    vis.title = vis.title, 
+    plot.show = plot.show, 
+    verbose = verbose
+  )
+  
+  
   vebcat("Composition plot successfully visualized", color = "funSuccess")
 }
 
-visualize_sankey <- function(dt, taxon, level, plot.show = F, verbose = F) {
-  vebcat("Visualizing data in a sankey plot", color = "funInit")
-  
-  dt_sank <- copy(dt)
-  
-  #dt_sank <- dt_sank[!is.na(dt_sank[[taxon]])]
-  #dt_sank <- dt_sank[complete.cases(dt_sank[[taxon]])]
-  
-  catn("Creating sankey plot.")
-  print(unique(dt_sank$country))
-  
-  fig5 <- ggplot(data = dt_sank, aes(axis1 = dt_sank[[level]], axis2 = country, y = relativeRichness)) +
-    scale_x_discrete(limits = c("Origin", "Destination"), expand = c(.1, .1)) +
-    labs(
-      y = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness"),
-      #fill = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))),
-      title = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness from origin region to Arctic region")
-    ) +
-    geom_flow() +
-    geom_stratum() +
-    geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
-    theme_minimal() +
-    theme(
-      axis.text = element_text(size = 10),
-      plot.title = element_text(vjust = 0.5, hjust = 0.5)
-    )
-  
-  
-  if (plot.show) print(fig5)
-  
-  fig5_out <- "./outputs/visualize/plots/figure-5.jpeg"
-  
-  catn("Saving plot to:", colcat(fig5_out, color = "output"))
-  
-  ggsave(fig5_out, device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig5)
-
-  vebcat("Sankey plot successfully visualized", color = "funSuccess")
-}
+#######################
+#    Connections 5    #
+#######################
 
 visualize_connections <- function(dt, taxon, region.name, vis.gradient, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing data in a sankey plot", color = "funInit")
   
   wm <- get_world_map(projection = mollweide_crs)
-  origin_points <- get_con_points(dt, "mollweide", "originMeanLong", "originMeanLat", verbose = verbose)
-  dest_points <- get_con_points(dt, "mollweide", "subRegionLong", "subRegionLat", verbose = verbose)
+  sub_dt <- copy(dt)
+  #sub_dt <- dt[, nLines := uniqueN(get(taxon), na.rm = TRUE), by = .(originCountry, subRegionName)]
+  
+  origin_subset <- sub_dt[, .(get(taxon), originMeanLong, originMeanLat, nLines)]
+  setnames(origin_subset, "V1", taxon)
+  origin_subset <- unique(origin_subset, by = c(taxon, "originMeanLong", "originMeanLat"))
+  origin_points <- get_con_points(origin_subset, "mollweide", "originMeanLong", "originMeanLat", verbose = verbose)
+  
+  dest_subset <- sub_dt[, .(get(taxon), subRegionLong, subRegionLat, subRegionName)]
+  setnames(dest_subset, "V1", taxon)
+  dest_subset <- unique(dest_subset, by = c(taxon, "subRegionLong", "subRegionLat"))
+  dest_points <- get_con_points(dest_subset, "mollweide", "subRegionLong", "subRegionLat", verbose = verbose)
   
   origin_points <- origin_points[!is.na(origin_points)]
   dest_points <- dest_points[!is.na(dest_points)]
   
+  catn("Converting points back to data tables.")
   origin <- terra::as.data.frame(origin_points, geom = "xy")
   origin <- as.data.table(origin)
   setnames(origin, "x", "originX")
   setnames(origin, "y", "originY")
+  print(length(unique(origin[[taxon]])))
+  origin <- unique(origin, by = c(taxon, "originX", "originY"))
   
   dest <- terra::as.data.frame(dest_points, geom = "xy")
   dest <- as.data.table(dest)
   setnames(dest, "x", "destX")
   setnames(dest, "y", "destY")
+  dest <- unique(dest, by = c(taxon, "destX", "destY"))
+  print(length(unique(dest[[taxon]])))
   
-  merged_dt <- merge(dest, origin, by = "cleanName")
+  catn("Merging point data tables.")
+  merged_dt <- merge(dest, origin, by = taxon, all = TRUE, allow.cartesian = TRUE)
+  merged_dt <- merged_dt[!is.na(destX)]
+  merged_dt <- unique(merged_dt, by = c(taxon, "subRegionName"))
   
-  print(merged_dt)
-           
+  vebcat("Unique Taxon:", highcat(length(unique(merged_dt[[taxon]]))))
+  
   catn("Creating connections plot.")
+  
+  min_lim <- 0
+  max_lim <- max(merged_dt$nLines)
+  vis_breaks <- seq(min_lim, max_lim, length.out = 8)
   
   fig5 <- ggplot(data = merged_dt) +
     geom_spatvector(data = wm) +
-    # geom_spatvector(data = origin_points, aes(color = "Origin")) +
-    # geom_spatvector(data = dest_points, aes(color = "Destination")) +
     geom_point(aes(x = originX, y = originY, color = "Origin")) +
     geom_point(aes(x = destX, y = destY, color = "Destination")) +
-    geom_segment(aes(x = originX, y = originY, xend = destX, yend = destY)) +
-    # coord_sf(crs = mollweide_crs)+
+    scale_color_discrete(guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1)) +
+    labs(color = "Points") +
+    theme(
+      axis.text = element_text(size = 10),
+      plot.title = element_text(vjust = 0.5, hjust = 0.5),
+      legend.text = element_text(size = 8),
+      legend.title = element_text(size = 10, hjust = 0.5),
+      legend.position = "bottom",
+    ) +
+    new_scale_color() +
+    geom_segment(aes(x = originX, y = originY, xend = destX, yend = destY, color = nLines)) +
+    ggplot.filler(
+      gradient = vis.gradient,
+      scale.type = "color-c",
+      limits = c(min_lim, max_lim),
+      breaks = vis_breaks,
+      labels = function(x) sprintf("%.0f", x),
+      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
+      na.value = "transparent"
+    ) +
     labs(
       x = "Longitude",
       y = "Latitude",
-      color = c("Regions"),
-      color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))),
-      title = paste0("Potential New Alien ", paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))), " Richness from origin Country to Arctic Florsitic Province")
+      if (vis.title) title = paste0("Potential New Alien ", paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))), " Richness from origin Country to Arctic Florsitic Province"),
+      color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Count")
     ) +
-    scale_size_continuous(range = c(1, 1.5)) +
-    labs(color = "Order Count") +
     theme_minimal() +
     theme(
       axis.text = element_text(size = 10),
-      plot.title = element_text(vjust = 0.5, hjust = 0.5)
+      plot.title = element_text(vjust = 0.5, hjust = 0.5),
+      legend.text = element_text(size = 8),
+      legend.title = element_text(size = 10, hjust = 0.5),
+      legend.position = "bottom"
     )
     
   if (plot.show) print(fig5)
   
   save_ggplot(
     save.plot = fig5, 
-    save.name = "figure-5",
+    save.name = save.name,
     save.width = 4000, 
     save.height = 3000,
     save.dir = save.dir, 

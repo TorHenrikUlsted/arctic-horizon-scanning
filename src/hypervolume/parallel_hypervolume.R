@@ -81,6 +81,7 @@ hypervolume_sequence <- function(
     spec_count_dt <- count_observations(
       spec.list = spec.list,
       dimensions = hv.dims,
+      method = "median",
       verbose = verbose
     )
     
@@ -93,7 +94,7 @@ hypervolume_sequence <- function(
     
     spec_count_dt <- spec_count_dt[removed == FALSE, ]
     
-    setorder(spec_count_dt, meanLat)
+    setorder(spec_count_dt, medianLat)
     
     spec_list <- spec_count_dt$filename
     

@@ -61,60 +61,44 @@ ignored_designations <- c(
   "sp." # for species that are uncertain and only have author name after
 )
 
+angiosperms <- c("Amborellales", "Nymphaeales", "Austrobaileyales", "Canellales", "Piperales", "Magnoliales", "Laurales", "Chloranthales", "Acorales", "Alismatales", "Petrosaviales", "Dioscoreales", "Pandanales", "Liliales", "Asparagales", "Arecales", "Commelinales", "Zingiberales", "Poales", "Ceratophyllales", "Ranunculales", "Proteales", "Trochodendrales", "Buxales", "Gunnerales", "Dilleniales", "Saxifragales", "Celastrales", "Oxalidales", "Malpighiales", "Vitales", "Zygophyllales", "Fabales", "Rosales", "Fagales", "Cucurbitales", "Geraniales", "Myrtales", "Crossosomatales", "Picramniales", "Huerteales", "Sapindales", "Malvales", "Brassicales", "Berberidopsidales", "Santalales", "Caryophyllales", "Cornales", "Ericales", "Icacinales", "Metteniusales", "Garryales", "Gentianales", "Boraginales", "Vahliales", "Solanales", "Lamiales", "Aquifoliales", "Asterales", "Escalloniales", "Bruniales", "Paracryphiales", "Dipsacales", "Apiales")
+
+gymnosperms <- c(
+  "Cycadales",
+  "Ginkgoales",
+  "Araucariales",
+  "Cupressales",
+  "Pinales",
+  "Ephedrales",
+  "Welwitchiales",
+  "Gnetales"
+)
+# order
+pteridophytes <- c(
+  "Lycopodiales",
+  "Isoetales",
+  "Selaginellales",
+  "Equisetales",
+  "Psilotales",
+  "Ophioglossales",
+  "Marattiales",
+  "Osmundales",
+  "Hymenophyllales",
+  "Gleicheniales",
+  "Schizaeales",
+  "Salviniales",
+  "Cyatheales",
+  "Polypodiales"
+)
+
+#################
+#     Files     #
+#################
+
+post_seq_nums <- "./outputs/post-process/sequence-numbers.md" # Do not change the object name
+create_file_if(post_seq_nums, keep = TRUE)
+
 #################
 #    ggplot     #
 #################
-
-ggplot.filler <- function(gradient = "viridis", scale.variable = "c", limits = NULL, breaks = NULL, labels = NULL, begin = NULL, end = NULL, trans = NULL, guide, na.value = "transparent") {
-  tryCatch({
-    # Syntax is: "gradient-option"
-    split_str <- str_split(gradient, "-")[[1]]
-    gradient <- split_str[[1]]
-    option <- toupper(split_str[[2]])
-    
-    args <- list(
-      option = option, 
-      guide = guide,
-      na.value = na.value
-    )
-    
-    if (!is.null(labels)) {
-      args$labels <- labels
-    }
-    
-    if (!is.null(limits)) {
-      args$limits <- limits
-    }
-    
-    if (!is.null(breaks)) {
-      args$breaks <- breaks
-    }
-    
-    if (!is.null(begin)) {
-      args$begin <- begin
-    }
-    
-    if (!is.null(end)) {
-      args$end <- end
-    }
-    
-    if (!is.null(trans)) {
-      args$trans <- trans
-    }
-    
-    if (gradient == "viridis") {
-      fun <- paste0("scale_fill_viridis_", scale.variable)
-      return(do.call(fun, args))
-      
-    } else if (gradient == "whitebox") {
-      fun <- paste0("scale_fill_whitebox_", scale.variable)
-      args$palette <- args$option
-      args$option <- NULL
-      return(do.call(fun, args))
-    }
-  }, error = function(e) {
-    vebcat("Error when trying to use custom ggplot.filler function.", color = "fatalError")
-    stop(e)
-  })
-}
 

@@ -1,4 +1,4 @@
-count_observations <- function(spec.list, dimensions, verbose = FALSE) {
+count_observations <- function(spec.list, dimensions, method = "median", verbose = FALSE) {
   catn("Removing species with too few observations.")
   
   removed_species <- data.table(
@@ -25,7 +25,13 @@ count_observations <- function(spec.list, dimensions, verbose = FALSE) {
     if (log(nobs) <= length(dimensions)) {
       removed <- TRUE
     } else {
-      meanLat <- mean(spec_dt$decimalLatitude, na.rm = TRUE)
+      
+      if (method == "median") {
+        lat <- stats::median(abs(spec_dt$decimalLatitude), na.rm = TRUE)
+      } else if (method == "mean") {
+        lat <- mean(abs(spec_dt$decimalLatitude), na.rm = TRUE)
+      }
+      
     }
     
     removed_species <- rbind(removed_species, data.table(
@@ -34,9 +40,12 @@ count_observations <- function(spec.list, dimensions, verbose = FALSE) {
       logObservations = round(log(nobs), digits = 3),
       dimensions = length(dimensions),
       removed = removed,
-      meanLat = meanLat,
+      lat = lat,
       filename = spec
     ))
+    
+    setnames(removed_species, "lat", paste0(method, "Lat"))
+    
   }; catn()
   
   return(removed_species)
@@ -197,7 +206,7 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
         out.dir = paste0(prep_dir, "/species"),
         out.base = paste0(unique(gsub(" ", "_", sp$cleanName))),
         log.file = paste0(prep_dir, "/thin-log.txt"),
-        thin.par = 0.1,
+        thin.par = 0.351,
         reps = 1,
       ))
       

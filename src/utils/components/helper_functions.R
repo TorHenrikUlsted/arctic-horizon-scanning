@@ -106,9 +106,11 @@ extract_infraEpithet <- function(spec, verbose = FALSE) {
   return(res)
 }
 
-order_by_apg <- function(input, by, verbose = FALSE) {
+by_order_group <- function(input, by, verbose = FALSE) {
   # Load apg4
   apg <- fread("./resources/taxon/apg4/apg4.txt")
+  apg <- apg[taxonRank == by]
+  apg_vect <- apg$scientificName
   
   # order
   gpg <- c(
@@ -139,42 +141,43 @@ order_by_apg <- function(input, by, verbose = FALSE) {
     "Polypodiales"
   )
   
-  apg_rank <- apg[taxonRank == by]
-  
-  apg_vect <- apg_rank$scientificName
-  
-  non_apg <- setdiff(input, apg_vect)
-  
-  vebcat("non_apg:", veb = verbose)
-  vebprint(non_apg, veb = verbose)
-  
-  input_apg <- input[!input %in% non_apg]
-  
-  vebcat("input without non_apgs:", veb = verbose)
-  vebprint(input_apg, veb = verbose)
-  
-  vebcat("Ordering apgs", veb = verbose)
   if (is.vector(input)) {
     # Order the angiosperms
-    ordered_apg <- apg_vect[apg_vect %in% input_apg]
+    apg_matched <- input[match(apg_vect, input)]
+    apg_matched <- apg_matched[!is.na(apg_matched)]
+    vebprint(apg_matched, verbose, text = "matched angiosperms:")
     
     # Order the gymnosperms
-    ordered_gpg <- input[order(match(input, gpg))]
-    
-    ordered_gpg <- ordered_gpg[!is.na(ordered_gpg)]
+    gpg_matched <- input[match(gpg, input)]
+    gpg_matched <- gpg_matched[!is.na(gpg_matched)]
+    vebprint(gpg_matched, verbose, text = "matched gymnosperms:")
     
     # order the pteridophytes
-    ordered_ppg <- input[order(match(input, ppg))]
+    ppg_matched <- input[match(ppg, input)]
+    ppg_matched <- ppg_matched[!is.na(ppg_matched)]
+    vebprint(ppg_matched, verbose, text = "matched Pteridophytes:")
     
-    ordered_ppg <- ordered_ppg[!is.na(ordered_ppg)]
-    
-    ordered <- c(ordered_ppg, ordered_gpg, ordered_apg)
+    ordered <- c(ppg_matched, gpg_matched, apg_matched)
+    vebprint(ordered, verbose, text = "Ordered output:")
     
   } else {
     setorderv(input, cols = apg_rank[[by]])
   }
   
   return(ordered)
+}
+
+get_order_group <- function(dt, verbose = FALSE) {
+  dt_res <- copy(dt)
+  
+  dt_res[, group := as.character(NA)]
+  
+  dt_res[order %in% angiosperms, group := "angiosperm"]
+  
+  dt_res[order %in% gymnosperms, group := "gymnosperm"]
+  dt_res[order %in% pteridophytes, group := "pteridophyte"]
+  
+  return(dt_res)
 }
 
 find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
@@ -206,8 +209,8 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
-extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells = TRUE) {
-  catn("Extracting Raster and converting to data table.")
+extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells = TRUE, verbose = FALSE) {
+  vebcat("Extracting Raster and converting to data table.", veb = verbose)
   
   if (is.null(region)) {
     extract_by <- ext(raster)
@@ -472,6 +475,63 @@ save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir,
   ggsave(fig_out, device = save.device, unit = save.unit, width = save.width, height = save.height, plot = save.plot)
 }
 
+ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits = NULL, breaks = NULL, labels = NULL, begin = NULL, end = NULL, trans = NULL, guide, na.value = "transparent") {
+  tryCatch({
+    # Syntax is: "gradient-option"
+    split_str <- str_split(gradient, "-")[[1]]
+    gradient <- split_str[[1]]
+    option <- toupper(split_str[[2]])
+    
+    # Syntax is: "type-variable"
+    split_str <- str_split(scale.type, "-")[[1]]
+    scale_type <- split_str[[1]]
+    scale_var <- tolower(split_str[[2]])
+    
+    args <- list(
+      option = option, 
+      guide = guide,
+      na.value = na.value
+    )
+    
+    if (!is.null(labels)) {
+      args$labels <- labels
+    }
+    
+    if (!is.null(limits)) {
+      args$limits <- limits
+    }
+    
+    if (!is.null(breaks)) {
+      args$breaks <- breaks
+    }
+    
+    if (!is.null(begin)) {
+      args$begin <- begin
+    }
+    
+    if (!is.null(end)) {
+      args$end <- end
+    }
+    
+    if (!is.null(trans)) {
+      args$trans <- trans
+    }
+    
+    if (gradient == "viridis") {
+      fun <- paste0("scale_", scale_type, "_viridis_", scale_var)
+      return(do.call(fun, args))
+      
+    } else if (gradient == "whitebox") {
+      fun <- paste0("scale_", scale_type, "_whitebox_", scale_var)
+      args$palette <- args$option
+      args$option <- NULL
+      return(do.call(fun, args))
+    }
+  }, error = function(e) {
+    vebcat("Error when trying to use custom ggplot.filler function.", color = "fatalError")
+    stop(e)
+  })
+}
 
 ##########################
 #        Objects         #
@@ -498,4 +558,31 @@ source_all <- function(dir) {
   lapply(r_files, source)
 
   cat(length(r_files), "scripts sourced from", dir, "and its subdirectories.\n")
+}
+
+mdwrite <- function(source, heading = NULL, data = NULL, open = "a") {
+  create_file_if(source, keep = TRUE)
+    
+  if(is.data.table(data) || is.data.frame(data)) {
+    data <- kable(data, format = "markdown")
+  }
+  
+  if (grepl(";", heading)) {
+    split_str <- str_split(heading, ";")[[1]]
+    h_num <- split_str[[1]]
+    h_text <- split_str[[2]]
+  }
+  
+  try(con <- file(source, open = open))
+  sink(con, type = "output")
+  
+  if (!is.null(heading)) {
+    if (grepl(";", heading)) catn(paste0(strrep("#", h_num), " ", h_text))
+    if (!grepl(";", heading)) catn(heading)
+  }
+  if (!is.null(data)) print(data, post_nums)
+  catn()
+  
+  sink(type = "output")
+  close(con)
 }

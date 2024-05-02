@@ -335,10 +335,10 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
     
     name_nospace <- gsub("\\s+", "", name)
     
-    # Fuzzy match 1 letter
-    matches <- agrepl(name_nospace, strings, max.distance = 0.001)
+    # Fuzzy match 1 letter -- birngs too many errors
+    #matches <- agrepl(name_nospace, strings, max.distance = 0.001)
     
-    if (name_nospace %in% strings || any(matches)) {
+    if (name_nospace %in% strings) {
       next
     } else {
       vebcat("\nRemoving", highcat(name), veb = verbose)
