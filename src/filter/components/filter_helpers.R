@@ -211,7 +211,7 @@ combine_columns <- function(dt, col1, col2, col3, verbose = FALSE) {
 }
 
 remove_authorship <- function(dt, verbose = FALSE) {
-  catn("Removing Authorship from scientificName.")
+  vebcat("Removing Authorship from scientificName.", veb = verbose)
   
   signs <- c("×")
   

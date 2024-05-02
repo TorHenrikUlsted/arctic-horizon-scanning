@@ -60,7 +60,8 @@ node_hypervolume <- function(
           
           processed_data <- process_species(
             spec.dt = spec, 
-            spec.name = spec.name, 
+            spec.name = spec.name,
+            process.dir = process.dir,
             method = hv.method, 
             iteration = iteration,
             verbose = verbose,
@@ -127,10 +128,10 @@ node_hypervolume <- function(
             excluded = TRUE,
             jaccard = 0,
             sorensen = 0,
-            fracVolumeSpecies = 0,
-            fracVolumeRegion = 0,
-            realizedNiche = 1,
-            overlapRegion = 1,
+            fracVolumeSpecies = 1,
+            fracVolumeRegion = 1,
+            realizedNiche = 0,
+            overlapRegion = 0,
             includedOverlap = 0
           )
         }
@@ -144,20 +145,16 @@ node_hypervolume <- function(
     end_timer(node_timer)
     
   },
-  warning = function(w) warn(w, warn.file = node$warn, warn.txt = "Warning in node", iteration = iteration),
-  error = function(e) {
-    err(e, err.file = node$err, err.txt = "Error in node", iteration = iteration)
-    closeAllConnections()
-  }
+    warning = function(w) warn(w, warn.file = node$warn, warn.txt = "Warning in node_hypervolume", iteration = iteration),
+    error = function(e) {
+      closeAllConnections()
+      err(e, err.file = node$err, err.txt = "Error in node_hypervolume", iteration = iteration)
+    }
   )
   
-  rm(list = setdiff(ls(), "iteration"))
+  rm(ls())
   
   invisible(gc())
   
-  print(iteration)
-  
-  return(list(
-    iteration = iteration
-  ))
+  return(catn("Node returning."))
 }

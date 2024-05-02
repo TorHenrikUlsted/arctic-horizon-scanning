@@ -6,13 +6,26 @@ handle_region <- function(region) {
 }
 
 handle_region_dt <- function(dt) {
+  vebcat("Handling region", color = "proInit")
+  
+  region_names <- list(
+    subRegionCode = "FLOREG",
+    subRegionName = "floregName",
+    subRegionLong = "floregLong",
+    subRegionLat = "floregLat"
+  )
+  
+  for (i in seq_along(region_names)) {
+    setnames(dt, region_names[[i]], names(region_names)[i])
+  }
+  
   # add east to west order
   we <- c(
     "North Alaska - Yukon Territory",
     "Western Alaska",
     "Central Canada",
     "Hudson Bay - Labrador",
-    "Ellesmere-North Greenland",
+    "Ellesmere Land-Northern Greenland",
     "Western Greenland",
     "Eastern Greenland",
     "North Iceland",
@@ -21,21 +34,30 @@ handle_region_dt <- function(dt) {
     "Svalbard",
     "Franz Joseph Land",
     "Kanin-Pechora",
-    "Polar Ural - Novaya Zemlya",
-    "Yamal - Gydan",
-    "Anabar - Olenyek",
-    "Taimyr - Severnaya Zemlya",
+    "Polar Ural-Novaya Zemlya",
+    "Yamal-Gydan",
+    "Anabar-Olenyok",
+    "Taimyr-Severnaya Zemlya",
     "Kharaulakh",
-    "Yana - Kolyma",
+    "Yana-Kolyma",
     "West Chukotka",
     "Wrangel Island",
     "South Chukotka",
     "East Chukotka"
   )
   
-  we_dt <- data.table(floregName = we, westEast = 1:length(we))
+  we_dt <- data.table(subRegionName = we, westEast = 1:length(we))
   
-  dt <- dt[we_dt, on = .(floregName)]
+  dt <- merge(dt, we_dt, by = "subRegionName", all.x = TRUE)
+  
+  if (any(is.na(dt$westEast))) {
+    vebcat("Some regions were not found when adding westEast order.", color = "nonFatalError")
+  } else {
+    catn("Number of region dt rows:", highcat(nrow(dt)))
+    catn("Number of subRegions:", highcat(length(unique(dt$subRegionName))))
+    catn("Number of westEast IDs:", highcat(length(unique(dt$westEast))))
+    vebcat("All regions were found when adding westEast order.", color = "proSuccess")
+  }
   
   return(dt)
 }

@@ -22,9 +22,14 @@ main(
   hv.dims = c(18, 10, 3, 4),
   hv.incl.threshold = 0.5,
   vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
+  vis.projection = "laea",
+  vis.title = FALSE,
+  vis.region.name = "the Arctic", 
+  vis.subregion.name = "Floristic Province", 
+  vis.composition.taxon = "order",
+  vis.gradient = "viridis", 
+  vis.save.device = "jpeg", 
+  vis.save.unit = "px",
+  plot.show = FALSE,
   verbose = FALSE
 )
-
-# glonaf keys
-# download.key = 0186013-240321170329656
-# download.doi = https://doi.org/10.15468/dl.awqjxw

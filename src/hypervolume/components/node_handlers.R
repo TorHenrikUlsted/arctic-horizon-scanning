@@ -40,7 +40,7 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
     } else {
       Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
       vebcat("Locking file.", veb = verbose)
-      lock_node_it <- lock(node_lock_dir, lock.n = 1)
+      lock_node_it <- lock(node_lock_dir, lock.n = 1, paste0("Locked by iteration ", iteration))
       if (!is.null(lock_node_it) && file.exists(lock_node_it)) {
         break
       }
@@ -87,37 +87,54 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
   
   sp_node_log <- paste0(log_nodes, "/", iteration, "_", gsub(" ", "-", spec_name), "_log.txt")
   
-  failed_its <- paste0(log_dir, "/failed-iterations.txt")
+  failed_its_log <- paste0(log_dir, "/failed-iterations.txt")
+  highest_it_log <- paste0(log_dir, "/highest-iteration.txt")
   
+  create_file_if(c(highest_it_log, failed_its_log), keep = TRUE)
   create_file_if(c(sp_node_log, failed_its))
   
-  try(sp_log <- file(sp_node_log, open = "at"))
-  sink(sp_log, type = "output")
-  sink(sp_log, type = "message")
-  
-  spec <- fread(spec_filename, select = columns.to.read)
-  
-  vebcat("Unlocking file.", veb = verbose)
-  
-  unlock(lock.setup)
-  
-  spec <- spec[spec$occurrenceStatus == "PRESENT", ]
-  
-  spec <- spec[, "occurrenceStatus" := NULL]
-  
-  nobs <- nrow(spec)
-  
-  vebprint(head(spec, 2), text = "spec:")
-  
-  catn("Run Iteration", highcat(iteration))
-  catn("Node Identifier:", identifier, "\n")
-  catn("Using Species:", highcat(spec_name))
-  catn("Using file:", highcat(spec_filename))
-  catn("Species observations:", nobs)
-  # Condense data
-  spec_condensed <- condense_taxons(spec.dt = spec)
-  
-  cntry_condensed <- condense_country(spec.dt = spec)
+    try(sp_log <- file(sp_node_log, open = "at"))
+    sink(sp_log, type = "output")
+    sink(sp_log, type = "message")
+    
+    spec <- fread(spec_filename, select = columns.to.read)
+    
+    vebcat("Unlocking file.", veb = verbose)
+    
+    unlock(lock.setup)
+    
+    spec <- spec[spec$occurrenceStatus == "PRESENT", ]
+    
+    spec <- spec[, "occurrenceStatus" := NULL]
+    
+    nobs <- nrow(spec)
+    
+    vebprint(head(spec, 2), verbose, text = "spec:")
+    
+    catn("Run Iteration", highcat(iteration))
+    catn("Node Identifier:", identifier)
+    catn("Using Species:", highcat(spec_name))
+    catn("Using file:", highcat(spec_filename))
+    catn("Species observations:", nobs)
+    catn("Log observations:", log(nobs))
+    catn()
+    
+    tryCatch({
+    # Condense data
+    spec_condensed <- condense_taxons(spec.dt = spec)
+    
+    cntry_condensed <- condense_country(spec.dt = spec)
+    
+    # Subset data
+    spec <- spec[, .(cleanName, decimalLongitude, decimalLatitude, coordinateUncertaintyInMeters, countryCode, stateProvince, year)]
+  },
+  warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when condensing data", iteration = iteration),
+  error = function(e) {
+    close(sp_log)
+    closeAllConnections()
+    err(e, err.file = err.file, err.txt = "Error when condensing data", iteration = iteration)
+   }
+  )
   
   catn("initiating main function")
   
@@ -125,7 +142,7 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
     res <- fun(spec, spec_name)
   },
   error = function(e) {
-    vebcat("Error occurred in node", iteration, ":", e$message, color = "nonFatalError")
+    vebcat("Error occurred in main function for node", iteration, ":", e$message, color = "nonFatalError")
     sink(type = "message")
     sink(type = "output")
     close(sp_node_log)
@@ -154,7 +171,7 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
       Sys.sleep(3)
     } else {
       Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
-      lock_node_it <- lock(lock.dir, lock.n = 1)
+      lock_node_it <- lock(lock.dir, lock.n = 1, paste0("Locked by iteration ", iteration))
       if (!is.null(lock_node_it) && file.exists(lock_node_it)) {
         break
       }
@@ -163,23 +180,26 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
   while_msg <- FALSE
   
   if (res) {
-    fwrite(final_res, paste0(pro.dir, "/stats.csv"), append = T, bom = T)
+    fwrite(final_res, paste0(pro.dir, "/stats/stats.csv"), append = T, bom = T)
   } else {
+    if (is.null(iterations) || is.na(iterations)) {
+      catn("Iterations is NULL or NA:", iterations)
+    } else {
+      try(failed_con <- file(failed_its_log, open = "a"))
+      writeLines(as.character(iteration), failed_con)  
+      close(failed_con)
+    }
+    
     try(err_con <- file(err.file, open = "a"))
     writeLines(paste0(
       "Hypervolume sequence failed the output check for node", iteration, " and species: ", gsub(" ", "-", spec_name)
     ), err_con)
     
     close(err_con)
-    try(failed_con <- file(failed_its, open = "a"))
-    writeLines(as.character(iteration), failed_con)
-    close(failed_con)
   }
-  
-  node_con <- file(node.it.log, open = "r")
-  
+  # Get the node iterations and remove node from it
+  try(node_con <- file(node.it.log, open = "r"))
   lines <- readLines(node_con)
-  
   close(node_con)
   
   vebcat("Removing from node-iterations:", lines[which(grepl(paste0("^", identifier, "$"), lines))], veb = verbose)
@@ -188,11 +208,34 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
   
   vebcat("Rewriting to node-iterations:", lines, veb = verbose)
   
-  node_con <- file(node.it.log, open = "w")
+  try(node_con <- file(node.it.log, open = "w"))
   
   writeLines(lines, node_con)
   
   close(node_con)
+  
+  # Get the highest iterations and write if higher
+  try(high_con <- file(highest_it_log, open = "r"))
+  highest_it <- as.integer(readLines(high_con))
+  close(high_con)
+  
+  vebcat("Previous highest Iteration:", highest_it, veb = verbose)
+  vebcat("This Iteration:", iteration, veb = verbose)
+  
+  if (highest_it < iteration) {
+    vebcat("Setting new iteration to:", iteration)
+    try(high_con <- file(highest_it_log, open = "w"))
+    writeLines(as.character(iteration), high_con)
+    close(high_con)
+    
+    if (verbose) {
+      try(high_con <- file(highest_it_log, open = "r"))
+      highest_it <- as.integer(readLines(high_con))
+      close(high_con)
+      
+      vebcat("Actual highest iteration in file:", highest_it)
+    }
+  }
   
   catn("Unlocking node iterations.")
   

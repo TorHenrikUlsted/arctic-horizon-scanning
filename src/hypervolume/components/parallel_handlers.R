@@ -8,12 +8,13 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
 
   ram_usage <- paste0(logs_dir, "/ram-usage.txt")
   node_it_file <- paste0(logs_dir, "/node-iterations.txt")
-  highest_it_file <- paste0(logs_dir, "/highest_iteration.txt")
+  highest_it_file <- paste0(logs_dir, "/highest-iteration.txt")
   warn_file <- paste0(logs_dir, "/warning.txt")
   err_file <- paste0(logs_dir, "/error.txt")
 
   create_file_if(c(node_it_file, highest_it_file), keep = TRUE)
   create_file_if(c(ram_usage, warn_file, err_file))
+  finished <- FALSE
   
   if (!is.null(iterations)) {
     
@@ -49,7 +50,10 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     
     if (start_iteration >= length(spec.list)) {
       catn("Start iteration:", highcat(start_iteration), "number of species:", highcat(length(spec.list)))
-      stop("STOP: Previous iteration is higher or the same as the number of species.")
+      finished <- TRUE
+      return(list(
+        finished = finished
+      ))
     }
     
     # If iterations is not provided, start from the highest saved iteration
@@ -107,6 +111,7 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     cores = cores_max,
     ram.use = ram_usage,
     batch = batch_iterations,
-    highest.iteration = highest_it_file
+    highest.iteration = highest_it_file,
+    finished = finished
   ))
 }

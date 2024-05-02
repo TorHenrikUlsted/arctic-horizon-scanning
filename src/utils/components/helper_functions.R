@@ -106,38 +106,78 @@ extract_infraEpithet <- function(spec, verbose = FALSE) {
   return(res)
 }
 
-order_by_apg <- function(input, by, verbose = FALSE) {
+by_order_group <- function(input, by, verbose = FALSE) {
   # Load apg4
   apg <- fread("./resources/taxon/apg4/apg4.txt")
+  apg <- apg[taxonRank == by]
+  apg_vect <- apg$scientificName
   
-  apg_rank <- apg[taxonRank == by]
+  # order
+  gpg <- c(
+    "Cycadales",
+    "Ginkgoales",
+    "Araucariales",
+    "Cupressales",
+    "Pinales",
+    "Ephedrales",
+    "Welwitchiales",
+    "Gnetales"
+  )
+  # order
+  ppg <- c(
+    "Lycopodiales",
+    "Isoetales",
+    "Selaginellales",
+    "Equisetales",
+    "Psilotales",
+    "Ophioglossales",
+    "Marattiales",
+    "Osmundales",
+    "Hymenophyllales",
+    "Gleicheniales",
+    "Schizaeales",
+    "Salviniales",
+    "Cyatheales",
+    "Polypodiales"
+  )
   
-  apg_vect <- apg_rank$scientificName
-  
-  non_apg <- setdiff(input, apg_vect)
-  
-  vebcat("non_apg:", veb = verbose)
-  vebprint(non_apg, veb = verbose)
-  
-  input_apg <- input[!input %in% non_apg]
-  
-  vebcat("input without non_apgs:", veb = verbose)
-  vebprint(input_apg, veb = verbose)
-  
-  vebcat("Ordering apgs", veb = verbose)
   if (is.vector(input)) {
-    ordered_apg <- apg_vect[apg_vect %in% input_apg]
+    # Order the angiosperms
+    apg_matched <- input[match(apg_vect, input)]
+    apg_matched <- apg_matched[!is.na(apg_matched)]
+    vebprint(apg_matched, verbose, text = "matched angiosperms:")
     
-    # Add the others
-    non_apg_order <- c("Lycopodiales", "Selaginellales", "Equisetales", "Osmundales", "Salviniales", "Cyatheales", "Polypodiales", "Ephedrales", "Pinales")
+    # Order the gymnosperms
+    gpg_matched <- input[match(gpg, input)]
+    gpg_matched <- gpg_matched[!is.na(gpg_matched)]
+    vebprint(gpg_matched, verbose, text = "matched gymnosperms:")
     
-    ordered <- c(non_apg_order, ordered_apg)
+    # order the pteridophytes
+    ppg_matched <- input[match(ppg, input)]
+    ppg_matched <- ppg_matched[!is.na(ppg_matched)]
+    vebprint(ppg_matched, verbose, text = "matched Pteridophytes:")
+    
+    ordered <- c(ppg_matched, gpg_matched, apg_matched)
+    vebprint(ordered, verbose, text = "Ordered output:")
     
   } else {
     setorderv(input, cols = apg_rank[[by]])
   }
   
   return(ordered)
+}
+
+get_order_group <- function(dt, verbose = FALSE) {
+  dt_res <- copy(dt)
+  
+  dt_res[, group := as.character(NA)]
+  
+  dt_res[order %in% angiosperms, group := "angiosperm"]
+  
+  dt_res[order %in% gymnosperms, group := "gymnosperm"]
+  dt_res[order %in% pteridophytes, group := "pteridophyte"]
+  
+  return(dt_res)
 }
 
 find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
@@ -169,11 +209,25 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
-extract_ext_to_dt <- function(raster, value = "value", cells = TRUE) {
-  rast_extr <- terra::extract(raster, ext(raster), cells = cells)
+extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells = TRUE, verbose = FALSE) {
+  vebcat("Extracting Raster and converting to data table.", veb = verbose)
+  
+  if (is.null(region)) {
+    extract_by <- ext(raster)
+  } else {
+    extract_by <- region
+  }
+  
+  rast_extr <- terra::extract(raster, extract_by, cells = cells)
+  rast_dt <- as.data.frame(rast_extr)
   rast_dt <- as.data.table(rast_extr)
-  names(rast_dt) <- c("cell", value)
-
+  
+  if (is.null(region)) {
+    names(rast_dt) <- c("cell", value)
+  } else {
+    names(rast_dt) <- c("ID", value, "cell")
+  }
+  
   return(rast_dt)
 }
 
@@ -213,15 +267,20 @@ reproject_region <- function(region, projection, issue.line = FALSE, issue.thres
     return(region_longlat)
   }
   
-  
   if (projection == "longlat") {
     catn("Choosing", highcat("longlat"), "coordinate system.")
     prj <- longlat_crs
   } else if (projection == "laea") {
     catn("Choosing", highcat("laea"), "coordinate system.")
     prj <- laea_crs
+  } else if (projection == "mollweide") {
+    catn("Choosing", highcat("mollweide"), "coordinate system.")
+    prj <- mollweide_crs
+  } else if (projection == "stere") {
+    catn("Choosing", highcat("stere"), "coordinate system.")
+    prj <- stere_crs
   } else {
-    stop("You can only choose projection 'longlat' or 'laea'.")
+    stop("You can only choose projection 'longlat', 'laea', 'stere', or 'mollweide'.")
   }
   
   
@@ -360,12 +419,131 @@ load_sp_rast <- function(spec.filename) {
   return(sp_rast)
 }
 
+edit_crs <- function(crs.string, string.key, string.new, verbose = FALSE) {
+  string.key <- toupper(string.key)
+  
+  # Split the keyword if it contains a number
+  keyword_parts <- strsplit(string.key, "[[:digit:]]+", perl = TRUE)[[1]]
+  keyword_num <- as.numeric(gsub("[^[:digit:]]", "", string.key))
+  if (is.na(keyword_num)) keyword_num <- 1
+  
+  # Split the CRS string into parts
+  crs_parts <- strsplit(crs.string, "\n", fixed = TRUE)[[1]]
+  
+  vebprint(crs_parts, verbose, "CRS parts:")
+  
+  # Find the parts that start with the keyword
+  keyword_parts <- grep(paste0("\\b", keyword_parts, "\\b\\[\""), crs_parts)
+  
+  vebprint(keyword_parts, verbose, "Keyword parts:")
+  
+  # Check if the keyword exists in the CRS string
+  if (length(keyword_parts) >= keyword_num) {
+    # Replace the name following the keyword
+    crs_parts[keyword_parts[keyword_num]] <- gsub("(?<=\\[\\\").*?(?=\\\")", string.new, crs_parts[keyword_parts[keyword_num]], perl = TRUE)
+    
+    # Combine the CRS parts back into a string
+    new_crs <- paste(crs_parts, collapse = "\n")
+  } else {
+    catn("Keyword not found in the string.")
+    # If the keyword doesn't exist, return the original CRS string
+    new_crs <- crs.string
+  }
+  
+  return(new_crs)
+}
+
+##########################
+#        ggplot          #
+##########################
+
+save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir, save.device = "jpeg", save.unit = "px", vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
+  
+  vebprint(save.plot, veb = plot.show)
+  title_dir <- paste0(save.dir, "/title")
+  no_title_dir <- paste0(save.dir, "/no-title")
+  
+  create_dir_if(c(title_dir, no_title_dir))
+  
+  if (vis.title) {
+    fig_out <- paste0(title_dir, "/", save.name, "-title.", save.device)
+  } else {
+    fig_out <- paste0(no_title_dir, "/", save.name, ".", save.device)    
+  }
+  
+  catn("Saving plot to:", colcat(fig_out, color = "output"))
+  ggsave(fig_out, device = save.device, unit = save.unit, width = save.width, height = save.height, plot = save.plot)
+}
+
+ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits = NULL, breaks = NULL, labels = NULL, begin = NULL, end = NULL, trans = NULL, guide, na.value = "transparent") {
+  tryCatch({
+    # Syntax is: "gradient-option"
+    split_str <- str_split(gradient, "-")[[1]]
+    gradient <- split_str[[1]]
+    option <- toupper(split_str[[2]])
+    
+    # Syntax is: "type-variable"
+    split_str <- str_split(scale.type, "-")[[1]]
+    scale_type <- split_str[[1]]
+    scale_var <- tolower(split_str[[2]])
+    
+    args <- list(
+      option = option, 
+      guide = guide,
+      na.value = na.value
+    )
+    
+    if (!is.null(labels)) {
+      args$labels <- labels
+    }
+    
+    if (!is.null(limits)) {
+      args$limits <- limits
+    }
+    
+    if (!is.null(breaks)) {
+      args$breaks <- breaks
+    }
+    
+    if (!is.null(begin)) {
+      args$begin <- begin
+    }
+    
+    if (!is.null(end)) {
+      args$end <- end
+    }
+    
+    if (!is.null(trans)) {
+      args$trans <- trans
+    }
+    
+    if (gradient == "viridis") {
+      fun <- paste0("scale_", scale_type, "_viridis_", scale_var)
+      return(do.call(fun, args))
+      
+    } else if (gradient == "whitebox") {
+      fun <- paste0("scale_", scale_type, "_whitebox_", scale_var)
+      args$palette <- args$option
+      args$option <- NULL
+      return(do.call(fun, args))
+    }
+  }, error = function(e) {
+    vebcat("Error when trying to use custom ggplot.filler function.", color = "fatalError")
+    stop(e)
+  })
+}
+
 ##########################
 #        Objects         #
 ##########################
 
 get_obj_name <- function(...) {
   sapply(as.list(match.call())[-1], deparse)
+}
+
+get_mode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
 }
 
 ##########################
@@ -380,4 +558,31 @@ source_all <- function(dir) {
   lapply(r_files, source)
 
   cat(length(r_files), "scripts sourced from", dir, "and its subdirectories.\n")
+}
+
+mdwrite <- function(source, heading = NULL, data = NULL, open = "a") {
+  create_file_if(source, keep = TRUE)
+    
+  if(is.data.table(data) || is.data.frame(data)) {
+    data <- kable(data, format = "markdown")
+  }
+  
+  if (grepl(";", heading)) {
+    split_str <- str_split(heading, ";")[[1]]
+    h_num <- split_str[[1]]
+    h_text <- split_str[[2]]
+  }
+  
+  try(con <- file(source, open = open))
+  sink(con, type = "output")
+  
+  if (!is.null(heading)) {
+    if (grepl(";", heading)) catn(paste0(strrep("#", h_num), " ", h_text))
+    if (!grepl(";", heading)) catn(heading)
+  }
+  if (!is.null(data)) print(data, post_nums)
+  catn()
+  
+  sink(type = "output")
+  close(con)
 }
