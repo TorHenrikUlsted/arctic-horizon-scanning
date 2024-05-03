@@ -1,45 +1,107 @@
-union_dfs <- function(df1, df2, verbose = F) {
+union_dfs <- function(dt1, dt2, verbose = F) {
   
-  if (is.null(df1) & is.null(df2)) {
+  if (is.null(dt1) & is.null(dt2)) {
     return(data.table())
-  } else if (is.null(df1) || is.null(df2)) {
-    if (!is.null(df1)) {
-      return(df1)
-    } else if (!is.null(df2)) {
-      return(df2)      
+  } else if (is.null(dt1) || is.null(dt2)) {
+    if (!is.null(dt1)) {
+      return(dt1)
+    } else if (!is.null(dt2)) {
+      return(dt2)      
     } 
   }
-  
-  
   catn("Combining data tables using union.")
   
-  df1_name <- deparse(substitute(df1))
-  df2_name <- deparse(substitute(df2))
+  dt1_name <- deparse(substitute(dt1))
+  dt2_name <- deparse(substitute(dt2))
   
-  vebcat("Merging", highcat(df1_name), "and", highcat(df2_name), veb = verbose)
+  vebcat("Merging", highcat(dt1_name), "and", highcat(dt2_name), veb = verbose)
   
   ## combine present lists and remove duplicates
-  merged_df = dplyr::union(df1, df2)
-  
-  cat(sprintf("%13s | %13s | %9s \n", df1_name, df2_name, "merged_df"))
-  cat(highcat(sprintf("%13d | %13d | %9d \n", nrow(df1), nrow(df2), nrow(merged_df))))
-  
-  catn("Duplicated species removed:", highcat(nrow(df1) + nrow(df2) - nrow(merged_df)))
+  merged_dt = dplyr::union(dt1, dt2)
   
   ## Run NA and distinct check
-  if (any(is.na(merged_df)) == T) {
+  if (any(is.na(merged_dt)) == T) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     
-    merged_df <- na.omit(merged_df)
+    merged_dt <- na.omit(merged_dt)
   }
   
-  if (any(duplicated(merged_df)) == T) {
-    vebcat("Some merged_df species are duplicated.", color = "nonFatalError")
+  if (any(duplicated(merged_dt)) == T) {
+    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
     
-    merged_df <- unique(merged_df)
+    merged_dt <- unique(merged_dt)
   }
   
-  return(merged_df)
+  md_dt <- data.table(
+    dt1 = nrow(remove.from),
+    dt2 = nrow(remove.with),
+    merged_dt = nrow(merged_dt),
+    removed = nrow(remove.from) - nrow(merged_dt)
+  )
+  setnames(md_dt, c("dt1", "dt2"), c(dt1_name, dt2_name))
+  
+  vebprint(md_dt, text = "Anti-join summary:")
+  
+  mdwrite(
+    post_seq_nums,
+    heading = paste0("Combining data from **", dt1_name, "** with **", dt2_name, "**"),
+    data = md_dt
+  )
+  
+  return(merged_dt)
+}
+
+anti_union <- function(remove.from, remove.with, remove.by, verbose = FALSE) {
+  
+  catn("Anti joining data tables")
+  
+  dt1_name <- deparse(substitute(remove.from))
+  dt2_name <- deparse(substitute(remove.with))
+  
+  vebcat("Merging", highcat(dt1_name), "and", highcat(dt2_name), veb = verbose)
+  
+  ## combine present lists and remove duplicates
+  if(!is.null(remove.by)) {
+    merged_dt <- dplyr::anti_join(remove.from, remove.with, by = remove.by)
+  } else {
+    merged_dt <- dplyr::anti_join(remove.from, remove.with)
+  }
+  
+  
+  merged_dt <- unique(merged_dt)
+  
+  ## Run NA and duplicate check
+  if (any(is.na(merged_dt)) == TRUE) {
+    vebcat("Some merged data table species are NA.", color = "nonFatalError")
+    
+    merged_dt <- na.omit(merged_dt)
+  }
+  
+  if (any(duplicated(merged_dt)) == TRUE) {
+    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
+    
+    merged_dt <- unique(merged_dt)
+  }
+  
+  md_dt <- data.table(
+    dt1 = nrow(remove.from),
+    dt2 = nrow(remove.with),
+    merged_dt = nrow(merged_dt),
+    removed = nrow(remove.from) - nrow(merged_dt)
+  )
+  setnames(md_dt, c("dt1", "dt2"), c(dt1_name, dt2_name))
+  
+  md_dt <- kable(md_dt)
+  
+  vebprint(md_dt, text = "Anti-join summary:")
+  
+  mdwrite(
+    post_seq_nums,
+    heading = paste0("Removing data from **", dt1_name, "** using **", dt2_name, "**"),
+    data = md_dt
+  )
+  
+  return(merged_dt)
 }
 
 select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combine = NULL, pattern = "*.csv", verbose = FALSE) {
@@ -141,12 +203,20 @@ fix_nomatches <- function(dfs, nomatch.edited, column, verbose = FALSE) {
   return(dfs)
 }
 
-write_filter_fun <- function(file.out, spec.in, fun) {
+write_filter_fun <- function(file.out, spec.in, fun = NULL) {
   create_dir_if(dirname(file.out))
+  
+  df_name <- basename(dirname(file.out))
+  
+  print(df_name)
   
   catn(highcat(nrow(spec.in)), "Species input.")
   
-  result <- fun()
+  if (!is.null(fun)) {
+    result <- fun()
+  } else {
+    result <- spec.in
+  }
   
   catn(highcat(nrow(spec.in) - nrow(result)), "Species removed:")
   
@@ -179,8 +249,8 @@ get_occurrence <- function(spec, file.out, region = NULL, coord.uncertainty = 46
   )
   
   return(list(
-   occ = occ_data,
-   keys = spec_keys
+    occ = occ_data,
+    keys = spec_keys
   ))
 }
 
@@ -253,7 +323,7 @@ chunk_protocol <- function(
     cores.max = 1,
     iterations = NULL,
     verbose = FALSE
-  ) {
+) {
   
   vebprint(head(spec.occ, 1), text = "spec.occ", veb = verbose)
   
@@ -286,7 +356,7 @@ chunk_protocol <- function(
   if (is.vector(chunk.col)) {
     chunk.col = "cleanName"
   }
-
+  
   clean_chunks(
     chunk.name = chunk.name,
     chunk.column = chunk.col, 

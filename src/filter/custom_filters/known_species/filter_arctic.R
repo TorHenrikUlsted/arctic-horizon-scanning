@@ -4,6 +4,11 @@ filter_arctic <- function(dfs, column, verbose = FALSE) {
   # Initialize
   ##############
   
+  mdwrite(
+    post_seq_nums,
+    heading = "2;Arctic"
+  )
+  
   aba_absent = dfs$aba_absent
   ambio_absent  = dfs$ambio_absent
   
@@ -13,12 +18,10 @@ filter_arctic <- function(dfs, column, verbose = FALSE) {
   # Union_dfs merges and removes duplicates while also provide info on how many are removed
   arctic_present <- union_dfs(aba_present, ambio_present, verbose = T)
   
-  out_file <- "./outputs/filter/arctic/arctic-present-final.csv"
-  create_dir_if(dirname(out_file))
-  
-  catn("Writing arctic_present to:", colcat(out_file, color = "output"))
-  
-  fwrite(arctic_present, out_file, bom = T)
+  write_filter_fun(
+    file.out = "./outputs/filter/arctic/arctic-present-final.csv",
+    spec.in = arctic_present
+  )
   
   # -------------------------------------------------------------------------- #
   
@@ -30,7 +33,7 @@ filter_arctic <- function(dfs, column, verbose = FALSE) {
     fun = function() {
       
       # Also remove all arctic_present from absent in case some standard names have changed
-      ab <- dplyr::anti_join(arctic_absent, arctic_present, by = column)
+      ab <- anti_union(arctic_absent, arctic_present, column)
       
       return(ab)
     })
@@ -75,11 +78,10 @@ filter_arctictest = function(dfs, verbose = FALSE) {
   
   # ---------------------------- Present ----------------------------- #
   
-  out_file <- paste0(dir_name, "/", common_name, "-present-final.csv")
-  
-  catn("Writing", common_name, "_present to:", colcat(out_file, color = "output"))
-  
-  fwrite(combined_present, out_file, bom = T)
+  write_filter_fun(
+    file.out = paste0(dir_name, "/", common_name, "-present-final.csv"),
+    spec.in = combined_present
+  )
   
   # ---------------------------- Absent ----------------------------- #
   
@@ -88,7 +90,7 @@ filter_arctictest = function(dfs, verbose = FALSE) {
     spec.in = combined_absent,
     fun = function() {
       
-      combined_absent <-  dplyr::anti_join(combined_absent, combined_present, by = column)
+      combined_absent <-  anti_union(combined_absent, combined_present, column)
       
       return(combined_absent)
     })

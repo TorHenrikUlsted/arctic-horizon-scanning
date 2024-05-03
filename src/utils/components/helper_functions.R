@@ -580,9 +580,112 @@ mdwrite <- function(source, heading = NULL, data = NULL, open = "a") {
     if (grepl(";", heading)) catn(paste0(strrep("#", h_num), " ", h_text))
     if (!grepl(";", heading)) catn(heading)
   }
-  if (!is.null(data)) print(data, post_nums)
+  if (!is.null(data)) print(data)
   catn()
   
   sink(type = "output")
   close(con)
 }
+
+get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, step = 0) {
+  
+  if (step > 5) {
+    vebcat("Step cannot be higher than 5", color = "fatalError")
+    stop("Change step to a different integer value.")
+  }
+  
+  d <- list.dirs(input.dir, recursive = TRUE)
+  if (length(d) > 1) {
+    d <- d[-1]
+  }
+  
+  vebprint(d, veb = (step == 1), "initial directories:")
+  if (!is.null(exclude.dirs)) {
+    exclude <- sapply(d, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
+    
+    d <- d[!exclude]
+  }
+  vebprint(d, veb = (step == 2), "First excluded directories:")
+  
+  is_outermost <- sapply(d, function(dir) !any(grepl(paste0("^", dir, "/"), d)))
+  
+  d <- d[is_outermost]
+  
+  vebprint(d, veb = (step == 3), "Remove outermost directories:")
+  
+  f <- list.files(d, recursive = FALSE, full.names = TRUE)
+  
+  vebprint(f, veb = (step == 4), "List of files:")
+  
+  if (!is.null(exclude.files)) {
+    exclude <- sapply(f, function(x) any(sapply(exclude.files, function(ex_f) grepl(ex_f, x))))
+    
+    f <- f[!exclude]
+  }
+  
+  vebprint(f, veb = (step == 5), "files after excluded:")
+  
+  return(f)
+}
+
+pack_repository <- function() {
+  vebcat("Packing repository", color = "funInit")
+  setup_dir <- "./outputs/setup"
+  filter_dir <- "./outputs/filter"
+  hv_dir <- "./outputs/hypervolume"
+  vis_dir <- "./outputs/visualize"
+  post_dir <- "./outputs/post-process"
+  utils_dir <- "./outputs/utils"
+  
+  exclude_dirs <- c("wfo-match-nodes","test","logs", "system", "locks", "projections")
+  
+  exclude_files <- c("stop-file.txt",".zip","wfo-match-nodes")
+  
+  setup_files <- get_files(setup_dir, exclude_dirs, exclude_files)
+  
+  
+  # filter dir
+  exclude_dirs <- c("chunk","test","logs")
+  
+  exclude_files <- c("occ.csv",".zip","logs","chunk")
+  
+  filter_files <- get_files(filter_dir, exclude_dirs, exclude_files)
+  
+  
+  # Hypervolume
+  exclude_dirs <- c("test","prep", "locks", "species-prep")
+  
+  hv_files <- get_files(hv_dir, exclude_dirs, step = 0)
+  
+  # Visualize
+  exclude_dirs <- "stack"
+  
+  exclude_files <- c("warning","error")
+  
+  vis_files <- get_files(vis_dir, exclude_dirs, exclude_files)
+  
+  # Post-process
+  post_files <- get_files(post_dir)
+  
+  # utils
+  exclude_dirs <- "logs"
+  
+  utils_files <- get_files(utils_dir)
+  
+  repo_files <- c(setup_files, filter_files, hv_files, vis_files, post_files, utils_files)
+  
+  zip(zipfile = "./outputs/Horizon-Scanning-Repository.zip", files = repo_files)
+  
+  vebcat("Repository packed successfully", color = "funSuccess")
+}
+
+
+
+
+
+
+
+
+
+
+

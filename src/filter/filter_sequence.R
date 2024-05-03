@@ -12,6 +12,15 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   
   filter_timer = start_timer("filter_timer")
   
+  coord_un_file <- "./outputs/setup/region/coordinateUncertainty-m.txt"
+  
+  if (!file.exists(coord_un_file)) {
+    mdwrite(
+      post_seq_nums,
+      heading = "1;Filter Sequence"
+    )
+  }
+  
   vebcat("Loading dfs.", veb = verbose)
   
   dfs <- select_wfo_column(
@@ -29,7 +38,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   )
   
   if (is.null(coord.uncertainty)) {
-    coord.uncertainty <- as.numeric(readLines("./outputs/setup/region/coordinateUncertainty-m.txt"))
+    coord.uncertainty <- as.numeric(readLines())
   }
     
     ####################
@@ -76,7 +85,6 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
       verbose = verbose
     )
   }
-    
   
     ###############################
     # Unknown Occurrence download

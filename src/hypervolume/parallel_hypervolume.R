@@ -101,6 +101,16 @@ hypervolume_sequence <- function(
     vebprint(head(spec_list, 10), verbose, "species list sample:")
     
     writeLines(spec_list, spec_list_file)
+    
+    mdwrite(
+      post_seq_nums,
+      heading = paste0("1;Hypervolume Sequence\n\n",
+                       "Species removed before analysis because of too few occurrences: ",
+                       "**",nrow(spec_removed),"**  ",
+                       "Species input into the hypervolume sequence: ",
+                       "**",length(spec_list),"**"
+                      ),
+    )
   } else {
     spec_list <- readLines(spec_list_file)
   }

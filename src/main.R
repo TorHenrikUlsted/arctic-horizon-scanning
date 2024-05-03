@@ -18,7 +18,7 @@ main <- function(
     vis.region.name = "Region", 
     vis.subregion.name = "Sub Region", 
     vis.composition.taxon = "order", 
-    vis.gradient = "viridis", 
+    vis.gradient = "viridis-B", 
     vis.save.device = "jpeg", 
     vis.save.unit = "px",
     plot.show = FALSE,

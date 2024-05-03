@@ -1,13 +1,35 @@
-count_observations <- function(spec.list, dimensions, method = "median", verbose = FALSE) {
-  catn("Removing species with too few observations.")
+calc_abs_lat <- function(dt, method = "median", latitude = "decimalLatitude", verbose = FALSE) {
   
-  removed_species <- data.table(
+  # if (is.character(input)) {
+  #   if (grepl("\\.txt", input)) {
+  #     vect <- readLines(input)
+  #   } else if (grepl("\\.csv", input)) {
+  #     dt <- fread(input)
+  #   }
+  # } else if (is.data.table(input)) {
+  #   dt <- copy(input)
+  # }
+  
+  if (method == "median") {
+    lat <- stats::median(abs(dt[[latitude]]), na.rm = TRUE)
+  } else if (method == "mean") {
+    lat <- mean(abs(dt[[latitude]]), na.rm = TRUE)
+  }
+  
+  return(lat)
+}
+
+
+count_observations <- function(spec.list, dimensions, method = "median", verbose = FALSE) {
+  catn("Counting species observations.")
+  
+  counted_species <- data.table(
     species = character(0),
     observations = integer(0),
     logObservations = integer(0),
     dimensions = integer(0),
     removed = logical(0),
-    meanLat = numeric(0),
+    lat = numeric(0),
     filename = character(0)
   )
   
@@ -20,21 +42,14 @@ count_observations <- function(spec.list, dimensions, method = "median", verbose
     nobs <- nrow(spec_dt)
     
     removed <- FALSE
-    meanLat <- 0
     
     if (log(nobs) <= length(dimensions)) {
       removed <- TRUE
-    } else {
-      
-      if (method == "median") {
-        lat <- stats::median(abs(spec_dt$decimalLatitude), na.rm = TRUE)
-      } else if (method == "mean") {
-        lat <- mean(abs(spec_dt$decimalLatitude), na.rm = TRUE)
-      }
-      
     }
     
-    removed_species <- rbind(removed_species, data.table(
+    lat <- calc_abs_lat(spec_dt)
+    
+    counted_species <- rbind(counted_species, data.table(
       species = gsub("-", " ", spec_name),
       observations = nobs,
       logObservations = round(log(nobs), digits = 3),
@@ -44,11 +59,11 @@ count_observations <- function(spec.list, dimensions, method = "median", verbose
       filename = spec
     ))
     
-    setnames(removed_species, "lat", paste0(method, "Lat"))
-    
   }; catn()
   
-  return(removed_species)
+  setnames(counted_species, "lat", paste0(method, "Lat"))
+  
+  return(counted_species)
 }
 
 most_used_name <- function(x, max.number = 1) {

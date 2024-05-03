@@ -134,7 +134,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       region = region, 
       region.name = vis.region.name,
       vis.x = "cellRichness",
-      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.gradient = vis.gradient,
       vis.title = vis.title,
       vis.color = "country", 
       vis.shade = "subRegionName",
@@ -253,7 +253,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       region.name = vis.region.name,
       extent = region_ext,
       projection  = out_projection,
-      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.gradient = vis.gradient,
       vis.wrap = 3,
       save.dir = plot_dir,
       save.device = vis.save.device,
@@ -300,7 +300,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       filenames = prob_mean$filename, 
       projection = out_projection, 
       projection.method = "bilinear",
-      out.dir = paste0(log_dir, "/stack-suitability-", "mean"),
+      out.dir = paste0(log_dir, "/stack-suitability-", "totalMean"),
       verbose = verbose
     )
     
@@ -311,8 +311,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       region = world_map, 
       region.name = vis.save.region,
       extent = region_ext,
-      projection = laea_crs,
-      vis.gradient = paste0(vis.gradient, "-B"),
+      projection = out_projection,
+      vis.gradient = vis.gradient,
       vis.unit = "mean",
       vis.wrap = 3,
       vis.title = vis.title,
@@ -322,7 +322,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       verbose = verbose
     )
     
-    prob_vals_md <- copy(prob_vals)
+    prob_vals_md <- copy(prob_mean)
     prob_vals_md <- prob_vals_md[, filename := NULL]
     
     mdwrite(
@@ -334,7 +334,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       data = prob_vals_md,
     )
     
-    rm(prob_mean, prob_stack, world_map)
+    rm(prob_mean, prob_stack, world_map, prob_vals_md)
     invisible(gc())
   }
   
@@ -384,7 +384,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       region.name = vis.region.name,
       extent = region_ext,
       projection = out_projection,
-      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.gradient = vis.gradient,
       vis.wrap = 1,
       vis.title = vis.title,
       save.dir = plot_dir,
@@ -462,7 +462,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
         region.name = vis.region.name,
         extent = region_ext,
         projection = out_projection,
-        vis.gradient = paste0(vis.gradient, "-B"),
+        vis.gradient = vis.gradient,
         vis.wrap = 1,
         vis.title = vis.title,
         save.dir = plot_dir,
@@ -481,7 +481,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
   #        Figure 4        #
   ##########################
   
-  fig_name <- paste0("figure-4B", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-4A", exp_title, ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Composition Figure.", color = "indicator")
   } else {
@@ -512,7 +512,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       vis.y = "relativeRichness", 
       vis.fill = vis.composition.taxon,
       vis.group = "group",
-      vis.gradient = paste0(vis.gradient, "-B"),
+      vis.gradient = vis.gradient,
       vis.title = vis.title,
       save.dir = plot_dir,
       save.device = vis.save.device,
@@ -608,7 +608,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
         dt = connections_dt,
         taxon = taxon,
         region.name = vis.region.name,
-        vis.gradient = paste0(vis.gradient, "-B"),
+        subregion.name = vis.subregion.name,
+        vis.gradient = vis.gradient,
         vis.title = vis.title,
         save.dir = plot_dir,
         save.device = vis.save.device,
@@ -640,4 +641,109 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     invisible(gc())
   }
   
+  fig_name <- paste0("figure-6", exp_title, ".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
+  } else {
+    lat_stats <- copy(sp_stats)
+    lat_stats <- lat_stats[, .(cleanName, order, overlapRegion, observations)]
+    lat_stats <- get_order_group(
+      lat_stats
+    )
+    spec_name_stats <- unique(lat_stats$cleanName)
+    
+    spec_list <- readLines("./outputs/hypervolume/glonaf/box-sequence/stats/spec-iteration-list.txt")
+    
+    spec_names <- gsub("-", " ", gsub(".csv", "", basename(spec_list)))
+    
+    spec_list <- spec_list[spec_names %in% spec_name_stats]
+    
+    spec_name_stats <- unique(lat_stats, by = c("cleanName", "overlapRegion"))
+    
+    spec_count_dt <- count_observations(
+      spec.list = spec_list,
+      dimensions = 4,
+      method = "median",
+      verbose = verbose
+    )
+    
+    setnames(spec_count_dt, "species", "cleanName")
+    
+    spec_count_dt <- spec_count_dt[, .(cleanName, medianLat)]
+    
+    catn("Species min absolute median latitude:", highcat(min(spec_count_dt$medianLat)))
+    
+    catn("Species max absolute median latitude:", highcat(max(spec_count_dt$medianLat)))
+    
+    merged_dt <- merge(lat_stats, spec_count_dt, by = "cleanName")
+    
+    merged_dt <- unique(merged_dt, by = "cleanName")
+    
+    visualize_lat_distribution(
+      input.dt = merged_dt,
+      model.scale = "log",
+      region.name = vis.region.name, 
+      vis.gradient = vis.gradient, 
+      vis.title = vis.title, 
+      save.dir = plot_dir, 
+      save.device = vis.save.device, 
+      save.unit = vis.save.unit, 
+      plot.show = plot.show, 
+      verbose = verbose
+    )
+    
+    lat_dist_md <- copy(merged_dt)
+    
+    model <- lm(data = lat_dist_md, log(overlapRegion) ~ log(medianLat))
+    
+    model_summary <- summary(model)
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "2;Species Latitudinal Ranges",
+      data = model_summary
+    )
+    
+    cooks_dist <- cooks.distance(model)
+    
+    if (verbose) plot(cooks_dist, pch="*", cex=2, main="Cook's Distance")
+    
+    lat_dist_md$cooksDistance <- cooks_dist
+    
+    # Rule of thumb: threshold of 4/n
+    outliers <- as.numeric(names(cooks_dist)[cooks_dist > 4/nrow(lat_dist_md)])
+    
+    outlier_names <- lat_dist_md[outliers, ]
+    
+    outlier_names <- outlier_names[, .(cleanName, overlapRegion, observations, group, medianLat, cooksDistance)]
+    setnames(outlier_names, "cleanName", "species")
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "Cooks Distance Outliers (4/n)",
+      data = outlier_names
+    )
+    
+    rm(lat_dist_md, outlier_names, outliers, cooks_dist, merged_dt, spec_count_dt, lat_stats)
+    invisible(gc())
+    
+  }
+  
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
