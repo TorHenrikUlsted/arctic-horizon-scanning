@@ -33,12 +33,14 @@ union_dfs <- function(dt1, dt2, verbose = F) {
   }
   
   md_dt <- data.table(
-    dt1 = nrow(remove.from),
-    dt2 = nrow(remove.with),
+    dt1 = nrow(dt1),
+    dt2 = nrow(dt2),
     merged_dt = nrow(merged_dt),
-    removed = nrow(remove.from) - nrow(merged_dt)
+    added = nrow(merged_dt) - nrow(dt1)
   )
   setnames(md_dt, c("dt1", "dt2"), c(dt1_name, dt2_name))
+  
+  md_dt <- kable(md_dt)
   
   vebprint(md_dt, text = "Anti-join summary:")
   
@@ -206,21 +208,11 @@ fix_nomatches <- function(dfs, nomatch.edited, column, verbose = FALSE) {
 write_filter_fun <- function(file.out, spec.in, fun = NULL) {
   create_dir_if(dirname(file.out))
   
-  df_name <- basename(dirname(file.out))
-  
-  print(df_name)
-  
-  catn(highcat(nrow(spec.in)), "Species input.")
-  
   if (!is.null(fun)) {
     result <- fun()
   } else {
     result <- spec.in
   }
-  
-  catn(highcat(nrow(spec.in) - nrow(result)), "Species removed:")
-  
-  catn(highcat(nrow(result)), "species output")
   
   catn("Writing species to:", colcat(file.out, color = "output"))
   

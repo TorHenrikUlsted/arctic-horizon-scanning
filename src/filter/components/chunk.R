@@ -366,5 +366,14 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
     catn("All chunk files are present in sp_w_keys$species.")
   }
   
+  list_md <- list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv",)
+  
+  mdwrite(
+    post_seq_nums,
+    heading = paste0(
+      "Number of species after cleaning: **", length(list_md), "**"
+    )
+  )
+  
   vebcat("Chunk cleaning protocol completed successfully.", color = "funSuccess")
 }

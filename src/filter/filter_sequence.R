@@ -23,22 +23,22 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   
   vebcat("Loading dfs.", veb = verbose)
   
-  dfs <- select_wfo_column(
+  dts <- select_wfo_column(
     filepath = "./resources/synonym-checked", 
     col.unique = column, 
     col.select = NULL,
     verbose = verbose
   )
   
-  dfs <- fix_nomatches(
-    dfs = dfs, 
+  dts <- fix_nomatches(
+    dfs = dts, 
     nomatch.edited = "./resources/manual-edit/wfo-nomatch-edited.csv", 
     column = column,
     verbose = verbose
   )
   
   if (is.null(coord.uncertainty)) {
-    coord.uncertainty <- as.numeric(readLines())
+    coord.uncertainty <- as.numeric(readLines(coord_un_file))
   }
     
     ####################
@@ -61,10 +61,10 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
       stop("Change the test parameter.")
     }
   } 
-  
+  print(is.null(spec.known))
   if (!is.null(spec.known)) {
     known <- spec.known(
-      dfs = dfs,
+      dts = dts,
       column = column,
       verbose = verbose
     )
@@ -80,7 +80,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   } else {
     unknown <- spec.unknown(
       known.filtered = known,
-      dfs = dfs,
+      dts = dts,
       column = column,
       verbose = verbose
     )

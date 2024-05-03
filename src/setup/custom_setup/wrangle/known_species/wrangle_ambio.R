@@ -51,6 +51,16 @@ wrangle_ambio <- function(name, column, verbose = F) {
   absent <- set_df_utf8(absent)
   fwrite(absent, absent_out, row.names = F, bom = T)
   
+  mdwrite(
+    post_seq_nums,
+    heading = paste0(
+      "2;Ambio\n\n",
+      "Number of species in ambio formatted:", nrow(formatted), "**  ",
+      "Number of species in ambio present:", nrow(present), "**   ",
+      "Number of species in ambio absent:", nrow(absent), "**",
+    )
+  )
+  
   return(list(
     present = present,
     absent = absent

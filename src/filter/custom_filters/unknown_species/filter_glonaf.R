@@ -1,4 +1,4 @@
-filter_glonaf = function(known.filtered, dfs, column, verbose = FALSE) {
+filter_glonaf = function(known.filtered, dts, column, verbose = FALSE) {
   ##############
   # Initialize
   ##############
@@ -7,7 +7,7 @@ filter_glonaf = function(known.filtered, dfs, column, verbose = FALSE) {
     heading = "2;GloNAF"
   )
   
-  glonaf_species <- dfs$glonaf_absent
+  glonaf_species <- dts$glonaf_absent
   glonaf_dir <- "./outputs/filter/glonaf"
   create_dir_if(glonaf_dir)
   
@@ -23,7 +23,7 @@ filter_glonaf = function(known.filtered, dfs, column, verbose = FALSE) {
     file.out = paste0(glonaf_dir, "/glonaf-present-final.csv"),
     spec.in = glonaf_species,
     fun = function() {
-      # First merge to only get species from both dfs
+      # First merge to only get species from both dts
       glonaf_present <- union_dfs(glonaf_species, arctic_present)
       
       return(glonaf_present)
@@ -43,10 +43,6 @@ filter_glonaf = function(known.filtered, dfs, column, verbose = FALSE) {
       
       return(glonaf_absent)
     })
-  
-  mdwrite(
-    
-  )
   
   return(list(
     spec = glonaf_absent,

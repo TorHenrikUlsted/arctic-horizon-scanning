@@ -23,7 +23,7 @@ main(
   hv.incl.threshold = 0.5,
   vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
   vis.projection = "laea",
-  vis.title = FALSE,
+  vis.title = TRUE,
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",

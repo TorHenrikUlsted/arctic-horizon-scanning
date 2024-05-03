@@ -12,6 +12,18 @@ wrangle_template <- function(name, column, verbose = FALSE) {
   
   ## ADD wrangling in here
   
+  
+  ## ADD MD
+  mdwrite(
+    post_seq_nums,
+    heading = paste0(
+      "2;Template\n\n",
+      "Number of species in Template formatted:", nrow(formatted), "**  ",
+      "Number of species in Template present:", nrow(template_present), "**   ",
+      "Number of species in Template absent:", nrow(template_absent), "**   ",
+    )
+  )
+  
   return(list(
     present = present, # Remove if you only have one return
     absnt = absent
