@@ -69,11 +69,19 @@ setup_region <- function(verbose = FALSE) {
   resource_dir <- "./resources/region"
   
   result_shp <- paste0("./outputs/setup/region/cavm-noice/cavm-noice.shp")
+  
   create_dir_if(dirname(result_shp))
   
   if (!file.exists(result_shp)) {
     
-    cavm_shp <- paste0(resource_dir, "/cavm2003/cavm.shp") # Add download_if
+    cavm_shp <- paste0(resource_dir, "/cavm2003/aga_circumpolar_geobotanical_2003.shp")
+    
+      download_if(
+      out.file = cavm_shp,
+      download.file.ext = "zip",
+      download.direct = "https://catalog.epscor.alaska.edu/dataset/05084325-dc81-4292-94d1-908b7812d22f/resource/281f0b1e-d666-48d6-afc0-ba8242a4603e/download/aga_circumpolar_geobotanical_2003_shp.zip",
+      download.page = "https://catalog.epscor.alaska.edu/dataset/circumpolar-arctic-vegetation-map-cavm-team-2003"
+    )
     
     cavm <- load_region(
       cavm_shp, 

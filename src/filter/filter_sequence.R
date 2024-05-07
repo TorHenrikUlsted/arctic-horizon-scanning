@@ -61,7 +61,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
       stop("Change the test parameter.")
     }
   } 
-  print(is.null(spec.known))
+  
   if (!is.null(spec.known)) {
     known <- spec.known(
       dts = dts,

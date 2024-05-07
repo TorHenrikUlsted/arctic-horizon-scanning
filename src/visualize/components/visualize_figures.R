@@ -347,10 +347,10 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
   }
   
   catn("Acquiring min and max values.")
-  min_lim <- 0
+  min_lim <- 0.00
   max_lim <- where.max(stack[[1]])[1,][[3]] # Get the first row and last item "value"
   region_ext <- ext(region)
-  vis_breaks <- seq(min_lim, max_lim, length.out = 50)
+  vis_breaks <- seq(min_lim, max_lim, length.out = 8)
   
   catn("Generating plot.")
   fig3B <- ggplot() +
@@ -360,13 +360,14 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
       gradient = vis.gradient,
       scale.type = "fill-c",
       limits = c(min_lim, max_lim), 
-      breaks = c(seq(min_lim, max_lim, by = 50), max_lim), 
+      breaks = vis_breaks,
+      labels = function(x) sprintf("%.2f", round(x, 2)),
       guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       na.value = "transparent"
     ) + 
     labs(
       title = if (vis.title) paste0("Potential New Alien Climatic suitability in ", region.name), 
-      fill = paste0("Potential Climatic Suitability", if (!is.null(vis.unit)) {paste0(" (", vis.unit, ")")} ), 
+      fill = paste0("Potential Climatic Suitability"),# if (!is.null(vis.unit)) {paste0(" (", vis.unit, ")")} ), 
       color = "Country"
     ) +
     coord_sf(
@@ -654,7 +655,7 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
   sub_dt <- copy(dt)
   #sub_dt <- dt[, nLines := uniqueN(get(taxon), na.rm = TRUE), by = .(originCountry, subRegionName)]
   
-  origin_subset <- sub_dt[, .(get(taxon), originMeanLong, originMeanLat, nLines)]
+  origin_subset <- sub_dt[, .(get(taxon), originMeanLong, originMeanLat, connections)]
   setnames(origin_subset, "V1", taxon)
   origin_subset <- unique(origin_subset, by = c(taxon, "originMeanLong", "originMeanLat"))
   origin_points <- get_con_points(origin_subset, "mollweide", "originMeanLong", "originMeanLat", verbose = verbose)
@@ -692,8 +693,13 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
   catn("Creating connections plot.")
   
   min_lim <- 0
-  max_lim <- max(merged_dt$nLines)
-  vis_breaks <- seq(min_lim, max_lim, length.out = 8)
+  max_lim <- max(merged_dt$connections)
+  if (taxon == "species") {
+    vis_breaks <- c(min_lim, max_lim)
+  } else {
+    vis_breaks <- seq(min_lim, max_lim, length.out = 8)
+  }
+  
   
   fig5 <- ggplot(data = merged_dt) +
     geom_spatvector(data = wm) +
@@ -709,12 +715,13 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
       legend.position = "bottom",
     ) +
     new_scale_color() +
-    geom_segment(aes(x = originX, y = originY, xend = destX, yend = destY, color = nLines)) +
+    geom_segment(aes(x = originX, y = originY, xend = destX, yend = destY, color = connections)) +
     ggplot.filler(
       gradient = vis.gradient,
       scale.type = "color-c",
       limits = c(min_lim, max_lim),
       breaks = vis_breaks,
+      end = ifelse(taxon == "species", 0.5, 1),
       labels = function(x) sprintf("%.0f", x),
       guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       na.value = "transparent"
@@ -723,7 +730,7 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
       x = "Longitude",
       y = "Latitude",
       title = if (vis.title) paste0("Potential New Alien ", paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))), " Richness from origin Country to Arctic Florsitic Province"),
-      color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Count")
+      color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Connections")
     ) +
     theme_minimal() +
     ggtheme.config + theme(

@@ -29,24 +29,36 @@ create_file_if <- function(files, keep = F) {
   }
 }
 
-download_region_if <- function(region.file, download.link, download.page) {
-  region_name <- basename(region.file)
-  vebcat("Checking need for download for", region_name, color = "funInit")
+download_if <- function(out.file, download.file.ext, download.direct, download.page) {
+  name <- sub("\\..*$", "", basename(out.file))
+  vebcat("Checking need for download for", name, color = "funInit")
   
-  file_ext <- tail(strsplit(region.file, split = "\\.")[[1]], 1)
-  create_dir_if(dirname(region.file))
+  file_ext <- tail(strsplit(basename(out.file), split = "\\.")[[1]], 1)
+  create_dir_if(dirname(out.file))
   
-  if (!file.exists(region.file)) {
-    vebcat("Could not find region.", color = "nonFatalError")
-    
-    if(!is.null(download.link)) {
+  file_save <- gsub(file_ext, download.file.ext, out.file)
+  save_ext <- tail(strsplit(basename(file_save), split = "\\.")[[1]], 1)
+  
+  if (!file.exists(out.file)) {
+    if(!is.null(download.direct)) {
       catn("Downloading...")
       
-      download_status <- try(download.file(download.link, destfile = region.file), silent = TRUE)
+      download_status <- try(download.file(download.direct, destfile = file_save, silent = TRUE))
       
-      if (file_ext == "zip") {
+      if (save_ext == "zip") {
         catn("File downloaded, unzipping...")
-        unzip(region.file, exdir = dirname(region.file))
+        unzip(file_save, exdir = dirname(out.file))
+        file.remove(file_save)
+        
+        new_dir <- paste0(dirname(out.file), "/", list.files(dirname(out.file)))
+        
+        for (file in list.files(new_dir, full.names = TRUE)) {
+          filename <- basename(file)
+          out_file <- paste0(dirname(out.file), "/", filename)
+          file.rename(from = file, to = out_file)
+        }
+        
+        unlink(new_dir, recursive = TRUE)
       }
       
       if (inherits(download_status, "try-error")) {
@@ -54,7 +66,7 @@ download_region_if <- function(region.file, download.link, download.page) {
         
         Sys.sleep(1)
         
-        catn("Upload the file(s) to:", colcat(dirname(region.file), color = "indicator"))
+        catn("Upload the file(s) to:", colcat(dirname(out.file), color = "indicator"))
         
         Sys.sleep(2)
         
@@ -67,16 +79,16 @@ download_region_if <- function(region.file, download.link, download.page) {
       
       Sys.sleep(1)
       
-      catn("Upload the file(s) to:", colcat(dirname(region.file), color = "indicator"))
+      catn("Upload the file(s) to:", colcat(dirname(out.file), color = "indicator"))
       
       Sys.sleep(2)
       
       utils::browseURL(download.page)
       
-      stop("Could not automatically download region. Stopping...")
+      stop("Could not automatically download file. Stopping...")
     }
     
   } else {
-    vebcat("No need to download", region_name, color = "funSuccess")
+    vebcat("No need to download", name, color = "funSuccess")
   }
 }

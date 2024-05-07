@@ -210,7 +210,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       data = res_hotspots_nums,
     )
     
-    rm(hotspot_raster, world_map)
+    rm(hotspot_raster, world_map, res_hotspots_nums)
     invisible(gc())
   }
   
@@ -262,15 +262,16 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       verbose = verbose
     )
     
-    paoo_md <- paoo_files[, 1:7]
+    paoo_md <- paoo_files[, 1:3]
     
     mdwrite(
       post_seq_nums, 
-      heading = "2;Highest Potential Area of Occupancy",
+      heading = "2;Highest Total Potential Area of Occupancy",
       data = paoo_md,
     )
     
-    rm(paoo_files, paoo, world_map)
+    
+    rm(paoo_files, paoo, paoo_md, world_map)
     invisible(gc())
   }
   
@@ -307,8 +308,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     world_map <- get_world_map(projection = out_projection)
     
     visualize_suitability(
-      stack = prob_stack, 
-      region = world_map, 
+      stack = prob_stack,
+      region = world_map,
       region.name = vis.save.region,
       extent = region_ext,
       projection = out_projection,
@@ -325,13 +326,15 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     prob_vals_md <- copy(prob_mean)
     prob_vals_md <- prob_vals_md[, filename := NULL]
     
+    prob_vals_md <- prob_vals_md[, 1:5]
+    
     mdwrite(
       post_seq_nums,
       heading = paste0(
-        "2;Highest Potential Mean Climatic Suitability\n\n",
+        "2;Highest Potential Climatic Suitability\n\n",
         "See figure 3D for comparison between **potential area of occupancy** and **potential climatic suitability**  "
       ),
-      data = prob_vals_md,
+      data = prob_vals_md
     )
     
     rm(prob_mean, prob_stack, world_map, prob_vals_md)
@@ -489,27 +492,18 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
     # Figure 4: stacked barplot wtih taxa per sub region
     
-    region_richness_dt <- get_region_richness(
+    richness_dt <- get_taxon_richness(
       paoo.file <- paoo_file,
-      stats.file <- sp_stats
-    )
-    
-    # Calculate richness for specified taxon
-    richness_dt <- calculate_taxon_richness(
-      region_richness_dt, 
-      vis.composition.taxon,
-    )
-    
-    richness_group_dt <- get_order_group(
-      richness_dt
+      stats.file <- sp_stats,
+      vis.composition.taxon
     )
     
     visualize_richness(
-      dt = richness_group_dt,
+      dt = richness_dt,
       region.name = vis.region.name,
-      vis.x = "subRegionName", 
+      vis.x = "subRegionName",
       vis.x.sort = "westEast",
-      vis.y = "relativeRichness", 
+      vis.y = "relativeRichness",
       vis.fill = vis.composition.taxon,
       vis.group = "group",
       vis.gradient = vis.gradient,
@@ -519,10 +513,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       verbose = verbose
     )
     
-    richness_group_md <- richness_group_dt[, .(group, relativeRichness, subRegionName)]
+    richness_write <- richness_dt[, .(get(vis.composition.taxon), relativeRichness, subRegionName, country, groupRelativeRichness, group)]
     
-    richness_group_md <- richness_group_md[, totalRelativeRichness := sum(relativeRichness), by = .(group, subRegionName)]
-    richness_group_md[, relativeRichness := NULL]
+    setnames(richness_write, "V1", vis.composition.taxon)
+  
+    fwrite(richness_write, paste0(log_dir, "/taxon-composition.csv"), bom = TRUE)
     
     catn("Writing taxonomic composition to markdown file.")
     
@@ -531,35 +526,36 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
       heading = "2;Potential Taxonomic Composition"
     )
     
-    richness_ppg_md <- richness_group_md[(group == "pteridophyte")]
-    richness_ppg_md <- unique(richness_ppg_md, by = "subRegionName")
+    top_orders_md <- richness_dt[, .(get(vis.composition.taxon), relativeRichness, subRegionName, group, groupRelativeRichness, westEast)]
+    
+    top_orders_md <- top_orders_md[order(-groupRelativeRichness), head(.SD, 3), by = .(group, subRegionName)]
+    
+    setorder(top_orders_md, subRegionName)
+    setorder(top_orders_md, westEast)
+    
+    top_orders_md <- top_orders_md[, .(V1, relativeRichness, subRegionName, group)]
+    
+    setnames(top_orders_md, "V1", vis.composition.taxon)
     
     mdwrite(
       post_seq_nums, 
-      heading = "3;Pteridophytes",
-      data = richness_ppg_md
+      heading = "3;Top 3 per Group in Each Sub-Region",
+      data = top_orders_md
     )
     
-    richness_gpg_md <- richness_group_md[(group == "gymnosperm")]
-    richness_gpg_md <- unique(richness_gpg_md, by = "subRegionName")
+    richness_group_md <- richness_dt[, .(group, groupRelativeRichness, subRegionName, westEast)]
+    setorder(richness_group_md, subRegionName)
+    setorder(richness_group_md, westEast)
+    richness_group_md <- richness_group_md[, westEast := NULL]
+    richness_group_md <- unique(richness_group_md, by = c("group", "subRegionName"))
     
     mdwrite(
       post_seq_nums, 
-      heading = "3;Gymnosperms",
-      data = richness_gpg_md
+      heading = "3;Taxonomic Groups",
+      data = richness_group_md
     )
     
-    richness_apg_md <- richness_group_md[(group == "angiosperm")]
-    richness_apg_md <- unique(richness_apg_md, by = "subRegionName")
-    
-    
-    mdwrite(
-      post_seq_nums, 
-      heading = "3;Angiosperms",
-      data = richness_apg_md
-    )
-    
-    rm(region_richness_dt, richness_dt, richness_group_dt, richness_group_md)
+    rm(paoo_file, richness_dt, top_orders_md, richness_group_md)
     invisible(gc())
   }
   
@@ -574,36 +570,27 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
     # Figure 4: stacked barplot wtih taxa per sub region
     
-    region_richness_dt <- get_region_richness(
+    richness_dt <- get_taxon_richness(
       paoo.file <- paoo_file,
-      stats.file <- sp_stats
-    )
-    
-    # Calculate richness for specified taxon
-    richness_dt <- calculate_taxon_richness(
-      region_richness_dt, 
-      vis.composition.taxon,
-    )
-    
-    richness_group_dt <- get_order_group(
-      richness_dt
+      stats.file <- sp_stats,
+      "species"
     )
     
     taxon_names <- c("species", "family", "order")
     figure_names <- c("A", "B", "C")
-    connections_md <- copy(richness_group_dt)
+    connections_md <- copy(richness_dt)
     
     for (i in 1:length(taxon_names)) {
       taxon <- taxon_names[i]
       figure <- figure_names[i]
-      
+
       connections_dt <- get_connections(
-        dt = richness_group_dt,
+        dt = richness_dt,
         taxon = taxon,
         verbose = verbose
       )
-      
-      # Figure 5: Sankey with floristic regions 
+
+      # Figure 5: Sankey with floristic regions
       visualize_connections(
         dt = connections_dt,
         taxon = taxon,
@@ -621,27 +608,76 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     }
     
     connections_md <- get_connections(
-      dt = richness_group_dt,
+      dt = richness_dt,
       taxon = "species",
       verbose = verbose
     )
     
-    connections_md[, connectionCounts := sum(nLines, na.rm = TRUE), by = "subRegionName"]
-    connections_md <- connections_md[, .(connectionCounts, subRegionName, subRegionLong, subRegionLat)]
-    connections_md <- unique(connections_md, by = "subRegionName")
-    setorder(connections_md, -subRegionLat)
+    con_folder <- paste0(log_dir, "/connections")
+    create_dir_if(con_folder)
+    
+    fwrite(connections_md, paste0(con_folder, "/master-result.csv"), bom = TRUE)
+    
+    subsets <- c("subRegionName", "country", "originCountry", "originCountryCode", "connections")
+    
+    con_spec <- connections_md[, c(.SD, mget(subsets)), .SDcols = "cleanName"]
+    
+    fwrite(con_spec, paste0(con_folder, "/connections-species.csv"), bom = TRUE)
+    
+    con_fam <- connections_md[, c(.SD, mget(subsets)), .SDcols = "family"]
+    
+    con_fam <- con_fam[, connections := sum(connections, na.rm = TRUE), by = c("family", "subRegionName")]
+    
+    con_fam <- unique(con_fam, by = "family")
+    
+    fwrite(con_fam, paste0(con_folder, "/connections-family.csv"), bom = TRUE)
+    
+    con_order <- connections_md[, c(.SD, mget(subsets)), .SDcols = "order"]
+    
+    con_order <- con_order[, connections := sum(connections, na.rm = TRUE), by = c("order", "subRegionName")]
+    
+    con_order <- unique(con_order, by = "order")
+    
+    fwrite(con_order, paste0(con_folder, "/connections-order.csv"), bom = TRUE)
+    
+    
+    con_subregion <- copy(connections_md)
+    
+    con_subregion <- con_subregion[, totalConnections := sum(connections, na.rm = TRUE), by = c("family", "subRegionName")]
+    
+    con_subregion <- con_subregion[, .(totalConnections, subRegionName)]
+    
+    con_subregion <- unique(con_subregion, by = "subRegionName")
+    
+    setorder(con_subregion, -totalConnections)
     
     mdwrite(
       post_seq_nums,
-      heading = "2;Potential Connection Counts",
-      data = connections_md
+      heading = "2;Potential Family Connection Counts in each Sub-Region",
+      data = con_subregion
     )
     
-    rm(connections_md, connections_dt, region_richness_dt, richness_dt, richness_group_dt)
+    con_origin <- copy(connections_md)
+    
+    con_origin <- con_origin[, totalConnections := sum(connections, na.rm = TRUE), by = c("family", "originCountry")]
+    
+    con_origin <- con_origin[, .(totalConnections, originCountry)]
+    
+    con_origin <- unique(con_origin, by = "originCountry")
+    
+    setorder(con_origin, -totalConnections)
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "2;Potential Connection Counts from each Origin Country",
+      data = con_origin
+    )
+    
+    rm(richness_dt, connections_md, con_spec, con_fam, con_order, subsets, con_subregion, con_origin)
     invisible(gc())
   }
   
-  fig_name <- paste0("figure-6", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-6-log", exp_title, ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
   } else {
@@ -682,13 +718,13 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     visualize_lat_distribution(
       input.dt = merged_dt,
       model.scale = "log",
-      region.name = vis.region.name, 
-      vis.gradient = vis.gradient, 
-      vis.title = vis.title, 
-      save.dir = plot_dir, 
-      save.device = vis.save.device, 
-      save.unit = vis.save.unit, 
-      plot.show = plot.show, 
+      region.name = vis.region.name,
+      vis.gradient = vis.gradient,
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
+      plot.show = plot.show,
       verbose = verbose
     )
     
@@ -700,31 +736,52 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     
     mdwrite(
       post_seq_nums,
-      heading = "2;Species Latitudinal Ranges",
-      data = model_summary
+      heading = "2;Species Latitudinal Ranges"
     )
     
-    cooks_dist <- cooks.distance(model)
+    post_dir <- "./outputs/post-process/images"
+    create_dir_if(post_dir)
     
-    if (verbose) plot(cooks_dist, pch="*", cex=2, main="Cook's Distance")
-    
-    lat_dist_md$cooksDistance <- cooks_dist
-    
-    # Rule of thumb: threshold of 4/n
-    outliers <- as.numeric(names(cooks_dist)[cooks_dist > 4/nrow(lat_dist_md)])
-    
-    outlier_names <- lat_dist_md[outliers, ]
-    
-    outlier_names <- outlier_names[, .(cleanName, overlapRegion, observations, group, medianLat, cooksDistance)]
-    setnames(outlier_names, "cleanName", "species")
+    model_md <- model_to_md(model)
     
     mdwrite(
       post_seq_nums,
-      heading = "Cooks Distance Outliers (4/n)",
-      data = outlier_names
+      heading = model_md,
     )
     
-    rm(lat_dist_md, outlier_names, outliers, cooks_dist, merged_dt, spec_count_dt, lat_stats)
+    mdwrite(
+      post_seq_nums,
+      heading = "3;Residuals vs Fitted",
+      image = model,
+      image.which = 1,
+      image.out = paste0(post_dir, "/residuals-fitted.jpeg")
+    )
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "3;Q-Q Residuals",
+      image = model,
+      image.which = 2,
+      image.out = paste0(post_dir, "/qq-residuals.jpeg")
+    )
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "3;Scale-Location",
+      image = model,
+      image.which = 3,
+      image.out = paste0(post_dir, "/scale-location.jpeg")
+    )
+    
+    mdwrite(
+      post_seq_nums,
+      heading = "3;Residuals vs Leverage",
+      image = model,
+      image.which = 4,
+      image.out = paste0(post_dir, "/residuals-leverage.jpeg")
+    )
+    
+    rm(lat_dist_md, merged_dt, spec_count_dt, lat_stats)
     invisible(gc())
     
   }

@@ -386,8 +386,6 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
     
     sp_rast <- terra::rast(spec.filename)
     
-    tot_cells <- terra::ncell(sp_rast)
-    
     catn("Converting region to data table.")
     region_dt <- as.data.frame(region)
     region_dt <- as.data.table(region_dt)
@@ -396,6 +394,8 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
     
     catn("Extracting raster cells.")
     sp_dt <- extract_raster_to_dt(sp_rast, region, value = "cellOccupancy", cells = TRUE)
+    tot_cells <- sp_dt[!is.na(cell)]
+    tot_cells <- uniqueN(tot_cells$cell)
     
     catn("Merging raster_dt and region_dt.")
     sp_regions_dt <- merge(sp_dt, region_dt, by = "ID")
@@ -687,57 +687,17 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
   ))
 }
 
-get_region_richness <- function(paoo.file, stats, verbose = FALSE) {
-  vebcat("Getting region richness", color = "funInit")
-  
-  paoo_dt <- fread(paoo.file)
-  sp_stats <- copy(stats)
-  
-  paoo_dt <- paoo_dt[, .(species, TPAoO, PAoO, subRegionName, country, subRegionLong, subRegionLat, westEast)]
-  
-  region_richness_dt <- paoo_dt[, regionRichness := uniqueN(species), by = subRegionName]
-  
-  region_richness_dt <- region_richness_dt[, .(species, regionRichness, subRegionName, country, subRegionLong, subRegionLat, westEast)]
-  
-  vebprint(region_richness_dt, verbose, text = "Region Richness Data Table:")
-  
-  setnames(region_richness_dt, "species", "cleanName")
-  
-  old_names <- c("country", "countryCode", "meanLong", "meanLat") # Later changed to median
-  new_names <- c("originCountry", "originCountryCode", "originMeanLong", "originMeanLat") 
-  setnames(sp_stats, old_names, new_names)
-  sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originMeanLong, originMeanLat)]
-  
-  merged_dt <- merge(region_richness_dt, sp_stats, by = "cleanName", allow.cartesian = TRUE)
-  
-  merged_dt <- merged_dt[subRegionName == "", subRegionName := NA]
-  
-  vebcat("Number of species:", highcat(length(unique(merged_dt$species))))
-  vebcat("Number of subRegions:", highcat(length(unique(merged_dt$subRegionName))))
-  
-  merged_dt <- merged_dt[!is.na(subRegionName)]
-  
-  vebcat("Number of species:", highcat(length(unique(merged_dt$species))))
-  vebcat("Number of subRegions:", highcat(length(unique(merged_dt$subRegionName))))
-  
-  vebprint(merged_dt, verbose, text = "Merged Data Table:")
-  
-  vebcat("Successfully acquired region richness", color = "funSuccess")
-  
-  return(merged_dt)
-}
-
 calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
   catn("Calculating richness for", highcat(taxon))
   
   dt_copy <- copy(dt)
   
-  dt_copy[, taxonRichness := uniqueN(get(taxon), na.rm = TRUE), by = subRegionName]
+  dt_copy[, taxonRichness := uniqueN(cleanName, na.rm = TRUE), by = c(taxon, "subRegionName")]
   
   vebprint(dt_copy, verbose, text = "Taxon Richness before sum:")
   
   # Calculate total taxon richness
-  dt_copy[, totalRichness := sum(taxonRichness, na.rm = TRUE), by = subRegionName]
+  dt_copy[, totalRichness := uniqueN(cleanName, na.rm = TRUE), by = subRegionName]
   
   # Calculate relative richness
   dt_copy[, relativeRichness := taxonRichness / totalRichness]
@@ -747,74 +707,67 @@ calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
   return(dt_copy)
 }
 
-append_src_country <- function(src.dt, target.dt, level, taxon, verbose) {
-  vebcat("Appending source regions to target data table", color = "funInit")
-  catn("Getting working groups.")
-  tdwg2 <- vect("./resources/region/tdwg/level2/level2.shp")
-  tdwg2_dt <- convert_spatial_dt(tdwg2)
-  tdwg2_dt <- tdwg2_dt[, .(LEVEL2_NAM, LEVEL2_COD)]
-  colnames(tdwg2_dt) <- c("lvl2Name", "lvl2Code")
+get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
+  vebcat("Getting region richness", color = "funInit")
   
-  tdwg3 <- vect("./resources/region/tdwg/level3/level3.shp")
-  tdwg3_dt <- convert_spatial_dt(tdwg3)
-  tdwg3_dt <- tdwg3_dt[, .(LEVEL3_NAM, LEVEL3_COD, LEVEL2_COD)]
-  colnames(tdwg3_dt) <- c("lvl3Name", "lvl3Code", "lvl2Code")
+  paoo_dt <- fread(paoo.file)
+  sp_stats <- copy(stats)
   
-  merged_tdwg <- merge(tdwg3_dt, tdwg2_dt, by = "lvl2Code")
-
-  tdwg4 <- vect("./resources/region/tdwg/level4/level4.shp")
-  tdwg4_dt <- convert_spatial_dt(tdwg4)
-  tdwg4_dt <- tdwg4_dt[, .(Level_4_Na, Level3_cod)]
-  colnames(tdwg4_dt) <- c("srcCountry", "lvl3Code")
+  paoo_dt <- paoo_dt[, .(species, TPAoO, PAoO, subRegionName, country, subRegionLong, subRegionLat, westEast)]
   
-  merged_tdwg <- merge(merged_tdwg, tdwg4_dt, by = "lvl3Code")
-
-  catn("Setting up source country.")
+  setnames(paoo_dt, "species", "cleanName")
   
-  src_dt <- copy(src.dt)
-  target_dt <- copy(target.dt)
+  old_names <- c("country", "countryCode", "meanLong", "meanLat") # Later changed to median
+  new_names <- c("originCountry", "originCountryCode", "originMeanLong", "originMeanLat") 
+  setnames(sp_stats, old_names, new_names)
+  sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originMeanLong, originMeanLat)]
   
-  # Get source country
-  src_dt <- src_dt[, .(species, srcCountry = country)]
+  merged_dt <- merge(paoo_dt, sp_stats, by = "cleanName", allow.cartesian = TRUE)
   
-  # combine with tdwg
-  src_dt <- merge(src_dt, merged_tdwg, by = "srcCountry")
+  merged_dt <- merged_dt[subRegionName == "", subRegionName := NA]
   
-  if (taxon == "species") {
-    src_dt <- unique(src_dt, by = "species")
-  }
-
-  print(src_dt)
+  vebcat("Number of species:", highcat(length(unique(merged_dt$species))))
+  vebcat("Number of subRegions:", highcat(length(unique(merged_dt$subRegionName))))
   
-  catn("Setting up target region.")
+  merged_dt <- merged_dt[!is.na(subRegionName)]
   
-  target_dt[, taxonSum := uniqueN(.SD[[taxon]][value == 1], na.rm = TRUE), by = FLOREG]
+  vebcat("Number of species after removing NA subregions:", highcat(length(unique(merged_dt$species))))
+  vebcat("Number of subRegions after removing NA subregions:", highcat(length(unique(merged_dt$subRegionName))))
   
-  target_dt <- unique(target_dt, by = c(taxon, "FLOREG"))
+  vebprint(merged_dt, verbose, text = "Merged Data Table:")
   
-  target_dt <- target_dt[taxonSum > 0]
+  richness_dt <- calculate_taxon_richness(
+    merged_dt, 
+    taxon = taxon,
+  )
   
-  catn("Merging data tables.")
-  sankey_dt <- merge(target_dt, src_dt, by = taxon, allow.cartesian = TRUE, all = TRUE)
+  richness_dt <- get_order_group(
+    richness_dt
+  )
   
-  sankey_dt <- unique(sankey_dt, by = c("FLOREG", "srcCountry"))
+  richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName"))
   
-  vebcat("Appended source regions successfully", color = "funSuccess")
+  richness_dt <- richness_dt[, groupRelativeRichness := sum(relativeRichness), by = .(group, subRegionName)]
   
-  return(sankey_dt)
+  
+  vebprint(richness_dt[, .(sumofRR = sum(relativeRichness)), by = "subRegionName"], verbose, text = "final sum of RelativeRichness per region:")
+  
+  vebcat("Successfully acquired region richness", color = "funSuccess")
+  
+  return(richness_dt)
 }
 
 get_connections <- function(dt, taxon, verbose = FALSE) {
   
   dt_copy <- copy(dt)
   
-  subset_names <- c(taxon, "group", "subRegionName", "subRegionLong", "subRegionLat", "originCountry", "originMeanLong", "originMeanLat", "taxonRichness", "relativeRichness")
-  
-  dt_copy <- dt_copy[, ..subset_names]
+  # subset_names <- c(taxon, "group", "subRegionName", "subRegionLong", "subRegionLat", "originCountry", "originMeanLong", "originMeanLat", "taxonRichness", "relativeRichness")
+  # 
+  # dt_copy <- dt_copy[, ..subset_names]
   
   dt_copy <- dt_copy[!is.na(subRegionName) & subRegionName != "" & !is.na(originCountry) & originCountry != ""]
   
-  dt_copy <- dt_copy[, nLines := .N, by = c(taxon, "subRegionName", "originCountry")]
+  dt_copy <- dt_copy[, connections := .N, by = c(taxon, "subRegionName", "originCountry")]
   
   dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", "originCountry"))
   

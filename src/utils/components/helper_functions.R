@@ -560,7 +560,49 @@ source_all <- function(dir) {
   cat(length(r_files), "scripts sourced from", dir, "and its subdirectories.\n")
 }
 
-mdwrite <- function(source, heading = NULL, data = NULL, open = "a") {
+model_to_md <- function(model) {
+  # Get the summary of the model
+  summary <- summary(model)
+  
+  # Convert the coefficients to a data.table
+  coefficients <- as.data.table(summary$coefficients)
+  setnames(coefficients, "Pr(>|t|)", "p value")
+  
+  coefficients[, "Significance" := ifelse(`p value` < .001, "\\*\\*\\*", 
+                                           ifelse(`p value` < .01, "\\*\\*", 
+                                                  ifelse(`p value` < .05, "\\*", 
+                                                         ifelse(`p value` < .1, ".", " "))))]
+  
+  coefficients <- knitr::kable(coefficients, format = "markdown")
+  
+  # Create the Markdown text
+  md_text <- paste0(
+    "**Call:**  \n",
+    "`", deparse(summary$call), "`\n\n",
+    "**Residuals:**  \n",
+    "- Min: ", round(stats::quantile(summary$residuals, probs = 0), 4), "  \n",
+    "- 1Q: ", round(stats::quantile(summary$residuals, probs = 0.25), 4), "  \n",
+    "- Median: ", round(stats::quantile(summary$residuals, probs = 0.50), 4), "  \n",
+    "- 3Q: ", round(stats::quantile(summary$residuals, probs = 0.75), 4), "  \n",
+    "- Max: ", round(stats::quantile(summary$residuals, probs = 1), 4), "  \n\n",
+    "**Coefficients:**  \n\n",
+    paste(coefficients, collapse = "  \n"), "  \n\n",
+    "Signif. codes:  0 ‘\\*\\*\\*’ 0.001 ‘\\*\\*’ 0.01 ‘\\*’ 0.05 ‘.’ 0.1 ‘ ’ 1  \n\n",
+    "**Residual standard error:** ", round(summary$sigma, 4), " on", 
+    round(summary$fstatistic[[3]], 0), " degrees of freedom  \n",
+    "**Multiple R-squared:** ", round(summary$r.squared, 4), ", ",
+    "**Adjusted R-squared:** ", round(summary$adj.r.squared, 4), "  \n",
+    "**F-statistic:** ", round(summary$fstatistic[1], 2), " on ", 
+    round(summary$fstatistic[2], 0), " and ", 
+    round(summary$fstatistic[3], 0), " DF, ",
+    "**p-value:** ", pf(summary$fstatistic[1], summary$fstatistic[2], summary$fstatistic[3], lower.tail = FALSE)
+  )
+  
+  return(md_text)
+}
+
+
+mdwrite <- function(source, heading = NULL, data = NULL, image = NULL, image.out = "./outputs/images/image", image.which = NULL, device = "jpeg", open = "a") {
   create_file_if(source, keep = TRUE)
     
   if(is.data.table(data) || is.data.frame(data)) {
@@ -573,6 +615,28 @@ mdwrite <- function(source, heading = NULL, data = NULL, open = "a") {
     h_text <- split_str[[2]]
   }
   
+  if (!is.null(image)) {
+    if (grepl("\\.", basename(image.out))) {
+      image_base <- sub("\\..*$", "", basename(image.out))
+      image.out <- paste0(dirname(image.out), "/", image_base) 
+    } 
+    
+    plot_title <- basename(image.out)
+    image.out <- paste0(image.out, ".", device)
+    
+    catn("Writing image to:", colcat(image.out, color = "output"))
+    
+    do.call(device, list(filename = image.out, width = 500, height = 500))
+    
+    if (!is.null(image.which)) {
+      plot(image, which = image.which, pch="*", cex=2, main=h_text)
+    } else {
+      plot(image, pch="*", cex=2, main=h_text)
+    }
+    
+    dev.off()
+  }
+  
   try(con <- file(source, open = open))
   sink(con, type = "output")
   
@@ -581,7 +645,8 @@ mdwrite <- function(source, heading = NULL, data = NULL, open = "a") {
     if (!grepl(";", heading)) catn(heading)
   }
   if (!is.null(data)) print(data)
-  catn()
+  if (!is.null(image)) catn(paste0("![",h_text,"]", "(","images/", basename(image.out),")" ))
+  catn("  ")
   
   sink(type = "output")
   close(con)

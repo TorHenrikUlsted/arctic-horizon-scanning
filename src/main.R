@@ -99,9 +99,9 @@ main <- function(
   cores_max_high <- min(length(sp_list), max_cores$high)
   cores_max_total <- min(length(sp_list), max_cores$total)
   
-  vebprint(max_cores$total, text = "Total cores input into the Hypervolume sequence:")
-  vebprint(max_cores$high, text = "High load cores input into the Hypervolume sequence:")
-  vebprint(max_cores$low, text = "Low load cores input into the Hypervolume sequence:")
+  vebcat("Total cores input into the Hypervolume sequence:", highcat(max_cores$total))
+  vebcat("High load cores input into the Hypervolume sequence:", highcat(max_cores$high))
+  vebcat("Low load cores input into the Hypervolume sequence:", highcat(max_cores$low))
   
   # Run the data_acquisition here instead of inside each node.
   hypervolume_sequence(

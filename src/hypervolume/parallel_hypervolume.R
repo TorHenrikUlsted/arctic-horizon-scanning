@@ -136,9 +136,7 @@ hypervolume_sequence <- function(
   vebprint(clusterEvalQ(parallel$cl, ls()), veb = verbose, text = "All cluster variables:")
 
  tryCatch({
-   res <- clusterApplyLB(parallel$cl, parallel$batch, function(j) {
-     invisible(gc())
-     
+   clusterApplyLB(parallel$cl, parallel$batch, function(j) {
      ram_msg <- FALSE
      # RAM check
      mem_used_gb <- get_mem_usage(type = "used", format = "gb")
@@ -189,6 +187,10 @@ hypervolume_sequence <- function(
        hv.accuracy = hv.accuracy, 
        hv.dims = hv.dims
      )
+     
+     rm(ls())
+     
+     invisible(gc())
      
    }) 
  },
