@@ -87,6 +87,15 @@ get_sp_keys <- function(sp_names, out.dir, verbose = F) {
     catn("Writing out gbif_species to:", colcat(out_file, color = "output"))
     
     fwrite(sp_w_keys, out_file, row.names = F, bom = T)
+    
+    mdwrite(
+      post_seq_nums,
+      heading = paste0(
+        "Number of NA species keys: **", nrows(na_keys_dt), "**  ",
+        "Number of species keys for download: **", nrow(sp_w_keys), "**"
+      )
+    )
+    
   }
   
   vebcat("GBIF Species keys download completed successfully.", color = "funSuccess")

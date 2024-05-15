@@ -27,9 +27,18 @@ main(
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",
-  vis.gradient = "viridis", 
+  vis.gradient = "viridis-B", 
   vis.save.device = "jpeg", 
   vis.save.unit = "px",
   plot.show = FALSE,
+  verbose = FALSE
+)
+
+create_derived_dataset(
+  occurrences.dir = paste0(
+    "./outputs/filter/", 
+    gsub("filter_", "", get_obj_name(filter_glonaf)), 
+    "/chunk/species"
+  ),
   verbose = FALSE
 )

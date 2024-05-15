@@ -12,24 +12,33 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   
   filter_timer = start_timer("filter_timer")
   
+  coord_un_file <- "./outputs/setup/region/coordinateUncertainty-m.txt"
+  
+  if (!file.exists(coord_un_file)) {
+    mdwrite(
+      post_seq_nums,
+      heading = "1;Filter Sequence"
+    )
+  }
+  
   vebcat("Loading dfs.", veb = verbose)
   
-  dfs <- select_wfo_column(
+  dts <- select_wfo_column(
     filepath = "./resources/synonym-checked", 
     col.unique = column, 
     col.select = NULL,
     verbose = verbose
   )
   
-  dfs <- fix_nomatches(
-    dfs = dfs, 
+  dts <- fix_nomatches(
+    dfs = dts, 
     nomatch.edited = "./resources/manual-edit/wfo-nomatch-edited.csv", 
     column = column,
     verbose = verbose
   )
   
   if (is.null(coord.uncertainty)) {
-    coord.uncertainty <- as.numeric(readLines("./outputs/setup/region/coordinateUncertainty-m.txt"))
+    coord.uncertainty <- as.numeric(readLines(coord_un_file))
   }
     
     ####################
@@ -55,7 +64,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   
   if (!is.null(spec.known)) {
     known <- spec.known(
-      dfs = dfs,
+      dts = dts,
       column = column,
       verbose = verbose
     )
@@ -71,12 +80,11 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   } else {
     unknown <- spec.unknown(
       known.filtered = known,
-      dfs = dfs,
+      dts = dts,
       column = column,
       verbose = verbose
     )
   }
-    
   
     ###############################
     # Unknown Occurrence download

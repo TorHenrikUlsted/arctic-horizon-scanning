@@ -102,3 +102,12 @@ create_file_if(post_seq_nums, keep = TRUE)
 #    ggplot     #
 #################
 
+ggtheme.config <- theme(
+  plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 16, face = "bold.italic"),
+  axis.text = element_text(size = 12),
+  axis.title.x = element_text(size = 15, hjust = 0.5),
+  axis.title.y = element_text(size = 15),
+  legend.text = element_text(size = 12),
+  legend.title = element_text(size = 15, hjust = 0.5),
+  legend.position = "bottom",
+)

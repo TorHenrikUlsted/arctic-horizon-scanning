@@ -27,6 +27,15 @@ wrangle_glonaf <- function(name, column, verbose = FALSE) {
   glonaf_species <- set_df_utf8(glonaf_species)
   fwrite(glonaf_species, absent_out, row.names = F, bom = T)
   
+  mdwrite(
+    post_seq_nums,
+    heading = paste0(
+      "2;GloNAF\n\n",
+      "Number of species in GloNAF formatted:", nrow(formatted), "**  ",
+      "Number of species in GloNAF species output:", nrow(glonaf_species), "**",
+    )
+  )
+  
    return(list(
      absent = glonaf_species
     ))

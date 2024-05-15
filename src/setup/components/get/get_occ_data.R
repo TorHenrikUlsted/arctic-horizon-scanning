@@ -125,7 +125,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
     },
     error = function(e) { # 3
       vebcat("An error has occurred: ", e$message, color = "nonFatalError")
-
+      
       message("Taking you to the online site... ")
       browseURL(download.doi)
     }

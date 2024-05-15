@@ -18,7 +18,7 @@ main <- function(
     vis.region.name = "Region", 
     vis.subregion.name = "Sub Region", 
     vis.composition.taxon = "order", 
-    vis.gradient = "viridis", 
+    vis.gradient = "viridis-B", 
     vis.save.device = "jpeg", 
     vis.save.unit = "px",
     plot.show = FALSE,
@@ -42,6 +42,7 @@ main <- function(
     hv_dir <- paste0("./outputs/hypervolume/", gsub("filter_", "", deparse(substitute(spec.unknown))))
     vis_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
     expected_res_name <- gsub("filter_", "", deparse(substitute(spec.unknown)))
+    known_list <- gsub("filter_", "", deparse(substitute(spec.known)))
   }
   
   max_cores <- calc_num_cores(
@@ -99,9 +100,9 @@ main <- function(
   cores_max_high <- min(length(sp_list), max_cores$high)
   cores_max_total <- min(length(sp_list), max_cores$total)
   
-  vebprint(max_cores$total, text = "Total cores input into the Hypervolume sequence:")
-  vebprint(max_cores$high, text = "High load cores input into the Hypervolume sequence:")
-  vebprint(max_cores$low, text = "Low load cores input into the Hypervolume sequence:")
+  vebcat("Total cores input into the Hypervolume sequence:", highcat(max_cores$total))
+  vebcat("High load cores input into the Hypervolume sequence:", highcat(max_cores$high))
+  vebcat("Low load cores input into the Hypervolume sequence:", highcat(max_cores$low))
   
   # Run the data_acquisition here instead of inside each node.
   hypervolume_sequence(
@@ -120,7 +121,8 @@ main <- function(
   
   visualize_sequence(
     out.dir = vis_dir,
-    res.expected = expected_res_name,
+    res.unknown = expected_res_name,
+    res.known = known_list,
     shape = vis.shape,
     hv.dir = hv_dir, 
     hv.method = hv.method,
@@ -135,5 +137,6 @@ main <- function(
     plot.show = plot.show,
     verbose = verbose
   )
+  
   
 }

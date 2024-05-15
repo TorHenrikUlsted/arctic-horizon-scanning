@@ -68,21 +68,10 @@ visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color
       ) +
     scale_y_continuous(breaks = seq(0, 1, by = 0.01)) +
     theme_minimal() + 
+    ggtheme.config +
     theme(
-      plot.title = element_text(
-        color = "black", 
-        vjust = -0.5, 
-        hjust = 0.5, 
-        size = 14, 
-        face = "bold.italic"
-      ),
-      axis.text = element_text(size = 10),
-      axis.text.x = element_text(hjust = 0.5),
       axis.title.x = element_text(color = "#575757"),
       axis.title.y = element_text(color = "#575757"),
-      legend.text = element_text(size = 8),
-      legend.title = element_text(size = 10, hjust = 0.5),
-      legend.position = "bottom"
     )
   
   if (!is.null(vis.x.scale)) {
@@ -199,17 +188,10 @@ if (is.null(vis.x.scale)) {
     ) +
     scale_y_continuous(limits = c(0, NA), labels = function(x) format(x, big.mark = ",", scientific = FALSE) , breaks = seq(0, 1, by = 0.01)) +
     theme_minimal() + 
+    ggtheme.config +
     theme(
-      plot.title = element_text(
-        color = "black", 
-        vjust = -0.5, 
-        hjust = 0,
-        size = 14, 
-        face = "bold.italic"
-      ),
-      legend.text = element_text(size = 8),
-      legend.title = element_text(size = 10, hjust = 0.5),
-      legend.position = "bottom"
+      axis.title.x = element_text(color = "#575757"),
+      axis.title.y = element_text(color = "#575757"),
     )
   
   if (!is.null(vis.x.scale)) {
@@ -265,12 +247,7 @@ visualize_hotspots <- function(raster, region, region.name, extent, projection, 
       fill = "Potential Species Richness") +
     coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
     theme_minimal() +
-    theme(
-      plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
-      legend.text = element_text(size = 8),
-      legend.title = element_text(size = 10, hjust = 0.5),
-      legend.position = "bottom"
-    )
+    ggtheme.config
   
   save_ggplot(
     save.plot = fig2A, 
@@ -321,16 +298,13 @@ visualize_paoo <- function(rast, region, region.name, extent, projection, projec
       ylim = c(extent$ymin, extent$ymax)
     ) +
     theme_minimal() + 
+    ggtheme.config +
     theme(
-      plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
-      legend.text = element_text(size = 8),
-      legend.title = element_text(size = 10, hjust = 0.5),
-      legend.position = "bottom",
-      strip.text = element_text(size = 10, face = "italic")
+      strip.text = element_text(size = 13, face = "italic")
     )
   
   if (!is.null(vis.wrap)) {
-    fig3A <- fig3A + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 20))
+    fig3A <- fig3A + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 40))
   }
   
   if (plot.save) {
@@ -373,10 +347,10 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
   }
   
   catn("Acquiring min and max values.")
-  min_lim <- 0
+  min_lim <- 0.00
   max_lim <- where.max(stack[[1]])[1,][[3]] # Get the first row and last item "value"
   region_ext <- ext(region)
-  vis_breaks <- seq(min_lim, max_lim, length.out = 50)
+  vis_breaks <- seq(min_lim, max_lim, length.out = 8)
   
   catn("Generating plot.")
   fig3B <- ggplot() +
@@ -386,13 +360,14 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
       gradient = vis.gradient,
       scale.type = "fill-c",
       limits = c(min_lim, max_lim), 
-      breaks = c(seq(min_lim, max_lim, by = 50), max_lim), 
+      breaks = vis_breaks,
+      labels = function(x) sprintf("%.2f", round(x, 2)),
       guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       na.value = "transparent"
     ) + 
     labs(
       title = if (vis.title) paste0("Potential New Alien Climatic suitability in ", region.name), 
-      fill = paste0("Potential Climatic Suitability", if (!is.null(vis.unit)) {paste0(" (", vis.unit, ")")} ), 
+      fill = paste0("Potential Climatic Suitability"),# if (!is.null(vis.unit)) {paste0(" (", vis.unit, ")")} ), 
       color = "Country"
     ) +
     coord_sf(
@@ -400,18 +375,13 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
       ylim = c(extent$ymin, extent$ymax)
     ) +
     theme_minimal() + 
+    ggtheme.config +
     theme(
-      plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
-      axis.text.x = element_text(size = 8, angle = 45, hjust = 1),
-      axis.text.y = element_text(size = 8),
-      legend.text = element_text(size = 8),
-      legend.title = element_text(size = 10, hjust = 0.5),
-      legend.position = "bottom",
-      strip.text = element_text(size = 10, face = "italic")
+      strip.text = element_text(size = 13, face = "italic")
       )
   
   if (!is.null(vis.wrap)) {
-    fig3B <- fig3B + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 20))
+    fig3B <- fig3B + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 40))
   } 
   
   if (plot.show) print(fig3B)
@@ -614,47 +584,41 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
   p2 <- ggplot.filler(
     gradient = vis.gradient,
     scale.type = "fill-d",
-    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 3),
+    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "top", ncol = 3),
     na.value = "transparent"
   )
   p3 <- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
   p4 <- labs(
     x = "Floristic Province",
     y = paste0("Potential Relative ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Richness"),
-   if (vis.title) title = paste0("Potential New Alien ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Composition in ", region.name),
+  title = if (vis.title) paste0("Potential New Alien ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Composition in ", region.name),
     fill = paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill)))
   )
   p5 <- theme_minimal()
   p6 <- theme(
-    plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 12, face = "bold.italic"),
-    axis.text.x = element_text(size = 10, angle = 70, hjust = 1),
-    axis.text.y = element_text(size = 10),
-    axis.title.x = element_text(size = 12),
-    axis.title.y = element_text(size = 12),
-    legend.text = element_text(size = 8),
-    legend.title = element_text(size = 10, hjust = 0.5),
-    legend.position = "bottom",
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 14),
+    legend.position = "right"
   )
   
-  fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + p1+p2+p3+p4+p5+p6
+  fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + p1+p2+p3+p4+p5+ggtheme.config+p6
   if (plot.show) print(fig4A)
   
   fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) + p1+
     ggplot.filler(
     gradient = vis.gradient,
     scale.type = "fill-d",
-    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
+    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "top", col = 1),
     na.value = "transparent"
   ) +
-    p3+p4+p5+p6
+    p3+p4+p5+ggtheme.config+p6
   
   if (plot.show) print(fig4B)
   
   save_ggplot(
     save.plot = fig4A, 
     save.name = "figure-4A",
-    save.width = 4700, 
-    save.height = 4300,
+    save.width = 3700, 
+    save.height = 3700,
     save.dir = save.dir, 
     save.device = save.device,
     save.unit = save.unit,
@@ -666,8 +630,8 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
   save_ggplot(
     save.plot = fig4B, 
     save.name = "figure-4B",
-    save.width = 4700, 
-    save.height = 4300,
+    save.width = 3700, 
+    save.height = 3300,
     save.dir = save.dir, 
     save.device = save.device,
     save.unit = save.unit,
@@ -684,14 +648,14 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
 #    Connections 5    #
 #######################
 
-visualize_connections <- function(dt, taxon, region.name, vis.gradient, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
-  vebcat("Visualizing data in a sankey plot", color = "funInit")
+visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gradient, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+  vebcat("Visualizing Connections map", color = "funInit")
   
   wm <- get_world_map(projection = mollweide_crs)
   sub_dt <- copy(dt)
   #sub_dt <- dt[, nLines := uniqueN(get(taxon), na.rm = TRUE), by = .(originCountry, subRegionName)]
   
-  origin_subset <- sub_dt[, .(get(taxon), originMeanLong, originMeanLat, nLines)]
+  origin_subset <- sub_dt[, .(get(taxon), originMeanLong, originMeanLat, connections)]
   setnames(origin_subset, "V1", taxon)
   origin_subset <- unique(origin_subset, by = c(taxon, "originMeanLong", "originMeanLat"))
   origin_points <- get_con_points(origin_subset, "mollweide", "originMeanLong", "originMeanLat", verbose = verbose)
@@ -729,13 +693,18 @@ visualize_connections <- function(dt, taxon, region.name, vis.gradient, vis.titl
   catn("Creating connections plot.")
   
   min_lim <- 0
-  max_lim <- max(merged_dt$nLines)
-  vis_breaks <- seq(min_lim, max_lim, length.out = 8)
+  max_lim <- max(merged_dt$connections)
+  if (taxon == "species") {
+    vis_breaks <- c(min_lim, max_lim)
+  } else {
+    vis_breaks <- seq(min_lim, max_lim, length.out = 8)
+  }
+  
   
   fig5 <- ggplot(data = merged_dt) +
     geom_spatvector(data = wm) +
-    geom_point(aes(x = originX, y = originY, color = "Origin")) +
-    geom_point(aes(x = destX, y = destY, color = "Destination")) +
+    geom_point(aes(x = originX, y = originY, color = "Origin Country")) +
+    geom_point(aes(x = destX, y = destY, color = paste("Arctic", subregion.name))) +
     scale_color_discrete(guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1)) +
     labs(color = "Points") +
     theme(
@@ -746,12 +715,13 @@ visualize_connections <- function(dt, taxon, region.name, vis.gradient, vis.titl
       legend.position = "bottom",
     ) +
     new_scale_color() +
-    geom_segment(aes(x = originX, y = originY, xend = destX, yend = destY, color = nLines)) +
+    geom_segment(aes(x = originX, y = originY, xend = destX, yend = destY, color = connections)) +
     ggplot.filler(
       gradient = vis.gradient,
       scale.type = "color-c",
       limits = c(min_lim, max_lim),
       breaks = vis_breaks,
+      end = ifelse(taxon == "species", 0.5, 1),
       labels = function(x) sprintf("%.0f", x),
       guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
       na.value = "transparent"
@@ -759,16 +729,12 @@ visualize_connections <- function(dt, taxon, region.name, vis.gradient, vis.titl
     labs(
       x = "Longitude",
       y = "Latitude",
-      if (vis.title) title = paste0("Potential New Alien ", paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))), " Richness from origin Country to Arctic Florsitic Province"),
-      color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Count")
+      title = if (vis.title) paste0("Potential New Alien ", paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))), " Richness from origin Country to Arctic Florsitic Province"),
+      color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Connections")
     ) +
     theme_minimal() +
-    theme(
-      axis.text = element_text(size = 10),
-      plot.title = element_text(vjust = 0.5, hjust = 0.5),
-      legend.text = element_text(size = 8),
-      legend.title = element_text(size = 10, hjust = 0.5),
-      legend.position = "bottom"
+    ggtheme.config + theme(
+      plot.title = element_text(size = 14),
     )
     
   if (plot.show) print(fig5)
@@ -776,8 +742,8 @@ visualize_connections <- function(dt, taxon, region.name, vis.gradient, vis.titl
   save_ggplot(
     save.plot = fig5, 
     save.name = save.name,
-    save.width = 4000, 
-    save.height = 3000,
+    save.width = 3200, 
+    save.height = 2000,
     save.dir = save.dir, 
     save.device = save.device,
     save.unit = save.unit,
@@ -786,9 +752,71 @@ visualize_connections <- function(dt, taxon, region.name, vis.gradient, vis.titl
     verbose = verbose
   )
   
-  vebcat("Connection plot successfully visualized", color = "funSuccess")
+  vebcat("Connection map successfully visualized", color = "funSuccess")
 }
 
+visualize_lat_distribution <- function(input.dt, model.scale = "", region.name, vis.gradient, vis.title = FALSE, save.dir, save.name = "figure-6", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+  vebcat("Visualizing Absolute Median Latitude plot", color = "funInit")
+  
+  dt <- copy(input.dt)
+  
+  lat <- switch(model.scale,
+    "log" = log(dt$medianLat),
+    "log10" = log10(dt$medianLat),
+    "sqrt" = sqrt(dt$medianLat),
+    dt$medianLat
+  )
+  
+  overlap <- switch(model.scale,
+    "log" = log(dt$overlapRegion),
+    "log10" = log10(dt$overlapRegion),
+    "sqrt" = sqrt(dt$overlapRegion),
+    dt$overlapRegion
+  )
+  
+  min_lim <- 0
+  max_lim <- max(dt$medianLat)
+  
+  fig6 <- ggplot(data = dt, aes(x = lat, y = overlap)) +
+    geom_point(aes(color = group)) +
+    geom_smooth(method=lm , color="grey", se=TRUE, formula = y ~ x) +
+    ggplot.filler(
+      gradient = vis.gradient,
+      scale.type = "color-d",
+      begin = 0.5,
+      end = 0,
+      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "top", ncol = 1),
+    ) +
+    labs(
+      x = paste0("Absolute Median Latitude", if (model.scale != "") {paste0(" (", model.scale, ")")}),
+      y = paste0("Potential Climatic Overlap", if (model.scale != "") {paste0(" (", model.scale, ")")}),
+      color = "Taxonomic Group",
+      title = if (vis.title) "Influence of Species Latitudinal Ranges on Potential Climatic Overlap"
+    ) +
+    theme_minimal() +
+    ggtheme.config +
+    theme(
+      legend.position = "right"
+    )
+    
+    if (plot.show) print(fig6)
 
+  if (model.scale != "") save.name <- paste0(save.name, "-", model.scale)
+  
+  save_ggplot(
+    save.plot = fig6, 
+    save.name = save.name,
+    save.width = 3200, 
+    save.height = 2000,
+    save.dir = save.dir, 
+    save.device = save.device,
+    save.unit = save.unit,
+    vis.title = vis.title, 
+    plot.show = plot.show, 
+    verbose = verbose
+  )
+  
+  vebcat("Absolute Median Latitude plot Visualized Successfully", color = "funSuccess")
+}
 
 

@@ -26,12 +26,7 @@ chunk_file <- function(file_path, cores.max = 1, chunk.name, chunk.column, chunk
     col_min_data <- find_min_data_col(file_path)
     
     if (!file.exists(paste0(chunk.dir, "/total-rows.txt"))) {
-      # Check the operating system
-      if (Sys.info()["sysname"] == "Windows") {
-        total_rows <- as.numeric(system2("findstr", args = c("/R", "/N", "^", file_path), stdout = TRUE, stderr = NULL))
-      } else {  # for Unix-based systems like Linux and macOS
-        total_rows <- as.numeric(system(paste("awk 'END {print NR}' ", file_path), intern = TRUE))
-      }
+      total_rows <- system_calc_rows(file_path)
       
       writeLines(as.character(total_rows), paste0(chunk.dir, "/total-rows.txt"))
     } else {
@@ -365,6 +360,15 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
   } else {
     catn("All chunk files are present in sp_w_keys$species.")
   }
+  
+  list_md <- list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv",)
+  
+  mdwrite(
+    post_seq_nums,
+    heading = paste0(
+      "Number of species after cleaning: **", length(list_md), "**"
+    )
+  )
   
   vebcat("Chunk cleaning protocol completed successfully.", color = "funSuccess")
 }

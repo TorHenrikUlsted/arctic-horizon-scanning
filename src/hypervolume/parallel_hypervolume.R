@@ -101,6 +101,16 @@ hypervolume_sequence <- function(
     vebprint(head(spec_list, 10), verbose, "species list sample:")
     
     writeLines(spec_list, spec_list_file)
+    
+    mdwrite(
+      post_seq_nums,
+      heading = paste0("1;Hypervolume Sequence\n\n",
+                       "Species removed before analysis because of too few occurrences: ",
+                       "**",nrow(spec_removed),"**  ",
+                       "Species input into the hypervolume sequence: ",
+                       "**",length(spec_list),"**"
+                      ),
+    )
   } else {
     spec_list <- readLines(spec_list_file)
   }
@@ -126,9 +136,7 @@ hypervolume_sequence <- function(
   vebprint(clusterEvalQ(parallel$cl, ls()), veb = verbose, text = "All cluster variables:")
 
  tryCatch({
-   res <- clusterApplyLB(parallel$cl, parallel$batch, function(j) {
-     invisible(gc())
-     
+   clusterApplyLB(parallel$cl, parallel$batch, function(j) {
      ram_msg <- FALSE
      # RAM check
      mem_used_gb <- get_mem_usage(type = "used", format = "gb")
@@ -179,6 +187,10 @@ hypervolume_sequence <- function(
        hv.accuracy = hv.accuracy, 
        hv.dims = hv.dims
      )
+     
+     rm(ls())
+     
+     invisible(gc())
      
    }) 
  },

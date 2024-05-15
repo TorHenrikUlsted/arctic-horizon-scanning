@@ -14,6 +14,13 @@ setup_sequence <- function(hv.method, hv.accuracy, hv.incl.threshold, hv.dims = 
   } else {
     vebcat("Initiating Setup Sequence", color = "seqInit")
     
+    mdwrite(
+      post_seq_nums,
+      heading = paste0(
+        "1;Setup Sequence",
+      )
+    )
+    
     warn_out <- paste0(setup_log, "/warning.txt")
     err_out <- paste0(setup_log, "/error.txt")
     
