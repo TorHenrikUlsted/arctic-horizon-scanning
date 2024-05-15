@@ -110,25 +110,95 @@ clean_output_species <- function(out.dir, dt.result, dt.expected, clean.dirs = N
 }
 
 
-filter_stats_data <- function(vis.dt, out.dir, hv.dir, hv.method, verbose = FALSE) {
+filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv.dir, hv.method, verbose = FALSE) {
   vebcat("Initializing stats data.", color = "funInit")
   
   inc_sp_out <- paste0(out.dir, "/included-species.csv")
   exc_sp_out <- paste0(out.dir, "/excluded-species.csv")
+  infra_sp_out <- paste0(out.dir, "/included-infraspecifics-region.csv")
+  sp_w_infra_out <- paste0(out.dir, "/species-with-infraspecifics.csv")
   
-  if (!file.exists(inc_sp_out) || !file.exists(exc_sp_out) ) {
+  if (!file.exists(inc_sp_out) || !file.exists(exc_sp_out) || !file.exists(infra_sp_out) || !file.exists(sp_w_infra_out)) {
     
     included_sp <- vis.dt[excluded == FALSE, ]
     
+    catn("Writing out to file:", colcat(inc_sp_out, color = "output"))
+    
     fwrite(included_sp, inc_sp_out, bom = TRUE)
     
-    vebcat("Number of included species:", highcat(length(unique(included_sp$cleanName))), veb = verbose)
+    vebcat("Number of included species:", highcat(length(unique(included_sp$cleanName))))
+    
+    # Get underlying taxons and check if they are in the analysis
+    
+    infrasp <- copy(included_sp)
+    
+    setnames(infrasp, "cleanName", "species")
+    
+    infrasp <- unique(infrasp, by = "species")
+    
+    infrasp <- infrasp[, .(species)]
+    
+    known_sp <- fread(known.list, sep = "\t")
+    
+    catn("Acquiring underlying taxon ranks.")
+    
+    infrasp[, matched_infraSpecificEpithet := sapply(species, function(x) {
+      #cat("\rProcessing species", x)
+      matched_subspecies <- known_sp$scientificName[grepl(x, known_sp$scientificName)]
+      if (length(matched_subspecies) > 0) matched_subspecies else NA
+    })]
+    
+    infrasp <- infrasp[!is.na(matched_infraSpecificEpithet), ]
+    
+    infrasp <- infrasp[, list(matched_infraSpecificEpithet = unlist(matched_infraSpecificEpithet)), by = species]
+    
+    vebcat("Found", highcat(length(unique(infrasp$species))), "species with underlying taxons.")
+    
+    catn("Writing out to file:", colcat(infra_sp_out, color = "output"))
+    #fwrite(infrasp, infra_sp_out, bom = TRUE)
+    
+    # Check if they are in the analysis
+    unknwon_files <- list.files(unknown.chunk.dir)
+    
+    unknwon_names <- gsub("-", " ", gsub(".csv", "", unknwon_files))
+    
+    matches <- unique(infrasp$species) %in% unknwon_names
+    
+    matched <- unique(infrasp$species)[matches]
+    
+    infraspecifics <- data.table(species = character(), taxonRank = character(), infraspecificEpithet = character(), scientificName = character())
+    
+    for (i in 1:length(matched)) {
+      cat("\rChecking species if included in analysis:", i, "/", length(matched))
+      sp_file <- paste0(unknown.chunk.dir, "/", paste0(gsub(" ", "-", matched[i]), ".csv"))
+      sp_name <- matched[i]
+      sp <- fread(sp_file)
+      
+      infrasp <- unique(sp$infraspecificEpithet)
+      scientificName <- unique(sp$scientificName)
+      taxonRank <- unique(sp$taxonRank)
+      
+      infraspecifics <- rbind(infraspecifics, data.table(
+        species = sp_name, 
+        taxonRank = taxonRank,
+        infraspecificEpithet = infrasp,
+        scientificName = scientificName
+      ))
+    }
+    
+    vebcat("Found", highcat(length(unique(!is.na(infraspecifics$infraspecificEpithet)))), "Species with additional underlying taxons.")
+    
+    catn("Writing out to file:", colcat(sp_w_infra_out, color = "output"))
+    fwrite(infraspecifics, sp_w_infra_out, bom = TRUE)
+    
+    # Get excluded results
     
     excluded_sp <- vis.dt[excluded == TRUE, ]
     
-    fwrite(excluded_sp, exc_sp_out, bom = TRUE)
+    vebcat("Number of excluded species:", highcat(length(unique(excluded_sp$cleanName))))
     
-    vebcat("Number of excluded species:", highcat(length(unique(excluded_sp$cleanName))), veb = verbose)
+    catn("Writing out to file:", colcat(exc_sp_out, color = "output"))
+    fwrite(excluded_sp, exc_sp_out, bom = TRUE)
     
     mdwrite(
       post_seq_nums, 
@@ -761,10 +831,6 @@ get_connections <- function(dt, taxon, verbose = FALSE) {
   
   dt_copy <- copy(dt)
   
-  # subset_names <- c(taxon, "group", "subRegionName", "subRegionLong", "subRegionLat", "originCountry", "originMeanLong", "originMeanLat", "taxonRichness", "relativeRichness")
-  # 
-  # dt_copy <- dt_copy[, ..subset_names]
-  
   dt_copy <- dt_copy[!is.na(subRegionName) & subRegionName != "" & !is.na(originCountry) & originCountry != ""]
   
   dt_copy <- dt_copy[, connections := .N, by = c(taxon, "subRegionName", "originCountry")]
@@ -788,3 +854,66 @@ get_con_points <- function(dt, projection, longitude, latitude, verbose = FALSE)
 
   return(points)
 }
+
+calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
+  
+  mdwrite(
+    post_seq_nums,
+    heading = "1;List number of rows",
+    veb = write.md
+  )
+  
+  catn("Number of rows in the different files:")
+  catn("--------------------------------------")
+  
+  for (i in 1:length(dt.filenames)) {
+    file <- dt.filenames[i]
+    
+    name_dir <- progressive_dirname(file, begin, end)
+    
+    name <- paste0(basename(name_dir), " - ",basename(file))
+    
+    file_length <- system_calc_rows(file)
+    
+    catn(paste0(name, ":"), highcat(file_length))
+    
+    mdwrite(
+      post_seq_nums,
+      heading = paste0("2;", name),
+      veb = write.md
+    )
+    
+    mdwrite(
+      post_seq_nums,
+      heading = paste0("Number of species: **",file_length,"**"),
+      veb = write.md
+    )
+  }
+  
+  
+  
+  return(invisible())
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

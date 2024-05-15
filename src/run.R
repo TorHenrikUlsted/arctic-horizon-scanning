@@ -34,4 +34,11 @@ main(
   verbose = FALSE
 )
 
-pack_repository()
+create_derived_dataset(
+  occurrences.dir = paste0(
+    "./outputs/filter/", 
+    gsub("filter_", "", get_obj_name(filter_glonaf)), 
+    "/chunk/species"
+  ),
+  verbose = FALSE
+)

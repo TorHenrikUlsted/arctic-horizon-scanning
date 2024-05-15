@@ -42,6 +42,7 @@ main <- function(
     hv_dir <- paste0("./outputs/hypervolume/", gsub("filter_", "", deparse(substitute(spec.unknown))))
     vis_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
     expected_res_name <- gsub("filter_", "", deparse(substitute(spec.unknown)))
+    known_list <- gsub("filter_", "", deparse(substitute(spec.known)))
   }
   
   max_cores <- calc_num_cores(
@@ -120,7 +121,8 @@ main <- function(
   
   visualize_sequence(
     out.dir = vis_dir,
-    res.expected = expected_res_name,
+    res.unknown = expected_res_name,
+    res.known = known_list,
     shape = vis.shape,
     hv.dir = hv_dir, 
     hv.method = hv.method,
@@ -135,5 +137,6 @@ main <- function(
     plot.show = plot.show,
     verbose = verbose
   )
+  
   
 }

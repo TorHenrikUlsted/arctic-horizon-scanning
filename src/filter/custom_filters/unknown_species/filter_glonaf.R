@@ -14,6 +14,10 @@ filter_glonaf = function(known.filtered, dts, column, verbose = FALSE) {
   arctic_present <- known.filtered$present
   arctic_absent <- known.filtered$absent
   
+  mdwrite(
+    post_seq_nums,
+    heading = "2;GloNAF"
+  )
   
   ##############
   # Filter

@@ -1,6 +1,6 @@
 source_all("./src/visualize/components")
 
-visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, shape,  hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.gradient = "viridis", vis.save.device = "jpeg", vis.save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res.known, shape,  hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.gradient = "viridis", vis.save.device = "jpeg", vis.save.unit = "px", plot.show = FALSE, verbose = FALSE) {
   
   ##########################
   #       Load dirs        #
@@ -22,7 +22,9 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
   warn_file <- paste0(log_dir, "/", hv.method, "-warning.txt")
   err_file <- paste0(log_dir, "/", hv.method, "-error.txt")
   stats_file <- paste0(hv.dir, "/", hv.method, "-sequence/stats/stats.csv")
-  expected_res_file <- paste0("./outputs/filter/", res.expected, "/", res.expected, "-absent-final.csv")
+  expected_res_file <- paste0("./outputs/filter/", res.unknown, "/", res.unknown, "-absent-final.csv")
+  unknown_chunk_dir <- paste0("./outputs/filter/", res.unknown, "/chunk/species")
+  known_res_file <- paste0("./outputs/filter/", res.known, "/", res.known, "-present-final.csv")
   res_file <- paste0(hv.dir, "/", hv.method, "-sequence/stats/stats.csv")
   if (vis.title) {
     existing_plots <- basename(list.files(paste0(plot_dir, "/title")))
@@ -71,6 +73,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
   # Get stats csv file
   sp_stats <- filter_stats_data(
     stats_clean,
+    known_res_file,
+    unknown_chunk_dir,
     stats_dir,
     hv.dir = hv.dir, 
     hv.method = hv.method, 
@@ -618,6 +622,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     
     fwrite(connections_md, paste0(con_folder, "/master-result.csv"), bom = TRUE)
     
+    con_region_country <- 
+    
     subsets <- c("subRegionName", "country", "originCountry", "originCountryCode", "connections")
     
     con_spec <- connections_md[, c(.SD, mget(subsets)), .SDcols = "cleanName"]
@@ -730,7 +736,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     
     lat_dist_md <- copy(merged_dt)
     
-    model <- lm(data = lat_dist_md, log(overlapRegion) ~ log(medianLat))
+    model <- lm(data = lat_dist_md, overlapRegion ~ medianLat)
     
     model_summary <- summary(model)
     
@@ -785,6 +791,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.expected, sh
     invisible(gc())
     
   }
+  
+
   
 }
 
