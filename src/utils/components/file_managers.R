@@ -29,15 +29,21 @@ create_file_if <- function(files, keep = F) {
   }
 }
 
-download_if <- function(out.file, download.file.ext, download.direct, download.page) {
+download_if <- function(out.file, download.file.ext, download.direct, download.page, verbose = FALSE) {
   name <- sub("\\..*$", "", basename(out.file))
   vebcat("Checking need for download for", name, color = "funInit")
   
   file_ext <- tail(strsplit(basename(out.file), split = "\\.")[[1]], 1)
   create_dir_if(dirname(out.file))
   
+  vebprint(name, verbose, "Name of file:")
+  vebprint(file_ext, verbose, "Extension of file:")
+  
   file_save <- gsub(file_ext, download.file.ext, out.file)
   save_ext <- tail(strsplit(basename(file_save), split = "\\.")[[1]], 1)
+  
+  vebprint(file_save, verbose, "Name of file to be downloaded:")
+  vebprint(save_ext, verbose, "Extension of file to be downloaded:")
   
   if (!file.exists(out.file)) {
     if(!is.null(download.direct)) {
@@ -52,13 +58,23 @@ download_if <- function(out.file, download.file.ext, download.direct, download.p
         
         new_dir <- paste0(dirname(out.file), "/", list.files(dirname(out.file)))
         
-        for (file in list.files(new_dir, full.names = TRUE)) {
-          filename <- basename(file)
-          out_file <- paste0(dirname(out.file), "/", filename)
-          file.rename(from = file, to = out_file)
+        # check for new dir creation
+        if (!identical(dirname(out.file), dirname(new_dir[1]))) {
+          vebprint(dirname(new_dir[1]), verbose, "Renaming files to dir:")
+          catn("Files unzipped, renaming...")
+          
+          for (file in list.files(new_dir, full.names = TRUE)) {
+            filename <- basename(file)
+            out_file <- paste0(dirname(out.file), "/", filename)
+            file.rename(from = file, to = out_file)
+          }
+          
+          catn("Removing extra directory.")
+          
+          unlink(new_dir, recursive = TRUE)
         }
         
-        unlink(new_dir, recursive = TRUE)
+        vebcat("File unzipped successfully", color = "proSuccess")
       }
       
       if (inherits(download_status, "try-error")) {
@@ -90,5 +106,16 @@ download_if <- function(out.file, download.file.ext, download.direct, download.p
     
   } else {
     vebcat("No need to download", name, color = "funSuccess")
+  }
+}
+
+import_font_if <- function(font, paths, pattern) {
+  if (font %in% fonts()) {
+    catn(font, "already imported")
+  } else {
+    font_import(
+      paths = paths,
+      pattern = pattern
+    )
   }
 }

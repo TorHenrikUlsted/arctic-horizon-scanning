@@ -4,6 +4,7 @@
 .Ruserdata
 resources/data-raw/
 !resources/data-raw/test/
+resources/font/
 resources/region/
 resources/wfo/
 resources/taxon/

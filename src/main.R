@@ -18,8 +18,7 @@ main <- function(
     vis.region.name = "Region", 
     vis.subregion.name = "Sub Region", 
     vis.composition.taxon = "order", 
-    vis.gradient = "viridis-B", 
-    vis.save.device = "jpeg", 
+    vis.save.device = "jpeg",
     vis.save.unit = "px",
     plot.show = FALSE,
     verbose = FALSE
@@ -131,7 +130,6 @@ main <- function(
     vis.region.name = vis.region.name,
     vis.subregion.name = vis.subregion.name,
     vis.composition.taxon = vis.composition.taxon,
-    vis.gradient = vis.gradient,
     vis.save.device = vis.save.device,
     vis.save.unit = vis.save.unit,
     plot.show = plot.show,

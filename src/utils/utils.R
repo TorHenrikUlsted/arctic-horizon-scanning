@@ -23,6 +23,8 @@ pkgs = c(
   "ggnewscale",
   "ggrepel",
   "ggpubr",
+  "gridExtra",
+  "extrafont",
   "tidyterra",
   "scales",
   "rnaturalearth",
@@ -39,6 +41,16 @@ pkgs = c(
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 
+if (Sys.info()["sysname"] == "Linux") {
+  system.running <- "linux"
+} else if (Sys.info()["sysname"] == "Darwin") {
+  system.running <- "mac"
+} else if (Sys.info()["sysname"] == "Windows") {
+  system.running <- "windows"
+} else {
+  stop("Cannot determine what system is being used, add manually. e.g: system.running <- 'Linux'")
+}
+
 source("./src/utils/components/check_updates.R")
 updated <- check_updates(pkgs)
 
@@ -47,6 +59,8 @@ if (updated) {
   
   # Check if rstudioapi is available
   if ("package:rstudioapi" %in% search()) {
+    rm(ls())
+    library(rstudioapi)
     rstudioapi::restartSession()
   } else {
     message("Please restart your R session manually.\n")

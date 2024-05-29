@@ -2,7 +2,7 @@
 #     Frequency 1A      #
 #########################
 
-visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color, vis.shade,vis.shade.name, vis.gradient = "viridis-B", vis.title = FALSE, vis.binwidth = 1, vis.x.scale = "log10", vis.peak.threshold = NULL, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color, vis.shade,vis.shade.name, vis.gradient = "viridis-B", vis.title = FALSE, vis.binwidth = 1, vis.x.scale = "log", vis.peak.threshold = NULL, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
   
   create_dir_if(save.dir)
   
@@ -55,10 +55,12 @@ visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color
       show.legend = TRUE
     ) +
     ggplot.filler(
-      gradient = vis.gradient,
+      gradient = gradient.config$vis.gradient,
       scale.type = "color-b",
-      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
-      breaks = vis_breaks
+      guide = gradient.config$guide,
+      breaks = vis_breaks,
+      labels = function(x) sprintf("%.0f", round(x, 0)),
+      na.value = gradient.config$na.value
     ) +
     labs(
       x = paste0("Potential Species Richness ", if(!is.null(vis.x.scale)) {paste0("(", vis.x.scale, ")")} ), 
@@ -68,7 +70,7 @@ visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color
       ) +
     scale_y_continuous(breaks = seq(0, 1, by = 0.01)) +
     theme_minimal() + 
-    ggtheme.config +
+    theme.config +
     theme(
       axis.title.x = element_text(color = "#575757"),
       axis.title.y = element_text(color = "#575757"),
@@ -173,10 +175,12 @@ if (is.null(vis.x.scale)) {
       aes(y =  after_stat(count) / sum(after_stat(count)))
       ) + 
     ggplot.filler(
-      gradient = vis.gradient,
+      gradient = gradient.config$vis.gradient,
+      guide = gradient.config$guide,
       scale.type = "color-d",
-      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
-      breaks = vis_breaks
+      breaks = vis_breaks,
+      labels = function(x) sprintf("%.0f", round(x, 0)),
+      na.value = gradient.config$na.value
     ) +
     scale_alpha_discrete(guide = "none", range = c(vis_amin, vis_amax)) +
     labs(
@@ -188,7 +192,7 @@ if (is.null(vis.x.scale)) {
     ) +
     scale_y_continuous(limits = c(0, NA), labels = function(x) format(x, big.mark = ",", scientific = FALSE) , breaks = seq(0, 1, by = 0.01)) +
     theme_minimal() + 
-    ggtheme.config +
+    theme.config +
     theme(
       axis.title.x = element_text(color = "#575757"),
       axis.title.y = element_text(color = "#575757"),
@@ -235,19 +239,20 @@ visualize_hotspots <- function(raster, region, region.name, extent, projection, 
     geom_spatvector(data = region) +
     geom_spatraster(data = raster) +
     ggplot.filler(
-      gradient = vis.gradient,
+      gradient = gradient.config$vis.gradient,
+      guide = gradient.config$guide,
       scale.type = "fill-b",
       limits = c(min_lim, max_lim), 
       breaks = vis_breaks,
-      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
-      na.value = "transparent"
+      labels = function(x) sprintf("%.0f", round(x, 0)),
+      na.value = gradient.config$na.value
     ) + 
     labs(
       title = if (vis.title) paste0("Potential New Alien Species Hotspots in the ", region.name), 
       fill = "Potential Species Richness") +
     coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
     theme_minimal() +
-    ggtheme.config
+    theme.config
   
   save_ggplot(
     save.plot = fig2A, 
@@ -282,13 +287,13 @@ visualize_paoo <- function(rast, region, region.name, extent, projection, projec
     geom_spatvector(data = region) +
     geom_spatraster(data = rast) +
     ggplot.filler(
-      gradient = vis.gradient,
+      gradient = gradient.config$vis.gradient,
+      guide = gradient.config$guide,
       scale.type = "fill-c",
       breaks = c(0, 1), 
       labels =  c("0", "1"),
       end = 0.6,
-      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
-      na.value = "transparent"
+      na.value = gradient.config$na.value
     ) + 
     labs(
       title = if (vis.title) paste0("Potential New Aliens with Highest Potential Area of Occupancy in ", region.name), 
@@ -298,13 +303,13 @@ visualize_paoo <- function(rast, region, region.name, extent, projection, projec
       ylim = c(extent$ymin, extent$ymax)
     ) +
     theme_minimal() + 
-    ggtheme.config +
+    theme.config +
     theme(
-      strip.text = element_text(size = 13, face = "italic")
+      strip.text = element_text(size = 16, face = "italic")
     )
   
   if (!is.null(vis.wrap)) {
-    fig3A <- fig3A + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 40))
+    fig3A <- fig3A + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 50))
   }
   
   if (plot.save) {
@@ -357,13 +362,13 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
     geom_spatvector(data = region) +
     geom_spatraster(data = stack) +
     ggplot.filler(
-      gradient = vis.gradient,
+      gradient = gradient.config$vis.gradient,
+      guide = gradient.config$guide,
       scale.type = "fill-c",
       limits = c(min_lim, max_lim), 
       breaks = vis_breaks,
       labels = function(x) sprintf("%.2f", round(x, 2)),
-      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
-      na.value = "transparent"
+      na.value = gradient.config$na.value
     ) + 
     labs(
       title = if (vis.title) paste0("Potential New Alien Climatic suitability in ", region.name), 
@@ -375,7 +380,7 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
       ylim = c(extent$ymin, extent$ymax)
     ) +
     theme_minimal() + 
-    ggtheme.config +
+    theme.config +
     theme(
       strip.text = element_text(size = 13, face = "italic")
       )
@@ -425,7 +430,6 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
     region.name = region.name,
     extent = extent,
     projection = projection,
-    vis.gradient = vis.gradient,
     vis.wrap = vis.wrap,
     save.dir = save.dir,
     save.device = save.device,
@@ -443,7 +447,6 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
     region.name = region.name,
     extent = extent,
     projection = projection,
-    vis.gradient = vis.gradient,
     vis.wrap = vis.wrap,
     save.dir = save.dir,
     save.device = save.device,
@@ -461,7 +464,6 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
     region.name = region.name,
     extent = extent,
     projection = projection,
-    vis.gradient = vis.gradient,
     vis.wrap = vis.wrap,
     save.dir = save.dir,
     save.device = save.device,
@@ -472,12 +474,18 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
   
   catn("Arranging plots.")
   
-  fig3C <- ggarrange(
+  fig3C <- grid.arrange(
     fig_mean, fig_median, fig_max,
-    labels = c("Suitability (mean)\n\n\n", "Suitability (median)\n\n\n", "\nSuitability (max)\n\n\n"),
-    ncol = 1,
-    nrow = n
+    ncol = 1,  # One column for the first row
+    heights = c(1, 1, 1)  # Equal heights for all rows
   )
+  
+  # fig3C <- ggarrange(
+  #   fig_mean, fig_median, fig_max,
+  #   labels = c("Suitability (mean)\n\n\n", "Suitability (median)\n\n\n", "\nSuitability (max)\n\n\n"),
+  #   ncol = 1,
+  #   nrow = n
+  # )
   
   save_ggplot(
     save.plot = fig3C, 
@@ -497,15 +505,15 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
 #     Distribution + suitability 3D      #
 ##########################################
 
-visualize_dist_suit <- function(stack.distribution, stack.suitability, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = NULL, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", return = TRUE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_dist_suit <- function(stack.paoo, stack.suitability, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = NULL, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", return = TRUE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   
   n <- vis.wrap * 3
   
-  dist_raster <- stack.distribution[[1:n]]
+  paoo_raster <- stack.paoo[[1:n]]
   suit_raster <- stack.suitability[[1:n]]
   
-    fig_dist <- visualize_paoo(
-      rast = dist_raster,
+    fig_paoo <- visualize_paoo(
+      rast = paoo_raster,
       region = region,
       region.name = region.name,
       extent = extent,
@@ -517,6 +525,8 @@ visualize_dist_suit <- function(stack.distribution, stack.suitability, region, r
       plot.save = FALSE,
       verbose = verbose
     )
+    
+    fig_paoo <- fig_paoo + ggtitle("Potential Area of Occupancy")
     
     fig_suit <- visualize_suitability(
       stack = suit_raster,
@@ -533,12 +543,20 @@ visualize_dist_suit <- function(stack.distribution, stack.suitability, region, r
       verbose = verbose
     )
     
-  fig3D <- ggarrange(
-    fig_dist, fig_suit,
-    labels = c("Potential Area of Occupancy", "Potential Suitability"),
-    ncol = 1,
-    nrow = 2
-  )
+    fig_suit <- fig_suit + ggtitle("Potential Suitability")
+    
+    fig3D <- grid.arrange(
+      fig_dist, fig_suit,
+      ncol = 1,  # One column for the first row
+      nrow = 2   # Two rows
+    )
+    
+  # fig3D <- ggarrange(
+  #   fig_dist, fig_suit,
+  #   labels = c("Potential Area of Occupancy", "Potential Suitability"),
+  #   ncol = 1,
+  #   nrow = 2
+  # )
   
   save_ggplot(
     save.plot = fig3D, 
@@ -558,7 +576,7 @@ visualize_dist_suit <- function(stack.distribution, stack.suitability, region, r
 #    Richness 4A & B     #
 ##########################
 
-visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fill, vis.group, vis.gradient, vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = F, verbose = F) {
+visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fill, vis.group, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = F, verbose = F) {
   vebcat("Visualizing composition plot", color = "funInit")
   
   dt_copy <- copy(dt)
@@ -576,16 +594,24 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
   # Reorder the bars
   dt_copy[[vis.fill]] <- factor(dt_copy[[vis.fill]])
   
-  levels(dt_copy[[vis.fill]]) <- by_order_group(levels(dt_copy[[vis.fill]]), by = vis.fill, verbose = verbose)
+  vebprint(levels(dt_copy[[vis.fill]]), verbose, "Order levels:")
+  
+  dt_copy <- get_order_group(dt_copy, verbose = verbose)
   
   vebprint(levels(dt_copy[[vis.fill]]), verbose, "Final Levels:")
   
   p1 <-  geom_bar(stat = "identity", position = "stack")
+  
+  # Save config
+  saved_config <- gradient.config$guide
+  gradient.config$guide$params$nrow <- NULL
+  gradient.config$guide$params$ncol <- 3
+  
   p2 <- ggplot.filler(
-    gradient = vis.gradient,
+    gradient = gradient.config$vis.gradient,
+    guide = gradient.config$guide,
     scale.type = "fill-d",
-    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "top", ncol = 3),
-    na.value = "transparent"
+    na.value = gradient.config$na.value
   )
   p3 <- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
   p4 <- labs(
@@ -600,17 +626,19 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
     legend.position = "right"
   )
   
-  fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + p1+p2+p3+p4+p5+ggtheme.config+p6
+  gradient.config$guide$params$ncol <- 1
+  
+  fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + p1+p2+p3+p4+p5+theme.config+p6
   if (plot.show) print(fig4A)
   
   fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) + p1+
     ggplot.filler(
     gradient = vis.gradient,
     scale.type = "fill-d",
-    guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "top", col = 1),
-    na.value = "transparent"
+    guide = gradient.config$guide,
+    na.value = gradient.config$na.value
   ) +
-    p3+p4+p5+ggtheme.config+p6
+    p3+p4+p5+theme.config+p6
   
   if (plot.show) print(fig4B)
   
@@ -640,6 +668,8 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
     verbose = verbose
   )
   
+  # reset config
+  gradient.config$guide <- saved_config
   
   vebcat("Composition plot successfully visualized", color = "funSuccess")
 }
@@ -648,7 +678,7 @@ visualize_richness <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fi
 #    Connections 5    #
 #######################
 
-visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gradient, vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Connections map", color = "funInit")
   
   wm <- get_world_map(projection = mollweide_crs)
@@ -705,7 +735,7 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
     geom_spatvector(data = wm) +
     geom_point(aes(x = originX, y = originY, color = "Origin Country")) +
     geom_point(aes(x = destX, y = destY, color = paste("Arctic", subregion.name))) +
-    scale_color_discrete(guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1)) +
+    scale_color_discrete(guide = gradient.config$guide) +
     labs(color = "Points") +
     theme(
       axis.text = element_text(size = 10),
@@ -717,14 +747,14 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
     new_scale_color() +
     geom_segment(aes(x = originX, y = originY, xend = destX, yend = destY, color = connections)) +
     ggplot.filler(
-      gradient = vis.gradient,
+      gradient = gradient.config$vis.gradient,
       scale.type = "color-c",
+      guide = gradient.config$guide,
       limits = c(min_lim, max_lim),
       breaks = vis_breaks,
       end = ifelse(taxon == "species", 0.5, 1),
-      labels = function(x) sprintf("%.0f", x),
-      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "bottom", nrow = 1),
-      na.value = "transparent"
+      labels = function(x) sprintf("%.0f", round(x, 0)),
+      na.value = gradient.config$na.value
     ) +
     labs(
       x = "Longitude",
@@ -755,7 +785,7 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
   vebcat("Connection map successfully visualized", color = "funSuccess")
 }
 
-visualize_lat_distribution <- function(input.dt, model.scale = "", region.name, vis.gradient, vis.title = FALSE, save.dir, save.name = "figure-6", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_lat_distribution <- function(input.dt, model.scale = "", region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-6", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Absolute Median Latitude plot", color = "funInit")
   
   dt <- copy(input.dt)
@@ -776,16 +806,19 @@ visualize_lat_distribution <- function(input.dt, model.scale = "", region.name, 
   
   min_lim <- 0
   max_lim <- max(dt$medianLat)
+  saved_config <- gradient.config$guide
+  gradient.config$guide$params$nrow <- NULL
+  gradient.config$guide$params$ncol <- 1
   
   fig6 <- ggplot(data = dt, aes(x = lat, y = overlap)) +
     geom_point(aes(color = group)) +
     geom_smooth(method=lm , color="grey", se=TRUE, formula = y ~ x) +
     ggplot.filler(
-      gradient = vis.gradient,
+      gradient = gradient.config$vis.gradient,
       scale.type = "color-d",
+      guide = gradient.config$guide,
       begin = 0.5,
-      end = 0,
-      guide = guide_legend(reverse = FALSE, title.position = "top", label.position = "top", ncol = 1),
+      end = 0
     ) +
     labs(
       x = paste0("Absolute Median Latitude", if (model.scale != "") {paste0(" (", model.scale, ")")}),
@@ -815,6 +848,9 @@ visualize_lat_distribution <- function(input.dt, model.scale = "", region.name, 
     plot.show = plot.show, 
     verbose = verbose
   )
+  
+  # reset config
+  gradient.config$guide <- saved_config
   
   vebcat("Absolute Median Latitude plot Visualized Successfully", color = "funSuccess")
 }

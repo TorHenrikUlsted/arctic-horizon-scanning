@@ -522,16 +522,10 @@ loop_orig_occ <- function(spec.occ.vect, region, file.out, with.coords = TRUE, v
 
 save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir, save.device = "jpeg", save.unit = "px", vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
   vebprint(save.plot, veb = plot.show)
-  title_dir <- paste0(save.dir, "/title")
-  no_title_dir <- paste0(save.dir, "/no-title")
 
-  create_dir_if(c(title_dir, no_title_dir))
-
-  if (vis.title) {
-    fig_out <- paste0(title_dir, "/", save.name, "-title.", save.device)
-  } else {
-    fig_out <- paste0(no_title_dir, "/", save.name, ".", save.device)
-  }
+  fig_out <- paste0(save.dir, "/", save.name, ".", save.device)
+  
+  create_dir_if(dirname(fig_out))
 
   catn("Saving plot to:", colcat(fig_out, color = "output"))
   ggsave(fig_out, device = save.device, unit = save.unit, width = save.width, height = save.height, plot = save.plot)
