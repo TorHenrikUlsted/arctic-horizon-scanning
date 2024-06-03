@@ -118,7 +118,7 @@ filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv
   infra_sp_out <- paste0(out.dir, "/included-infraspecifics-region.csv")
   sp_w_infra_out <- paste0(out.dir, "/species-with-infraspecifics.csv")
   
-  if (!file.exists(inc_sp_out) || !file.exists(exc_sp_out) || !file.exists(infra_sp_out) || !file.exists(sp_w_infra_out)) {
+  if (any(!sapply(c(inc_sp_out, exc_sp_out, infra_sp_out, sp_w_infra_out), file.exists))) {
     
     included_sp <- vis.dt[excluded == FALSE, ]
     
@@ -155,7 +155,7 @@ filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv
     vebcat("Found", highcat(length(unique(infrasp$species))), "species with underlying taxons.")
     
     catn("Writing out to file:", colcat(infra_sp_out, color = "output"))
-    #fwrite(infrasp, infra_sp_out, bom = TRUE)
+    fwrite(infrasp, infra_sp_out, bom = TRUE)
     
     # Check if they are in the analysis
     unknwon_files <- list.files(unknown.chunk.dir)
@@ -184,7 +184,7 @@ filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv
         infraspecificEpithet = infrasp,
         scientificName = scientificName
       ))
-    }
+    }; catn()
     
     vebcat("Found", highcat(length(unique(!is.na(infraspecifics$infraspecificEpithet)))), "Species with additional underlying taxons.")
     

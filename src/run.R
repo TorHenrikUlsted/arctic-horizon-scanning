@@ -27,8 +27,7 @@ main(
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",
-  vis.gradient = "viridis-B", 
-  vis.save.device = "jpeg", 
+  vis.save.device = "svg", 
   vis.save.unit = "px",
   plot.show = FALSE,
   verbose = FALSE
@@ -41,4 +40,9 @@ create_derived_dataset(
     "/chunk/species"
   ),
   verbose = FALSE
+)
+
+pack_repository(
+  filename = "Horizon-Scanning-Repository",
+  which.sequence = "all"
 )

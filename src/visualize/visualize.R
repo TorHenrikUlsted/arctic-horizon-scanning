@@ -1,6 +1,6 @@
 source_all("./src/visualize/components")
 
-visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res.known, shape,  hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.gradient = "viridis", vis.save.device = "jpeg", vis.save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res.known, shape,  hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.save.device = "jpeg", vis.save.unit = "px", plot.show = FALSE, verbose = FALSE) {
   
   ##########################
   #       Load dirs        #
@@ -9,11 +9,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   vis_dir <- paste0(out.dir, "/", hv.method, "-sequence")
   stats_dir <- paste0(vis_dir, "/stats")
   log_dir <- paste0(vis_dir, "/logs")
+  result_dir <- paste0(vis_dir, "/results")
   rast_dir <- paste0(log_dir, "/rasters")
   plot_dir <- paste0(vis_dir, "/plots")
   
   # create dirs
-  create_dir_if(c(stats_dir, log_dir, rast_dir, plot_dir))
+  create_dir_if(c(stats_dir, log_dir, result_dir, rast_dir, plot_dir))
   
   ##########################
   #       Load files       #
@@ -27,10 +28,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   known_res_file <- paste0("./outputs/filter/", res.known, "/", res.known, "-present-final.csv")
   res_file <- paste0(hv.dir, "/", hv.method, "-sequence/stats/stats.csv")
   if (vis.title) {
-    existing_plots <- basename(list.files(paste0(plot_dir, "/title")))
+    plot_dir <- paste0(plot_dir, "/title/", vis.save.device)
+    existing_plots <- basename(list.files(plot_dir))
     exp_title <- "-title"
   } else {
-    existing_plots <- basename(list.files(paste0(plot_dir, "/no-title")))
+    plot_dir <- paste0(plot_dir, "/no-title/", vis.save.device)
+    existing_plots <- basename(list.files(plot_dir))
     exp_title <- ""
   }
   
@@ -100,7 +103,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   region_cell <- get_region_cells(
     shape = shape,
     template.filename = template_file,
-    out.dir = log_dir,
+    out.dir = result_dir,
     verbose = FALSE
   )
   
@@ -138,7 +141,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       region = region, 
       region.name = vis.region.name,
       vis.x = "cellRichness",
-      vis.gradient = vis.gradient,
       vis.title = vis.title,
       vis.color = "country", 
       vis.shade = "subRegionName",
@@ -194,7 +196,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       extent = region_ext,
       region.name = vis.region.name,
       projection  = out_projection,
-      vis.gradient = paste0(vis.gradient, "-B"),
       save.dir = plot_dir,
       save.device = vis.save.device,
       save.unit = vis.save.unit,
@@ -257,7 +258,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       region.name = vis.region.name,
       extent = region_ext,
       projection  = out_projection,
-      vis.gradient = vis.gradient,
       vis.wrap = 3,
       save.dir = plot_dir,
       save.device = vis.save.device,
@@ -317,7 +317,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       region.name = vis.save.region,
       extent = region_ext,
       projection = out_projection,
-      vis.gradient = vis.gradient,
       vis.unit = "mean",
       vis.wrap = 3,
       vis.title = vis.title,
@@ -391,7 +390,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       region.name = vis.region.name,
       extent = region_ext,
       projection = out_projection,
-      vis.gradient = vis.gradient,
       vis.wrap = 1,
       vis.title = vis.title,
       save.dir = plot_dir,
@@ -463,13 +461,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       world_map <- get_world_map(projection = out_projection)
       
       visualize_dist_suit(
-        stack.distribution = paoo_files,
+        stack.paoo = paoo_files,
         stack.suitability = prob_files,
         region = world_map, 
         region.name = vis.region.name,
         extent = region_ext,
         projection = out_projection,
-        vis.gradient = vis.gradient,
         vis.wrap = 1,
         vis.title = vis.title,
         save.dir = plot_dir,
@@ -493,7 +490,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     vebcat("Skipping Composition Figure.", color = "indicator")
   } else {
     
-    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
+    paoo_file <- paste0(result_dir, "/area-of-occupancy.csv") 
     # Figure 4: stacked barplot wtih taxa per sub region
     
     richness_dt <- get_taxon_richness(
@@ -502,7 +499,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       vis.composition.taxon
     )
     
-    visualize_richness(
+    visualize_composition(
       dt = richness_dt,
       region.name = vis.region.name,
       vis.x = "subRegionName",
@@ -510,7 +507,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       vis.y = "relativeRichness",
       vis.fill = vis.composition.taxon,
       vis.group = "group",
-      vis.gradient = vis.gradient,
       vis.title = vis.title,
       save.dir = plot_dir,
       save.device = vis.save.device,
@@ -521,7 +517,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     setnames(richness_write, "V1", vis.composition.taxon)
   
-    fwrite(richness_write, paste0(log_dir, "/taxon-composition.csv"), bom = TRUE)
+    fwrite(richness_write, paste0(result_dir, "/taxon-composition.csv"), bom = TRUE)
     
     catn("Writing taxonomic composition to markdown file.")
     
@@ -571,7 +567,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Connections figure.", color = "indicator")
   } else {
-    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
+    paoo_file <- paste0(result_dir, "/area-of-occupancy.csv") 
     # Figure 4: stacked barplot wtih taxa per sub region
     
     richness_dt <- get_taxon_richness(
@@ -600,7 +596,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
         taxon = taxon,
         region.name = vis.region.name,
         subregion.name = vis.subregion.name,
-        vis.gradient = vis.gradient,
         vis.title = vis.title,
         save.dir = plot_dir,
         save.device = vis.save.device,
@@ -617,18 +612,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       verbose = verbose
     )
     
-    con_folder <- paste0(log_dir, "/connections")
-    create_dir_if(con_folder)
-    
-    fwrite(connections_md, paste0(con_folder, "/master-result.csv"), bom = TRUE)
-    
-    con_region_country <- 
-    
     subsets <- c("subRegionName", "country", "originCountry", "originCountryCode", "connections")
     
     con_spec <- connections_md[, c(.SD, mget(subsets)), .SDcols = "cleanName"]
     
-    fwrite(con_spec, paste0(con_folder, "/connections-species.csv"), bom = TRUE)
+    fwrite(con_spec, paste0(result_dir, "/connections-species.csv"), bom = TRUE)
     
     con_fam <- connections_md[, c(.SD, mget(subsets)), .SDcols = "family"]
     
@@ -636,7 +624,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     con_fam <- unique(con_fam, by = "family")
     
-    fwrite(con_fam, paste0(con_folder, "/connections-family.csv"), bom = TRUE)
+    fwrite(con_fam, paste0(result_dir, "/connections-family.csv"), bom = TRUE)
     
     con_order <- connections_md[, c(.SD, mget(subsets)), .SDcols = "order"]
     
@@ -644,7 +632,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     con_order <- unique(con_order, by = "order")
     
-    fwrite(con_order, paste0(con_folder, "/connections-order.csv"), bom = TRUE)
+    fwrite(con_order, paste0(result_dir, "/connections-order.csv"), bom = TRUE)
     
     
     con_subregion <- copy(connections_md)
@@ -694,7 +682,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     )
     spec_name_stats <- unique(lat_stats$cleanName)
     
-    spec_list <- readLines("./outputs/hypervolume/glonaf/box-sequence/stats/spec-iteration-list.txt")
+    spec_list <- readLines(paste0(hv.dir, "/", hv.method, "-sequence/stats/spec-iteration-list.txt"))
     
     spec_names <- gsub("-", " ", gsub(".csv", "", basename(spec_list)))
     
@@ -725,7 +713,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       input.dt = merged_dt,
       model.scale = "log",
       region.name = vis.region.name,
-      vis.gradient = vis.gradient,
       vis.title = vis.title,
       save.dir = plot_dir,
       save.device = vis.save.device,
@@ -792,7 +779,29 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
   }
   
-
+  # fig_name <- paste0("figure-7", exp_title, ".", vis.save.device)
+  # if (fig_name %in% existing_plots) {
+  #   vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
+  # } else {
+  #   
+  #   filter_dir <- "./outputs/filter"
+  #   
+  #   
+  #   exclude_dirs <- c("chunk","test","logs")
+  #   
+  #   exclude_files <- c("occ.csv",".zip","logs","chunk")
+  #   
+  #   filter_files <- get_repository_files("filter")
+  #   
+  #   calc_list_rows(filter_files)
+  #   
+  #   filter_files <- get_repository_files("setup", subset = "wrangle")
+  #   
+  #   calc_list_rows(filter_files, begin = 1, end = 3)
+  #   
+  #   progressive_dirname(filter_files, begin = 1, end = NULL)
+  #   
+  # }
   
 }
 
