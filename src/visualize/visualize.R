@@ -9,11 +9,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   vis_dir <- paste0(out.dir, "/", hv.method, "-sequence")
   stats_dir <- paste0(vis_dir, "/stats")
   log_dir <- paste0(vis_dir, "/logs")
+  result_dir <- paste0(vis_dir, "/results")
   rast_dir <- paste0(log_dir, "/rasters")
   plot_dir <- paste0(vis_dir, "/plots")
   
   # create dirs
-  create_dir_if(c(stats_dir, log_dir, rast_dir, plot_dir))
+  create_dir_if(c(stats_dir, log_dir, result_dir, rast_dir, plot_dir))
   
   ##########################
   #       Load files       #
@@ -102,7 +103,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   region_cell <- get_region_cells(
     shape = shape,
     template.filename = template_file,
-    out.dir = log_dir,
+    out.dir = result_dir,
     verbose = FALSE
   )
   
@@ -489,7 +490,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     vebcat("Skipping Composition Figure.", color = "indicator")
   } else {
     
-    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
+    paoo_file <- paste0(result_dir, "/area-of-occupancy.csv") 
     # Figure 4: stacked barplot wtih taxa per sub region
     
     richness_dt <- get_taxon_richness(
@@ -516,7 +517,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     setnames(richness_write, "V1", vis.composition.taxon)
   
-    fwrite(richness_write, paste0(log_dir, "/taxon-composition.csv"), bom = TRUE)
+    fwrite(richness_write, paste0(result_dir, "/taxon-composition.csv"), bom = TRUE)
     
     catn("Writing taxonomic composition to markdown file.")
     
@@ -566,7 +567,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Connections figure.", color = "indicator")
   } else {
-    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv") 
+    paoo_file <- paste0(result_dir, "/area-of-occupancy.csv") 
     # Figure 4: stacked barplot wtih taxa per sub region
     
     richness_dt <- get_taxon_richness(
@@ -611,18 +612,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       verbose = verbose
     )
     
-    con_folder <- paste0(log_dir, "/connections")
-    create_dir_if(con_folder)
-    
-    fwrite(connections_md, paste0(con_folder, "/master-result.csv"), bom = TRUE)
-    
-    con_region_country <- 
-    
     subsets <- c("subRegionName", "country", "originCountry", "originCountryCode", "connections")
     
     con_spec <- connections_md[, c(.SD, mget(subsets)), .SDcols = "cleanName"]
     
-    fwrite(con_spec, paste0(con_folder, "/connections-species.csv"), bom = TRUE)
+    fwrite(con_spec, paste0(result_dir, "/connections-species.csv"), bom = TRUE)
     
     con_fam <- connections_md[, c(.SD, mget(subsets)), .SDcols = "family"]
     
@@ -630,7 +624,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     con_fam <- unique(con_fam, by = "family")
     
-    fwrite(con_fam, paste0(con_folder, "/connections-family.csv"), bom = TRUE)
+    fwrite(con_fam, paste0(result_dir, "/connections-family.csv"), bom = TRUE)
     
     con_order <- connections_md[, c(.SD, mget(subsets)), .SDcols = "order"]
     
@@ -638,7 +632,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     con_order <- unique(con_order, by = "order")
     
-    fwrite(con_order, paste0(con_folder, "/connections-order.csv"), bom = TRUE)
+    fwrite(con_order, paste0(result_dir, "/connections-order.csv"), bom = TRUE)
     
     
     con_subregion <- copy(connections_md)
@@ -688,7 +682,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     )
     spec_name_stats <- unique(lat_stats$cleanName)
     
-    spec_list <- readLines("./outputs/hypervolume/glonaf/box-sequence/stats/spec-iteration-list.txt")
+    spec_list <- readLines(paste0(hv.dir, "/", hv.method, "-sequence/stats/spec-iteration-list.txt"))
     
     spec_names <- gsub("-", " ", gsub(".csv", "", basename(spec_list)))
     

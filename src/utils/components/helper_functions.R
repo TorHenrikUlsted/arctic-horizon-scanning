@@ -728,8 +728,10 @@ mdwrite <- function(source, heading = NULL, data = NULL, image = NULL, image.out
 }
 
 create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
-  sp_occ_out <- "./outputs/post-process/datasetKey-count.csv"
-  derived_data_zip_out <- "./outputs/post-process/derived-dataset.zip"
+  sp_occ_out <- "./outputs/post-process/derived-data/datasetKey-count.csv"
+  derived_data_zip_out <- "./outputs/post-process/derived-data/derived-dataset.zip"
+  
+  create_dir_if(sp_occ_out)
 
   if (file.exists(sp_occ_out)) {
     catn("DatasetKey with occurrence count already exists.")
@@ -834,23 +836,17 @@ get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, step
     d <- d[-1]
   }
 
-  vebprint(d, veb = (step == 1), "initial directories:")
+  vebprint(d, veb = (step == 1), paste0(highcat("Step 1"), " | ", highcat("initial directories:")))
   if (!is.null(exclude.dirs)) {
     exclude <- sapply(d, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
 
     d <- d[!exclude]
   }
-  vebprint(d, veb = (step == 2), "First excluded directories:")
-
-  is_outermost <- sapply(d, function(dir) !any(grepl(paste0("^", dir, "/"), d)))
-
-  d <- d[is_outermost]
-
-  vebprint(d, veb = (step == 3), "Remove outermost directories:")
-
+  vebprint(d, veb = (step == 2), paste0(highcat("Step 2"), " | ", highcat("exclude directories:")))
+  
   f <- list.files(d, recursive = FALSE, full.names = TRUE)
 
-  vebprint(f, veb = (step == 4), "List of files:")
+  vebprint(f, veb = (step == 3), paste0(highcat("Step 3"), " | ", highcat("list files:")))
 
   if (!is.null(exclude.files)) {
     exclude <- sapply(f, function(x) any(sapply(exclude.files, function(ex_f) grepl(ex_f, x))))
@@ -858,7 +854,12 @@ get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, step
     f <- f[!exclude]
   }
 
-  vebprint(f, veb = (step == 5), "files after excluded:")
+  vebprint(f, veb = (step == 4), paste0(highcat("Step 4"), " | ", highcat("exclude files:")))
+  
+  
+  f <- f[!file.info(f)$isdir]
+  
+  vebprint(f, veb = (step == 5), paste0(highcat("Step 5"), " | ", highcat("remove directories:"))) 
 
   return(f)
 }
@@ -870,7 +871,7 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
     setup = list(
       dir = "./outputs/setup",
       exclude_dirs = c("wfo-match-nodes", "test", "logs", "system", "locks", "projections"),
-      exclude_files = c("stop-file.txt", ".zip", "wfo-match-nodes"),
+      exclude_files = c("stop-file.txt", ".zip", "wfo-match-nodes", ".rds", ".tif", "stats.csv"),
       step = step
     ),
     filter = list(
@@ -882,15 +883,16 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
     hypervolume = list(
       dir = "./outputs/hypervolume",
       exclude_dirs = c("test", "prep", "locks", "species-prep"),
+      exclude_files = c("init-log.txt", "node-iterations.txt"),
       step = step
     ),
     visualize = list(
       dir = "./outputs/visualize",
-      exclude_dirs = "stack",
+      exclude_dirs = c("stack", "logs"),
       exclude_files = c("warning", "error"),
       step = step
     ),
-    postprocess = list(
+    post_process = list(
       dir = "./outputs/post-process",
       step = step
     ),
@@ -931,12 +933,22 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
   return(repo_files)
 }
 
-pack_repository <- function() {
+pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequence = "all") {
   vebcat("Packing repository", color = "funInit")
+  
+  out_file <- paste0("./outputs/", filename, ".zip")
+  
+  if (file.exists(out_file)) {
+    catn("found file:", colcat(out_file, color = "output"))
+    vebcat("Repository already zipped, remove it or rename the file.", color = "fatalError")
+    return(invisible())
+  }
 
-  repo_files <- get_repository_files(which.sequence == "all")
+  repo_files <- get_repository_files(which.sequence = which.sequence)
 
-  zip(zipfile = "./outputs/Horizon-Scanning-Repository.zip", files = repo_files)
+  zip(zipfile = out_file, files = repo_files)
+  
+  catn("Zip file saved in", colcat(out_file, color = "output"))
 
   vebcat("Repository packed successfully", color = "funSuccess")
 }

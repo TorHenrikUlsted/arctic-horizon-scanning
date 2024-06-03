@@ -100,7 +100,7 @@ pteridophytes <- c(
 #     Files     #
 #################
 
-post_seq_nums <- "./outputs/post-process/sequence-numbers.md" # Do not change the object name
+post_seq_nums <- "./outputs/post-process/markdown/sequence-numbers.md" # Do not change the object name
 create_file_if(post_seq_nums, keep = TRUE)
 
 ####################

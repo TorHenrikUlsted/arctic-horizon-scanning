@@ -235,15 +235,17 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
   
   create_dir_if(dir)
   
-  values_sub_dir <- paste0(dir, "/", hv.project.method)
-  create_dir_if(values_sub_dir)
+  logs_sub_dir <- paste0(dir, "/", hv.project.method)
+  out_dir <- paste0(progressive_dirname(dir, end = 5), "/results")
   
-  values_log <- paste0(values_sub_dir, "/", basename(dir), ".csv")
+  create_dir_if(c(logs_sub_dir, out_dir))
   
-  if (file.exists(values_log)) {
-    catn("Found value table:", values_log)
+  out_file <- paste0(out_dir, "/", basename(dir), ".csv")
+  
+  if (file.exists(out_file)) {
+    catn("Found value table:", out_file)
     
-    process_res <- fread(values_log)
+    process_res <- fread(out_file)
     
   } else {
     catn("No previous table found, acquiring values for", hv.project.method, "method")
@@ -252,7 +254,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     
     parallel_res <- parallel_spec_dirs(
       spec.dirs = spec.dirs,
-      dir = values_sub_dir,
+      dir = logs_sub_dir,
       shape = shape,
       extra = extra,
       hv.project.method = hv.project.method, 
@@ -284,7 +286,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     
     vebprint(head(process_res, 3), verbose, "Processed data:")
     
-    fwrite(process_res, values_log, bom = TRUE)
+    fwrite(process_res, out_file, bom = TRUE)
   }
   
   if (!is.null(out.order)) {

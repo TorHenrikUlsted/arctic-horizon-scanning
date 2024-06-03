@@ -382,11 +382,11 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
     theme_minimal() + 
     theme.config +
     theme(
-      strip.text = element_text(size = 13, face = "italic")
+      strip.text = element_text(size = 16, face = "italic")
       )
   
   if (!is.null(vis.wrap)) {
-    fig3B <- fig3B + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 40))
+    fig3B <- fig3B + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 50))
   } 
   
   if (plot.show) print(fig3B)
@@ -439,7 +439,7 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
     verbose = verbose
   ) 
   
-  fig_mean + theme(legend.position = "none")
+  fig_mean <- fig_mean + theme(legend.position = "none") + ggtitle("Potential Mean Suitability")
   
   fig_median <- visualize_suitability(
     stack = stack_median,
@@ -456,7 +456,7 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
     verbose = verbose
   )
   
-  fig_median + theme(legend.position = "none")
+  fig_median <- fig_median + theme(legend.position = "none") + ggtitle("Potential Median Suitability")
   
   fig_max <- visualize_suitability(
     stack = stack_max,
@@ -472,6 +472,8 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
     verbose = verbose
   )
   
+  fig_max <- fig_max + ggtitle("Potential Max Suitability")
+  
   catn("Arranging plots.")
   
   fig3C <- grid.arrange(
@@ -479,13 +481,6 @@ visualize_suit_units <- function(stack.mean, stack.median, stack.max, region, re
     ncol = 1,  # One column for the first row
     heights = c(1, 1, 1)  # Equal heights for all rows
   )
-  
-  # fig3C <- ggarrange(
-  #   fig_mean, fig_median, fig_max,
-  #   labels = c("Suitability (mean)\n\n\n", "Suitability (median)\n\n\n", "\nSuitability (max)\n\n\n"),
-  #   ncol = 1,
-  #   nrow = n
-  # )
   
   save_ggplot(
     save.plot = fig3C, 
@@ -518,7 +513,6 @@ visualize_dist_suit <- function(stack.paoo, stack.suitability, region, region.na
       region.name = region.name,
       extent = extent,
       projection  = projection,
-      vis.gradient = vis.gradient,
       vis.wrap = vis.wrap,
       save.dir = save.dir,
       return = return,
@@ -534,7 +528,6 @@ visualize_dist_suit <- function(stack.paoo, stack.suitability, region, region.na
       region.name = region.name,
       extent = extent,
       projection = projection,
-      vis.gradient = vis.gradient,
       vis.wrap = vis.wrap,
       save.dir = save.dir,
       save.device = save.device,
@@ -545,19 +538,14 @@ visualize_dist_suit <- function(stack.paoo, stack.suitability, region, region.na
     
     fig_suit <- fig_suit + ggtitle("Potential Suitability")
     
+    catn("Arranging plots.")
+    
     fig3D <- grid.arrange(
-      fig_dist, fig_suit,
+      fig_paoo, fig_suit,
       ncol = 1,  # One column for the first row
       nrow = 2   # Two rows
     )
     
-  # fig3D <- ggarrange(
-  #   fig_dist, fig_suit,
-  #   labels = c("Potential Area of Occupancy", "Potential Suitability"),
-  #   ncol = 1,
-  #   nrow = 2
-  # )
-  
   save_ggplot(
     save.plot = fig3D, 
     save.name = save.name,
@@ -573,7 +561,7 @@ visualize_dist_suit <- function(stack.paoo, stack.suitability, region, region.na
 }
 
 ##########################
-#    Richness 4A & B     #
+#   Composition 4A & B   #
 ##########################
 
 visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fill, vis.group, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = F, verbose = F) {
@@ -603,44 +591,40 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
   p1 <-  geom_bar(stat = "identity", position = "stack")
   
   # Save config
-  saved_config <- gradient.config$guide
+  saved_config_params <- gradient.config$guide$params
   gradient.config$guide$params$nrow <- NULL
-  gradient.config$guide$params$ncol <- 3
+  gradient.config$guide$params$ncol <- 1
   
   p2 <- ggplot.filler(
     gradient = gradient.config$vis.gradient,
-    guide = gradient.config$guide,
+    guide = guide_legend(ncol = 2),
     scale.type = "fill-d",
     na.value = gradient.config$na.value
   )
-  p3 <- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
   p4 <- labs(
     x = "Floristic Province",
-    y = paste0("Potential Relative ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Richness"),
-  title = if (vis.title) paste0("Potential New Alien ", paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), " Composition in ", region.name),
+    y = paste0("Potential Relative ", 
+               paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), 
+               " Richness"
+              ),
+  title = if (vis.title) paste0(
+    "Potential New Alien ", 
+    paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill))), 
+    " Composition in ", 
+    region.name
+  ),
     fill = paste0(toupper(substr(vis.fill, 1, 1)), substr(vis.fill, 2, nchar(vis.fill)))
   )
   p5 <- theme_minimal()
   p6 <- theme(
-    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 14),
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 16),
     legend.position = "right"
   )
   
-  gradient.config$guide$params$ncol <- 1
+  fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + 
+    p1+p2+p4+p5+theme.config+p6
   
-  fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + p1+p2+p3+p4+p5+theme.config+p6
   if (plot.show) print(fig4A)
-  
-  fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) + p1+
-    ggplot.filler(
-    gradient = vis.gradient,
-    scale.type = "fill-d",
-    guide = gradient.config$guide,
-    na.value = gradient.config$na.value
-  ) +
-    p3+p4+p5+theme.config+p6
-  
-  if (plot.show) print(fig4B)
   
   save_ggplot(
     save.plot = fig4A, 
@@ -654,6 +638,18 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
     plot.show = plot.show, 
     verbose = verbose
   )
+  
+  fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) + 
+    p1 +
+    ggplot.filler(
+    gradient = vis.gradient,
+    scale.type = "fill-d",
+    guide = guide_legend(ncol = 1),
+    na.value = gradient.config$na.value
+  ) +
+    p4+p5+theme.config+p6
+  
+  if (plot.show) print(fig4B)
   
   save_ggplot(
     save.plot = fig4B, 
@@ -669,7 +665,7 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
   )
   
   # reset config
-  gradient.config$guide <- saved_config
+  gradient.config$guide$params <- saved_config_params
   
   vebcat("Composition plot successfully visualized", color = "funSuccess")
 }
@@ -735,7 +731,7 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
     geom_spatvector(data = wm) +
     geom_point(aes(x = originX, y = originY, color = "Origin Country")) +
     geom_point(aes(x = destX, y = destY, color = paste("Arctic", subregion.name))) +
-    scale_color_discrete(guide = gradient.config$guide) +
+    scale_color_discrete(guide = guide_legend(title.position = "top", ncol = 1)) +
     labs(color = "Points") +
     theme(
       axis.text = element_text(size = 10),
@@ -763,7 +759,7 @@ visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gr
       color = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Connections")
     ) +
     theme_minimal() +
-    ggtheme.config + theme(
+    theme.config + theme(
       plot.title = element_text(size = 14),
     )
     
@@ -827,7 +823,7 @@ visualize_lat_distribution <- function(input.dt, model.scale = "", region.name, 
       title = if (vis.title) "Influence of Species Latitudinal Ranges on Potential Climatic Overlap"
     ) +
     theme_minimal() +
-    ggtheme.config +
+    theme.config +
     theme(
       legend.position = "right"
     )

@@ -41,3 +41,8 @@ create_derived_dataset(
   ),
   verbose = FALSE
 )
+
+pack_repository(
+  filename = "Horizon-Scanning-Repository",
+  which.sequence = "all"
+)
