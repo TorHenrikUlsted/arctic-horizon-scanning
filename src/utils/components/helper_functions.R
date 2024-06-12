@@ -223,11 +223,19 @@ get_order_group <- function(dt, verbose = FALSE) {
   dt_res <- copy(dt)
 
   dt_res[, group := as.character(NA)]
-
-  dt_res[order %in% angiosperms, group := "angiosperm"]
-
-  dt_res[order %in% gymnosperms, group := "gymnosperm"]
-  dt_res[order %in% pteridophytes, group := "pteridophyte"]
+  
+  dt_res[order %in% config$species$angiosperms, group := "angiosperm"]
+  dt_res[order %in% config$species$gymnosperms, group := "gymnosperm"]
+  dt_res[order %in% config$species$pteridophytes, group := "pteridophyte"]
+  
+  # Concatenate the vectors in the desired order
+  all_orders <- c(config$species$pteridophytes, config$species$gymnosperms, config$species$angiosperms)
+  
+  # Only keep the orders that are present in dt_res$order
+  valid_orders <- all_orders[all_orders %in% dt_res$order]
+  
+  # Set the levels of the order factor
+  dt_res$order <- factor(dt_res$order, levels = valid_orders)
 
   return(dt_res)
 }

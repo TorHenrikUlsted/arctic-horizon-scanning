@@ -20,7 +20,7 @@ config <- list(
   
   memory = list(
     mem_total = get_mem_usage("total"),
-    mem_limit = mem_total * 0.75,
+    mem_limit = get_mem_usage("total") * 0.75,
     total_cores = detectCores() * 0.4
   ),
   
@@ -126,7 +126,6 @@ mollweide_crs <- edit_crs(config$projection$mollweide, "BASEGEOGCRS", "WGS 84")
 
 stere_north_crs <- edit_crs(config$projection$stere_north, "PROJCRS", "stere north")
 stere_north_crs <- edit_crs(config$projection$stere_north, "BASEGEOGCRS", "WGS 84")
-
 
 #################
 #     Files     #

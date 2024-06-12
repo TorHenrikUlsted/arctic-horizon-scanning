@@ -591,15 +591,15 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
   p1 <-  geom_bar(stat = "identity", position = "stack")
   
   # Save config
-  saved_config_params <- gradient.config$guide$params
-  gradient.config$guide$params$nrow <- NULL
-  gradient.config$guide$params$ncol <- 1
+  saved_config_params <- config$ggplot$gradient$guide$params
+  config$ggplot$gradient$guide$params$nrow <- NULL
+  config$ggplot$gradient$guide$params$ncol <- 1
   
   p2 <- ggplot.filler(
-    gradient = gradient.config$vis.gradient,
+    gradient = config$ggplot$gradient$vis.gradient,
     guide = guide_legend(ncol = 2),
     scale.type = "fill-d",
-    na.value = gradient.config$na.value
+    na.value = config$ggplot$gradient$na.value
   )
   p4 <- labs(
     x = "Floristic Province",
@@ -622,7 +622,7 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
   )
   
   fig4A <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.fill))) + 
-    p1+p2+p4+p5+theme.config+p6
+    p1+p2+p4+p5+config$ggplot$theme+p6
   
   if (plot.show) print(fig4A)
   
@@ -642,12 +642,12 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
   fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) + 
     p1 +
     ggplot.filler(
-    gradient = vis.gradient,
+    gradient = config$ggplot$gradient,
     scale.type = "fill-d",
     guide = guide_legend(ncol = 1),
-    na.value = gradient.config$na.value
+    na.value = config$ggplot$gradient$na.value
   ) +
-    p4+p5+theme.config+p6
+    p4+p5+config$ggplot$theme+p6
   
   if (plot.show) print(fig4B)
   
@@ -665,7 +665,7 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
   )
   
   # reset config
-  gradient.config$guide$params <- saved_config_params
+  config$ggplot$gradient$guide$params <- saved_config_params
   
   vebcat("Composition plot successfully visualized", color = "funSuccess")
 }

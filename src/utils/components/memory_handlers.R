@@ -120,7 +120,7 @@ stop_mem_tracking <- function(control, file.stop) {
   return(peak_mem_usage)
 }
 
-calc_num_cores <- function(ram.high, ram.low = 0, verbose = FALSE) {
+calc_num_cores <- function(ram.high, ram.low = 0, cores.total = detectCores(), verbose = FALSE) {
   # Ratio of high ram cores
   if (ram.low == 0) {
     high_core_ratio <- 1
@@ -131,14 +131,14 @@ calc_num_cores <- function(ram.high, ram.low = 0, verbose = FALSE) {
   }
   
   # Calc ram the process will use
-  high_load_cores <- floor(total_cores * high_core_ratio)
-  low_load_cores <- floor(total_cores - high_load_cores)
+  high_load_cores <- floor(cores.total * high_core_ratio)
+  low_load_cores <- floor(cores.total - high_load_cores)
   
-  vebprint(total_cores, veb = verbose, "total_cores:")
+  vebprint(cores.total, veb = verbose, "total_cores:")
   vebprint(high_load_cores, veb = verbose, "high_load_cores:")
   vebprint(low_load_cores, veb = verbose, "low_load_cores:")
   
-  mem_limit_gb <- mem_limit / 1024^3
+  mem_limit_gb <- get_mem_usage("total", format = "gb")
   
   # Get the memory limit for high and low loads
   max_high_mem <- floor(mem_limit_gb * high_core_ratio)
@@ -156,7 +156,7 @@ calc_num_cores <- function(ram.high, ram.low = 0, verbose = FALSE) {
   
   max_cores <- max_cores_high + max_cores_low
   
-  max_cores <- min(max_cores, total_cores)
+  max_cores <- min(max_cores, cores.total)
   
   vebprint(max_cores, veb = verbose, "max cores:")
   

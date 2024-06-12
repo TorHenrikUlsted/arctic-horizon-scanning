@@ -47,7 +47,8 @@ main <- function(
   }
   
   max_cores <- calc_num_cores(
-    ram.high = total_cores, 
+    ram.high = config$memory$total_cores,
+    cores.total = config$memory$total_cores,
     verbose =  FALSE
   )
   
