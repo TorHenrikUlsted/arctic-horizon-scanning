@@ -118,48 +118,46 @@ select_wfo_column <- function(filepath, col.unique, col.select = NULL, col.combi
   }
   
   # make a list of data frames based on the different CSV files and also check for any "no matches" then add those to their own data frame.
-  df_list <- lapply(csv_files, function(file) {
-    df <- fread(file)
+  dt_list <- lapply(csv_files, function(file) {
+    dt <- fread(file)
     
-    if (is.vector(col.unique) && length(col.unique) > 1) {
-      vebcat("\nFound vector more than 1 in length, combining columns:", highcat(col.unique), veb = verbose)
-      df$refinedScientificName <- apply(df[, ..col.unique, drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " "))
-      df$refinedScientificName <- trimws(df$refinedScientificName)
-      col.unique <- "refinedScientificName"
-    }
+    # Remove only genus names
+    dt[, taxonRank := tolower(taxonRank)] # in case some are not lowercase
+    dt <- dt[taxonRank != "genus"]
     
     if (!is.null(col.select)) {
       vebcat("Selecting the", highcat(col.select), "column(s) and using", highcat(col.unique), "as the unique column.", veb = verbose)
-      df_sel <- df %>% 
-        select(all_of(c(col.select, col.unique)))
+      
+      dt_sel <- dt[, c(col.select, col.unique), with = FALSE]
+      
     } else {
       vebcat("Using the", col.unique, "as unique column.", veb = verbose)
-      df_sel <- df %>% 
-        select(all_of(col.unique))
+      
+      dt_sel <- dt[, ..col.unique, with = FALSE]
     }
     
-    df_uniq <- df_sel[!duplicated(df_sel[[col.unique]]), ]
+    dt_uniq <- dt_sel[!duplicated(dt_sel[[col.unique]]), ]
     
-    n_orig <- nrow(df_sel)
-    n_uniq <- nrow(df_uniq)
    if (verbose) {
+     n_orig <- nrow(dt_sel)
+     n_uniq <- nrow(dt_uniq)
      catn("\nList:", highcat(sub("-wfo-one.csv$", "", basename(file))))
      cat(sprintf("%-10s | %s \n", "n_species", "unique(n_species)"))
      cat(highcat(sprintf("%-10d | %d \n", n_orig, n_uniq)))
      catn()
    }
     
-    return(df_uniq)
+    return(dt_uniq)
   })
   
-  names(df_list) <- sub("-wfo-one.csv$", "", basename(csv_files))
-  names(df_list) <- gsub("-", "_", names(df_list))
+  names(dt_list) <- sub("-wfo-one.csv$", "", basename(csv_files))
+  names(dt_list) <- gsub("-", "_", names(dt_list))
   
   
-  return(df_list = df_list)
+  return(dt_list = dt_list)
 }
 
-fix_nomatches <- function(dfs, nomatch.edited, column, verbose = FALSE) {
+fix_nomatches <- function(dts, nomatch.edited, column, verbose = FALSE) {
   catn("Fixing nomatches.")
   
   # Combine no-matches
@@ -186,23 +184,23 @@ fix_nomatches <- function(dfs, nomatch.edited, column, verbose = FALSE) {
       next
     }
     
-    # Check if listOrigin exists in dfs
-    if (!listOrigin %in% names(dfs)) {
+    # Check if listOrigin exists in dts
+    if (!listOrigin %in% names(dts)) {
       vebcat("Invalid listOrigin in row ", i, ": ", listOrigin, color = "nonFatalError")
       next
     }
     
-    # Create a new data table with the same columns as dfs[[listOrigin]]
+    # Create a new data table with the same columns as dts[[listOrigin]]
     new_row <- data.table(scientificName)
-    setnames(new_row, names(dfs[[listOrigin]]))
+    setnames(new_row, names(dts[[listOrigin]]))
     
-    # Append the scientificName to the corresponding data table in dfs
-    dfs[[listOrigin]] <- rbindlist(list(dfs[[listOrigin]], new_row))
+    # Append the scientificName to the corresponding data table in dts
+    dts[[listOrigin]] <- rbindlist(list(dts[[listOrigin]], new_row))
   }
   
   vebcat("the manually formatted synonym checks have been successfully added to correct data frames.", veb = verbose, color = "proSuccess")
   
-  return(dfs)
+  return(dts)
 }
 
 write_filter_fun <- function(file.out, spec.in, fun = NULL) {
@@ -314,6 +312,7 @@ chunk_protocol <- function(
     chunk.size = 1e6,
     cores.max = 1,
     iterations = NULL,
+    approach = FALSE,
     verbose = FALSE
 ) {
   
@@ -322,6 +321,7 @@ chunk_protocol <- function(
   if (is.character(spec.occ)) {
     chunk_file(
       file_path = spec.occ,
+      approach = approach,
       chunk.name = chunk.name,
       chunk.column = chunk.col, 
       chunk.dir = chunk.dir, 
@@ -333,10 +333,11 @@ chunk_protocol <- function(
     
   } else if ("data.frame" %in% class(spec.occ) || "data.table" %in% class(spec.occ) ) {
     chunk_loaded_df(
-      df = spec.occ,
+      dt = spec.occ,
+      approach = approach,
       chunk.name = chunk.name,
       chunk.column = chunk.col, 
-      chunk.dir = chunk.dir, 
+      chunk.dir = chunk.dir,
       verbose = verbose
     )
     
@@ -344,18 +345,15 @@ chunk_protocol <- function(
     stop("Invalid input, either filepath or data frame/table")
   }
   
-  # If chunk_loaded_df or chunk_file has a vector input, then "combined" must be used as chunk.column parameter, else the same as chunk_loaded_df. chunk.name has to be the same for all.
-  if (is.vector(chunk.col)) {
-    chunk.col = "cleanName"
+  if (approach == "conservative") { # this has to be fixed specifically for new conservative approach.
+    clean_chunks(
+      chunk.name = chunk.name,
+      chunk.column = chunk.col, 
+      chunk.dir = chunk.dir, 
+      sp_w_keys = spec.keys,
+      verbose = verbose
+    )
   }
-  
-  clean_chunks(
-    chunk.name = chunk.name,
-    chunk.column = chunk.col, 
-    chunk.dir = chunk.dir, 
-    sp_w_keys = spec.keys,
-    verbose = verbose
-  )
 }
 
 

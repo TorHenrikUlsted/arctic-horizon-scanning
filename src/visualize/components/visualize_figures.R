@@ -274,12 +274,12 @@ visualize_hotspots <- function(raster, region, region.name, extent, projection, 
 #    Distribution 3A    #
 #########################
 
-visualize_paoo <- function(rast, region, region.name, extent, projection, projection.method, vis.gradient ="viridis-b", vis.wrap = FALSE, vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", return = FALSE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_paoo <- function(rast, region, region.name, extent, projection, vis.gradient ="viridis-b", vis.wrap = FALSE, vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", return = FALSE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing species with highest Potential Area of occupancy", color = "funInit")
   
   catn("Checking crs.")
-  rast <- check_crs(rast, projection, projection.method, verbose = verbose)
-  region <- check_crs(region, projection, projection.method, verbose = verbose)  
+  rast <- check_crs(rast, projection, projection.method = "near", verbose = verbose)
+  region <- check_crs(region, projection, projection.method = "near", verbose = verbose)  
   
   catn("Plotting hotspots.")
   
@@ -341,15 +341,15 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
   vebcat("Visualizing suitability plot", color = "funInit")
   
   stack <- check_crs(stack, projection, "bilinear", verbose = verbose)
-  region <- check_crs(region, projection, "bilinear", verbose = verbose)
+  region <- check_crs(region, projection, "near", verbose = verbose)
   
-  if (!identical(crs(stack, proj = TRUE), crs(region, proj = TRUE))) {
-    catn("Reprojecting to laea.")
-    catn(crs(stack, proj = TRUE))
-    catn(crs(region, proj = TRUE))
-    catn(identical(crs(stack, proj = TRUE), crs(region, proj = TRUE)))
-    stack <- project(stack, laea_crs, method = "bilinear")
-  }
+  # if (!identical(crs(stack, proj = TRUE), crs(region, proj = TRUE))) {
+  #   catn("Reprojecting to laea.")
+  #   catn(crs(stack, proj = TRUE))
+  #   catn(crs(region, proj = TRUE))
+  #   catn(identical(crs(stack, proj = TRUE), crs(region, proj = TRUE)))
+  #   stack <- project(stack, laea_crs, method = "bilinear")
+  # }
   
   catn("Acquiring min and max values.")
   min_lim <- 0.00

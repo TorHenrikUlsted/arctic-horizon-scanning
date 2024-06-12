@@ -70,7 +70,7 @@ most_used_name <- function(x, max.number = 1) {
   name <- unique(x)
   
   if (length(name) > max.number) {
-    vebcat("Found too many different strings.", color = "nonFatalError")
+    vebcat("Found too many different names.", color = "nonFatalError")
     
     freq_table <- table(x)
     
@@ -88,6 +88,8 @@ condense_taxons <- function(spec.dt, verbose = FALSE) {
   taxon_cols <- spec.dt[, ..cols_to_select]
   ct_cols <- data.table(matrix(ncol = length(cols_to_select), nrow = 1)) # condensed taxon cols
   setnames(ct_cols, names(taxon_cols))
+  
+  cols_to_ignore <- c("infraspecificEpithet", "taxonRank", "scientificName")
   
   for (i in 1:length(taxon_cols)) {
     column <- taxon_cols[[i]]
@@ -140,10 +142,6 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
     stop("Input must be a data.table")
   }
   
-  prep_dir <- paste0(process.dir, "/species-prep")
-  
-  create_dir_if(prep_dir)
-  
   vebcat("Preparing species", color = "funInit")
   
   vebprint(head(dt, 3), verbose, text = "Data frame sample:")
@@ -176,93 +174,34 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
     return(NULL)
   }
   
-  vebcat("Thining coordinates with spThin.", veb = verbose)
-  vebcat("max.files written:", length(unique(dt$cleanName)), veb = verbose)
-  
-  mem_lim <- get_mem_usage("total", "gb") * 0.07
-  
-  df_size <- object.size(dt)
-  
-  number_bytes <- 8
-  boolean_bytes <- 4
-  df_est <- df_size * 2
-  small_df_est <- (number_bytes * 2) * 48662
-  dist_matrix_est <- number_bytes * nrow(dt) * nrow(dt)
-  dist_vect_est <- number_bytes * nrow(dt)
-  dist_bool_est <- boolean_bytes * nrow(dt)
-  df_out_est <- (number_bytes * 2) * nrow(dt)
-  total_est <- (df_est + dist_matrix_est + dist_vect_est + dist_bool_est + df_out_est)
-  
-  etr <- total_est / 1024^3 * 4
-  
-  splits <- ceiling(etr / mem_lim)
-  
-  vebcat("Estimated RAM usage:", etr, veb = verbose)
-  vebcat("Max allowed usage", mem_lim, veb = verbose)
-  vebcat("Splits needed", splits, veb = verbose)
-  
-  tryCatch({
-    df_list <- split(dt, factor(sort(rank(row.names(dt)) %% splits)))
-    
-    vebcat("Actual splits made:", length(df_list), veb = verbose) 
-    
-    sp_thinned_list <- lapply(df_list, function(sp) {
-      catn("max.files:", length(unique(sp$cleanName)))
-      catn("out.base:", paste0(unique(gsub(" ", "_", sp$cleanName))))
-      
-      sp_thinned <- suppressWarnings(thin(
-        loc.data = sp,
-        lat.col = "decimalLatitude",
-        long.col = "decimalLongitude",
-        spec.col = "cleanName",
-        locs.thinned.list.return = TRUE,
-        write.files = FALSE,
-        max.files = length(unique(sp$cleanName)),
-        out.dir = paste0(prep_dir, "/species"),
-        out.base = paste0(unique(gsub(" ", "_", sp$cleanName))),
-        log.file = paste0(prep_dir, "/thin-log.txt"),
-        thin.par = 0.351,
-        reps = 1,
-      ))
-      
-      sp_thinned <- sp_thinned[[1]]
-      
-      sp_thinned$cleanName <- unique(sp$cleanName)
-      
-      sp_thinned <- sp_thinned %>% select(cleanName, everything())
-      
-      sp_thinned
-    })
-    
-    vebcat("Combining thinned lists.", veb = verbose)
-    df_thinned <- do.call(rbind, sp_thinned_list)
-    
-  }, error = function(e) {
-    vebcat("Error when thinning lists:", e$message, color = "nonFatalError")
-  })
-  
-  if (nrow(df_thinned) == 0) {
-    catn("All species were removed in the thinning process.")
-    return(NULL)
-  }
-  
   vebcat("Converting species to points.", veb = verbose)
   
   if (projection == "longlat") {
-    prj = longlat_crs
+    prj = config$projection$longlat
     
   } else if (projection == "laea") {
-    prj = laea_crs
+    prj = config$projection$laea
     
   } else {
     vebcat("missing projection, using longlat.", veb = verbose)
-    prj = longlat_crs
+    prj = config$projection$longlat
   }
   
   tryCatch({
-    sp_points = vect(df_thinned, geom=c("Longitude", "Latitude"), crs = prj)
+    thinned_dt <- thin_occ_data(
+      dt, 
+      long = "decimalLongitude",
+      lat = "decimalLatitude",
+      projection = prj,
+      res = config$projection$raster_scale_m,
+      seed = config$simulation$seed,
+      verbose = verbose
+    )
+    
+    sp_points = vect(thinned_dt, geom=c("decimalLongitude", "decimalLatitude"), crs = prj)
+    
   }, error = function(e) {
-    vebcat("Error when making species into points:", e$message, color = "nonFatalError")
+    vebcat("Error when thinning data and making species into points:", e$message, color = "nonFatalError")
   })
   
   if (verbose == T) {
@@ -298,7 +237,6 @@ prepare_environment <- function(sp_points, biovars, verbose = T) {
     
     env_values[, i] <- terra::extract(biovars[[i]], sp_points, df=TRUE, ID = FALSE)[,1]
   }
-  
   
   vebcat("Cleaning extracted data.", veb = verbose)
   

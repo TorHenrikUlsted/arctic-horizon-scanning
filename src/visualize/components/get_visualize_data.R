@@ -848,7 +848,7 @@ get_con_points <- function(dt, projection, longitude, latitude, verbose = FALSE)
   
   vebprint(points, verbose, "Points data:")
   
-  points <- reproject_region(points, projection)
+  points <- reproject_region(points, projection, verbose = verbose)
   
   vebprint(points, verbose, "Reprojected points:")
 

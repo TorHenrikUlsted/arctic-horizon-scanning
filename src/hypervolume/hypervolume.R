@@ -48,6 +48,8 @@ process_species <- function(spec.dt, spec.name, process.dir, method, points.proj
   )
 
   vebprint(head(sp_mat, 3), verbose, "Processed environment data sample:")
+  
+  
 
   vebcat("Data processing protocol completed successfully.", color = "funSuccess")
 
@@ -255,7 +257,14 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         )
 
         names(inc_project) <- ("inclusionScore")
-
+        
+        inc_project <- reproject_region(
+          inc_project, 
+          projection = config$projection$out, 
+          res = config$projection$raster_scale_m,
+          verbose = verbose
+        )
+        
         vebcat("Writing out raster file:", colcat(out_file), color = "output")
         writeRaster(inc_project, out_file, overwrite = TRUE)
 
@@ -269,19 +278,26 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       if (!file.exists(out_file)) {
         catn("Projecting probability analysis.")
         
-        prob_proj <- hypervolume_project(
+        prob_project <- hypervolume_project(
           sp_hv,
           biovars_region,
           type = "probability",
           verbose = verbose
         )
         
-        names(prob_proj) <- ("suitabilityScore")
+        names(prob_project) <- ("suitabilityScore")
+        
+        prob_project <- reproject_region(
+          prob_project, 
+          projection = config$projection$out, 
+          res = config$projection$raster_scale_m,
+          verbose = verbose
+        )
         
         vebcat("Writing out raster file:", colcat(out_file), color = "output")
-        writeRaster(prob_proj, out_file, overwrite = TRUE)
+        writeRaster(prob_project, out_file, overwrite = TRUE)
         
-        rm(prob_proj)
+        rm(prob_project)
         invisible(gc())
       } else {
         catn("Probability analysis file already exists.")

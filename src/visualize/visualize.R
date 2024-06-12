@@ -30,11 +30,9 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (vis.title) {
     plot_dir <- paste0(plot_dir, "/title/", vis.save.device)
     existing_plots <- basename(list.files(plot_dir))
-    exp_title <- "-title"
   } else {
     plot_dir <- paste0(plot_dir, "/no-title/", vis.save.device)
     existing_plots <- basename(list.files(plot_dir))
-    exp_title <- ""
   }
   
   create_file_if(c(warn_file, err_file))
@@ -129,7 +127,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 #        Figure 1        #
 ##########################
   
-  fig_name <- paste0("figure-1A", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-1A", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Frequency Figures.", color = "indicator")
   } else {
@@ -173,7 +171,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
   # Figure 2: Stack inclusion tif files and calculate species in each cell to get potential hotspots
   
-  fig_name <- paste0("figure-2", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-2", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Hotspots Figure.", color = "indicator")
   } else {
@@ -223,7 +221,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   #        Figure 3A       #
   ##########################
   
-  fig_name <- paste0("figure-3A", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-3A", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Potential Area of Occupancy Figure.", color = "indicator")
   } else {
@@ -283,7 +281,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   #        Figure 3B       #
   ##########################
   
-  fig_name <- paste0("figure-3B", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-3B", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Suitability Figure.", color = "indicator")
   } else {
@@ -314,7 +312,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     visualize_suitability(
       stack = prob_stack,
       region = world_map,
-      region.name = vis.save.region,
+      region.name = vis.region.name,
       extent = region_ext,
       projection = out_projection,
       vis.unit = "mean",
@@ -348,7 +346,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   #        Figure 3C       #
   ##########################
   
-  fig_name <- paste0("figure-3C", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-3C", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Suitability Units Figure.", color = "indicator")
   } else {
@@ -408,7 +406,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   #        Figure 3D       #
   ##########################
   
-  fig_name <- paste0("figure-3D-7-9", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-3D-7-9", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Potential Area of Occupancy x Suitability Figure.", color = "indicator")
   } else {
@@ -485,7 +483,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   #        Figure 4        #
   ##########################
   
-  fig_name <- paste0("figure-4A", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-4A", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Composition Figure.", color = "indicator")
   } else {
@@ -563,7 +561,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   #        Figure 5        #
   ##########################
   
-  fig_name <- paste0("figure-5C", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-5C", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Connections figure.", color = "indicator")
   } else {
@@ -671,7 +669,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     invisible(gc())
   }
   
-  fig_name <- paste0("figure-6-log", exp_title, ".", vis.save.device)
+  fig_name <- paste0("figure-6-log",".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
   } else {
@@ -779,7 +777,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
   }
   
-  # fig_name <- paste0("figure-7", exp_title, ".", vis.save.device)
+  # fig_name <- paste0("figure-7",".", vis.save.device)
   # if (fig_name %in% existing_plots) {
   #   vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
   # } else {

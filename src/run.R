@@ -11,6 +11,7 @@ main(
   spec.known = filter_arctic,
   spec.unknown = filter_glonaf,
   test = NULL,
+  approach = "precautionary",
   column = "scientificName",
   coord.uncertainty = NULL,
   region = NULL,
@@ -23,14 +24,15 @@ main(
   hv.incl.threshold = 0.5,
   vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
   vis.projection = "laea",
-  vis.title = FALSE,
+  vis.title = TRUE,
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",
   vis.save.device = "svg", 
   vis.save.unit = "px",
   plot.show = FALSE,
-  verbose = FALSE
+  verbose = TRUE,
+  force.seq = NULL
 )
 
 create_derived_dataset(

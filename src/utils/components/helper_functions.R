@@ -9,7 +9,7 @@ merge_and_sum <- function(dt1, dt2, sumCol, by, all = TRUE) {
   return(merged_dt)
 }
 
-find_min_data_col <- function(dt, count.rows = 100, verbose = TRUE) {
+find_min_data_col <- function(dt, count.rows = 100, verbose = TRUE) { #count.rows should be sample
   catn("Finding column with the least memory allocation needed.")
 
   byte_size <- list(
@@ -143,6 +143,82 @@ extract_infraEpithet <- function(spec, verbose = FALSE) {
   return(res)
 }
 
+# Combine the a row for all specified columns as strings. If custom.col and custom.list are used, the custom.col will be swapped out with the data from the custom.list.
+combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = NULL, custom.list = NULL, sep = " ", verbose = FALSE) {
+  catn("Combining columns.")
+  
+  columns <- lapply(substitute(list(...))[-1], as.character)
+  
+  vebprint(columns, verbose, "Columns:")
+  
+  combined_dt <- copy(dt)
+  
+  vebprint(combined_dt, verbose, "Input data table:")
+  
+  # this will replace taxonRanks with the config taxonRanks
+  if (!is.null(custom.col) && !is.null(custom.list)) {
+    vebcat("custom.col and custom.list are not null.", veb = verbose, color = "proSuccess")
+    
+    if (custom.col %in% names(combined_dt)) {
+      vebcat("custom.col is in the config.", veb = verbose, color = "proSuccess")
+      combined_dt[, customList := custom.list[get(custom.col)]]
+      
+      pos <- match(custom.col, columns)
+      
+      vebprint(pos, verbose, "custom.col position:")
+      
+      columns[[pos]] <- "customList"
+      
+      vebprint(unique(combined_dt$customList), verbose, "Unique Custom list items:")
+    }
+  } else {
+    vebcat("To use custom column you need to specify the column name as a string.", color = "fatalError")
+    vebcat("To use custom list you need to specify the list as a list object.", color = "fatalError")
+    stop("Both custom.col and custom.list have to be not null if they are to be used.")
+  }
+  
+  combined_dt[, (column.name) := apply(
+    .SD,
+    1,
+    function(x) paste(na.omit(x), collapse = sep)
+  ),
+  .SDcols = unlist(columns)
+  ]
+  
+  combined_dt[, (column.name) := trimws(combined_dt[[column.name]])]
+  
+  vebprint(unique(combined_dt[[column.name]]), verbose, "Unique combinations:")
+  
+  return(combined_dt)
+}
+
+select_species_approach <- function(dt, approach = "precautionary", col.name = "cleanName", verbose = FALSE) {
+  
+  catn("Selecting species using the", highcat(approach), "approach.")
+  
+  spec_dt <- copy(dt)
+  
+  if (approach == "precautionary") {
+    spec_dt <- spec_dt[, (col.name) := species]
+    
+  } else if (approach == "conservative") { # the conservative approach also needs to handle cases where scientificNames are actually not just the species name.... use remove_authorship()
+    spec_dt <- combine_columns_dt(
+      "species", "taxonRank", "infraspecificEpithet",
+      dt = spec_dt,
+      column.name = col.name,
+      custom.col = "taxonRank",
+      custom.list = standard_infraEpithets_taxonRank,
+      sep = " ",
+      verbose = verbose
+    )
+  } else {
+    vebcat("Approach can only be 'conservative' or 'precautionary'.", color = "fatalError")
+    stop("Change the apporach.")
+  }
+  
+  return(spec_dt)
+}
+
 get_order_group <- function(dt, verbose = FALSE) {
   dt_res <- copy(dt)
 
@@ -185,7 +261,7 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
-extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells = TRUE, verbose = FALSE) {
+extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells = TRUE, xy = FALSE, verbose = FALSE) {
   vebcat("Extracting Raster and converting to data table.", veb = verbose)
 
   if (is.null(region)) {
@@ -194,14 +270,18 @@ extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells =
     extract_by <- region
   }
 
-  rast_extr <- terra::extract(raster, extract_by, cells = cells)
+  rast_extr <- terra::extract(raster, extract_by, cells = cells, xy=xy)
   rast_dt <- as.data.frame(rast_extr)
   rast_dt <- as.data.table(rast_extr)
 
   if (is.null(region)) {
     names(rast_dt) <- c("cell", value)
   } else {
-    names(rast_dt) <- c("ID", value, "cell")
+    if (xy) {
+      names(rast_dt) <- c("ID", value, "cell", "longitude", "latitude")
+    } else {
+      names(rast_dt) <- c("ID", value, "cell")
+    }
   }
 
   return(rast_dt)
@@ -214,8 +294,15 @@ convert_spatial_dt <- function(spatial, verbose = FALSE) {
   return(dt)
 }
 
-reproject_region <- function(region, projection, issue.line = FALSE, issue.threshold = 0.00001, verbose = FALSE) {
+reproject_region <- function(region, projection, res = NULL, issue.line = FALSE, issue.threshold = 0.00001, verbose = FALSE) {
   catn("Reprojecting region")
+  
+  vebprint(class(region), verbose, "Class of input object:")
+  
+  if (!is.null(res) && "SpatVector" %in% class(region)) {
+    vebcat("Resolution scale cannot be used for shapefiles, ignoring 'resolution scale.'res' parameter.", color = "nonFatalError")
+    res <- NULL
+  }
 
   if (issue.line == T) {
     catn("Attempting to fix line issues.")
@@ -263,8 +350,13 @@ reproject_region <- function(region, projection, issue.line = FALSE, issue.thres
   if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
     vebcat("Original CRS not identical to current CSR.", veb = verbose)
     catn("Reprojecting region to:\n", highcat(crs(prj, proj = T)))
-
-    reproj_region <- terra::project(region, prj)
+    
+    if ("SpatVector" %in% class(region)) {
+      vebcat("Using the SpatVector method.", veb = verbose)
+      reproj_region <- terra::project(region, prj)
+    } else {
+      reproj_region <- terra::project(region, prj, res = res)
+    }
 
     if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
       vebcat("Reprojection completed successfully", color = "funSuccess")
@@ -297,6 +389,47 @@ fix_shape <- function(shape, verbose = FALSE) {
   }
 }
 
+thin_occ_data <- function(dt, long = "decimalLongitude", lat = "decimalLatitude", projection = config$projection$longlat, res = 1000, seed = 123, verbose = FALSE) {
+  # Add an ID to the input dt
+  dt[, ID := .I]
+  
+  # get resolution in degrees
+  resolution <- res / 111320
+
+  # Make into point data
+  sp_points <- vect(dt, geom = c(long, lat), crs = projection)
+  vebprint(sp_points, verbose, "species points:")
+
+  sp_ext <- ext(sp_points)
+
+  # Create an empty raster with the same extent as the points
+  r_points <- rast(sp_ext, crs = projection, res = resolution)
+  values(r_points) <- 1:length(sp_points)
+  vebprint(r_points, verbose, "blank raster with same extent as points:")
+
+  if (verbose) {
+    plot(r_points)
+    plot(sp_points, add = TRUE, col = "red")
+  }
+
+  # Extract the cell number of a point along with coordinates
+  r_dt <- extract_raster_to_dt(r_points, sp_points)
+  vebprint(r_dt, verbose, "Raster as data.table:")
+
+  # Randomly keep unique points in each cell
+  set.seed(seed)
+  thinned_data <- r_dt[!is.na(cell), .SD[sample(.N, 1)], by = cell]
+  # Here i ignore NA cells because it could be points on the border, so I just do not thin them. probably few of these
+  vebprint(thinned_data, verbose, "Thinned data by choosing a random sample:")
+  
+  # Merge output with original data table
+  thinned_dt <- merge(thinned_data, dt, by = "ID")
+  # Remove unnecessary columns
+  thinned_dt <- thinned_dt[, -c("ID", "cell", "value")]
+  
+  return(thinned_dt)
+}
+
 calc_lat_res <- function(lat_res, long_res, latitude = 0, unit.out = "km", verbose = FALSE) {
   lat_distance <- lat_res * 111.32
 
@@ -307,14 +440,14 @@ calc_lat_res <- function(lat_res, long_res, latitude = 0, unit.out = "km", verbo
   vebprint(long_distance, text = "Longitude distance:")
 
   # Find the highest resolution
-  highest_res <- min(lat_distance, long_distance)
+  most_precise_res <- min(lat_distance, long_distance)
 
-  vebprint(highest_res, text = "highest Resolution:")
+  vebprint(most_precise_res, text = "highest Resolution:")
 
   if (unit.out == "km") {
-    return(highest_res)
+    return(most_precise_res)
   } else if (unit.out == "m") {
-    return(floor(highest_res * 1000))
+    return(floor(most_precise_res * 1000))
   }
 }
 
@@ -514,6 +647,17 @@ loop_orig_occ <- function(spec.occ.vect, region, file.out, with.coords = TRUE, v
   
   catn("Writing file to:", colcat(file.out, color = "output"))
   fwrite(spec_dt_out, file.out)
+}
+
+thin_occ_data <- function(dt, res, long, lat, verbose = FALSE) {
+  catn("Thinning occurrence data.")
+  
+  res_in_deg <- res / (111.32 * config$projection$raster_scale_m)
+  
+  data[, cell_id := paste(floor(longitude / resolution_in_degrees), 
+                          floor(latitude / resolution_in_degrees), sep="_")]
+  
+  return(thinned_data)
 }
 
 ##########################

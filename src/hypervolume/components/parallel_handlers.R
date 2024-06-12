@@ -45,7 +45,7 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
       
       start_iteration <- as.integer(min(node_it)) 
       
-      catn("Start iteration:", highcat(start_iteration))
+      catn("Previous session found, Continuing from iteration", highcat(start_iteration))
     }
     
     if (start_iteration >= length(spec.list)) {

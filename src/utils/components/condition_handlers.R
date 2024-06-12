@@ -56,6 +56,7 @@ vebprint <- function(x, veb = TRUE, text = NULL) {
       cat(text, "\n")
     }
     print(x)
+    cat("\n")
   }
 }
 

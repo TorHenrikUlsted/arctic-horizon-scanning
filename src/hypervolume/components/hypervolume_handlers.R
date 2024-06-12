@@ -180,7 +180,7 @@ check_hv_results <- function(res, init.dt, hv.dir, hv.incl.threshold = 0.5, verb
     vebcat("Checking projections.", veb = verbose)
     
     # Check Projection outputs
-    proj_dir <- paste0(hv.dir, "/projections/", gsub(" ", "-", out_name))
+    proj_dir <- paste0(hv.dir, "/projections/", gsub(" ", config$species$file_separator, out_name))
     all_files <- list.files(path = proj_dir, pattern = "\\.tif$", full.names = TRUE)
     prob_files <- list.files(path = proj_dir, pattern = "probability\\.tif$", full.names = TRUE)
     inc_files <- list.files(path = proj_dir, pattern = "inclusion\\.tif$", full.names = TRUE)
@@ -213,7 +213,7 @@ check_hv_results <- function(res, init.dt, hv.dir, hv.incl.threshold = 0.5, verb
       
       r_crs <- terra::crs(r, proj = TRUE)
       
-      e_crs <- terra::crs(longlat_crs, proj = TRUE)
+      e_crs <- terra::crs(config$projection$out, proj = TRUE)
       
       if (!identical(r_crs, e_crs)) {
         catn("The CRS is not identical:", proj_dir)
