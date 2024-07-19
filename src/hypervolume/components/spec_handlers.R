@@ -1,22 +1,24 @@
-calc_abs_lat <- function(dt, method = "median", latitude = "decimalLatitude", verbose = FALSE) {
+calc_abs_by_col <- function(data, column = "decimalLatitude", method = "median", verbose = FALSE) { 
   
-  # if (is.character(input)) {
-  #   if (grepl("\\.txt", input)) {
-  #     vect <- readLines(input)
-  #   } else if (grepl("\\.csv", input)) {
-  #     dt <- fread(input)
-  #   }
-  # } else if (is.data.table(input)) {
-  #   dt <- copy(input)
-  # }
-  
-  if (method == "median") {
-    lat <- stats::median(abs(dt[[latitude]]), na.rm = TRUE)
-  } else if (method == "mean") {
-    lat <- mean(abs(dt[[latitude]]), na.rm = TRUE)
+  if (is.character(data)) {
+    if (grepl("\\.txt", data)) {
+      vect <- readLines(data)
+      dt <- as.data.table(as.numeric(vect))
+      setnames(dt, "V1", column)
+    } else if (grepl("\\.csv", data)) {
+      dt <- fread(data)
+    }
+  } else if (is.data.table(data)) {
+    dt <- copy(data)
   }
   
-  return(lat)
+  if (method == "median") {
+    res <- stats::median(abs(dt[[column]]), na.rm = TRUE)
+  } else if (method == "mean") {
+    res <- mean(abs(dt[[column]]), na.rm = TRUE)
+  }
+  
+  return(res)
 }
 
 
@@ -47,10 +49,10 @@ count_observations <- function(spec.list, dimensions, method = "median", verbose
       removed <- TRUE
     }
     
-    lat <- calc_abs_lat(spec_dt)
+    lat <- calc_abs_by_col(spec_dt)
     
     counted_species <- rbind(counted_species, data.table(
-      species = gsub("-", " ", spec_name),
+      species = gsub(config$species$file_separator, " ", spec_name),
       observations = nobs,
       logObservations = round(log(nobs), digits = 3),
       dimensions = length(dimensions),
