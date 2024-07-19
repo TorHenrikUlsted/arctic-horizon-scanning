@@ -130,9 +130,6 @@ hypervolume_sequence <- function(
     custom.evals = custom_evals
   )
   
-  print("it returns")
-  print(parallel)
-  
   if (parallel$finished) {
     return(catn("Hypervolume already finished a run for this list."))
   }

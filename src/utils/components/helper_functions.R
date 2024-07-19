@@ -1104,3 +1104,107 @@ pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequ
 
   vebcat("Repository packed successfully", color = "funSuccess")
 }
+
+find_term <- function(object, dir = ".", file.pattern = "\\.R$") {
+  if (is.character(object)) {
+    obj <- object
+  } else {
+    obj <- deparse(substitute(object)) 
+  }
+  
+  files <- list.files(dir, pattern = file.pattern, full.names = TRUE, recursive = TRUE)
+  
+  results <- lapply(files, function(file) {
+    tryCatch({
+      lines <- readLines(file, warn = FALSE)
+      pattern <- paste0("\\b", obj, "\\b")
+      matches <- grep(pattern, lines, value = TRUE)
+      if (length(matches) > 0) {
+        data.table(
+          file = file,
+          line_number = grep(pattern, lines),
+          code = trimws(matches),
+          stringsAsFactors = FALSE
+        )
+      }
+    }, error = function(e) {
+      NULL
+    })
+  })
+  
+  result_dt <- do.call(rbind, results)
+  if (is.null(result_dt)) {
+    message("No matches found.")
+    return(NULL)
+  }
+  return(result_dt)
+}
+
+replace_term <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", verbose = FALSE) {
+  
+  tryCatch({
+    if (is.character(name.old)) {
+      old <- name.old
+    } else {
+      old <- deparse(substitute(name.old))
+    } 
+    
+    vebprint(old, verbose, "Old name after check:")
+    
+  }, error = function(e) {
+    vebcat("Error: input is not an object or string. Please input a string into name.old.", color = "fatalError")
+  })
+  
+  tryCatch({
+    if (is.character(name.new)) {
+      new <- name.new
+    } else {
+      new <- deparse(substitute(name.new))
+    }
+    
+    vebprint(new, verbose, "New name after check:")
+    
+  }, error = function(e) {
+    vebcat("Error: input is not an object or string. Please input a string into name.new.", color = "fatalError")
+  })
+  
+  res <- find_term(old, dir, file.pattern)
+  
+  if (is.null(res)) {
+    message("No occurrences of '", old, "' found. No changes made.")
+    return(invisible(NULL))
+  }
+  
+  unique_files <- unique(res$file)
+  for (file in unique_files) {
+    tryCatch({
+      lines <- readLines(file, warn = FALSE)
+      
+      pattern <- paste0("\\b", old, "\\b") # Search for whole words only
+      
+      new_lines <- gsub(pattern, new, lines)
+      
+      writeLines(new_lines, file)
+      
+      changed_lines <- which(lines != new_lines)
+      
+      catn("Updated", file, "at line\n-", paste(changed_lines, collapse = "\n- "))
+    }, error = function(e) {
+      warning("Error processing file: ", file, "\nError: ", e$message)
+    })
+  }
+  
+  vebcat("Finished updating", paste0("'", highcat(old), "'"), "to", paste0("'", highcat(new), "'"), "in all files.", color = "proSuccess")
+  
+  if (verbose) {
+    catn("Output:")
+    find_term(new, dir, file.pattern)
+  }
+}
+
+
+
+
+
+
+
