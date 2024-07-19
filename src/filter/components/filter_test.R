@@ -1,5 +1,5 @@
-filter_test_known <- function(dfs, column, verbose = FALSE) {
-  tp <- dfs[["test_present"]]
+filter_test_known <- function(dts, column, verbose = FALSE) {
+  tp <- dts[["test_present"]]
   
   setnames(tp, old = colnames(tp), new = column)
   
@@ -8,14 +8,14 @@ filter_test_known <- function(dfs, column, verbose = FALSE) {
   ))
 }
 
-filter_test_small <- function(known.filtered, dfs, column, verbose = FALSE) {
+filter_test_small <- function(known.filtered, dts, column, verbose = FALSE) {
   test_dir <- "./outputs/filter/test-small"
   
   create_dir_if(test_dir)
   
   tp <- known.filtered$present
   
-  ts <- dfs[["test_small"]]
+  ts <- dts[["test_small"]]
   
   setnames(ts, old = colnames(ts), new = column)
   
@@ -37,14 +37,14 @@ filter_test_small <- function(known.filtered, dfs, column, verbose = FALSE) {
   ))
 }
 
-filter_test_big <- function(known.filtered, dfs, column, verbose = FALSE) {
+filter_test_big <- function(known.filtered, dts, column, verbose = FALSE) {
   test_dir <- "./outputs/filter/test-big"
   
   create_dir_if(test_dir)
   
   tp <- known.filtered$present
   
-  tb <- dfs[["test_big"]]
+  tb <- dts[["test_big"]]
   
   setnames(tb, old = colnames(tb), new = column)
   
@@ -76,7 +76,7 @@ filter_test_st <- function(test = "small") {
     
     out_dir <- "./outputs/filter/test/test-small"
     
-    test_small <- data.table(column = dfs$test_small[[column]])
+    test_small <- data.table(column = dts$test_small[[column]])
     
     test_small_keys <- get_sp_keys(
       sp_names = test_small,
@@ -105,7 +105,7 @@ filter_test_st <- function(test = "small") {
     
     out_dir <- "./outputs/filter/test/test-big"
     
-    test_big <- data.table(column = dfs$test_big[[column]])
+    test_big <- data.table(column = dts$test_big[[column]])
     
     test_big_keys <- get_sp_keys(
       sp_names = test_big,

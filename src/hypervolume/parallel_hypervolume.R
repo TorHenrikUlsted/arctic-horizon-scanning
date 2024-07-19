@@ -38,8 +38,8 @@ hypervolume_sequence <- function(
     sorensen = numeric(0),
     fracVolumeSpecies = numeric(0),
     fracVolumeRegion = numeric(0),
-    potentialRealizedNiche = numeric(0),
-    potentialOverlapRegion = numeric(0),
+    realizedNiche = numeric(0),
+    overlapRegion = numeric(0),
     includedOverlap = numeric(0),
     kingdom = character(0), 
     phylum = character(0), 
@@ -104,12 +104,13 @@ hypervolume_sequence <- function(
     
     mdwrite(
       post_seq_nums,
-      heading = paste0("1;Hypervolume Sequence\n\n",
-                       "Species removed before analysis because of too few occurrences: ",
-                       "**",nrow(spec_removed),"**  ",
-                       "Species input into the hypervolume sequence: ",
-                       "**",length(spec_list),"**"
-                      ),
+      heading = paste0(
+        "1;Hypervolume Sequence\n\n",
+        "Species removed before analysis because of too few occurrences: ",
+        "**", nrow(spec_removed), "**  ",
+        "Species input into the hypervolume sequence: ",
+        "**", length(spec_list), "**"
+      ),
     )
   } else {
     spec_list <- readLines(spec_list_file)
@@ -128,6 +129,9 @@ hypervolume_sequence <- function(
     custom.exports = custom_exports,
     custom.evals = custom_evals
   )
+  
+  print("it returns")
+  print(parallel)
   
   if (parallel$finished) {
     return(catn("Hypervolume already finished a run for this list."))
@@ -189,7 +193,6 @@ hypervolume_sequence <- function(
      )
      
      rm(ls())
-     
      invisible(gc())
      
    }) 
@@ -209,7 +212,7 @@ hypervolume_sequence <- function(
   highest_iteration <- as.integer(readLines(parallel$highest.iteration))
   do_not_return <- FALSE
   
-  if (highest_iteration == length(spec_list)) {
+  if (highest_iteration >= length(spec_list)) {
     vebcat("Parallel process finished all iterations.", color = "funSuccess")
   } else {
     do_not_return <- TRUE

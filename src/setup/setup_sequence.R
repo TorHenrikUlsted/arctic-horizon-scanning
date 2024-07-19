@@ -1,7 +1,7 @@
 source_all("./src/setup/components")
 source_all("./src/setup/custom_setup")
 
-setup_sequence <- function(hv.method, hv.accuracy, hv.incl.threshold, hv.dims = NULL, cores.max = 1, verbose = FALSE) {
+setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, hv.incl.threshold, hv.dims = NULL, cores.max = 1, verbose = FALSE) {
   
   setup_dir <- "./outputs/setup"
   setup_log <- paste0(setup_dir, "/logs")
@@ -49,6 +49,7 @@ setup_sequence <- function(hv.method, hv.accuracy, hv.incl.threshold, hv.dims = 
     
     sp_dir <- filter_sequence(
       test = "small",
+      approach = approach,
       cores.max = cores.max,
     )
     

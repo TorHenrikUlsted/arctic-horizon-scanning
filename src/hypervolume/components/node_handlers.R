@@ -6,10 +6,13 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
   init_log <- paste0(log_dir, "/init-log.txt")
   create_file_if(init_log)
   
-  try(init_log <- file(init_log, open = "at")) # for error handling before the process even starts
-  sink(init_log, type = "output")
-  sink(init_log, type = "message")
+ if (verbose) {
+   try(init_log <- file(init_log, open = "at")) # for error handling before the process even starts
+   sink(init_log, type = "output")
+   sink(init_log, type = "message")
+ }
   
+  vebcat("Initating iteration", iteration, veb = verbose)
   vebcat("Creating directories.", veb = verbose)
   
   node_dir <- paste0(log_dir, "/nodes")
@@ -48,21 +51,24 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
   }
   while_msg <- FALSE
   
+  vebcat("The node has escaped the node-iterations traffic.", veb = verbose)
+  
   
   try(node_con <- file(node_it, open = "at"))
   identifier <- paste0("node", iteration)
   writeLines(identifier, node_con)
   close(node_con)
   
-  
   # Check if the current disk space is less than the minimum required
   if (current_disk_space <= min.disk.space) stop("Insufficient disk space. Stopping processing.")
   
   catn("Init-log finished.")
   
-  sink(type = "message")
-  sink(type = "output")
-  close(init_log)
+  if (verbose) {
+    sink(type = "message")
+    sink(type = "output")
+    close(init_log)
+  }
   
   return(list(
     dir = node_dir,
@@ -85,13 +91,13 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
   spec_name <- gsub(".csv", "", basename(spec_filename))
   spec_name <- trimws(spec_name)
   
-  sp_node_log <- paste0(log_nodes, "/", iteration, "_", gsub(" ", "-", spec_name), "_log.txt")
+  sp_node_log <- paste0(log_nodes, "/", iteration, "-", gsub(" ", spec.file.separator, spec_name), "-log.txt")
   
   failed_its_log <- paste0(log_dir, "/failed-iterations.txt")
   highest_it_log <- paste0(log_dir, "/highest-iteration.txt")
   
   create_file_if(c(highest_it_log, failed_its_log), keep = TRUE)
-  create_file_if(c(sp_node_log, failed_its))
+  create_file_if(c(sp_node_log, failed_its_log))
   
     try(sp_log <- file(sp_node_log, open = "at"))
     sink(sp_log, type = "output")
@@ -121,7 +127,7 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
     
     tryCatch({
     # Condense data
-    spec_condensed <- condense_taxons(spec.dt = spec)
+    spec_condensed <- condense_taxons(spec.dt = spec) # Fix this one
     
     cntry_condensed <- condense_country(spec.dt = spec)
     
@@ -171,7 +177,7 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
       Sys.sleep(3)
     } else {
       Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
-      lock_node_it <- lock(lock.dir, lock.n = 1, paste0("Locked by iteration ", iteration))
+      lock_node_it <- lock(lock.dir, lock.n = 1, paste0("Locked by ", iteration, "_", gsub(" ", spec.file.separator, spec_name)))
       if (!is.null(lock_node_it) && file.exists(lock_node_it)) {
         break
       }
@@ -182,8 +188,8 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
   if (res) {
     fwrite(final_res, paste0(pro.dir, "/stats/stats.csv"), append = T, bom = T)
   } else {
-    if (is.null(iterations) || is.na(iterations)) {
-      catn("Iterations is NULL or NA:", iterations)
+    if (is.null(iteration) || is.na(iteration)) {
+      catn("Iterations is NULL or NA:", iteration)
     } else {
       try(failed_con <- file(failed_its_log, open = "a"))
       writeLines(as.character(iteration), failed_con)  
@@ -192,7 +198,7 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
     
     try(err_con <- file(err.file, open = "a"))
     writeLines(paste0(
-      "Hypervolume sequence failed the output check for node", iteration, " and species: ", gsub(" ", "-", spec_name)
+      "Hypervolume sequence failed the output check for node", iteration, " and species: ", gsub(" ", spec.file.separator, spec_name)
     ), err_con)
     
     close(err_con)
@@ -222,7 +228,7 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
   vebcat("Previous highest Iteration:", highest_it, veb = verbose)
   vebcat("This Iteration:", iteration, veb = verbose)
   
-  if (highest_it < iteration) {
+  if (length(highest_it) == 0 || highest_it < iteration) {
     vebcat("Setting new iteration to:", iteration)
     try(high_con <- file(highest_it_log, open = "w"))
     writeLines(as.character(iteration), high_con)

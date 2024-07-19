@@ -94,7 +94,7 @@ node_hypervolume <- function(
           catn("Appending data to csv file.")
           
           final_res <- data.table(
-            cleanName = gsub("-", " ", spec.name),
+            cleanName = gsub(spec.file.separator, " ", spec.name),
             iteration = iteration,
             observations = analyzed_hv[[1]],
             dimensions = analyzed_hv[[2]],
@@ -119,7 +119,7 @@ node_hypervolume <- function(
           catn("Appending data to csv file.")
           
           final_res <- data.table(
-            cleanName = gsub("-", " ", spec.name),
+            cleanName = gsub(spec.file.separator, " ", spec.name),
             iteration = iteration,
             observations = nobs,
             dimensions = length(hv.dims),
@@ -153,7 +153,6 @@ node_hypervolume <- function(
   )
   
   rm(ls())
-  
   invisible(gc())
   
   return(catn("Node returning."))

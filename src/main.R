@@ -2,6 +2,7 @@ main <- function(
     spec.known = NULL,
     spec.unknown = NULL,
     test = NULL,
+    approach = "precautionary",
     column = "scientificName",
     coord.uncertainty = NULL,
     region = NULL,
@@ -21,7 +22,8 @@ main <- function(
     vis.save.device = "jpeg",
     vis.save.unit = "px",
     plot.show = FALSE,
-    verbose = FALSE
+    verbose = FALSE,
+    force.seq = NULL
   ) {
   
   if (is.null(spec.unknown) & is.null(test)) {
@@ -45,7 +47,8 @@ main <- function(
   }
   
   max_cores <- calc_num_cores(
-    ram.high = total_cores, 
+    ram.high = config$memory$total_cores,
+    cores.total = config$memory$total_cores,
     verbose =  FALSE
   )
   
@@ -61,6 +64,7 @@ main <- function(
   sp_dir <- filter_sequence(
     spec.known = spec.known, 
     spec.unknown = spec.unknown,
+    approach = approach,
     test = test,
     column = column,
     coord.uncertainty = coord.uncertainty,
@@ -68,6 +72,7 @@ main <- function(
     region = region,
     download.key = download.key,
     download.doi = download.doi,
+    force.seq = force.seq,
     verbose = verbose
   )
   
