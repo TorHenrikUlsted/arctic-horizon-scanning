@@ -31,7 +31,7 @@ main(
   vis.save.device = "svg", 
   vis.save.unit = "px",
   plot.show = FALSE,
-  verbose = TRUE,
+  verbose = FALSE,
   force.seq = NULL
 )
 

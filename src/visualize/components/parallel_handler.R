@@ -10,7 +10,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   peak_log <- paste0(dir, "/ram_peak.txt")
   stop_file <- paste0(dir, "/stop-file.txt")
   
-  create_file_if(c(ram_log, peak_log))
+create_file_if(ram_log, peak_log)
   
   node_dir <- paste0(dir, "/nodes")
   create_dir_if(node_dir)
@@ -238,7 +238,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
   logs_sub_dir <- paste0(dir, "/", hv.project.method)
   out_dir <- paste0(progressive_dirname(dir, end = 5), "/results")
   
-  create_dir_if(c(logs_sub_dir, out_dir))
+create_dir_if(logs_sub_dir, out_dir)
   
   out_file <- paste0(out_dir, "/", basename(dir), ".csv")
   

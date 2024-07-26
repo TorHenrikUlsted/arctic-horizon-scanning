@@ -537,7 +537,7 @@ stack_projections <- function(filenames, projection, projection.method, out.dir,
   nodes_dir <- paste0(out.dir, "/nodes")
   rasters_dir <- paste0(out.dir, "/", gsub(".tif", "", basename(filenames)[1]) )
   
-  create_dir_if(c(nodes_dir, rasters_dir))
+create_dir_if(nodes_dir, rasters_dir)
   
   rast_out_names <- paste0(basename(dirname(filenames)), ".tif")
    

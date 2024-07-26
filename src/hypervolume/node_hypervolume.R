@@ -43,7 +43,7 @@ node_hypervolume <- function(
         proj_dir <- paste0(process.dir, "/projections")
         pro_locks_dir <- paste0(dirname(node$locks), "/hypervolume")
         
-        create_dir_if(c(proj_dir, pro_locks_dir))
+create_dir_if(proj_dir, pro_locks_dir)
         
         nobs <- nrow(spec)
         

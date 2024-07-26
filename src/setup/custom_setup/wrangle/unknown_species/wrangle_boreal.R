@@ -2,7 +2,7 @@ wrangle_boreal <- function(name, column, verbose = FALSE) {
   
   dir <- paste0("./outputs/setup/wrangle/", name)
   log_dir <- paste0(dir, "/logs")
-  create_dir_if(c(dir, log_dir))
+create_dir_if(dir, log_dir)
   
   absent_out <- paste0(dir, "/", name, "-absent.csv")
   

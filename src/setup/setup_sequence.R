@@ -24,7 +24,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     warn_out <- paste0(setup_log, "/warning.txt")
     err_out <- paste0(setup_log, "/error.txt")
     
-    create_file_if(c(warn_out, err_out))
+create_file_if(warn_out, err_out)
     
     bw_out <- paste0(setup_dir, "/region/biovars-world-subset.tif")
     br_out <- paste0(setup_dir, "/region/biovars-region-subset.tif")

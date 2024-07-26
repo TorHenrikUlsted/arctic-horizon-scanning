@@ -73,7 +73,7 @@ setup_hv_region <- function(biovars_region, out.dir, method) {
 
     region_log_out <- paste0(log_dir, "/region-hv-", method, "-output.txt")
     region_log_msg <- paste0(log_dir, "/region-hv-", method, "-message.txt")
-    create_file_if(c(region_log_out, region_log_msg))
+create_file_if(region_log_out, region_log_msg)
 
     try(region_log_out <- file(region_log_out, open = "at"))
     try(region_log_msg <- file(region_log_msg, open = "at"))

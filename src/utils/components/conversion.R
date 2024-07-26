@@ -48,3 +48,35 @@ check_crs <- function(object, projection, projection.method, verbose = FALSE) {
   
   return(object)
 }
+
+to_char <- function(input, string = "Updated input:", terminate = TRUE, verbose = FALSE) {
+  
+  call_stack <- sys.calls()
+  is_nested <- length(call_stack) > 1 && !identical(call_stack[[length(call_stack) - 1]][[1]], as.name("do.call"))
+  
+  tryCatch({
+    vebprint(input, verbose, "Original input:")
+    
+    if (is.character(input)) {
+      input.updated <- input
+    } else if (is_nested) {
+      parent_call <- call_stack[[length(call_stack) - 1]]
+      for (i in seq_along(parent_call)) {
+        if (identical(eval(parent_call[[i]], parent.frame(2)), input)) {
+          input.updated <- deparse(parent_call[[i]])
+        }
+      }
+    } else {
+      input.updated <- deparse(substitute(input))
+    }
+    
+    vebprint(input.updated, verbose, string)
+    
+  }, error = function(e) {
+    vebcat("Error: input is not an object or string. Please input as a string.", color = "fatalError")
+    try(vebprint(class(input), text = "Found class:"))
+    if (terminate) stop("Edit the input paramter.")
+  })
+  
+  return(input.updated)
+}
