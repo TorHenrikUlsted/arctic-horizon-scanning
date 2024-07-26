@@ -14,7 +14,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   plot_dir <- paste0(vis_dir, "/plots")
   
   # create dirs
-  create_dir_if(c(stats_dir, log_dir, result_dir, rast_dir, plot_dir))
+create_dir_if(stats_dir, log_dir, result_dir, rast_dir, plot_dir)
   
   ##########################
   #       Load files       #
@@ -35,7 +35,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     existing_plots <- basename(list.files(plot_dir))
   }
   
-  create_file_if(c(warn_file, err_file))
+create_file_if(warn_file, err_file)
   
   ##########################
   #     Load varaibles     #

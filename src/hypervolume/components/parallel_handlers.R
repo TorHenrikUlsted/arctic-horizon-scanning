@@ -12,8 +12,8 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
   warn_file <- paste0(logs_dir, "/warning.txt")
   err_file <- paste0(logs_dir, "/error.txt")
 
-  create_file_if(c(node_it_file, highest_it_file), keep = TRUE)
-  create_file_if(c(ram_usage, warn_file, err_file))
+create_file_if(node_it_file, highest_it_file, keep = TRUE)
+create_file_if(ram_usage, warn_file, err_file)
   finished <- FALSE
   
   if (!is.null(iterations)) {

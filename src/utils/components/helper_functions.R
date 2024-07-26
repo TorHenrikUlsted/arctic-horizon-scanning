@@ -1105,24 +1105,20 @@ pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequ
   vebcat("Repository packed successfully", color = "funSuccess")
 }
 
-find_term <- function(object, dir = ".", file.pattern = "\\.R$") {
-  if (is.character(object)) {
-    obj <- object
-  } else {
-    obj <- deparse(substitute(object)) 
-  }
+find_term <- function(term, dir = ".", file.pattern = "\\.R$", verbose = FALSE) {
+  term <- to_char(term, verbose = verbose)
   
   files <- list.files(dir, pattern = file.pattern, full.names = TRUE, recursive = TRUE)
   
   results <- lapply(files, function(file) {
     tryCatch({
       lines <- readLines(file, warn = FALSE)
-      pattern <- paste0("\\b", obj, "\\b")
+      pattern <- paste0("\\b", term, "\\b")
       matches <- grep(pattern, lines, value = TRUE)
       if (length(matches) > 0) {
         data.table(
           file = file,
-          line_number = grep(pattern, lines),
+          lineNumber = grep(pattern, lines),
           code = trimws(matches),
           stringsAsFactors = FALSE
         )
@@ -1140,33 +1136,107 @@ find_term <- function(object, dir = ".", file.pattern = "\\.R$") {
   return(result_dt)
 }
 
-replace_term <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", verbose = FALSE) {
+find_term_pattern <- function(term, line.pattern = NULL, dir = ".", file.pattern = "\\.R$") {
   
-  tryCatch({
-    if (is.character(name.old)) {
-      old <- name.old
-    } else {
-      old <- deparse(substitute(name.old))
-    } 
-    
-    vebprint(old, verbose, "Old name after check:")
-    
-  }, error = function(e) {
-    vebcat("Error: input is not an object or string. Please input a string into name.old.", color = "fatalError")
-  })
+  term <- to_char(term)
+  line.pattern <- to_char(line.pattern)
   
-  tryCatch({
-    if (is.character(name.new)) {
-      new <- name.new
-    } else {
-      new <- deparse(substitute(name.new))
+  find_res <- find_term(term, dir, file.pattern)
+  
+  if (is.null(find_res)) {
+    message("No matches found.")
+    return(NULL)
+  }
+  
+  if (!is.null(line.pattern)) {
+    # General case for function calls
+    if (grepl("\\(\\)$", line.pattern)) {
+      base_pattern <- sub("\\(\\)$", "", line.pattern)
+      line.pattern <- paste0(base_pattern, "\\([^\\)]*\\)")
+    } else if (grepl("\\[\\]$|\\{\\}$", line.pattern)) {
+      base_pattern <- sub("\\[\\]$|\\{\\}$", "", line.pattern)
+      bracket_type <- substring(line.pattern, nchar(line.pattern) - 1, nchar(line.pattern))
+      
+      escape_chars <- list("[]" = "\\[\\]", "{}" = "\\{\\}")
+      escaped_bracket = escape_chars[[bracket_type]]
+      
+      line.pattern <- paste0(base_pattern, escaped_bracket[1], "[^", escaped_bracket[2], "]*", escaped_bracket[2])
     }
     
-    vebprint(new, verbose, "New name after check:")
     
-  }, error = function(e) {
-    vebcat("Error: input is not an object or string. Please input a string into name.new.", color = "fatalError")
-  })
+    pattern_matches <- grepl(line.pattern, find_res$code)
+    filtered_res <- find_res[pattern_matches, ]
+    
+    removed_count <- nrow(find_res) - nrow(filtered_res)
+    cat("Number of results without the pattern:", removed_count, "\n")
+    
+    if (nrow(filtered_res) == 0) {
+      message("No matches found after applying the line pattern.")
+      return(NULL)
+    }
+    
+    return(filtered_res)
+  } else {
+    return(find_res)
+  }
+}
+
+remove_outer_pattern <- function(text, pattern, replacement = "", show.diff = TRUE, verbose = FALSE) {
+  # Split the pattern into start and end
+  split_pattern <- function(p) {
+    if (p == "") {
+      return(list(start = "", end = ""))
+    }
+    parts <- strsplit(p, "")[[1]]
+    open_bracket <- which(parts %in% c("(", "[", "{"))
+    close_bracket <- which(parts %in% c(")", "]", "}"))
+    if (length(open_bracket) == 0 || length(close_bracket) == 0) {
+      stop("Invalid pattern: must contain opening and closing brackets")
+    }
+    list(
+      start = paste(parts[1:open_bracket], collapse = ""),
+      end = paste(parts[close_bracket:length(parts)], collapse = "")
+    )
+  }
+  
+  pattern_parts <- split_pattern(pattern)
+  replacement_parts <- split_pattern(replacement)
+  
+  vebprint(pattern_parts, verbose, "Pattern parts:")
+  vebprint(replacement_parts, verbose, "Replacement parts:")
+  
+  # Escape special characters in the patterns
+  pattern_start_escaped <- gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", pattern_parts$start)
+  pattern_end_escaped <- gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", pattern_parts$end)
+  
+  # Create the regex pattern
+  full_pattern <- paste0(pattern_start_escaped, "(.*?)", pattern_end_escaped)
+  
+  # Replace the pattern with its contents and the specified replacement
+  result <- gsub(full_pattern, paste0(replacement_parts$start, "\\1", replacement_parts$end), text)
+  
+  if (show.diff) {
+    # Highlight the changes
+    highlighted_original <- gsub(full_pattern, 
+                                 paste0(red(pattern_parts$start), "\\1", red(pattern_parts$end)), 
+                                 text)
+    highlighted_result <- gsub(full_pattern, 
+                               paste0(green(replacement_parts$start), "\\1", green(replacement_parts$end)), 
+                               text)
+    
+    vebcat("Original:\n", highlighted_original, veb = verbose)
+    vebcat("Result:\n", highlighted_result, veb = verbose)
+    
+    return(list(result = result, high_orig = highlighted_original, high_res = highlighted_result))
+  } else {
+    return(list(result))
+  }
+}
+
+replace_term_name <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", verbose = FALSE) {
+  
+  to_char(name.old, string = "Old name after check:")
+  to_char(name.new, string = "New name after check:")
   
   res <- find_term(old, dir, file.pattern)
   
@@ -1186,6 +1256,8 @@ replace_term <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", 
       
       writeLines(new_lines, file)
       
+      styler::style_file(file)
+      
       changed_lines <- which(lines != new_lines)
       
       catn("Updated", file, "at line\n-", paste(changed_lines, collapse = "\n- "))
@@ -1202,6 +1274,76 @@ replace_term <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", 
   }
 }
 
+replace_term_pattern <- function(term, line.pattern = NULL, replacement = "", dir = ".", file.pattern = "\\.R$", replace = FALSE, verbose = FALSE) {
+  
+  term <- to_char(term)
+  line.pattern <- to_char(line.pattern)
+  replacement <- to_char(replacement)
+  
+  matches <- find_term_pattern(term, line.pattern, dir, file.pattern)
+  
+  if (is.null(matches)) {
+    message("No matches found to replace.")
+    invisible(return(NULL))
+  }
+  
+  replace_in_file <- function(file, line_numbers, old_code, new_code, verbose = FALSE) {
+    lines <- readLines(file)
+    for (i in seq_along(line_numbers)) {
+      lines[line_numbers[i]] <- new_code[i]
+    }
+    if (replace) {
+      writeLines(lines, file)
+    }
+    return(data.table(file = file, lineNumber = line_numbers, oldCode = old_code, newCode = new_code))
+  }
+  
+  # Group matches by file
+  matches_by_file <- split(matches, matches$file)
+  
+  # Apply replacements
+  results <- lapply(names(matches_by_file), function(file) {
+    file_matches <- matches_by_file[[file]]
+    old_code <- file_matches$code
+    new_res <- remove_outer_pattern(text = old_code, pattern = line.pattern, replacement = replacement, verbose = verbose)
+    high_orig <- new_res$high_orig
+    high_res <- new_res$high_res
+    new_code <- new_res$result
+    replaced <- replace_in_file(file, file_matches$lineNumber, old_code, new_code, verbose = verbose)
+    
+    return(list(replaced = replaced, high_orig = high_orig, high_res = high_res))
+  })
+  
+  replaced_data <- do.call(rbind, lapply(results, function(x) x$replaced))
+  high_orig <- do.call(rbind, lapply(results, function(x) x$high_orig))
+  high_res <- do.call(rbind, lapply(results, function(x) x$high_res))
+  
+  if (!replace) {
+    catn("\n",
+         highcat("######################################"), "\n",
+         highcat("#              SAFEMODE              #"), "\n",
+         highcat("######################################"), "\n"
+    )
+    cat("These are the changes that would be made:\n")
+    for (i in 1:nrow(replaced_data)) {
+      catn(blue$bold(paste0(highcat("File: "), replaced_data$file[i], highcat(" Line: "), replaced_data$lineNumber[i])))
+      catn(highcat("Old: "), high_orig[i])
+      catn(highcat("New: "), high_res[i], "\n")
+    }
+    
+    catn(highcat("\nTo apply these changes, run again with replace = TRUE"))
+    
+  } else {
+    catn("Changes applied:")
+    for (i in 1:nrow(replaced_data)) {
+      catn(blue$bold(paste0(highcat("File: "), replaced_data$file[i], highcat(" Line: "), replaced_data$lineNumber[i])))
+      catn(highcat("Old: "), high_orig[i])
+      catn(highcat("New: "), high_res[i], "\n")
+    }
+  }
+    
+  invisible(replaced_data)
+}
 
 
 

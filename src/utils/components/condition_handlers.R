@@ -106,3 +106,5 @@ highcat <- function(...) {
   
   return(cc$highlight(text))
 }
+
+

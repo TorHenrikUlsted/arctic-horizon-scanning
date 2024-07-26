@@ -14,7 +14,7 @@ filter_boreal <- function(spec.native, dfs, column, verbose = FALSE) {
   boreal_dir <- "./outputs/filter/boreal"
   boreal_log <- paste0(boreal_dir, "/logs")
   
-  create_dir_if(c(boreal_dir, boreal_log))
+  create_dir_if(boreal_dir, boreal_log)
   
   # Here we remove the glonaf species, because we do not need duplicates
   boreal_species <- dplyr::anti_join(boreal_species, glonaf_species, by = column)

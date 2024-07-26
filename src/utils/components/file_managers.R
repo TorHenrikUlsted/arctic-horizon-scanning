@@ -1,18 +1,20 @@
-create_dir_if <- function(dirs, keep = TRUE) {
+create_dir_if <- function(..., keep = TRUE) {
+  dirs <- list(...)
   for (d in dirs) {
     if (!dir.exists(d)) {
       dir.create(d, recursive = TRUE)
     } else {
       if (keep == FALSE) {
         unlink(d, recursive = TRUE)
-
+        
         dir.create(d, recursive = TRUE)
       }
     }
   }
 }
 
-create_file_if <- function(files, keep = F) {
+create_file_if <- function(..., keep = FALSE) {
+  files <- list(...)
   for (f in files) {
     if (!file.exists(f)) {
       if (!dir.exists(dirname(f))) {
