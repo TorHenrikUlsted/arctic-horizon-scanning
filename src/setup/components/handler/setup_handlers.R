@@ -4,8 +4,8 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
   withCallingHandlers(
     {
       biovars_world <- get_wc_data(
-        var = climate.var, 
-        res = climate.res, 
+        var = config$climate$var, 
+        res = config$climate$res, 
         show.plot = show.plot, 
         verbose = verbose
       )

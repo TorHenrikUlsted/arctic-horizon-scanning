@@ -30,8 +30,8 @@ main(
   vis.save.device = "svg", 
   vis.save.unit = "px",
   plot.show = FALSE,
-  verbose = FALSE,
-  force.seq = NULL
+  verbose = TRUE,
+  force.seq = "setup"
 )
 
 create_derived_dataset(
