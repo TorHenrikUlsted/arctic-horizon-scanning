@@ -366,7 +366,7 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
   
   mdwrite(
     post_seq_nums,
-    heading = paste0(
+    text = paste0(
       "Number of species after cleaning: **", length(list_md), "**"
     )
   )

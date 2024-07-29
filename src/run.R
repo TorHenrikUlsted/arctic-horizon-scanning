@@ -12,7 +12,6 @@ main(
   spec.unknown = filter_glonaf,
   test = NULL,
   approach = "precautionary",
-  column = "scientificName",
   coord.uncertainty = NULL,
   region = NULL,
   download.key = "0186013-240321170329656",

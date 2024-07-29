@@ -53,7 +53,7 @@ wrangle_ambio <- function(name, column, verbose = F) {
   
   mdwrite(
     post_seq_nums,
-    heading = paste0(
+    text = paste0(
       "2;Ambio\n\n",
       "Number of species in ambio formatted:", nrow(formatted), "**  ",
       "Number of species in ambio present:", nrow(present), "**   ",

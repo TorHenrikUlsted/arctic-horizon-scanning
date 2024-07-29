@@ -26,7 +26,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
   } else {
     mdwrite(
       post_seq_nums,
-      heading = "1;Filter Sequence"
+      text = "1;Filter Sequence"
     )
     
     vebcat("Loading dfs.", veb = verbose)
@@ -84,7 +84,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown  = NULL, test = NULL
     
     if (is.null(spec.unknown)) {
       vebcat("Error, spec.unknown is NULL.", color = "fatalError")
-      return(NULL)
+      return(invisible())
     } else {
       unknown <- spec.unknown(
         known.filtered = known,

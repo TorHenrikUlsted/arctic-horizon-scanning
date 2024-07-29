@@ -153,12 +153,12 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = "2;Potential Frequency",
+      text = "2;Potential Frequency",
     )
     
     mdwrite(
       post_seq_nums,
-      heading = "See figure 1A descriptive for result numbers."
+      text = "See figure 1A descriptive for result numbers."
     )
     
     rm(freq_stack)
@@ -209,7 +209,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums, 
-      heading = "2;Hotspots",
+      text = "2;Hotspots",
       data = res_hotspots_nums,
     )
     
@@ -268,7 +268,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums, 
-      heading = "2;Highest Total Potential Area of Occupancy",
+      text = "2;Highest Total Potential Area of Occupancy",
       data = paoo_md,
     )
     
@@ -331,7 +331,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = paste0(
+      text = paste0(
         "2;Highest Potential Climatic Suitability\n\n",
         "See figure 3D for comparison between **potential area of occupancy** and **potential climatic suitability**  "
       ),
@@ -521,7 +521,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums, 
-      heading = "2;Potential Taxonomic Composition"
+      text = "2;Potential Taxonomic Composition"
     )
     
     top_orders_md <- richness_dt[, .(get(vis.composition.taxon), relativeRichness, subRegionName, group, groupRelativeRichness, westEast)]
@@ -537,7 +537,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums, 
-      heading = "3;Top 3 per Group in Each Sub-Region",
+      text = "3;Top 3 per Group in Each Sub-Region",
       data = top_orders_md
     )
     
@@ -549,7 +549,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums, 
-      heading = "3;Taxonomic Groups",
+      text = "3;Taxonomic Groups",
       data = richness_group_md
     )
     
@@ -645,7 +645,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = "2;Potential Family Connection Counts in each Sub-Region",
+      text = "2;Potential Family Connection Counts in each Sub-Region",
       data = con_subregion
     )
     
@@ -661,7 +661,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = "2;Potential Connection Counts from each Origin Country",
+      text = "2;Potential Connection Counts from each Origin Country",
       data = con_origin
     )
     
@@ -727,7 +727,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = "2;Species Latitudinal Ranges"
+      text = "2;Species Latitudinal Ranges"
     )
     
     post_dir <- "./outputs/post-process/images"
@@ -737,12 +737,12 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = model_md,
+      text = model_md,
     )
     
     mdwrite(
       post_seq_nums,
-      heading = "3;Residuals vs Fitted",
+      text = "3;Residuals vs Fitted",
       image = model,
       image.which = 1,
       image.out = paste0(post_dir, "/residuals-fitted.jpeg")
@@ -750,7 +750,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = "3;Q-Q Residuals",
+      text = "3;Q-Q Residuals",
       image = model,
       image.which = 2,
       image.out = paste0(post_dir, "/qq-residuals.jpeg")
@@ -758,7 +758,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = "3;Scale-Location",
+      text = "3;Scale-Location",
       image = model,
       image.which = 3,
       image.out = paste0(post_dir, "/scale-location.jpeg")
@@ -766,7 +766,7 @@ create_file_if(warn_file, err_file)
     
     mdwrite(
       post_seq_nums,
-      heading = "3;Residuals vs Leverage",
+      text = "3;Residuals vs Leverage",
       image = model,
       image.which = 4,
       image.out = paste0(post_dir, "/residuals-leverage.jpeg")

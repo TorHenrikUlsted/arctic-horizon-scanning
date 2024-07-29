@@ -1,20 +1,19 @@
-filter_known = function(dfs, verbose = FALSE) {
-  # The input parameters must be included and used
-  # The return names must also be the same, make sure you return a list, even if it is only one return element
-  # Everything else can be custom made, no need to us the help filters
+filter_known = function(dfs, verbose = FALSE) { # change the name of the function to 'filter_yournewname' 
   
   ##############
   # Initialize
   ##############
   
-  # Change this to what you want to call your dataset. 
-  # If you output the known species filter process as the same as known_name with an "_present" or "_absent" or both, then you do not need to initialize it yourself. 
-  # Just make sure the filter process works like you want it to
+  # Make sure the filter process works like you want it to.
+  # Test the filter process by running it and checking the output files in the 'dir_name' directory.
   
-  common_name <- "common"
-  known_names <- c("known", "known2")
+  common_name <- "common_dataset_name" # Name the dataset whatever you want
+  # If you have multiple datasets of known species, use the one below:
+  known_names <- c("known_dataset", "known_dataset2")
+  # If you only have one known dataset do:
+  # known_names <- "dataset"
   
-  dir_name <- paste0("./outputs/filter/", common_name)
+  dir_name <- paste0("./outputs/filter/", common_name) # This is where you can find the output csv files
   
   create_dir_if(dir_name)
   
@@ -22,7 +21,7 @@ filter_known = function(dfs, verbose = FALSE) {
   # Filter present & absent
   ###########################
   
-  # Union_dfs merges and removes duplicates while also provide info on how many are removed
+  # Union_dfs and anti_union merges and removes duplicates while also providing info on how many are removed
   
   combined_present <- data.table()
   combined_absent <- data.table()
@@ -54,15 +53,16 @@ filter_known = function(dfs, verbose = FALSE) {
   combined_absent <- write_filter_fun(
     file.out = paste0(dir_name, "/", common_name, "-absent-final.csv"),
     spec.in = combined_absent,
-    spec.out = paste0(data_common, "Absent"),
     fun = function() {
       
-      combined_absent <-  dplyr::anti_join(combined_absent, combined_present, by = column)
+      combined_absent <-  anti_union(combined_absent, combined_present, by = column)
       
       return(combined_absent)
     })
   
   return(list(
+    # These must remain 'present' and 'absent'
+    # 'combined_present' and 'combined_absent' can be edited
     present = combined_present,
     absent = combined_absent
   ))

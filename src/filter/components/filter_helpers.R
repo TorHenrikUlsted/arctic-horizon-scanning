@@ -46,7 +46,7 @@ union_dfs <- function(dt1, dt2, verbose = F) {
   
   mdwrite(
     post_seq_nums,
-    heading = paste0("Combining data from **", dt1_name, "** with **", dt2_name, "**"),
+    text = paste0("Combining data from **", dt1_name, "** with **", dt2_name, "**"),
     data = md_dt
   )
   
@@ -99,7 +99,7 @@ anti_union <- function(remove.from, remove.with, remove.by, verbose = FALSE) {
   
   mdwrite(
     post_seq_nums,
-    heading = paste0("Removing data from **", dt1_name, "** using **", dt2_name, "**"),
+    text = paste0("Removing data from **", dt1_name, "** using **", dt2_name, "**"),
     data = md_dt
   )
   

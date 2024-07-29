@@ -16,7 +16,7 @@ wrangle_template <- function(name, column, verbose = FALSE) {
   ## ADD MD
   mdwrite(
     post_seq_nums,
-    heading = paste0(
+    text = paste0(
       "2;Template\n\n",
       "Number of species in Template formatted:", nrow(formatted), "**  ",
       "Number of species in Template present:", nrow(template_present), "**   ",

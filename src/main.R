@@ -117,7 +117,7 @@ main <- function(
     min.disk.space = min_disk_space,
     verbose = verbose,
     hv.dir = hv_dir,
-    hv.method = hv.method, #box approx 13 min, gaussian 1 hours 10 minutes, 
+    hv.method = hv.method, #box approx 20 min, gaussian 1 hour 15 minutes, 
     hv.accuracy = hv.accuracy, 
     hv.dims = hv.dims, 
     hv.incl.threshold = hv.incl.threshold

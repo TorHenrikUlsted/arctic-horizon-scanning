@@ -104,7 +104,7 @@ hypervolume_sequence <- function(
     
     mdwrite(
       post_seq_nums,
-      heading = paste0(
+      text = paste0(
         "1;Hypervolume Sequence\n\n",
         "Species removed before analysis because of too few occurrences: ",
         "**", nrow(spec_removed), "**  ",
