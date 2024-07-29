@@ -202,12 +202,12 @@ filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv
     
     mdwrite(
       post_seq_nums, 
-      heading = "1;Visualize Sequence",
+      text = "1;Visualize Sequence",
     )
     
     mdwrite(
       post_seq_nums, 
-      heading = paste0("Number of included species: **", length(unique(included_sp$cleanName)), "**  \n",
+      text = paste0("Number of included species: **", length(unique(included_sp$cleanName)), "**  \n",
                        "Number of Excluded species: **", length(unique(excluded_sp$cleanName)), "**"),
     )
     
@@ -859,7 +859,7 @@ calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
   
   mdwrite(
     post_seq_nums,
-    heading = "1;List number of rows",
+    text = "1;List number of rows",
     veb = write.md
   )
   
@@ -879,13 +879,13 @@ calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
     
     mdwrite(
       post_seq_nums,
-      heading = paste0("2;", name),
+      text = paste0("2;", name),
       veb = write.md
     )
     
     mdwrite(
       post_seq_nums,
-      heading = paste0("Number of species: **",file_length,"**"),
+      text = paste0("Number of species: **",file_length,"**"),
       veb = write.md
     )
   }

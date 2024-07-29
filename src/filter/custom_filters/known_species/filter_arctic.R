@@ -6,7 +6,7 @@ filter_arctic <- function(dts, column, verbose = FALSE) {
   
   mdwrite(
     post_seq_nums,
-    heading = "2;Arctic"
+    text = "2;Arctic"
   )
   
   aba_absent = dts$aba_absent

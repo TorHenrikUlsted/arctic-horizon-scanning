@@ -90,7 +90,7 @@ get_sp_keys <- function(sp_names, out.dir, verbose = F) {
     
     mdwrite(
       post_seq_nums,
-      heading = paste0(
+      text = paste0(
         "Number of NA species keys: **", nrows(na_keys_dt), "**  ",
         "Number of species keys for download: **", nrow(sp_w_keys), "**"
       )

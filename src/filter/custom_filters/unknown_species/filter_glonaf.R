@@ -2,10 +2,6 @@ filter_glonaf = function(known.filtered, dts, column, verbose = FALSE) {
   ##############
   # Initialize
   ##############
-  mdwrite(
-    post_seq_nums,
-    heading = "2;GloNAF"
-  )
   
   glonaf_species <- dts$glonaf_absent
   glonaf_dir <- "./outputs/filter/glonaf"
@@ -16,7 +12,7 @@ filter_glonaf = function(known.filtered, dts, column, verbose = FALSE) {
   
   mdwrite(
     post_seq_nums,
-    heading = "2;GloNAF"
+    text = "2;GloNAF"
   )
   
   ##############

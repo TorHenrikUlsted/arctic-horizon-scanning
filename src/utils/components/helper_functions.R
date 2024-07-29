@@ -825,7 +825,7 @@ model_to_md <- function(model) {
 }
 
 
-mdwrite <- function(source, heading = NULL, data = NULL, image = NULL, image.out = "./outputs/images/image", image.which = NULL, device = "jpeg", open = "a", veb = TRUE) {
+mdwrite <- function(source, text = NULL, data = NULL, image = NULL, image.out = "./outputs/images/image", image.which = NULL, device = "jpeg", open = "a", veb = TRUE) {
   if (!veb) {
     return(invisible())
   }
@@ -836,8 +836,8 @@ mdwrite <- function(source, heading = NULL, data = NULL, image = NULL, image.out
     data <- kable(data, format = "markdown")
   }
 
-  if (grepl(";", heading)) {
-    split_str <- str_split(heading, ";")[[1]]
+  if (grepl(";", text)) {
+    split_str <- str_split(text, ";")[[1]]
     h_num <- split_str[[1]]
     h_text <- split_str[[2]]
   }
@@ -867,9 +867,9 @@ mdwrite <- function(source, heading = NULL, data = NULL, image = NULL, image.out
   try(con <- file(source, open = open))
   sink(con, type = "output")
 
-  if (!is.null(heading)) {
-    if (grepl(";", heading)) catn(paste0(strrep("#", h_num), " ", h_text))
-    if (!grepl(";", heading)) catn(heading)
+  if (!is.null(text)) {
+    if (grepl(";", text)) catn(paste0(strrep("#", h_num), " ", h_text))
+    if (!grepl(";", text)) catn(text)
   }
   if (!is.null(data)) print(data)
   if (!is.null(image)) catn(paste0("![", h_text, "]", "(", "images/", basename(image.out), ")"))

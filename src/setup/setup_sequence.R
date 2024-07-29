@@ -16,7 +16,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     
     mdwrite(
       post_seq_nums,
-      heading = paste0(
+      text = paste0(
         "1;Setup Sequence",
       )
     )

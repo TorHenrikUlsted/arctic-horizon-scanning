@@ -73,7 +73,7 @@ to_char <- function(input, string = "Updated input:", terminate = TRUE, verbose 
     vebprint(input.updated, verbose, string)
     
   }, error = function(e) {
-    vebcat("Error: input is not an object or string. Please input as a string.", color = "fatalError")
+    vebcat("Error: input is not a string. Please input as a string.", color = "fatalError")
     try(vebprint(class(input), text = "Found class:"))
     if (terminate) stop("Edit the input paramter.")
   })
