@@ -2,11 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-resources/data-raw/
+resources/*
+!resources/data-raw/
+resources/data-raw/*
 !resources/data-raw/test/
-resources/font/
-resources/region/
-resources/wfo/
-resources/taxon/
-resources/manual-edit/
 outputs/
