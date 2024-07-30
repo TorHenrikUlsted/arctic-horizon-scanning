@@ -9,7 +9,7 @@ merge_and_sum <- function(dt1, dt2, sumCol, by, all = TRUE) {
   return(merged_dt)
 }
 
-find_min_data_col <- function(dt, count.rows = 100, verbose = TRUE) { #count.rows should be sample
+find_min_data_col <- function(dt, count.rows = 100, verbose = TRUE) { # count.rows should be sample
   catn("Finding column with the least memory allocation needed.")
 
   byte_size <- list(
@@ -74,13 +74,13 @@ set_df_utf8 <- function(df) {
 standardize_infraEpithet <- function(spec, verbose = FALSE) {
   res <- spec
 
-  for (s in names(standard_infraEpithets)) {
+  for (s in names(config$species$standard_infraEpithets)) {
     pattern <- paste0("(?i)\\b", gsub("\\.", "", s), "\\.?\\s+(\\w+)\\b")
 
     if (grepl(pattern, res)) {
       epithet <- tolower(gsub(pattern, "\\1", res, perl = TRUE))
       separator <- ifelse(grepl("\\.$", s), "", ". ")
-      replacement <- paste0(standard_infraEpithets[[s]], separator, " ", epithet)
+      replacement <- paste0(config$species$standard_infraEpithets[[s]], separator, " ", epithet)
       res <- replacement
 
       break
@@ -92,7 +92,7 @@ standardize_infraEpithet <- function(spec, verbose = FALSE) {
 
 remove_designations <- function(spec, verbose = FALSE) {
   # Remove ignored designations
-  for (d in ignored_designations) {
+  for (d in config$species$ignored_designations) {
     pattern <- paste0("\\b", d, "\\b(?:\\s*\\([^)]+\\))?")
 
     spec <- gsub(pattern, "", spec)
@@ -106,7 +106,7 @@ remove_infraEpithet <- function(spec, verbose = FALSE) {
 
   spec <- remove_designations(spec = spec, verbose = verbose)
 
-  for (d in infraEpithet_designations) {
+  for (d in config$species$infraEpithet_designations) {
     # Remove the designation and the name that follows it from the species name
     spec <- gsub(paste0("(\\s*\\(?\\s*(?i)", d, "\\.?\\s+)([^\\)]*)\\)?"), "", spec)
   }
@@ -118,7 +118,7 @@ remove_infraEpithet <- function(spec, verbose = FALSE) {
 extract_infraEpithet <- function(spec, verbose = FALSE) {
   res <- ""
 
-  for (d in infraEpithet_designations) {
+  for (d in config$species$infraEpithet_designations) {
     pattern <- paste0("(?i)\\b", gsub("\\.", "", d), "\\.?\\s+(\\w+)\\b")
 
     if (grepl(pattern, spec)) {
@@ -146,29 +146,29 @@ extract_infraEpithet <- function(spec, verbose = FALSE) {
 # Combine the a row for all specified columns as strings. If custom.col and custom.list are used, the custom.col will be swapped out with the data from the custom.list.
 combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = NULL, custom.list = NULL, sep = " ", verbose = FALSE) {
   catn("Combining columns.")
-  
+
   columns <- lapply(substitute(list(...))[-1], as.character)
-  
+
   vebprint(columns, verbose, "Columns:")
-  
+
   combined_dt <- copy(dt)
-  
+
   vebprint(combined_dt, verbose, "Input data table:")
-  
+
   # this will replace taxonRanks with the config taxonRanks
   if (!is.null(custom.col) && !is.null(custom.list)) {
     vebcat("custom.col and custom.list are not null.", veb = verbose, color = "proSuccess")
-    
+
     if (custom.col %in% names(combined_dt)) {
       vebcat("custom.col is in the config.", veb = verbose, color = "proSuccess")
       combined_dt[, customList := custom.list[get(custom.col)]]
-      
+
       pos <- match(custom.col, columns)
-      
+
       vebprint(pos, verbose, "custom.col position:")
-      
+
       columns[[pos]] <- "customList"
-      
+
       vebprint(unique(combined_dt$customList), verbose, "Unique Custom list items:")
     }
   } else {
@@ -176,7 +176,7 @@ combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = N
     vebcat("To use custom list you need to specify the list as a list object.", color = "fatalError")
     stop("Both custom.col and custom.list have to be not null if they are to be used.")
   }
-  
+
   combined_dt[, (column.name) := apply(
     .SD,
     1,
@@ -184,30 +184,28 @@ combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = N
   ),
   .SDcols = unlist(columns)
   ]
-  
+
   combined_dt[, (column.name) := trimws(combined_dt[[column.name]])]
-  
+
   vebprint(unique(combined_dt[[column.name]]), verbose, "Unique combinations:")
-  
+
   return(combined_dt)
 }
 
 select_species_approach <- function(dt, approach = "precautionary", col.name = "cleanName", verbose = FALSE) {
-  
   catn("Selecting species using the", highcat(approach), "approach.")
-  
+
   spec_dt <- copy(dt)
-  
+
   if (approach == "precautionary") {
     spec_dt <- spec_dt[, (col.name) := species]
-    
   } else if (approach == "conservative") { # the conservative approach also needs to handle cases where scientificNames are actually not just the species name.... use remove_authorship()
     spec_dt <- combine_columns_dt(
       "species", "taxonRank", "infraspecificEpithet",
       dt = spec_dt,
       column.name = col.name,
       custom.col = "taxonRank",
-      custom.list = standard_infraEpithets_taxonRank,
+      custom.list = config$species$standard_infraEpithets_taxonRank,
       sep = " ",
       verbose = verbose
     )
@@ -215,7 +213,7 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
     vebcat("Approach can only be 'conservative' or 'precautionary'.", color = "fatalError")
     stop("Change the apporach.")
   }
-  
+
   return(spec_dt)
 }
 
@@ -223,17 +221,17 @@ get_order_group <- function(dt, verbose = FALSE) {
   dt_res <- copy(dt)
 
   dt_res[, group := as.character(NA)]
-  
+
   dt_res[order %in% config$species$angiosperms, group := "angiosperm"]
   dt_res[order %in% config$species$gymnosperms, group := "gymnosperm"]
   dt_res[order %in% config$species$pteridophytes, group := "pteridophyte"]
-  
+
   # Concatenate the vectors in the desired order
   all_orders <- c(config$species$pteridophytes, config$species$gymnosperms, config$species$angiosperms)
-  
+
   # Only keep the orders that are present in dt_res$order
   valid_orders <- all_orders[all_orders %in% dt_res$order]
-  
+
   # Set the levels of the order factor
   dt_res$order <- factor(dt_res$order, levels = valid_orders)
 
@@ -278,7 +276,7 @@ extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells =
     extract_by <- region
   }
 
-  rast_extr <- terra::extract(raster, extract_by, cells = cells, xy=xy)
+  rast_extr <- terra::extract(raster, extract_by, cells = cells, xy = xy)
   rast_dt <- as.data.frame(rast_extr)
   rast_dt <- as.data.table(rast_extr)
 
@@ -304,9 +302,9 @@ convert_spatial_dt <- function(spatial, verbose = FALSE) {
 
 reproject_region <- function(region, projection, res = NULL, issue.line = FALSE, issue.threshold = 0.00001, verbose = FALSE) {
   catn("Reprojecting region")
-  
+
   vebprint(class(region), verbose, "Class of input object:")
-  
+
   if (!is.null(res) && "SpatVector" %in% class(region)) {
     vebcat("Resolution scale cannot be used for shapefiles, ignoring 'resolution scale.'res' parameter.", color = "nonFatalError")
     res <- NULL
@@ -324,10 +322,10 @@ reproject_region <- function(region, projection, res = NULL, issue.line = FALSE,
     vect_west <- terra::crop(region, ext_west)
 
     catn("Reprojecting to longlat.")
-    proj_east <- terra::project(vect_east, longlat_crs)
+    proj_east <- terra::project(vect_east, config$projection$longlat)
     catn("Plotting left side.")
     if (verbose) plot(proj_east)
-    proj_west <- terra::project(vect_west, longlat_crs)
+    proj_west <- terra::project(vect_west, config$projection$longlat)
     catn("plotting right side.")
     if (verbose) plot(proj_west)
 
@@ -340,13 +338,13 @@ reproject_region <- function(region, projection, res = NULL, issue.line = FALSE,
 
   if (projection == "longlat") {
     catn("Choosing", highcat("longlat"), "coordinate system.")
-    prj <- longlat_crs
+    prj <- config$projection$longlat
   } else if (projection == "laea") {
     catn("Choosing", highcat("laea"), "coordinate system.")
-    prj <- laea_crs
+    prj <- config$projection$laea
   } else if (projection == "mollweide") {
     catn("Choosing", highcat("mollweide"), "coordinate system.")
-    prj <- mollweide_crs
+    prj <- config$projection$mollweide
   } else if (projection == "stere") {
     catn("Choosing", highcat("stere"), "coordinate system.")
     prj <- stere_crs
@@ -358,7 +356,7 @@ reproject_region <- function(region, projection, res = NULL, issue.line = FALSE,
   if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
     vebcat("Original CRS not identical to current CSR.", veb = verbose)
     catn("Reprojecting region to:\n", highcat(crs(prj, proj = T)))
-    
+
     if ("SpatVector" %in% class(region)) {
       vebcat("Using the SpatVector method.", veb = verbose)
       reproj_region <- terra::project(region, prj)
@@ -397,10 +395,10 @@ fix_shape <- function(shape, verbose = FALSE) {
   }
 }
 
-thin_occ_data <- function(dt, long = "decimalLongitude", lat = "decimalLatitude", projection = config$projection$longlat, res = 1000, seed = 123, verbose = FALSE) {
+thin_occ_data <- function(dt, long = "decimalLongitude", lat = "decimalLatitude", projection = "+proj=longlat +datum=WGS84 +ellps=WGS84", res = 1000, seed = 123, verbose = FALSE) {
   # Add an ID to the input dt
   dt[, ID := .I]
-  
+
   # get resolution in degrees
   resolution <- res / 111320
 
@@ -427,14 +425,16 @@ thin_occ_data <- function(dt, long = "decimalLongitude", lat = "decimalLatitude"
   # Randomly keep unique points in each cell
   set.seed(seed)
   thinned_data <- r_dt[!is.na(cell), .SD[sample(.N, 1)], by = cell]
-  # Here i ignore NA cells because it could be points on the border, so I just do not thin them. probably few of these
+
+  # ignore NA cells because it could be points on the border, so do not thin them.
   vebprint(thinned_data, verbose, "Thinned data by choosing a random sample:")
-  
+
   # Merge output with original data table
   thinned_dt <- merge(thinned_data, dt, by = "ID")
+
   # Remove unnecessary columns
   thinned_dt <- thinned_dt[, -c("ID", "cell", "value")]
-  
+
   return(thinned_dt)
 }
 
@@ -483,7 +483,7 @@ calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "k
     vebprint(region_ext, text = "Region Extent:")
 
     if (projection == "longlat") {
-      projection <- longlat_crs
+      projection <- config$projection$longlat
       region <- check_crs(region, projection = projection, projection.method = "near")
       res_lat <- terra::res(region)[2]
       res_long <- terra::res(region)[1]
@@ -504,7 +504,7 @@ calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "k
         verbose = verbose
       )
     } else if (projection == "laea") {
-      projection <- laea_crs
+      projection <- config$projection$laea
       region <- check_crs(region, projection = projection, projection.method = "near")
       max_res <- floor(terra::res(region)[1])
 
@@ -574,34 +574,34 @@ check_orig_occ <- function(spec.occ, region, verbose = FALSE) {
   } else if (is.character(spec.occ)) {
     spec <- fread(spec.occ)
   }
-  
+
   if (is.character(region)) {
     region <- load_region(region)
   }
-  
+
   spec_name <- unique(spec$cleanName)
-  
+
   # Subset
   spec <- spec[, .(cleanName, decimalLongitude, decimalLatitude)]
   # Make into points
-  points <- terra::vect(spec, geom=c("decimalLongitude", "decimalLatitude"), crs = longlat_crs)
-  
+  points <- terra::vect(spec, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$longlat)
+
   # Check if overlap with region
   overlap <- terra::extract(region, points)
   overlap <- as.data.table(overlap)
-  
+
   n_overlap <- nrow(overlap)
-  
+
   overlap <- overlap[complete.cases(overlap)]
-  
+
   vebcat(highcat(nrow(overlap)), "/", highcat(n_overlap), "occurrences found within the region")
-  
+
   if (nrow(overlap) == 0) {
-    overlap_points <- data.table(species = spec_name, decimalLongitude = NA, decimalLatitude = NA,  regionOcc = 0, totalOcc = n_overlap, propOcc =  0 / n_overlap)
+    overlap_points <- data.table(species = spec_name, decimalLongitude = NA, decimalLatitude = NA, regionOcc = 0, totalOcc = n_overlap, propOcc = 0 / n_overlap)
     return(overlap_points)
   } else {
     vebcat("Making the overlapping occurences into a data.table", veb = verbose)
-    
+
     # Get the original longlat
     overlap_points <- spec[overlap$id.y, .(decimalLongitude, decimalLatitude)]
     overlap_points <- overlap_points[, species := spec_name]
@@ -609,62 +609,64 @@ check_orig_occ <- function(spec.occ, region, verbose = FALSE) {
     overlap_points <- overlap_points[, regionOcc := nrow(overlap)]
     overlap_points <- overlap_points[, totalOcc := n_overlap]
     overlap_points <- overlap_points[, propOcc := nrow(overlap) / n_overlap]
-    
+
     if (verbose) {
       # convert to points again
-      points <- terra::vect(overlap_points, geom=c("decimalLongitude", "decimalLatitude"), crs = longlat_crs)
-      
+      points <- terra::vect(overlap_points, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$longlat)
+
       region_ext <- round(ext(region), 3)
       points_ext <- round(ext(points), 3)
-      
-      
+
+
       catn("Extents of region and points within region")
       vebprint(region_ext, text = highcat("Region extent:"))
       vebprint(points_ext, text = highcat("Points extent:"))
-      
+
       plot(region)
       plot(points, add = TRUE, col = "red")
     }
-    
+
     return(overlap_points)
   }
 }
 
 loop_orig_occ <- function(spec.occ.vect, region, file.out, with.coords = TRUE, verbose = FALSE) {
   spec_dt_out <- data.table(species = character(), decimalLongitude = numeric(), decimalLatitude = numeric(), regionOcc = integer(), totalOcc = integer(), propOcc = numeric())
-  
+
   if (is.character(region)) {
     region <- load_region(region)
   }
-  
+
   for (i in 1:length(spec.occ.vect)) {
     spec <- spec.occ.vect[i]
-    
+
     spec_dt <- check_orig_occ(spec, region)
-    
+
     spec_dt_out <- rbind(spec_dt_out, spec_dt)
   }
-  
+
   if (!with.coords) {
     spec_dt_out <- spec_dt_out[, .(species, regionOcc, totalOcc, propOcc)]
     spec_dt_out <- unique(spec_dt_out, by = "species")
     file.out <- paste0(dirname(file.out), "/", gsub(".csv", "", basename(file.out)), "-no-coords.csv")
   }
-  
+
   setorder(spec_dt_out, -propOcc)
-  
+
   catn("Writing file to:", colcat(file.out, color = "output"))
   fwrite(spec_dt_out, file.out)
 }
 
 thin_occ_data <- function(dt, res, long, lat, verbose = FALSE) {
   catn("Thinning occurrence data.")
-  
+
   res_in_deg <- res / (111.32 * config$projection$raster_scale_m)
-  
-  data[, cell_id := paste(floor(longitude / resolution_in_degrees), 
-                          floor(latitude / resolution_in_degrees), sep="_")]
-  
+
+  data[, cell_id := paste(floor(longitude / resolution_in_degrees),
+    floor(latitude / resolution_in_degrees),
+    sep = "_"
+  )]
+
   return(thinned_data)
 }
 
@@ -676,7 +678,7 @@ save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir,
   vebprint(save.plot, veb = plot.show)
 
   fig_out <- paste0(save.dir, "/", save.name, ".", save.device)
-  
+
   create_dir_if(dirname(fig_out))
 
   catn("Saving plot to:", colcat(fig_out, color = "output"))
@@ -882,25 +884,25 @@ mdwrite <- function(source, text = NULL, data = NULL, image = NULL, image.out = 
 create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
   sp_occ_out <- "./outputs/post-process/derived-data/datasetKey-count.csv"
   derived_data_zip_out <- "./outputs/post-process/derived-data/derived-dataset.zip"
-  
+
   create_dir_if(sp_occ_out)
 
   if (file.exists(sp_occ_out)) {
     catn("DatasetKey with occurrence count already exists.")
-    
+
     sp_occ_dt <- fread(sp_occ_out)
-    
+
     catn(highcat(nrow(sp_occ_dt)), "datasetKeys added to csv file with corresponding total count.")
-    
+
     catn(highcat(sum(sp_occ_dt$count)), "Total occurrences.")
-    
+
     rm(sp_occ_dt)
     invisible(gc())
   } else {
     vebcat("Collecting datasetKeys and corresponding occurrence counts", color = "funInit")
 
     sp_occ_files <- list.files(occurrences.dir, full.names = TRUE)
-    
+
     vebprint(head(sp_occ_files, 5), verbose, "occurence files:")
 
     sp_occ_dt <- data.table(datasetKey = character(), count = integer())
@@ -908,24 +910,25 @@ create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
     catn("Reading data.")
     for (i in 1:length(sp_occ_files)) {
       sp_occ <- sp_occ_files[i]
-      
+
       vebprint(sp_occ, verbose, "sp_occ:")
 
       cat("\rCounting datasetKey occurrences for", i, "/", length(sp_occ_files))
 
       sp_dt <- fread(sp_occ, select = "datasetKey")
-      
+
       vebprint(sp_dt, verbose, "sp_dt:")
-      
+
       sp_count <- sp_dt[, .(count = .N), by = datasetKey]
-      
+
       vebprint(sp_count, verbose, "sp_count:")
 
       sp_occ_dt <- rbind(sp_occ_dt, sp_count)
-    }; catn()
-    
+    }
+    catn()
+
     sp_occ_dt <- sp_occ_dt[, .(count = sum(count)), by = datasetKey]
-    
+
     if (any(duplicated(sp_occ_dt$datasetKey))) {
       vebcat("Some datasetKeys are duplicated.", color = "nonFatalError")
     } else {
@@ -933,9 +936,9 @@ create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
     }
 
     catn(highcat(nrow(sp_occ_dt)), "datasetKeys added to csv file with corresponding total count.")
-    
+
     catn(highcat(sum(sp_occ_dt$count)), "Total occurrences.")
-    
+
     vebprint(sp_occ_dt, text = "Sample output:")
 
     catn("Writing out to file:", colcat(sp_occ_out, color = "output"))
@@ -952,9 +955,9 @@ create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
     invisible(gc())
   } else {
     files <- list.files(occurrences.dir, full.names = TRUE)
-    
+
     catn("Zipping", highcat(length(files)), "dervied species files.")
-    
+
     zip(derived_data_zip_out, files)
   }
 }
@@ -977,42 +980,39 @@ progressive_dirname <- function(path, begin = 1, end = NULL) {
   return(res)
 }
 
-get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, step = 0) {
-  if (step > 5) {
-    vebcat("Step cannot be higher than 5", color = "fatalError")
+get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, include.files = NULL, step = 0) {
+  if (step > 6) {
+    vebcat("Step cannot be higher than 6", color = "fatalError")
     stop("Change step to a different integer value.")
   }
-
   d <- list.dirs(input.dir, recursive = TRUE)
   if (length(d) > 1) {
     d <- d[-1]
   }
-
   vebprint(d, veb = (step == 1), paste0(highcat("Step 1"), " | ", highcat("initial directories:")))
   if (!is.null(exclude.dirs)) {
     exclude <- sapply(d, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
-
     d <- d[!exclude]
   }
   vebprint(d, veb = (step == 2), paste0(highcat("Step 2"), " | ", highcat("exclude directories:")))
-  
+
   f <- list.files(d, recursive = FALSE, full.names = TRUE)
-
   vebprint(f, veb = (step == 3), paste0(highcat("Step 3"), " | ", highcat("list files:")))
-
   if (!is.null(exclude.files)) {
     exclude <- sapply(f, function(x) any(sapply(exclude.files, function(ex_f) grepl(ex_f, x))))
-
     f <- f[!exclude]
   }
-
   vebprint(f, veb = (step == 4), paste0(highcat("Step 4"), " | ", highcat("exclude files:")))
-  
-  
-  f <- f[!file.info(f)$isdir]
-  
-  vebprint(f, veb = (step == 5), paste0(highcat("Step 5"), " | ", highcat("remove directories:"))) 
 
+  if (!is.null(include.files)) {
+    include <- sapply(f, function(x) any(sapply(include.files, function(in_f) grepl(in_f, x, fixed = TRUE))))
+    f <- f[include]
+  }
+  vebprint(f, veb = (step == 5), paste0(highcat("Step 5"), " | ", highcat("include files:")))
+
+  f <- f[!file.info(f)$isdir]
+
+  vebprint(f, veb = (step == 6), paste0(highcat("Step 6"), " | ", highcat("remove directories:")))
   return(f)
 }
 
@@ -1087,9 +1087,9 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
 
 pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequence = "all") {
   vebcat("Packing repository", color = "funInit")
-  
+
   out_file <- paste0("./outputs/", filename, ".zip")
-  
+
   if (file.exists(out_file)) {
     catn("found file:", colcat(out_file, color = "output"))
     vebcat("Repository already zipped, remove it or rename the file.", color = "fatalError")
@@ -1099,35 +1099,57 @@ pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequ
   repo_files <- get_repository_files(which.sequence = which.sequence)
 
   zip(zipfile = out_file, files = repo_files)
-  
+
   catn("Zip file saved in", colcat(out_file, color = "output"))
 
   vebcat("Repository packed successfully", color = "funSuccess")
 }
 
-find_term <- function(term, dir = ".", file.pattern = "\\.R$", verbose = FALSE) {
+find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NULL, verbose = FALSE) {
   term <- to_char(term, verbose = verbose)
-  
   files <- list.files(dir, pattern = file.pattern, full.names = TRUE, recursive = TRUE)
-  
+
+  if (!is.null(file.exclude)) {
+    files <- files[!sapply(files, function(file) {
+      any(sapply(file.exclude, function(exclude) grepl(exclude, file, fixed = TRUE)))
+    })]
+  }
+
   results <- lapply(files, function(file) {
-    tryCatch({
-      lines <- readLines(file, warn = FALSE)
-      pattern <- paste0("\\b", term, "\\b")
-      matches <- grep(pattern, lines, value = TRUE)
-      if (length(matches) > 0) {
-        data.table(
-          file = file,
-          lineNumber = grep(pattern, lines),
-          code = trimws(matches),
-          stringsAsFactors = FALSE
-        )
+    tryCatch(
+      {
+        lines <- readLines(file, warn = FALSE)
+        # Use word boundaries and lookahead/lookbehind for exact matches
+        pattern <- paste0("(?<!(\\w|\\$))", gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", term), "(?!(\\w|\\$))")
+        matches <- which(sapply(lines, function(line) {
+          grepl(pattern, line, perl = TRUE)
+        }))
+        if (length(matches) > 0) {
+          if (verbose) {
+            cat("File:", file, "\n")
+            cat("Matches found on lines:", paste(matches, collapse = ", "), "\n")
+            cat("Matching lines:\n")
+            for (m in matches) {
+              cat("  Line", m, ":", lines[m], "\n")
+            }
+            cat("\n")
+          }
+          data.table(
+            file = file,
+            lineNumber = matches,
+            code = trimws(lines[matches]),
+            stringsAsFactors = FALSE
+          )
+        } else {
+          NULL
+        }
+      },
+      error = function(e) {
+        if (verbose) warning("Error processing file: ", file, "\nError: ", e$message)
+        NULL
       }
-    }, error = function(e) {
-      NULL
-    })
+    )
   })
-  
   result_dt <- do.call(rbind, results)
   if (is.null(result_dt)) {
     message("No matches found.")
@@ -1137,17 +1159,16 @@ find_term <- function(term, dir = ".", file.pattern = "\\.R$", verbose = FALSE) 
 }
 
 find_term_pattern <- function(term, line.pattern = NULL, dir = ".", file.pattern = "\\.R$") {
-  
   term <- to_char(term)
   line.pattern <- to_char(line.pattern)
-  
+
   find_res <- find_term(term, dir, file.pattern)
-  
+
   if (is.null(find_res)) {
     message("No matches found.")
     return(NULL)
   }
-  
+
   if (!is.null(line.pattern)) {
     # General case for function calls
     if (grepl("\\(\\)$", line.pattern)) {
@@ -1156,25 +1177,25 @@ find_term_pattern <- function(term, line.pattern = NULL, dir = ".", file.pattern
     } else if (grepl("\\[\\]$|\\{\\}$", line.pattern)) {
       base_pattern <- sub("\\[\\]$|\\{\\}$", "", line.pattern)
       bracket_type <- substring(line.pattern, nchar(line.pattern) - 1, nchar(line.pattern))
-      
+
       escape_chars <- list("[]" = "\\[\\]", "{}" = "\\{\\}")
-      escaped_bracket = escape_chars[[bracket_type]]
-      
+      escaped_bracket <- escape_chars[[bracket_type]]
+
       line.pattern <- paste0(base_pattern, escaped_bracket[1], "[^", escaped_bracket[2], "]*", escaped_bracket[2])
     }
-    
-    
+
+
     pattern_matches <- grepl(line.pattern, find_res$code)
     filtered_res <- find_res[pattern_matches, ]
-    
+
     removed_count <- nrow(find_res) - nrow(filtered_res)
     cat("Number of results without the pattern:", removed_count, "\n")
-    
+
     if (nrow(filtered_res) == 0) {
       message("No matches found after applying the line pattern.")
       return(NULL)
     }
-    
+
     return(filtered_res)
   } else {
     return(find_res)
@@ -1198,97 +1219,113 @@ remove_outer_pattern <- function(text, pattern, replacement = "", show.diff = TR
       end = paste(parts[close_bracket:length(parts)], collapse = "")
     )
   }
-  
+
   pattern_parts <- split_pattern(pattern)
   replacement_parts <- split_pattern(replacement)
-  
+
   vebprint(pattern_parts, verbose, "Pattern parts:")
   vebprint(replacement_parts, verbose, "Replacement parts:")
-  
+
   # Escape special characters in the patterns
   pattern_start_escaped <- gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", pattern_parts$start)
   pattern_end_escaped <- gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", pattern_parts$end)
-  
+
   # Create the regex pattern
   full_pattern <- paste0(pattern_start_escaped, "(.*?)", pattern_end_escaped)
-  
+
   # Replace the pattern with its contents and the specified replacement
   result <- gsub(full_pattern, paste0(replacement_parts$start, "\\1", replacement_parts$end), text)
-  
+
   if (show.diff) {
     # Highlight the changes
-    highlighted_original <- gsub(full_pattern, 
-                                 paste0(red(pattern_parts$start), "\\1", red(pattern_parts$end)), 
-                                 text)
-    highlighted_result <- gsub(full_pattern, 
-                               paste0(green(replacement_parts$start), "\\1", green(replacement_parts$end)), 
-                               text)
-    
+    highlighted_original <- gsub(
+      full_pattern,
+      paste0(red(pattern_parts$start), "\\1", red(pattern_parts$end)),
+      text
+    )
+    highlighted_result <- gsub(
+      full_pattern,
+      paste0(green(replacement_parts$start), "\\1", green(replacement_parts$end)),
+      text
+    )
+
     vebcat("Original:\n", highlighted_original, veb = verbose)
     vebcat("Result:\n", highlighted_result, veb = verbose)
-    
+
     return(list(result = result, high_orig = highlighted_original, high_res = highlighted_result))
   } else {
     return(list(result))
   }
 }
 
-replace_term_name <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", verbose = FALSE) {
-  
-  to_char(name.old, string = "Old name after check:")
-  to_char(name.new, string = "New name after check:")
-  
-  res <- find_term(old, dir, file.pattern)
-  
+replace_term_name <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", file.exclude = NULL, verbose = FALSE) {
+  name.old <- to_char(name.old, string = "Old name after check:")
+  name.new <- to_char(name.new, string = "New name after check:")
+  res <- find_term(name.old, dir, file.pattern, file.exclude = file.exclude, verbose = verbose)
+
   if (is.null(res)) {
-    message("No occurrences of '", old, "' found. No changes made.")
+    message("No occurrences of '", name.old, "' found. No changes made.")
     return(invisible(NULL))
   }
-  
   unique_files <- unique(res$file)
+
   for (file in unique_files) {
-    tryCatch({
-      lines <- readLines(file, warn = FALSE)
-      
-      pattern <- paste0("\\b", old, "\\b") # Search for whole words only
-      
-      new_lines <- gsub(pattern, new, lines)
-      
-      writeLines(new_lines, file)
-      
-      styler::style_file(file)
-      
-      changed_lines <- which(lines != new_lines)
-      
-      catn("Updated", file, "at line\n-", paste(changed_lines, collapse = "\n- "))
-    }, error = function(e) {
-      warning("Error processing file: ", file, "\nError: ", e$message)
-    })
+    tryCatch(
+      {
+        original_lines <- readLines(file, warn = FALSE)
+        pattern <- paste0("\\b", name.old, "\\b") # Search for whole words only
+        new_lines <- gsub(pattern, name.new, original_lines)
+
+        # Identify lines where the replacement occurred
+        replaced_lines <- which(original_lines != new_lines)
+
+        if (length(replaced_lines) > 0) {
+          # Only style if changes were made
+          temp_file <- tempfile(fileext = ".R")
+          writeLines(new_lines, temp_file)
+          tryCatch(
+            {
+              styler::style_file(temp_file)
+              styled_lines <- readLines(temp_file, warn = FALSE)
+              writeLines(styled_lines, file)
+            },
+            error = function(e) {
+              warning("Error during styling: ", e$message, ". Writing unstyled changes.")
+              writeLines(new_lines, file)
+            }
+          )
+          catn("Updated", file, "at line\n-", paste(replaced_lines, collapse = "\n- "), "\n")
+        }
+
+        # Clean up temporary file
+        if (exists("temp_file")) file.remove(temp_file)
+      },
+      error = function(e) {
+        warning("Error processing file: ", file, "\nError: ", e$message)
+      }
+    )
   }
-  
-  vebcat("Finished updating", paste0("'", highcat(old), "'"), "to", paste0("'", highcat(new), "'"), "in all files.", color = "proSuccess")
-  
+  vebcat("Finished updating", paste0("'", highcat(name.old), "'"), "to", paste0("'", highcat(name.new), "'"), "in all files.", color = "proSuccess")
   if (verbose) {
     catn("Output:")
-    find_term(new, dir, file.pattern)
+    find_term(name.new, dir, file.pattern)
   }
 }
 
 replace_term_pattern <- function(term, line.pattern = NULL, replacement = "", dir = ".", file.pattern = "\\.R$", replace = FALSE, verbose = FALSE) {
-  
   term <- to_char(term)
   line.pattern <- to_char(line.pattern)
   replacement <- to_char(replacement)
-  
+
   matches <- find_term_pattern(term, line.pattern, dir, file.pattern)
-  
+
   if (is.null(matches)) {
     message("No matches found to replace.")
     invisible(return(NULL))
   }
-  
+
   replace_in_file <- function(file, line_numbers, old_code, new_code, verbose = FALSE) {
-    lines <- readLines(file)
+    lines <- readLines(file, warn = FALSE)
     for (i in seq_along(line_numbers)) {
       lines[line_numbers[i]] <- new_code[i]
     }
@@ -1297,10 +1334,10 @@ replace_term_pattern <- function(term, line.pattern = NULL, replacement = "", di
     }
     return(data.table(file = file, lineNumber = line_numbers, oldCode = old_code, newCode = new_code))
   }
-  
+
   # Group matches by file
   matches_by_file <- split(matches, matches$file)
-  
+
   # Apply replacements
   results <- lapply(names(matches_by_file), function(file) {
     file_matches <- matches_by_file[[file]]
@@ -1310,19 +1347,20 @@ replace_term_pattern <- function(term, line.pattern = NULL, replacement = "", di
     high_res <- new_res$high_res
     new_code <- new_res$result
     replaced <- replace_in_file(file, file_matches$lineNumber, old_code, new_code, verbose = verbose)
-    
+
     return(list(replaced = replaced, high_orig = high_orig, high_res = high_res))
   })
-  
+
   replaced_data <- do.call(rbind, lapply(results, function(x) x$replaced))
   high_orig <- do.call(rbind, lapply(results, function(x) x$high_orig))
   high_res <- do.call(rbind, lapply(results, function(x) x$high_res))
-  
+
   if (!replace) {
-    catn("\n",
-         highcat("######################################"), "\n",
-         highcat("#              SAFEMODE              #"), "\n",
-         highcat("######################################"), "\n"
+    catn(
+      "\n",
+      highcat("######################################"), "\n",
+      highcat("#              SAFEMODE              #"), "\n",
+      highcat("######################################"), "\n"
     )
     cat("These are the changes that would be made:\n")
     for (i in 1:nrow(replaced_data)) {
@@ -1330,9 +1368,8 @@ replace_term_pattern <- function(term, line.pattern = NULL, replacement = "", di
       catn(highcat("Old: "), high_orig[i])
       catn(highcat("New: "), high_res[i], "\n")
     }
-    
+
     catn(highcat("\nTo apply these changes, run again with replace = TRUE"))
-    
   } else {
     catn("Changes applied:")
     for (i in 1:nrow(replaced_data)) {
@@ -1341,12 +1378,6 @@ replace_term_pattern <- function(term, line.pattern = NULL, replacement = "", di
       catn(highcat("New: "), high_res[i], "\n")
     }
   }
-    
+
   invisible(replaced_data)
 }
-
-
-
-
-
-

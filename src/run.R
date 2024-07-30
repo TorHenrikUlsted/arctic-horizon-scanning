@@ -8,23 +8,23 @@ source("./src/visualize/visualize.R")
 source("./src/main.R")
 
 main(
-  spec.known = filter_arctic,
-  spec.unknown = filter_glonaf,
-  test = NULL,
+  spec.known = filter_known,
+  spec.unknown = filter_unknown,
+  test = "small",
   approach = "precautionary",
   coord.uncertainty = NULL,
   region = NULL,
-  download.key = "0186013-240321170329656",
-  download.doi = "https://doi.org/10.15468/dl.awqjxw",
+  download.key = NULL,
+  download.doi = NULL,
   hv.iterations = NULL,
   hv.method = "box",
   hv.accuracy = "accurate",
-  hv.dims = c(18, 10, 3, 4),
+  hv.dims = NULL,
   hv.incl.threshold = 0.5,
-  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
+  vis.shape = "./outputs/setup/region/region-name/region-name.shp",
   vis.projection = "laea",
   vis.title = TRUE,
-  vis.region.name = "the Arctic", 
+  vis.region.name = "Region name", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",
   vis.save.device = "svg", 
@@ -37,7 +37,7 @@ main(
 create_derived_dataset(
   occurrences.dir = paste0(
     "./outputs/filter/", 
-    gsub("filter_", "", get_obj_name(filter_glonaf)), 
+    gsub("filter_", "", get_obj_name(filter_unknown)), 
     "/chunk/species"
   ),
   verbose = FALSE
