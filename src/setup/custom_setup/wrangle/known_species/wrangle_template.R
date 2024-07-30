@@ -1,4 +1,4 @@
-# wrangle_template is ignored, change the name
+# 'wrangle_template' is ignored, change the name to 'wrangle_newname'
 wrangle_template <- function(name, column, verbose = FALSE) {
   # The name is taken from the function name
   dir <- paste0("./outputs/setup/wrangle/", name)
@@ -25,7 +25,7 @@ wrangle_template <- function(name, column, verbose = FALSE) {
   )
 
   return(list(
-    present = present, # Remove if you only have one return
-    absnt = absent
+    present = template_present,
+    absnt = template_absent
   ))
 }

@@ -9,8 +9,4 @@ resources/region/
 resources/wfo/
 resources/taxon/
 resources/manual-edit/
-resources/synonym-checked/
-!resources/synonym-checked/test-big-wfo-one.csv
-!resources/synonym-checked/test-small-wfo-one.csv
-!resources/synonym-checked/test-present-wfo-one.csv
 outputs/

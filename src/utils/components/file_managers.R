@@ -31,7 +31,7 @@ create_file_if <- function(..., keep = FALSE) {
   }
 }
 
-download_if <- function(out.file, download.file.ext, download.direct, download.page, verbose = FALSE) {
+download_if <- function(out.file, download.file.ext, download.direct = NULL, download.page, verbose = FALSE) {
   name <- sub("\\..*$", "", basename(out.file))
   vebcat("Checking need for download for", name, color = "funInit")
   
