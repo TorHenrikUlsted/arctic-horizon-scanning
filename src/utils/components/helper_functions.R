@@ -1,6 +1,7 @@
-##########################
-#       Data.table       #
-##########################
+############################
+##       Data.table       ##
+############################
+
 
 merge_and_sum <- function(dt1, dt2, sumCol, by, all = TRUE) {
   merged_dt <- merge(dt1, dt2, by = by, all = all)
@@ -668,6 +669,64 @@ thin_occ_data <- function(dt, res, long, lat, verbose = FALSE) {
   )]
 
   return(thinned_data)
+}
+
+get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.per.subregion = FALSE, inside = TRUE, verbose = FALSE) {
+  uniq_subregions <- unique(region[[region.sub]])
+
+  vebprint(uniq_subregions, verbose, "Unique Sub-Region(s):")
+
+  if (centroid.per.subregion) {
+    sub_region_centroids <- list()
+  } else {
+    sub_region_centroids <- vect()
+  }
+
+  for (i in 1:nrow(uniq_subregions)) {
+    sub_region_name <- uniq_subregions[i, ]
+
+    vebcat("Acquiring centroid for subregion", sub_region_name)
+
+    vebprint(sub_region_name, verbose, "Sub-Region Name:")
+
+    sub_region <- region[region[[region.sub]] == sub_region_name]
+
+    vebprint(unique(sub_region[[region.sub]]), verbose, "Actual Subset Region:")
+
+    vebprint(sub_region, verbose, "Sub Region:")
+
+    all_centroids <- centroids(sub_region, inside = inside)
+
+    vebprint(all_centroids, verbose, "All centroids:")
+
+    n_centroids <- dim(all_centroids)[1]
+    vebprint(n_centroids, verbose, "Dimensions:")
+
+    if (n_centroids > 1) {
+      all_x <- terra::crds(all_centroids)[, 1]
+      all_y <- terra::crds(all_centroids)[, 2]
+
+      mean_x <- mean(all_x)
+      mean_y <- mean(all_y)
+
+      euclidean_distances <- sqrt((all_x - mean_x)^2 + (all_y - mean_y)^2)
+
+      centroid <- all_centroids[which.min(euclidean_distances), ]
+    } else {
+      centroid <- all_centroids
+    }
+    
+    if (!centroid.per.subregion) {
+      sub_region_centroids <- rbind(sub_region_centroids, centroid)
+    } else {
+      sub_region_centroids[[i]] <- centroid
+      
+      names(sub_region_centroids)[[i]] <- sub_region_name
+    }
+    
+  }
+
+  return(sub_region_centroids)
 }
 
 ##########################
