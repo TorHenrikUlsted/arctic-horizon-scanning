@@ -354,7 +354,7 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
   #   catn(crs(stack, proj = TRUE))
   #   catn(crs(region, proj = TRUE))
   #   catn(identical(crs(stack, proj = TRUE), crs(region, proj = TRUE)))
-  #   stack <- project(stack, config$projection$laea, method = "bilinear")
+  #   stack <- project(stack, config$projection$crs$laea, method = "bilinear")
   # }
 
   catn("Acquiring min and max values.")
@@ -689,7 +689,7 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
 visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Connections map", color = "funInit")
 
-  wm <- get_world_map(projection = config$projection$mollweide)
+  wm <- get_world_map(projection = config$projection$crs$mollweide)
   sub_dt <- copy(dt)
   # sub_dt <- dt[, nLines := uniqueN(get(taxon), na.rm = TRUE), by = .(originCountry, subRegionName)]
 

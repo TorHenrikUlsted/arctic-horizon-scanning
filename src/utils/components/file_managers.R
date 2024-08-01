@@ -33,7 +33,7 @@ create_file_if <- function(..., keep = FALSE) {
 
 download_if <- function(out.file, download.file.ext, download.direct = NULL, download.page, verbose = FALSE) {
   name <- sub("\\..*$", "", basename(out.file))
-  vebcat("Checking need for download for", name, color = "funInit")
+  vebcat("Detecting installation of", name, color = "funInit")
   
   file_ext <- tail(strsplit(basename(out.file), split = "\\.")[[1]], 1)
   create_dir_if(dirname(out.file))
@@ -49,7 +49,7 @@ download_if <- function(out.file, download.file.ext, download.direct = NULL, dow
   
   if (!file.exists(out.file)) {
     if(!is.null(download.direct)) {
-      catn("Downloading...")
+      catn("Installation not found, Downloading...")
       
       download_status <- try(download.file(download.direct, destfile = file_save, silent = TRUE))
       
@@ -107,7 +107,7 @@ download_if <- function(out.file, download.file.ext, download.direct = NULL, dow
     }
     
   } else {
-    vebcat("No need to download", name, color = "funSuccess")
+    vebcat(name, "Already installed", name, color = "funSuccess")
   }
 }
 
@@ -120,4 +120,60 @@ import_font_if <- function(font, paths, pattern) {
       pattern = pattern
     )
   }
+}
+
+download_github_dir_if <- function(repo.owner, repo.name, branch = "main", dir.path, dir.out, file.exclude = NULL, verbose = FALSE) {
+  
+  vebcat("Detecting", repo.name, "installation...", color = "funInit")
+  
+  dir_out_len <- length(list.files(dir.out))
+  
+  if (dir.exists(dir.out) &  dir_out_len > 0) {
+    catn("Location", colcat(dir.out, color = "output"))
+    vebcat("GitHub repository", highcat(repo.name), "already downloaded with", highcat(dir_out_len), "files.", color = "funSuccess")
+    return(invisible())
+  }
+  
+  catn("Installation not found, downloading...")
+  
+  create_dir_if(dir.out)
+  
+  # Construct the API URL
+  api_url <- paste0("https://api.github.com/repos/", repo.owner, "/", repo.name, "/contents/", dir.path, "?ref=", branch)
+  
+  vebprint(api_url, verbose, "API URL:")
+  
+  # Make the API request
+  response <- GET(api_url)
+  
+  # Check if the request was successful
+  if (status_code(response) != 200) {
+    stop("Failed to retrieve folder contents. Status code: ", status_code(response))
+  }
+  
+  # Parse the JSON response
+  contents <- data.table(fromJSON(rawToChar(response$content)))
+  
+  exclude_pattern <- paste(file.exclude, collapse = "|")
+  
+  if (!is.null(file.exclude)) {
+    contents <- contents[!grepl(exclude_pattern, contents$name, ignore.case = TRUE)]
+  }
+  
+  vebprint(contents, verbose, "Contents:")
+  
+  # Download each file
+  for (i in 1:nrow(contents)) {
+    item <- contents[i]
+    if (item$type == "file") {
+      item_name <- item$name
+      catn("Downloading", item_name)
+      download_url <- item$download_url
+      out_path <- paste0(dir.out, "/", item$name)
+      download.file(download_url, out_path, mode = "wb")
+    }
+  }
+  
+  catn("All GitHub files have been downloaded to:", colcat(dir.out, color = "output"))
+  vebcat("Successfully installed", repo.name, color = "funSuccess")
 }

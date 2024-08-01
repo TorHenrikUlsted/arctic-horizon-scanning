@@ -3,10 +3,12 @@ config <- list(
     seed = 12034
   ),
   projection = list(
-    laea = crs("+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84"),
-    longlat = crs("+proj=longlat +datum=WGS84 +ellps=WGS84"),
-    mollweide = crs("+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"),
-    stere_north = crs("+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"),
+    crs = list(
+      laea = crs("+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84"),
+      longlat = crs("+proj=longlat +datum=WGS84 +ellps=WGS84"),
+      mollweide = crs("+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"),
+      stere_north = crs("+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs")
+    ),
     raster_scale_m = 1000,
     out = "laea"
   ),
@@ -107,16 +109,16 @@ config <- list(
 #  Projection  #
 ################
 
-config$projection$laea <- edit_crs(config$projection$laea, "PROJCRS", "Lambert Azimuthal Equal Area")
-config$projection$laea <- edit_crs(config$projection$laea, "BASEGEOGCRS", "WGS 84")
+config$projection$crs$laea <- edit_crs(config$projection$crs$laea, "PROJCRS", "Lambert Azimuthal Equal Area")
+config$projection$crs$laea <- edit_crs(config$projection$crs$laea, "BASEGEOGCRS", "WGS 84")
 
-config$projection$longlat <- edit_crs(config$projection$longlat, "GEOGCRS", "WGS 84")
+config$projection$crs$longlat <- edit_crs(config$projection$crs$longlat, "GEOGCRS", "WGS 84")
 
-config$projection$mollweide <- edit_crs(config$projection$mollweide, "PROJCRS", "mollenweide")
-config$projection$mollweide <- edit_crs(config$projection$mollweide, "BASEGEOGCRS", "WGS 84")
+config$projection$crs$mollweide <- edit_crs(config$projection$crs$mollweide, "PROJCRS", "mollenweide")
+config$projection$crs$mollweide <- edit_crs(config$projection$crs$mollweide, "BASEGEOGCRS", "WGS 84")
 
-config$projection$stere_north <- edit_crs(config$projection$stere_north, "PROJCRS", "stere north")
-config$projection$stere_north <- edit_crs(config$projection$stere_north, "BASEGEOGCRS", "WGS 84")
+config$projection$crs$stere_north <- edit_crs(config$projection$crs$stere_north, "PROJCRS", "stere north")
+config$projection$crs$stere_north <- edit_crs(config$projection$crs$stere_north, "BASEGEOGCRS", "WGS 84")
 
 #################
 #     Files     #

@@ -268,6 +268,24 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
+choose_projection <- function(projection.name, vebose = FALSE) {
+  if (!is.character(projection.name)) {
+    stop("Projection.name is not a string. Please change the input value.")
+  }
+  # Use config list to dynamically update the input_args if changing config values
+  input_args <- config$projection$crs
+
+  if (!projection.name %in% names(input_args)) {
+    stop(paste("Invalid projection. Valid options are:", paste(names(input_args), collapse = ", ")))
+  }
+
+  projection <- input_args[[projection.name]]
+  
+  catn("Choosing projection:", projection.name)
+  
+  return(projection)
+}
+
 extract_raster_to_dt <- function(raster, region = NULL, value = "value", cells = TRUE, xy = FALSE, verbose = FALSE) {
   vebcat("Extracting Raster and converting to data table.", veb = verbose)
 
@@ -323,10 +341,10 @@ reproject_region <- function(region, projection, res = NULL, issue.line = FALSE,
     vect_west <- terra::crop(region, ext_west)
 
     catn("Reprojecting to longlat.")
-    proj_east <- terra::project(vect_east, config$projection$longlat)
+    proj_east <- terra::project(vect_east, config$projection$crs$longlat)
     catn("Plotting left side.")
     if (verbose) plot(proj_east)
-    proj_west <- terra::project(vect_west, config$projection$longlat)
+    proj_west <- terra::project(vect_west, config$projection$crs$longlat)
     catn("plotting right side.")
     if (verbose) plot(proj_west)
 
@@ -339,13 +357,13 @@ reproject_region <- function(region, projection, res = NULL, issue.line = FALSE,
 
   if (projection == "longlat") {
     catn("Choosing", highcat("longlat"), "coordinate system.")
-    prj <- config$projection$longlat
+    prj <- config$projection$crs$longlat
   } else if (projection == "laea") {
     catn("Choosing", highcat("laea"), "coordinate system.")
-    prj <- config$projection$laea
+    prj <- config$projection$crs$laea
   } else if (projection == "mollweide") {
     catn("Choosing", highcat("mollweide"), "coordinate system.")
-    prj <- config$projection$mollweide
+    prj <- config$projection$crs$mollweide
   } else if (projection == "stere") {
     catn("Choosing", highcat("stere"), "coordinate system.")
     prj <- stere_crs
@@ -484,7 +502,7 @@ calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "k
     vebprint(region_ext, text = "Region Extent:")
 
     if (projection == "longlat") {
-      projection <- config$projection$longlat
+      projection <- config$projection$crs$longlat
       region <- check_crs(region, projection = projection, projection.method = "near")
       res_lat <- terra::res(region)[2]
       res_long <- terra::res(region)[1]
@@ -505,7 +523,7 @@ calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "k
         verbose = verbose
       )
     } else if (projection == "laea") {
-      projection <- config$projection$laea
+      projection <- config$projection$crs$laea
       region <- check_crs(region, projection = projection, projection.method = "near")
       max_res <- floor(terra::res(region)[1])
 
@@ -585,7 +603,7 @@ check_orig_occ <- function(spec.occ, region, verbose = FALSE) {
   # Subset
   spec <- spec[, .(cleanName, decimalLongitude, decimalLatitude)]
   # Make into points
-  points <- terra::vect(spec, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$longlat)
+  points <- terra::vect(spec, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$crs$longlat)
 
   # Check if overlap with region
   overlap <- terra::extract(region, points)
@@ -613,7 +631,7 @@ check_orig_occ <- function(spec.occ, region, verbose = FALSE) {
 
     if (verbose) {
       # convert to points again
-      points <- terra::vect(overlap_points, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$longlat)
+      points <- terra::vect(overlap_points, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$crs$longlat)
 
       region_ext <- round(ext(region), 3)
       points_ext <- round(ext(points), 3)
@@ -715,15 +733,14 @@ get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.pe
     } else {
       centroid <- all_centroids
     }
-    
+
     if (!centroid.per.subregion) {
       sub_region_centroids <- rbind(sub_region_centroids, centroid)
     } else {
       sub_region_centroids[[i]] <- centroid
-      
+
       names(sub_region_centroids)[[i]] <- sub_region_name
     }
-    
   }
 
   return(sub_region_centroids)
@@ -1217,11 +1234,11 @@ find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NU
   return(result_dt)
 }
 
-find_term_pattern <- function(term, line.pattern = NULL, dir = ".", file.pattern = "\\.R$") {
+find_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL, dir = ".", file.pattern = "\\.R$") {
   term <- to_char(term)
   line.pattern <- to_char(line.pattern)
 
-  find_res <- find_term(term, dir, file.pattern)
+  find_res <- find_term(term, dir, file.pattern, file.exclude)
 
   if (is.null(find_res)) {
     message("No matches found.")
@@ -1318,8 +1335,8 @@ remove_outer_pattern <- function(text, pattern, replacement = "", show.diff = TR
 }
 
 replace_term_name <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", file.exclude = NULL, verbose = FALSE) {
-  name.old <- to_char(name.old, string = "Old name after check:")
-  name.new <- to_char(name.new, string = "New name after check:")
+  name.old <- to_char(name.old, string = "Old name after check:", verbose = verbose)
+  name.new <- to_char(name.new, string = "New name after check:", verbose = verbose)
   res <- find_term(name.old, dir, file.pattern, file.exclude = file.exclude, verbose = verbose)
 
   if (is.null(res)) {
@@ -1332,11 +1349,15 @@ replace_term_name <- function(name.old, name.new, dir = ".", file.pattern = "\\.
     tryCatch(
       {
         original_lines <- readLines(file, warn = FALSE)
-        pattern <- paste0("\\b", name.old, "\\b") # Search for whole words only
-        new_lines <- gsub(pattern, name.new, original_lines)
+        pattern <- gsub("\\$", "\\\\$", name.old)
+        pattern <- paste0("(^|[^[:alnum:]_])(", pattern, ")([^[:alnum:]_]|$)")
+
+        new_lines <- gsub(pattern, paste0("\\1", name.new, "\\3"), original_lines)
 
         # Identify lines where the replacement occurred
         replaced_lines <- which(original_lines != new_lines)
+
+        vebprint(replaced_lines, verbose, "Replaced lines:")
 
         if (length(replaced_lines) > 0) {
           # Only style if changes were made
@@ -1367,16 +1388,16 @@ replace_term_name <- function(name.old, name.new, dir = ".", file.pattern = "\\.
   vebcat("Finished updating", paste0("'", highcat(name.old), "'"), "to", paste0("'", highcat(name.new), "'"), "in all files.", color = "proSuccess")
   if (verbose) {
     catn("Output:")
-    find_term(name.new, dir, file.pattern)
+    find_term(name.new, dir, file.pattern, file.exclude)
   }
 }
 
-replace_term_pattern <- function(term, line.pattern = NULL, replacement = "", dir = ".", file.pattern = "\\.R$", replace = FALSE, verbose = FALSE) {
+replace_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL, replacement = "", dir = ".", file.pattern = "\\.R$", replace = FALSE, verbose = FALSE) {
   term <- to_char(term)
   line.pattern <- to_char(line.pattern)
   replacement <- to_char(replacement)
 
-  matches <- find_term_pattern(term, line.pattern, dir, file.pattern)
+  matches <- find_term_pattern(term, line.pattern, dir, file.pattern, file.exclude = file.exclude, verbose = verbose)
 
   if (is.null(matches)) {
     message("No matches found to replace.")
