@@ -146,8 +146,13 @@ setup_region <- function(verbose = FALSE) {
     
     cavm$country <- cavm_desc$country[index]
     cavm$floregName <- cavm_desc$floristicProvince[index]
-    cavm$floregLong <- cavm_desc$floregLong[index]
-    cavm$floregLat <- cavm_desc$floregLat[index]
+    
+    # Add long lat to floristic provinces
+    fp_centroids <- get_centroid_subregion(cavm, "FLOREG", centroid.per.subregion = TRUE)
+    
+    index <- match(cavm$FLOREG, names(fp_centroids))
+    cavm$floregLong <- sapply(fp_centroids[index], function(x) terra::crds(x)[1])
+    cavm$floregLat <- sapply(fp_centroids[index], function(x) terra::crds(x)[2])
     
     if (all(terra::is.valid(cavm))) {
       vebcat("Cavm shape is valid", color = "proSuccess")
