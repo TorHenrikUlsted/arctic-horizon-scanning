@@ -50,11 +50,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (vis.projection == "longlat") {
     region <- handle_region(region)
     region_ext <- ext(region)
-    out_projection <- config$projection$longlat
+    out_projection <- config$projection$crs$longlat
   } else if (vis.projection == "laea") {
-    region <- terra::project(region, config$projection$laea)
+    region <- terra::project(region, config$projection$crs$laea)
     region_ext <- ext(region)
-    out_projection <- config$projection$laea
+    out_projection <- config$projection$crs$laea
   }
 
   ##########################

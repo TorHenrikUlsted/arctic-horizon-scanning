@@ -136,7 +136,7 @@ wc_to_region <- function(biovars, shapefile, projection, show.plot = FALSE, verb
         } else if (projection == "laea") {
           vebcat("Projecting to laea for Layer", highcat(i), "/", highcat(length(1:terra::nlyr(biovars))), veb = verbose)
 
-          biovar <- terra::project(biovar, config$projection$laea)
+          biovar <- terra::project(biovar, config$projection$crs$laea)
         } else {
           stop("Missing or wrong use of projection parameter.")
         }
@@ -151,7 +151,7 @@ wc_to_region <- function(biovars, shapefile, projection, show.plot = FALSE, verb
         if (projection == "longlat") {
           region <- project(region, crs(biovar))
         } else if (projection == "laea") {
-          biovar <- terra::project(biovar, config$projection$laea)
+          biovar <- terra::project(biovar, config$projection$crs$laea)
         } else {
           stop("Missing or wrong use of projection parameter.")
         }

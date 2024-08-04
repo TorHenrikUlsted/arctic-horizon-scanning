@@ -128,10 +128,22 @@ create_file_if(sp_node_log, failed_its_log)
   tryCatch(
     {
       # Condense data
-      spec_condensed <- condense_taxons(spec.dt = spec) # Fix this one
+      spec_condensed <- condense_taxons(spec.dt = spec)
 
-      cntry_condensed <- condense_country(spec.dt = spec)
-
+      #cntry_condensed <- condense_country(spec.dt = spec)
+      
+      cntry_condensed <- find_wgsrpd_region(
+        spec.dt = spec, 
+        projection = "longlat", 
+        longitude = "decimalLongitude", 
+        latitude = "decimalLatitude", 
+        wgsrpd.dir = "./resources/region/wgsrpd", 
+        wgsrpdlvl = "3", 
+        wgsrpdlvl.name = TRUE, 
+        unique = TRUE, 
+        verbose = verbose
+      )
+      
       # Subset data
       spec <- spec[, .(cleanName, decimalLongitude, decimalLatitude, coordinateUncertaintyInMeters, countryCode, stateProvince, year)]
     },
@@ -156,6 +168,8 @@ create_file_if(sp_node_log, failed_its_log)
       close(sp_node_log)
     }
   )
+  
+  catn("Checking result and finishing up")
 
   cbmnd_res <- cbind(res, spec_condensed)
 

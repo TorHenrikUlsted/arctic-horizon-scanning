@@ -842,7 +842,7 @@ get_connections <- function(dt, taxon, verbose = FALSE) {
 get_con_points <- function(dt, projection, longitude, latitude, verbose = FALSE) {
   vebprint(dt, verbose, "Input dt:")
 
-  points <- vect(dt, geom = c(longitude, latitude), crs = config$projection$longlat)
+  points <- vect(dt, geom = c(longitude, latitude), crs = config$projection$crs$longlat)
 
   vebprint(points, verbose, "Points data:")
 

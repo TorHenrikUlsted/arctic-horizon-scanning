@@ -36,7 +36,9 @@ pkgs = c(
   "viridis",
   "stringdist",
   "stringr",
-  "knitr"
+  "knitr",
+  "httr",
+  "jsonlite"
 )
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
@@ -102,3 +104,7 @@ WFO_file <- load_wfo()
 
 cat("Setting up config. \n")
 source("./src/utils/components/config.R")
+
+cat("Loading WGSRPD. \n")
+download_github_dir_if("tdwg", "wgsrpd", "master", "level2", "resources/region/wgsrpd/level2")
+download_github_dir_if("tdwg", "wgsrpd", "master", "level3", "resources/region/wgsrpd/level3")

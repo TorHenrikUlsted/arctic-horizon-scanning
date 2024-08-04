@@ -55,7 +55,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     )
 
     region_shape <- setup_region()
-
+    
     biovars <- setup_climate(
       region_shape,
       iteration = 1,
