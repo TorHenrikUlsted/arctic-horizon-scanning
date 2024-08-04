@@ -140,10 +140,54 @@ condense_country <- function(spec.dt, verbose = FALSE) {
   return(country_coords)
 }
 
-find_tdwg_region <- function(spec.dt, projection = "longlat", longitude = "decimalLongitude", latitude = "decimalLatitude", tdwglvl.shape, tdwglvl.name, verbose = FALSE) {
-  vebcat("Identifying botanical countries", color = "funInit")
+handle_wgsrpd_names <- function(wgsrpd.dir = "./resources/region/wgsrpd") {
   
-  tdwg_lvl <- load_region(tdwglvl.shape)
+  vebcat("Handling WGSRPD shapefiles", color = "funInit")
+  
+  dirs <- list.dirs(wgsrpd.dir)[-1]
+  
+  lvls <- sub(paste0(wgsrpd.dir, "/"), "", dirs)
+  
+  for (i in 1:length(dirs)) {
+    dir <- dirs[i]
+    lvl <- lvls[i]
+    shapefile <- paste0(dir, "/", lvl, ".shp")
+    
+    catn("Handling WGSRPD", lvl)
+    
+    wgsrpd <- load_region(shapefile)
+    
+    if (lvl == "level1") {
+      names <- c("level1Code", "level1Name")
+    } else if (lvl == "level2") {
+      names <- c("level2Code", "level1Code", "level1Name", "level2Name")
+    } else if (lvl == "level3") {
+      names <- c("level3Name", "level3Code", "level2Code", "level1Code")
+    } else if (lvl == "level4") {
+      names <- c("isoCode", "level4Name", "level4Code", "level4-2", "level3Code", "level2Code", "level1Code")
+    }
+    
+    names(wgsrpd) <- names
+    
+    
+    file.remove(shapefile)
+    
+    writeVector(wgsrpd, shapefile, overwrite = TRUE)
+  }
+  
+  vebcat("WGSRPD shapefiles handled successfully", color = "funSuccess")
+    
+  return(invisible())
+}
+
+find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "decimalLongitude", latitude = "decimalLatitude", wgsrpd.dir = "./resources/region/wgsrpd", wgsrpdlvl = "3", wgsrpdlvl.name = TRUE, unique = TRUE, verbose = FALSE) {
+  vebcat("Identifying WGSRPD regions", color = "funInit")
+  
+  wgsrpdlvl.shape <- paste0(wgsrpd.dir, "/level", wgsrpdlvl, "/level", wgsrpdlvl, ".shp")
+  
+  wgsrpd_lvl <- load_region(wgsrpdlvl.shape)
+  
+  wgsrpd_length <- length(names(wgsrpd_lvl))
 
   dt <- copy(spec.dt)
   
@@ -159,16 +203,39 @@ find_tdwg_region <- function(spec.dt, projection = "longlat", longitude = "decim
   occ_points <- vect(dt, geom = c(longitude, latitude), crs = prj)
   
   catn("Finding the intersecting points and regions")
-  bot_count <- terra::intersect(tdwg_lvl, occ_points)
+  wgsrpd_region <- terra::intersect(wgsrpd_lvl, occ_points)
+  
+  if (wgsrpdlvl.name) {
+    wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Name")
+  } else {
+    wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Code")
+  }
+  
+  centroids <- get_centroid_subregion(wgsrpd_region, wgsrpdlvl_name, centroid.per.subregion = TRUE, verbose = verbose)
+  
+  index <- match(values(wgsrpd_region)[[wgsrpdlvl_name]], names(centroids))
+  
+  wgsrpd_region[[paste0("level", wgsrpdlvl,"Long")]] <- sapply(centroids[index], function(x) terra::crds(x)[1])
+  
+  wgsrpd_region[[paste0("level", wgsrpdlvl,"Lat")]] <- sapply(centroids[index], function(x) terra::crds(x)[2])
   
   catn("Finishing up")
-  bot_count_dt <- as.data.table(bot_count)
   
-  unique_bot_count <- unique(bot_count_dt[[tdwglvl.name]])
+  wgsrpd_region_dt <- as.data.table(wgsrpd_region)
+  
+  wgsrpd_region_dt <- wgsrpd_region_dt[, c(
+    names(wgsrpd_region_dt)[1:wgsrpd_length],
+    paste0("level", wgsrpdlvl, "Long"),
+    paste0("level", wgsrpdlvl, "Lat")
+  ), with = FALSE]
+  
+  if (unique) {
+    wgsrpd_region_dt <- unique(wgsrpd_region_dt, by = wgsrpdlvl_name)
+  }
+  
+  vebcat("All WGSRPD regions identified successfully", color = "funSuccess")
 
-  vebcat("All Botanical countries identified successfully", color = "funSuccess")
-
-  return(unique_bot_count)
+  return(wgsrpd_region_dt)
 }
 
 prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T) {
