@@ -268,15 +268,26 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
-choose_projection <- function(projection.name, vebose = FALSE) {
+get_crs_config <- function(projection.name, vebose = FALSE) {
+  
+  try({
+    projection <- crs(projection.name)
+    return(projection)
+  }, silent = TRUE)
+  
+  
   if (!is.character(projection.name)) {
-    stop("Projection.name is not a string. Please change the input value.")
+    catn("Projection.name is not a string. Please chanche the input to a string.")
   }
   # Use config list to dynamically update the input_args if changing config values
   input_args <- config$projection$crs
 
   if (!projection.name %in% names(input_args)) {
     stop(paste("Invalid projection. Valid options are:", paste(names(input_args), collapse = ", ")))
+  }
+  
+  if (inherits(crs(config$projection$crs$longlat, proj=T), "Error")) {
+    cat("inehirts")
   }
 
   projection <- input_args[[projection.name]]
@@ -500,10 +511,11 @@ calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "k
     region_ext <- terra::ext(region)
 
     vebprint(region_ext, text = "Region Extent:")
+    
+    projection <- get_crs_config(projection)
+    region <- check_crs(region, projection = projection, projection.method = "bilinear")
 
     if (projection == "longlat") {
-      projection <- config$projection$crs$longlat
-      region <- check_crs(region, projection = projection, projection.method = "near")
       res_lat <- terra::res(region)[2]
       res_long <- terra::res(region)[1]
       # Get latitude based on northern or southern hemisphere
@@ -523,8 +535,6 @@ calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "k
         verbose = verbose
       )
     } else if (projection == "laea") {
-      projection <- config$projection$crs$laea
-      region <- check_crs(region, projection = projection, projection.method = "near")
       max_res <- floor(terra::res(region)[1])
 
       if (unit.out == "km") {

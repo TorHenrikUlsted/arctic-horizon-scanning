@@ -13,8 +13,22 @@ config <- list(
     out = "laea"
   ),
   climate = list(
-    var = "bio",
-    res = 2.5
+    database = list(
+      worldclim = list(
+        var = "bio",
+        period = "1970-2000",
+        res = "2.5",
+        version = "2.1"
+      ),
+      chelsa = list(
+        dataset = "climatologies", 
+        var = "bio",
+        period = "1981-2010", 
+        model = NULL, 
+        ssp = NULL, 
+        version = "2.1"
+      )
+    )
   ),
   memory = list(
     mem_total = get_mem_usage("total"),
