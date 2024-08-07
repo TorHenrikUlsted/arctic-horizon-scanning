@@ -1,6 +1,25 @@
 source_all("./src/visualize/components")
 
 visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res.known, shape, hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.save.device = "jpeg", vis.save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+  
+  # Test values
+  out.dir = "./outputs/visualize/glonaf"
+  res.unknown = "glonaf" 
+  res.known = "arctic"
+  shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp" 
+  hv.dir = "./outputs/hypervolume/glonaf" 
+  hv.method = "box"
+  vis.projection = "laea"
+  vis.title = TRUE
+  vis.region.name = "Region"
+  vis.subregion.name = "Sub Region"
+  vis.composition.taxon = "order"
+  vis.save.device = "jpeg"
+  vis.save.unit = "px"
+  plot.show = FALSE
+  verbose = FALSE
+  
+  
   ##########################
   #       Load dirs        #
   ##########################
@@ -46,16 +65,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   sp_dirs <- sp_dirs[-1]
 
   region <- load_region(shape)
-
-  if (vis.projection == "longlat") {
-    region <- handle_region(region)
-    region_ext <- ext(region)
-    out_projection <- config$projection$crs$longlat
-  } else if (vis.projection == "laea") {
-    region <- terra::project(region, config$projection$crs$laea)
-    region_ext <- ext(region)
-    out_projection <- config$projection$crs$laea
-  }
+  region <- check_crs(region, vis.projection)
 
   ##########################
   #       Check data       #
@@ -119,8 +129,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
   # combine cell richness and region cell occupancy
   region_richness_cell <- merge(inc_dt, region_cell, by = "cell", all = TRUE)
-
-  # Get number of cells per floristic region to calculate proportional values to each region and make them comparable
 
   ##########################
   #        Figure 1        #

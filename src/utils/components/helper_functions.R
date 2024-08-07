@@ -218,6 +218,47 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
   return(spec_dt)
 }
 
+get_spec_taxons <- function(spec) {
+  tryCatch({
+    result <- name_backbone(name = spec)
+    return(result)
+  }, error = function(e) {
+    message("First attempt failed. Retrying...")
+    Sys.sleep(0.5)  
+    tryCatch({
+      result <- name_backbone(name = spec)
+      return(result)
+    }, error = function(e) {
+      message("Second attempt also failed. Error: ", e$message)
+      return(NULL)
+    })
+  })
+}
+
+get_spec_group <- function(spec, verbose = FALSE) {
+  
+  if (grepl(config$species$file_separator, spec)) {
+    vebprint(grepl(config$species$file_separator, spec), verbose, "grepl return:")
+    spec <- gsub(config$species$file_separator, " ", spec)
+    vebprint(spec, verbose, "grepl return:")
+  }
+  
+  order <- get_spec_taxons(spec)$order
+  
+  if (order %in% config$species$angiosperms) {
+    result <- "angiosperm"
+  } else if (order %in% config$species$gymnosperms) {
+    result <- "gymnosperm"
+  } else if (order %in% config$species$pteridophytes) {
+    result <- "pteridophyte"
+  } else {
+    vebcat("Order not found in any group. Check input.", color = "fatalError")
+    return(invisible())
+  }
+  
+  return(result)
+}
+
 get_order_group <- function(dt, verbose = FALSE) {
   dt_res <- copy(dt)
 
@@ -268,6 +309,42 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
+is.spatVector <- function(x) {
+  if (inherits(x, "SpatVector")) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+is.spatRaster <- function(x) {
+  if (inherits(x, "SpatRaster")) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+determine_data_nature <- function(x) {
+  dt <- datatype(x)
+  
+  discrete_datatypes <- c("INT1U", "INT2S", "INT4S", "INT4U", "INT8S", "INT8U", "LOG1S")
+  continuous_datatypes <- c("FLT4S", "FLT8S")
+  
+  if (is.spatVector(x)) {
+    return("discrete")  # Always use "near" for SpatVectors
+  }
+  
+  if (all(dt %in% continuous_datatypes)) {
+    return("continuous")
+  } else if (all(dt %in% discrete_datatypes)) {
+    return("discrete")
+  } else {
+    warning("Mixed or unclear data types. Defaulting to 'near' method.")
+    return("discrete")
+  }
+}
+
 get_crs_config <- function(projection.name, vebose = FALSE) {
   
   try({
@@ -292,7 +369,7 @@ get_crs_config <- function(projection.name, vebose = FALSE) {
 
   projection <- input_args[[projection.name]]
   
-  catn("Choosing projection:", projection.name)
+  catn("Using projection:", projection.name)
   
   return(projection)
 }

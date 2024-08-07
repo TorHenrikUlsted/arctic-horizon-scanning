@@ -197,7 +197,7 @@ find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "dec
   
   vebprint(nrow(dt), verbose, "Species data table row length:")
 
-  prj <- choose_projection(projection, verbose)
+  prj <- get_crs_config(projection, verbose)
   
   catn("Converting coordinates to points")
   occ_points <- vect(dt, geom = c(longitude, latitude), crs = prj)
