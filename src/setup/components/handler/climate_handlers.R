@@ -125,46 +125,32 @@ scale_biovars <- function(biovars, verbose = FALSE) {
     return(scaled_biovars)
   }
   
-  vebcat("Creating scale template")
-  # Create a template for the output raster
-  
-  print(biovars)
-  print(nlyr(biovars))
-  
-  # Start the writing process
-  filecon  <- writeStart(biovars, filename = save_path, overwrite = FALSE)
-  
-  print(filecon)
+  scaled_biovars <- rast(nrow = nrow(biovars), ncol = ncol(biovars), nlyrs=nlyr(biovars), crs = crs(biovars), res = res(biovars))
   
   # Process and write each layer
   for (i in 1:nlyr(biovars)) {
     catn("Scaling", highcat(names(biovars)[i]))
     
-    # Extract the entire layer
     layer <- biovars[[i]]
-    print(layer)
     
-    # Scale the layer
-    layer_scaled <- scale(layer)
-    print(layer_scaled)
+    layer_scaled <- app(layer, fun = scale)
     
-    readValues(layer_scaled)
+    names(layer_scaled) <- names(layer)
+    varnames(layer_scaled) <- varnames(layer)
     
-    # Write the scaled layer
-    #writeValues(layer_scaled, filecon, start = layer, nrows = filecon$nrows)
+    scaled_biovars[[i]] <- layer_scaled
+    
+    vebprint(scaled_biovars, verbose, "Scaled Biovariables:")
+    vebprint(names(scaled_biovars[[i]]), verbose, paste0("Bio", i, " name:"))
+    vebprint(varnames(scaled_biovars[[i]]), verbose, paste0("Bio", i, " varname:"))
   }
   
-  # Finish the writing process
-  writeStop(filecon)
+  catn(name, "scaled data saving to file:", colcat(save_path, color = "output"))
+  writeRaster(scaled_biovars, save_path)
   
-  catn(name, "scaled data saved to file:", colcat(save_path, color = "output"))
-  
-  scaled_biovars <- rast(save_path)
-
   end_timer(scale_timer)
 
   vebcat("Scaling biovariables completed successfully.", color = "funSuccess")
-  print(scaled_biovars)
   return(scaled_biovars)
 }
 
@@ -184,14 +170,9 @@ climate_to_region <- function(biovars, shapefile, projection, show.plot = FALSE,
 
     region_crop_timer <- start_timer("crop_region")
     
-    biovar_template <- crop(biovars[[1]], region)
-    biovar_template <- mask(biovar_template, region)
-    
-    out <- writeStart(biovar_template, save_path, overwrite=TRUE, n=nlyr(biovars))
-    
-    writeValues(out, values(biovar_template), start=1, nrows=nrow(biovar_template))
+    biovarsMask <- list()
 
-    for (i in 2:terra::nlyr(biovars)) {
+    for (i in 1:terra::nlyr(biovars)) {
       biovar <- biovars[[i]]
       
       check_crs(biovar, config$projection$crs$longlat, "bilinear", verbose)
@@ -201,16 +182,12 @@ climate_to_region <- function(biovars, shapefile, projection, show.plot = FALSE,
       crop <- crop(biovar, region)
       masked <- mask(crop, region)
       
-      names(biovarsMask) <- paste0("bio", i)
-      varnames(biovarsMask) <- paste0("bio", i)
+      names(masked) <- paste0("bio", i)
+      varnames(masked) <- paste0("bio", i)
       
-      writeValues(out, values(masked), start=1, nrows=nrow(masked))
+      biovarsMask <- c(biovarsMask, list(masked))
     }
       
-    out <- writeStop(out)
-
-    biovarsMask <- terra::rast(save_path)
-
     if (show.plot) {
       for (i in 1:terra::nlyr(biovarsMask)) {
         vebcat(paste0("Plotting bio_", as.character(i)), veb = verbose)
@@ -220,12 +197,15 @@ climate_to_region <- function(biovars, shapefile, projection, show.plot = FALSE,
     } else {
       vebcat("Plotting skipped.", veb = verbose)
     }
-
-      end_timer(region_crop_timer)
-    }
     
-  catn("Raster written to:", colcat(save_path, color = "output"))
+    biovarsMask <- terra::rast(biovarsMask)
+    
+    catn("Writing raster to:", colcat(save_path, color = "output"))
+    writeRaster(biovarsMask, save_path)
 
+    end_timer(region_crop_timer)
+  }
+    
   vebcat("WorldClim to region cropping protocol completed successfully", color = "funSuccess")
 
   return(biovarsMask)

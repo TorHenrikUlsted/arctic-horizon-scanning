@@ -26,9 +26,10 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     err_out <- paste0(setup_log, "/error.txt")
 
     create_file_if(warn_out, err_out)
-
-    bw_out <- paste0(setup_dir, "/region/biovars-world-subset.tif")
-    br_out <- paste0(setup_dir, "/region/biovars-region-subset.tif")
+    
+    save_dir <- handle_biovar_saves()
+    bw_out <- paste0(save_dir, "/biovars-world-subset.tif")
+    br_out <- paste0(save_dir, "/biovars-region-subset.tif")
 
     wfo_speed <- check_system_speed(
       df.path = "./resources/data-raw/speed-test-species.csv",
@@ -75,12 +76,12 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
       vebcat("Check the correlation matrix and pick climate variables, Stopping process", color = "fatalError")
     } else {
       catn("loading biovars.")
-
+      
       biovars$world <- terra::subset(biovars$world, hv.dims)
-      if (!file.exists(bw_out)) writeRaster(biovars_world, bw_out)
+      if (!file.exists(bw_out)) writeRaster(biovars$world, bw_out)
 
       biovars$region <- terra::subset(biovars$region, hv.dims)
-      if (!file.exists(br_out)) writeRaster(biovars_region, br_out)
+      if (!file.exists(br_out)) writeRaster(biovars$region, br_out)
 
       region_hv <- setup_hv_region(
         biovars$region,
