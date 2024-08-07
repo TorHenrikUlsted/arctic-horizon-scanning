@@ -20,6 +20,9 @@ to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
 }
 
 check_crs <- function(object, projection, projection.method, verbose = FALSE) {
+  
+  projection <- get_crs_config(projection)
+  
   tryCatch({
    prj_crs <- crs(projection, proj = TRUE)
   },

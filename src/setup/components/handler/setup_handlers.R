@@ -1,11 +1,10 @@
 setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FALSE, warn.file, err.file) {
-  vebcat("Initiating data acquisition protocol", color = "funInit")
+  vebcat("Initiating climate setup protocol", color = "funInit")
   
   withCallingHandlers(
     {
-      biovars_world <- get_wc_data(
-        var = config$climate$var, 
-        res = config$climate$res, 
+      biovars_world <- load_climate_data(
+        database = config$run$climate$database, 
         show.plot = show.plot, 
         verbose = verbose
       )
@@ -31,7 +30,7 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
   
   withCallingHandlers(
     {
-      biovars_region <- wc_to_region(
+      biovars_region <- climate_to_region(
         biovars_world,
         shapefile = shapefile, 
         projection = "longlat",
@@ -45,13 +44,13 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
   
   coord_uncertainty <- calc_coord_uncertainty(
     region = biovars_region,
-    projection = "laea",
+    projection = config$run$projection$crs,
     unit.out = "m",
     dir.out = "./outputs/setup/region",
     verbose = verbose
   )
   
-  vebcat("Data acquisition protocol completed successfully", color = "funSuccess")
+  vebcat("Climate setup protocol completed successfully", color = "funSuccess")
   
   return(list(
     world = biovars_world,

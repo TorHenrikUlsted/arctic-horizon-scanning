@@ -4,6 +4,7 @@ main <- function(
     test = NULL,
     approach = "precautionary",
     column = "scientificName",
+    climate.database = "wordlclim",
     coord.uncertainty = NULL,
     region = NULL,
     download.key = NULL,
@@ -25,6 +26,12 @@ main <- function(
     verbose = FALSE,
     force.seq = NULL
   ) {
+  
+  config_handler(
+    climate.database,
+    approach,
+    vis.projection
+  )
   
   if (is.null(spec.unknown) & is.null(test)) {
     vebcat("Error: cannot have both spec.unknown and test as NULL.", color = "fatalError")

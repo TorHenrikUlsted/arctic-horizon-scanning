@@ -16,6 +16,7 @@ main(
   test = NULL,
   approach = "precautionary",
   coord.uncertainty = NULL,
+  climate.database = "worldclim",
   region = NULL,
   download.key = "0186013-240321170329656",
   download.doi = "https://doi.org/10.15468/dl.awqjxw",

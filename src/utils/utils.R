@@ -105,6 +105,9 @@ WFO_file <- load_wfo()
 cat("Setting up config. \n")
 source("./src/utils/components/config.R")
 
+cat("Loading config handler. \n")
+source("./src/utils/components/config_handler.R")
+
 cat("Loading WGSRPD. \n")
 download_github_dir_if("tdwg", "wgsrpd", "master", "level2", "resources/region/wgsrpd/level2")
 download_github_dir_if("tdwg", "wgsrpd", "master", "level3", "resources/region/wgsrpd/level3")
