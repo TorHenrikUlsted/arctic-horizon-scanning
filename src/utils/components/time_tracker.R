@@ -10,7 +10,7 @@ start_timer <- function(id) {
   id <- paste0(id, "_", interval)
   
   timers[[id]] <<- list(start_time = Sys.time())
-  vebcat("Time tracking started for timer", id, color = "timer")
+  vebcat("Time tracking started for", id, color = "timer")
   
   return(id)
 }
@@ -51,7 +51,7 @@ end_timer <- function(id) {
       minutes = time$mins, 
       seconds = round(time$secs, 2))
     
-    return(time$secs)
+    return(time_diff)
   }
 }
 

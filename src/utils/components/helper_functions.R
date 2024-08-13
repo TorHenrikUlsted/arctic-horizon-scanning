@@ -218,15 +218,51 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
   return(spec_dt)
 }
 
-get_spec_taxons <- function(spec) {
+clean_spec_filename <- function(x) {
+  
+  base <- basename(x)
+  
+  clean_name <- tools::file_path_sans_ext(base)
+  
+  clean_name <- gsub("-", " ", clean_name)
+  #clean_name <- gsub(config$species$file_separator, " ", clean_name)
+  
+  return(clean_name)
+}
+
+get_spec_taxons <- function(spec) { 
+  if (length(spec) == 1) {
+    vebcat("Checking for one species")
+    fun <- "name_backbone"
+  } else if (length(spec) > 1) {
+    vebcat("Using checklist")
+    fun <- "name_backbone_checklist"
+  } else if (nrow(spec) > 1) {
+    vebcat("Using checklist")
+    fun <- "name_backbone_checklist"
+  } else {
+    vebcat("Checking for one species")
+    fun <- "name_backbone"
+  }
+  
   tryCatch({
-    result <- name_backbone(name = spec)
+    result <- do.call(fun, list(name = spec))
+    if (any(is.na(result$order))) {
+      vebcat("Some species returned NA:", color = "nonFatalError")
+      index <- which(is.na(result$order))
+      vebprint(spec[index])
+    }
     return(result)
   }, error = function(e) {
     message("First attempt failed. Retrying...")
     Sys.sleep(0.5)  
     tryCatch({
-      result <- name_backbone(name = spec)
+      result <- do.call(fun, list(name = spec))
+      if (any(is.na(result$order))) {
+        vebcat("Some species returned NA:", color = "nonFatalError")
+        index <- which(is.na(result$order))
+        vebprint(spec[index])
+      }
       return(result)
     }, error = function(e) {
       message("Second attempt also failed. Error: ", e$message)
@@ -235,48 +271,70 @@ get_spec_taxons <- function(spec) {
   })
 }
 
-get_spec_group <- function(spec, verbose = FALSE) {
+get_spec_group <- function(spec) {
+  res <- get_spec_taxons(spec)
   
-  if (grepl(config$species$file_separator, spec)) {
-    vebprint(grepl(config$species$file_separator, spec), verbose, "grepl return:")
-    spec <- gsub(config$species$file_separator, " ", spec)
-    vebprint(spec, verbose, "grepl return:")
-  }
-  
-  order <- get_spec_taxons(spec)$order
-  
-  if (order %in% config$species$angiosperms) {
+  if (res$order %in% config$species$angiosperms) {
     result <- "angiosperm"
-  } else if (order %in% config$species$gymnosperms) {
+  } else if (res$order %in% config$species$gymnosperms) {
     result <- "gymnosperm"
-  } else if (order %in% config$species$pteridophytes) {
+  } else if (res$order %in% config$species$pteridophytes) {
     result <- "pteridophyte"
   } else {
-    vebcat("Order not found in any group. Check input.", color = "fatalError")
-    return(invisible())
+    result <- "unknown"
   }
   
   return(result)
 }
 
-get_order_group <- function(dt, verbose = FALSE) {
-  dt_res <- copy(dt)
+get_spec_group_dt <- function(spec, spec.col = NULL, verbose = FALSE) {
+  dt <- copy(spec)
+  
+  if (is.null(spec.col)) {
+    spec.col <- names(dt)[1]
+    vebcat("Assuming species names is in the first column in the data table, found:", highcat(spec.col))
+  }
+    
+  
+  dt[, group := fcase(
+    is.na(order), "unknown",
+    order %in% config$species$angiosperms, "angiosperm",
+    order %in% config$species$gymnosperms, "gymnosperm",
+    order %in% config$species$pteridophytes, "pteridophyte",
+    default = "other"
+  )]
+  
+  vebprint(dt, verbose, "After adding groups:")
+  
+  unknown_species <- dt[group %in% c("unknown", "other"), get(spec.col)]
+  if (length(unknown_species) > 0) {
+    vebcat("Order not found for species:", color = "nonFatalError")
+    vebprint(unknown_species)
+  }
+    
+  return(dt)
+}
 
-  dt_res[, group := as.character(NA)]
-
-  dt_res[order %in% config$species$angiosperms, group := "angiosperm"]
-  dt_res[order %in% config$species$gymnosperms, group := "gymnosperm"]
-  dt_res[order %in% config$species$pteridophytes, group := "pteridophyte"]
+get_order_group <- function(dt, spec.col = NULL, verbose = FALSE) {
+  dt_res <- get_spec_group_dt(dt, spec.col)
 
   # Concatenate the vectors in the desired order
   all_orders <- c(config$species$pteridophytes, config$species$gymnosperms, config$species$angiosperms)
 
   # Only keep the orders that are present in dt_res$order
   valid_orders <- all_orders[all_orders %in% dt_res$order]
+  
+  vebprint(valid_orders, verbose, "Valid Orders:")
 
   # Set the levels of the order factor
-  dt_res$order <- factor(dt_res$order, levels = valid_orders)
-
+  #dt_res$order <- factor(dt_res$order, levels = valid_orders)
+  
+  dt_res[, orderFactor := factor(order, levels = valid_orders)]
+  
+  vebprint(dt_res, verbose, "factor:")
+  
+  setorder(dt_res, orderFactor)
+  
   return(dt_res)
 }
 
@@ -1547,4 +1605,22 @@ replace_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL,
   }
 
   invisible(replaced_data)
+}
+
+send_notification_email <- function(subject, body, script_name = "Your R Script") {
+  from <- paste0(script_name, " <", Sys.getenv("EMAIL_USER"), ">")
+  to <- Sys.getenv("EMAIL_FORWARD")
+  
+  sendmail(
+    from = from,
+    to = to,
+    subject = subject,
+    msg = body,
+    control = list(
+      smtpServer = "smtp.gmail.com:587",
+      smtpUser = Sys.getenv("EMAIL_USER"),
+      smtpPassword = Sys.getenv("EMAIL_PASS"),
+      authMethod = "LOGIN"
+    )
+  )
 }

@@ -38,7 +38,8 @@ pkgs = c(
   "stringr",
   "knitr",
   "httr",
-  "jsonlite"
+  "jsonlite",
+  "sendmailR"
 )
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))

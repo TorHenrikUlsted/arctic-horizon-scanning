@@ -24,7 +24,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   sp_filename <- paste0(sp_dir, "/", hv.project.method, ".tif")
 
   catn("Processing init function.")
-  init_timer <- start_timer("init timer")
+  init_timer <- start_timer("Inititation process")
 
   init_res <- parallel_init(
     spec.filename = sp_filename,
@@ -47,7 +47,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
 
   max_cores <- calc_num_cores(
     ram.high = peak_ram,
-    verbose = FALSE
+    verbose = verbose
   )
   max_cores <- max_cores$high
 
@@ -72,8 +72,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
 
   # export_vars <- export_vars[sapply(export_vars, function(x) !is.null(get(x)))]
 
-  vebcat("export_vars:", veb = verbose)
-  vebprint(export_vars, veb = verbose)
+  vebprint(export_vars, verbose, "export_vars:")
 
   clusterExport(cl, export_vars, envir = environment())
 
@@ -81,12 +80,13 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
 
   # Check for batched approach
   if (batch) {
-    catn("Splitting species directories into batches.")
     # Calculate the number of species per batch
     sp_per_core <- ceiling(length(sp_dirs) / max_cores)
 
     # Split tasks into batches
     sp_dirs <- split(sp_dirs, ceiling(seq_along(sp_dirs) / sp_per_core))
+    
+    catn("Directories split into", highcat(sp_per_core), "species per core.")
   }
 
   # If iterations is not provided, start from the highest saved iteration
@@ -100,7 +100,8 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   mem_limit_gb <- config$memory$mem_limit / 1024^3
 
   catn("Running parallel with", end, "iteration(s).")
-  calculate_etc(timer_res, max_cores, length(spec.dirs))
+  execute_timer <- start_timer("Execute process")
+  calculate_etc(timer_res + (1.45 * max_cores), max_cores, length(spec.dirs))
 
   tryCatch(
     {
@@ -189,6 +190,8 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   )
 
   stopCluster(cl)
+  end_timer(execute_timer)
+  
 
   if (batch) {
     return(list(
@@ -213,7 +216,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     vebcat("Missing execute function to run parallel process.", color = "fatalError")
     stop()
   } else {
-    vebcat("Found execute function.")
+    vebcat("Found execute function.", veb = verbose)
     fun_execute <- input_functions$execute
   }
 
@@ -221,7 +224,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     vebcat("Setting init function be the same as execute.")
     fun_init <- input_functions$execute
   } else {
-    vebcat("Found init function.")
+    vebcat("Found init function.", veb = verbose)
     fun_init <- input_functions$init
   }
 
@@ -229,7 +232,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     vebcat("Setting process function to use single function.")
     fun_process <- parallel_process_single
   } else {
-    vebcat("Found process function.")
+    vebcat("Found process function.", veb = verbose)
     fun_process <- input_functions$process
   }
 
@@ -245,8 +248,8 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
   out_file <- paste0(out_dir, "/", basename(dir), ".csv")
 
   if (file.exists(out_file)) {
+    post_timer <- start_timer("Post processing")
     catn("Found value table:", out_file)
-
     process_res <- fread(out_file)
   } else {
     catn("No previous table found, acquiring values for", hv.project.method, "method")
@@ -274,6 +277,7 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     vebprint(head(parallel_res$exec.res, 1), verbose, "Parallel execute head(result, 1):")
 
     catn("Running post processing.")
+    post_timer <- start_timer("Post processing")
     # Run the post process
     if (is.null(parallel_res$exec.res)) {
       process_res <- parallel_res$init.res
@@ -309,6 +313,8 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     process_res <- unique(process_res, by = column)
     process_res <- process_res[1:number, ]
   }
+  
+  end_timer(post_timer)
 
   vebcat("Successfully acquired", basename(dir), "for all", hv.project.method, "rasters.", color = "funSuccess")
 

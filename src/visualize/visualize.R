@@ -113,22 +113,47 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     out.dir = result_dir,
     verbose = FALSE
   )
+  
+  # Split filenames into groups
+  sp_group_dirs <- split_spec_by_group(sp_dirs, sp_stats, "cleanName", verbose)
+  
+  group_richness <- list()
+  
+  for (group in names(sp_group_dirs)) {
+    group_dirs <- sp_group_dirs[[group]]$filename
+    # Get the cell richness per group
+    inc_dt <- parallel_spec_handler(
+      spec.dirs = group_dirs,
+      dir = paste0(log_dir, "/", group, "-cell"),
+      shape = shape,
+      hv.project.method = "0.5-inclusion",
+      fun = get_inclusion_cell,
+      batch = TRUE,
+      node.log.append = FALSE,
+      verbose = verbose
+    )
+    
+    # combine cell richness and region cell occupancy
+    region_richness_cell <- merge(inc_dt, region_cell, by = "cell", all = TRUE)
+    
+    group_richness[[group]] <- region_richness_cell
+  }
+  
+  summed_richness <- copy(group_richness[[1]])
+  
+  for (i in 2:length(group_richness)) {
+    group_data <- group_richness[[i]]
+    
+    summed_richness[group_data, on = "cell", cellRichness := 
+                fifelse(is.na(x.cellRichness) & is.na(i.cellRichness), NA_real_,
+                        fifelse(is.na(x.cellRichness), i.cellRichness,
+                                fifelse(is.na(i.cellRichness), x.cellRichness,
+                                        x.cellRichness + i.cellRichness)))
+    ]
+    
+  }
+  
 
-  # Get the cell richness
-  inc_dt <- parallel_spec_handler(
-    spec.dirs = sp_dirs,
-    dir = paste0(log_dir, "/cell"),
-    shape = shape,
-    hv.project.method = "0.5-inclusion",
-    fun = get_inclusion_cell,
-    batch = TRUE,
-    node.log.append = FALSE,
-    verbose = verbose
-  )
-
-
-  # combine cell richness and region cell occupancy
-  region_richness_cell <- merge(inc_dt, region_cell, by = "cell", all = TRUE)
 
   ##########################
   #        Figure 1        #

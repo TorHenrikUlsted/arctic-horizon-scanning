@@ -12,6 +12,7 @@ custom_colors <- function() {
   dodgerBlue <- make_style("#1E90FF")
   timer <- make_style("#874949")
   darkKhaki <- make_style("#BDB76B")
+  safetyOrange <- make_style("#ff6700")
   
   return(
     list(
@@ -24,6 +25,7 @@ custom_colors <- function() {
       highlight = lightSteelBlue,
       fatalError = crimsonRed,
       nonFatalError = lightCoral,
+      warning = safetyOrange,
       seqSuccess = darkGreen,
       funSuccess = mediumSeaGreen,
       proSuccess = lightGreen,
