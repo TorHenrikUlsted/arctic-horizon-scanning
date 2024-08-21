@@ -1,5 +1,9 @@
 source_all("./src/filter/components")
-source_all("./src/filter/custom_filters")
+if (config$run$example) { 
+  source_all("./example/src/filter")
+} else {
+  source_all("./src/filter/custom_filters")
+}
 
 filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
   on.exit(closeAllConnections())

@@ -1,3 +1,14 @@
+create_custom_labeller <- function(pattern = "_", width = 10) {
+  function(labels) {
+    wrapped_labels <- lapply(labels, function(col) {
+      sapply(col, function(label) {
+        wrapped <- paste(strwrap(gsub(pattern, " ", label), width = width), collapse = "\n")
+      })
+    })
+    wrapped_labels
+  }
+}
+
 #########################
 #     Frequency 1A      #
 #########################
@@ -224,12 +235,14 @@ visualize_freqpoly <- function(spec.cells, region, region.name, vis.x, vis.color
 #       Hotspots 2      #
 #########################
 
-visualize_hotspots <- function(raster, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+visualize_hotspots <- function(raster, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-2", save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Potential Species hotspots", color = "funInit")
-  #
-  # catn("Checking crs.")
-  # #raster <- check_crs(raster, projection, "near")
-  # region <- check_crs(region, projection, "near")
+  
+  if (save.name != "figure-2") {
+    name <- str_to_title(strsplit(save.name, "-")[[1]][[3]])
+  } else {
+    name <- "Species"
+  }
 
   catn("Getting min and max values.")
   min_lim <- 0
@@ -251,7 +264,7 @@ visualize_hotspots <- function(raster, region, region.name, extent, projection, 
       na.value = config$ggplot$gradient$na.value
     ) +
     labs(
-      title = if (vis.title) paste0("Potential New Alien Species Hotspots in the ", region.name),
+      title = if (vis.title) paste0("Potential New Alien Hotspots for ", name, " in the ", region.name),
       fill = "Potential Species Richness"
     ) +
     coord_sf(xlim = c(extent$xmin, extent$xmax), ylim = c(extent$ymin, extent$ymax)) +
@@ -260,7 +273,7 @@ visualize_hotspots <- function(raster, region, region.name, extent, projection, 
 
   save_ggplot(
     save.plot = fig2A,
-    save.name = "figure-2",
+    save.name = save.name,
     save.width = 3050,
     save.height = 3000,
     save.dir = save.dir,
@@ -274,15 +287,22 @@ visualize_hotspots <- function(raster, region, region.name, extent, projection, 
   vebcat("Successfully visualized Potential Species hotspots", color = "funSuccess")
 }
 
-#########################
-#    Distribution 3A    #
-#########################
+##############################
+#    Area of occupancy 3A    #
+##############################
 
-visualize_paoo <- function(rast, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.wrap = FALSE, vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", return = FALSE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_paoo <- function(rast, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.wrap = FALSE, vis.title = FALSE, save.dir, save.name = "figure-3", save.device = "jpeg", save.unit = "px", return = FALSE, plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing species with highest Potential Area of occupancy", color = "funInit")
-
-  catn("Checking crs.")
+  
+  if (save.name != "figure-3") {
+    name <- str_to_title(strsplit(save.name, "-")[[1]][[3]])
+  } else {
+    name <- "Specie"
+  }
+  
+  catn("Checking crs for raster.")
   rast <- check_crs(rast, projection, projection.method = "near", verbose = verbose)
+  catn("Checking crs for region")
   region <- check_crs(region, projection, projection.method = "near", verbose = verbose)
 
   catn("Plotting hotspots.")
@@ -300,7 +320,7 @@ visualize_paoo <- function(rast, region, region.name, extent, projection, vis.gr
       na.value = config$ggplot$gradient$na.value
     ) +
     labs(
-      title = if (vis.title) paste0("Potential New Aliens with Highest Potential Area of Occupancy in ", region.name),
+      title = if (vis.title) paste0("Potential New Aliens with Highest Potential\nArea of Occupancy for ", name,  " in ", region.name),
       fill = "Potential Area of occupancy"
     ) +
     coord_sf(
@@ -310,17 +330,21 @@ visualize_paoo <- function(rast, region, region.name, extent, projection, vis.gr
     theme_minimal() +
     config$ggplot$theme +
     theme(
-      strip.text = element_text(size = 16, face = "italic")
+      strip.text = element_text(size = 16, face = "italic", lineheight = 0.8),
+      panel.spacing = unit(1, "lines")
     )
-
+  
+  custom_labeller <- create_custom_labeller(pattern = "-", width = 10)
+  
   if (!is.null(vis.wrap)) {
-    fig3A <- fig3A + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 50))
+    fig3A <- fig3A + 
+      facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = labeller(lyr = custom_labeller))
   }
-
+  
   if (plot.save) {
     save_ggplot(
       save.plot = fig3A,
-      save.name = "figure-3A",
+      save.name = save.name,
       save.width = 2700,
       save.height = 3000,
       save.dir = save.dir,
@@ -348,14 +372,6 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
 
   stack <- check_crs(stack, projection, "bilinear", verbose = verbose)
   region <- check_crs(region, projection, "near", verbose = verbose)
-
-  # if (!identical(crs(stack, proj = TRUE), crs(region, proj = TRUE))) {
-  #   catn("Reprojecting to laea.")
-  #   catn(crs(stack, proj = TRUE))
-  #   catn(crs(region, proj = TRUE))
-  #   catn(identical(crs(stack, proj = TRUE), crs(region, proj = TRUE)))
-  #   stack <- project(stack, config$projection$crs$laea, method = "bilinear")
-  # }
 
   catn("Acquiring min and max values.")
   min_lim <- 0.00

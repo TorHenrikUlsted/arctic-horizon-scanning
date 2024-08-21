@@ -327,7 +327,7 @@ split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, ver
   
   spec_group <- split(spec_group, by = "group")
   
-  res_length <- nrow(spec_group$angiosperm) + nrow(spec_group$gymnosperm) + nrow(spec_group$pteridophyte)
+  res_length <- nrow(spec_group$angiosperms) + nrow(spec_group$gymnosperms) + nrow(spec_group$pteridophytes)
   
   if (init_length < res_length) {
     vebcat("Initial number of species", highcat(init_length), "is less than resulting length", highcat(res_length), color = "nonFatalError")
@@ -435,13 +435,17 @@ get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbo
   ))
 }
 
-convert_template_raster <- function(input.values, template.filename, projection, projection.method = "near", out.dir, verbose = F) {
-  out_file <- paste0(out.dir, "/hotspots.tif")
+convert_template_raster <- function(input.values, template.filename, projection, projection.method = "near", out.dir, verbose = FALSE) {
+  if (grepl("/", out.dir)) {
+    out_file <- paste0(out.dir, "-hotspots.tif")
+  } else {
+    out_file <- paste0(out.dir, "/hotspots.tif")
+  }
+  
 
   if (file.exists(out_file)) {
-    catn("Reading existing raster.")
-    template <- terra::rast(out_file)
-    return(template)
+    catn("Reading", highcat(basename(out_file)))
+    return(terra::rast(out_file))
   }
 
   vebcat("Converting raster", color = "funInit")
@@ -465,12 +469,33 @@ convert_template_raster <- function(input.values, template.filename, projection,
   return(template)
 }
 
-get_world_map <- function(projection, scale = "medium", pole = NULL) {
+get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pole = NULL) {
   vebcat("Setting up world Map.", color = "funInit")
-
-  world_map <- ne_countries(scale = scale, returnclass = "sf")
-
-  world_map <- vect(world_map)
+  
+  accepted_maps <- c("wgsrpd", "rnaturalearth")
+  
+  if (!(tolower(map.type) %in% accepted_maps)) {
+    vebcat("Error: map.type not accepted.", color = "fatalError")
+    catn("Accepted map.type:", accepted_maps)
+    stop("Change map.type paramter.")
+  }
+  
+  if (tolower(map.type) == "wgsrpd") {
+    if (!grepl("level", scale)) {
+      vebcat("Error: scale has to be in the form paste0('level', number), where number has to be either 1 (continents), 2 (regions), 3 (botanical countries), 4 (Basic Recording Units)", color = "fatalError")
+      catn("For help see:", highcat("http://www.tdwg.org/standards/109"))
+    }
+    path <- paste0("./resources/region/wgsrpd/", scale)
+    download_github_dir_if("tdwg", "wgsrpd", "master", scale, path)
+    world_map <- load_region(paste0(path, "/", scale, ".shp"))
+  } else if (tolower(map.type) == "rnaturalearth") {
+    if (grepl("level", scale)) {
+      vebcat("Error: scale has to be in the form 'large', 'medium', or 'small'.", color = "fatalError")
+      catn("For help type: ?rnaturalearth")
+    }
+    world_map <- ne_countries(scale = scale, returnclass = "sf")
+    world_map <- vect(world_map)
+  } 
 
   if (!is.null(pole)) {
     if (pole == "north") {
@@ -484,7 +509,7 @@ get_world_map <- function(projection, scale = "medium", pole = NULL) {
     world_map <- crop(world_map, equator_extent)
   }
 
-  world_map <- project(world_map, projection)
+  world_map <- suppressWarnings(check_crs(world_map, projection))
 
   vebcat("World Map setup completed successfully", color = "funSuccess")
 
@@ -499,75 +524,71 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
     sp_rast <- terra::rast(spec.filename)
 
     catn("Converting region to data table.")
-    region_dt <- as.data.frame(region)
-    region_dt <- as.data.table(region_dt)
-    region_dt[, ID := .I]
+    region_dt <- as.data.table(as.data.frame(region))[, ID := .I]
     region_dt <- handle_region_dt(region_dt)
 
     catn("Extracting raster cells.")
     sp_dt <- extract_raster_to_dt(sp_rast, region, value = "cellOccupancy", cells = TRUE)
-    tot_cells <- sp_dt[!is.na(cell)]
-    tot_cells <- uniqueN(tot_cells$cell)
+    tot_cells <- sp_dt[!is.na(cell), uniqueN(cell)]
 
     catn("Merging raster_dt and region_dt.")
     sp_regions_dt <- merge(sp_dt, region_dt, by = "ID")
     setnames(sp_regions_dt, "ID", "regionId")
-
-    sp_regions_dt <- sp_regions_dt[!is.na(cellOccupancy)]
-
-    cell_region_count <- sp_regions_dt[, nCellsRegion := uniqueN(cell, na.rm = TRUE), by = "subRegionName"]
-    cell_region_count <- cell_region_count[, .(nCellsRegion, subRegionName)]
-    cell_region_count <- unique(cell_region_count, by = "subRegionName")
-
-    # subset to only get values above 0
-    sp_regions_dt <- sp_regions_dt[cellOccupancy > 0]
-
-    # Set all values to 1
-    sp_regions_dt <- sp_regions_dt[, cellOccupancy := 1]
-
-    sp_regions_dt <- unique(sp_regions_dt, by = "cell")
-
-    sp_regions_dt <- sp_regions_dt[!is.na(cellOccupancy)]
-
-    sp_regions_dt[country == "", country := NA]
-    sp_regions_dt[subRegionName == "", subRegionName := NA]
-
-    sp_regions_dt <- sp_regions_dt[, .(cell, cellOccupancy, subRegionName, country, subRegionLong, subRegionLat, westEast)]
-
-    sp_regions_dt <- sp_regions_dt[, species := sp_name]
-
-    sp_tpaoo <- sum(sp_regions_dt$cellOccupancy)
-
+    
+    sp_regions_dt[, `:=`(
+      cellOccupancy = fifelse(cellOccupancy > 0, 1, fifelse(cellOccupancy == 0, 0, NA_real_)),
+      country = fifelse(country == "", NA_character_, country),
+      subRegionName = fifelse(subRegionName == "", NA_character_, subRegionName),
+      species = sp_name
+    )]
+    
+    vebprint(any(!is.na(sp_regions_dt$cellOccupancy)), verbose, text = "Any not NA:")
+    vebprint(any(sp_regions_dt$cellOccupancy != 0), vebose, text = "Any not 0:")
+    
+    sp_regions_dt <- unique(sp_regions_dt[!is.na(cellOccupancy) & !is.na(subRegionName)], by = "cell")
+    
+    sp_regions_dt[, nCellsRegion := uniqueN(cell, na.rm = TRUE), by = "subRegionName"]
+    
+    vebprint(sp_regions_dt, verbose, "cell_region_count:")
+    
+    sp_tpaoo <- sp_regions_dt[, sum(cellOccupancy)]
     sp_proptpaoo <- sp_tpaoo / tot_cells
 
-    vebcat("Species Total Potential Area of Occupancy:", sp_tpaoo)
+    vebcat("Species Total Potential Area of Occupancy:", highcat(sp_tpaoo))
+    
+    sp_tpaoo_region <- sp_regions_dt[, .(
+      PAoO = sum(cellOccupancy, na.rm = TRUE),
+      nCellsRegion = .N,
+      country = first(country),  # Assuming country is the same for each subRegionName
+      species = first(species),   # Assuming species is the same for all rows
+      subRegionLong = first(subRegionLong),
+      subRegionLat = first(subRegionLat),
+      westEast = first(westEast)
+    ), by = "subRegionName"]
 
-    sp_regions_dt <- sp_regions_dt[!is.na(subRegionName)]
+    sp_tpaoo_region[, propPAoO := PAoO / nCellsRegion, by = "subRegionName"]
 
-    sp_tpaoo_region <- sp_regions_dt[, PAoO := sum(cellOccupancy, na.rm = TRUE), by = subRegionName]
-
-    sp_tpaoo_region <- sp_tpaoo_region[, PAoO := ifelse(is.na(PAoO), 0, PAoO)]
-
-    # sp_tpaoo_region[, propPAoO := PAoO / uniqueN(cell, na.rm = TRUE), by = "subRegionName"]
-
-    sp_tpaoo_region <- merge(sp_tpaoo_region, cell_region_count, by = "subRegionName")
-
-    sp_tpaoo_region <- sp_tpaoo_region[, propPAoO := PAoO / nCellsRegion, by = subRegionName]
-
-    vebprint(sp_tpaoo_region, text = "Species Potential Area of Occupancy in each subregion:")
-    out_dt <- data.table(species = sp_name, TPAoO = sp_tpaoo, propTPAoO = sp_proptpaoo, filename = spec.filename)
-
-    out_dt <- merge(out_dt, sp_tpaoo_region, by = "species", all = TRUE)
-
-    out_dt <- out_dt[, .(species, TPAoO, propTPAoO, PAoO, propPAoO, subRegionName, country, subRegionLong, subRegionLat, westEast, filename)]
-
-    out_dt <- unique(out_dt, by = "subRegionName")
-
+    vebprint(sp_tpaoo_region, verbose, "Species Potential Area of Occupancy in each subregion:")
+    
+    out_dt <- sp_tpaoo_region[, .(
+      species,
+      TPAoO = sp_tpaoo,
+      propTPAoO = sp_proptpaoo,
+      PAoO,
+      propPAoO,
+      subRegionName,
+      country,
+      subRegionLong,
+      subRegionLat,
+      westEast,
+      filename = spec.filename
+    )]
+    
     vebprint(out_dt, text = "Finished table:")
-
+    
     return(out_dt)
   }
-
+  
   return(list(
     execute = execute
   ))
@@ -593,67 +614,71 @@ stack_projections <- function(filenames, projection, projection.method, out.dir,
   }
 
   if (!skip) {
-    max_cores <- calc_num_cores(
-      ram.high = 5,
-      verbose = FALSE
-    )
-
-    catn("Found", length(filenames), "files.")
-
-    max_cores <- min(length(filenames), max_cores$high)
-
-    catn("Creating cluster of", max_cores, "core(s).")
-
-    cl <- makeCluster(max_cores)
-
-    clusterEvalQ(cl, {
-      source("./src/utils/utils.R")
-    })
-
-    filenames_dt <- data.table(
-      order = seq_along(filenames),
-      filename = filenames
-    )
-
-    # Get the exports that are not null
-    export_vars <- c("filenames_dt", "projection", "projection.method", "out.dir", "binary", "verbose", "nodes_dir", "rasters_dir")
-
-    vebcat("export_vars:", veb = verbose)
-    vebprint(export_vars, veb = verbose)
-
-    clusterExport(cl, export_vars, envir = environment())
-
-    catn("Stacking rasters.")
-
-    # Apply the function in parallel
-    clusterApplyLB(cl, 1:length(filenames), function(i) {
-      tryCatch(
-        {
-          node_file <- paste0(nodes_dir, "/node", i)
+    
+    tryCatch({
+      max_cores <- calc_num_cores(
+        ram.high = 5,
+        verbose = FALSE
+      )
+      
+      catn("Found", length(filenames), "files.")
+      
+      max_cores <- min(length(filenames), max_cores$high)
+      
+      catn("Creating cluster of", max_cores, "core(s).")
+      
+      cl <- makeCluster(max_cores)
+      
+      clusterEvalQ(cl, {
+        source("./src/utils/utils.R")
+      })
+      
+      filenames_dt <- data.table(
+        order = seq_along(filenames),
+        filename = filenames
+      )
+      
+      # Get the exports that are not null
+      export_vars <- c("filenames_dt", "projection", "projection.method", "out.dir", "binary", "verbose", "nodes_dir", "rasters_dir")
+      
+      vebcat("export_vars:", veb = verbose)
+      vebprint(export_vars, veb = verbose)
+      
+      clusterExport(cl, export_vars, envir = environment())
+      
+      catn("Stacking rasters in parallel.")
+      
+      # Apply the function in parallel
+     clusterApplyLB(cl, 1:length(filenames), function(i) {
+        tryCatch({
+          node_file <- paste0(nodes_dir, "/", paste0("node", i))
           create_file_if(node_file)
-
+          
           try(node_con <- file(node_file, "a"))
           sink(node_con, type = "output")
           sink(node_con, type = "message")
-
+          catn("Setting up", paste0("node-", i))
+          
+          projection <- get_crs_config(projection)
+          
           file <- filenames_dt$filename[i]
           rast_out_names <- paste0(basename(dirname(file)), ".tif")
           name <- gsub(config$species$file_separator, " ", basename(dirname(file)))
-
+          
           out_file <- paste0(rasters_dir, "/", rast_out_names)
-
+          
           catn("name:", name)
           catn("Input file:", file)
           catn("Output file:", out_file)
           catn("Input projection:", as.character(crs(projection, proj = TRUE)))
           catn("Projection method:", projection.method)
           catn()
-
+          
           raster <- terra::rast(file)
           names(raster) <- name
-
+          
           vebprint(raster, text = "Input raster:")
-
+          
           if (!identical(crs(raster, proj = TRUE), crs(projection, proj = TRUE))) {
             catn()
             vebcat("Reprojecting to", as.character(crs(projection, proj = TRUE)))
@@ -661,36 +686,44 @@ stack_projections <- function(filenames, projection, projection.method, out.dir,
             try(raster <- terra::project(raster, projection, method = projection.method))
             vebprint(raster, text = "Output raster:")
           }
-
+          
           # Convert values to 0 and 1 if binary
           if (binary) raster <- ceiling(raster)
-
+          
           catn("Writing raster to:", colcat(out_file, color = "output"))
           terra::writeRaster(raster, out_file)
-
-          sink(type = "message")
-          sink(type = "output")
-          close(node_con)
-
-          invisible(gc())
         },
         error = function(e) {
-          try(node_con <- file(node_file, "a"))
-          writeLines(paste0("Error when stacking rasters in parallel:\n", e), node_con)
-          close(node_con)
+          vebprint(e$message, text = "\nError message:")
+          stop(e)
+          
+        }, finally = {
+          catn("Parallel finished, cleaning up sink connections")
+          sink(type = "message", NULL)
+          sink(type = "output", NULL)
+          if (exists("node_con") && isOpen(node_con)) {
+            close(node_con)
+          }
+        })
+      })
+    }, error = function(e) {
+      vebcat("An error occurred in the parallel process ~ stopping cluster and closing connections.", color = "fatalError")
+      catn("Error messages written to node logs in:\n", colcat(nodes_dir, color = "output"))
+      stop(e)
+    }, finally =  {
+      catn("Cleaning up cluster connections")
+      if (exists("cl")) {
+        tryCatch({
           stopCluster(cl)
-          closeAllConnections()
-          stop()
-        }
-      )
-    })
-
-    catn("finishing up.")
-
-    stopCluster(cl)
-    closeAllConnections()
-  }
-
+        }, error = function(e) {
+          vebcat("Error stopping cluster:", e$message, color = "fatalError")
+        })
+      }
+      closeAllConnections()
+    }) # clusterApplyLB
+    
+  } # skip
+  
   catn("Listing files and stacking them.")
   raster_files <- list.files(rasters_dir, full.names = TRUE)
 

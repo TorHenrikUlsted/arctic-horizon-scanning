@@ -108,13 +108,23 @@ config <- list(
     
     theme = theme(
       text = element_text(family = "Linux Libertine"),
-      plot.title = element_text(color = "black", vjust = -0.5, hjust = 0.5, size = 16, face = "bold.italic"),
+      plot.title = element_text(
+        color = "black", 
+        vjust = -0.5, 
+        hjust = 0.5, 
+        size = 18, 
+        face = "bold",
+        margin = margin(b = 10),
+        lineheight = 1.2
+      ),
+      plot.title.position = "plot",
+      plot.margin = margin(t = 10, r = 10, b = 20, l = 10, unit = "pt"),
       axis.text = element_text(size = 16),
       axis.title.x = element_text(size = 20, hjust = 0.5),
       axis.title.y = element_text(size = 20),
-      legend.text = element_text(size = 20),
-      legend.title = element_text(size = 22, hjust = 0.5),
-      legend.position = "bottom",
+      legend.text = element_text(size = 18),
+      legend.title = element_text(size = 18, hjust = 0.5),
+      legend.position = "bottom"
     )
   )
 )

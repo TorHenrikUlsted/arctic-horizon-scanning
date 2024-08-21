@@ -1,5 +1,9 @@
 source_all("./src/setup/components")
-source_all("./src/setup/custom_setup")
+if (config$run$example) { 
+  source_all("./example/src/setup")
+} else {
+  source_all("./src/setup/custom_setup")
+}
 
 setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, hv.incl.threshold, hv.dims = NULL, cores.max = 1, force.seq = FALSE, verbose = FALSE) {
   setup_dir <- "./outputs/setup"

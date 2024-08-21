@@ -275,13 +275,13 @@ get_spec_group <- function(spec) {
   res <- get_spec_taxons(spec)
   
   if (res$order %in% config$species$angiosperms) {
-    result <- "angiosperm"
+    result <- "angiosperms"
   } else if (res$order %in% config$species$gymnosperms) {
-    result <- "gymnosperm"
+    result <- "gymnosperms"
   } else if (res$order %in% config$species$pteridophytes) {
-    result <- "pteridophyte"
+    result <- "pteridophytes"
   } else {
-    result <- "unknown"
+    result <- "unknowns"
   }
   
   return(result)
@@ -297,16 +297,16 @@ get_spec_group_dt <- function(spec, spec.col = NULL, verbose = FALSE) {
     
   
   dt[, group := fcase(
-    is.na(order), "unknown",
-    order %in% config$species$angiosperms, "angiosperm",
-    order %in% config$species$gymnosperms, "gymnosperm",
-    order %in% config$species$pteridophytes, "pteridophyte",
-    default = "other"
+    is.na(order), "unknowns",
+    order %in% config$species$angiosperms, "angiosperms",
+    order %in% config$species$gymnosperms, "gymnosperms",
+    order %in% config$species$pteridophytes, "pteridophytes",
+    default = "others"
   )]
   
   vebprint(dt, verbose, "After adding groups:")
   
-  unknown_species <- dt[group %in% c("unknown", "other"), get(spec.col)]
+  unknown_species <- dt[group %in% c("unknowns", "others"), get(spec.col)]
   if (length(unknown_species) > 0) {
     vebcat("Order not found for species:", color = "nonFatalError")
     vebprint(unknown_species)

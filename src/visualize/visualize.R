@@ -19,7 +19,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   plot.show = FALSE
   verbose = FALSE
   
-  
   ##########################
   #       Load dirs        #
   ##########################
@@ -66,6 +65,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
   region <- load_region(shape)
   region <- check_crs(region, vis.projection)
+  region_ext <- ext(region)
 
   ##########################
   #       Check data       #
@@ -124,7 +124,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     # Get the cell richness per group
     inc_dt <- parallel_spec_handler(
       spec.dirs = group_dirs,
-      dir = paste0(log_dir, "/", group, "-cell"),
+      dir = paste0(log_dir, "/cell/cell-", group),
       shape = shape,
       hv.project.method = "0.5-inclusion",
       fun = get_inclusion_cell,
@@ -153,7 +153,13 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
   }
   
-
+  
+  all_richness <- group_richness
+  all_richness$all <- summed_richness
+  
+  rm(summed_richness, group_richness)
+  invisible(gc())
+  
 
   ##########################
   #        Figure 1        #
@@ -163,7 +169,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Frequency Figures.", color = "indicator")
   } else {
-    freq_stack <- region_richness_cell[!is.na(region_richness_cell$cellRichness)]
+    freq_stack <- copy(all_richness$all)
+    freq_stack <- freq_stack[!is.na(freq_stack$cellRichness)]
     freq_stack <- freq_stack[!is.na(freq_stack$subRegionName)]
 
     visualize_freqpoly(
@@ -208,31 +215,44 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     vebcat("Skipping Hotspots Figure.", color = "indicator")
   } else {
     # Convert to raster by using a template
-    hotspot_raster <- convert_template_raster(
-      input.values = region_richness_cell$cellRichness,
-      template.filename = template_file,
-      projection = out_projection,
-      projection.method = "near",
-      out.dir = rast_dir,
-      verbose = verbose
-    )
+    hotspots <- list()
+    
+    for (richness in names(all_richness)) {
+      
+      hotspot_raster <- convert_template_raster(
+        input.values = all_richness[[richness]]$cellRichness,
+        template.filename = template_file,
+        projection = config$projection$out,
+        projection.method = "near",
+        out.dir = paste0(rast_dir, "/", richness),
+        verbose = verbose
+      )
+      
+      hotspots[richness] <- hotspot_raster 
+    }
+    
+    world_map <- get_world_map(projection = config$projection$out) # Use WGSRPD instead
+    
+    for (hotspot in names(hotspots)) {
+      hotspot_raster <- hotspots[[hotspot]]
+      
+      visualize_hotspots(
+        rast = hotspot_raster,
+        region = world_map,
+        extent = region_ext,
+        region.name = vis.region.name,
+        projection = config$projection$out,
+        save.dir = plot_dir,
+        save.name = paste0("figure-2-", hotspot),
+        save.device = vis.save.device,
+        save.unit = vis.save.unit,
+        vis.title = vis.title,
+        verbose = verbose
+      )
+    }
 
-    world_map <- get_world_map(projection = out_projection)
 
-    visualize_hotspots(
-      rast = hotspot_raster,
-      region = world_map,
-      extent = region_ext,
-      region.name = vis.region.name,
-      projection = out_projection,
-      save.dir = plot_dir,
-      save.device = vis.save.device,
-      save.unit = vis.save.unit,
-      vis.title = vis.title,
-      verbose = verbose
-    )
-
-    res_hotspots_nums <- region_richness_cell[, .SD[which.max(cellRichness)], by = subRegionName]
+    res_hotspots_nums <- all_richness$all[, .SD[which.max(cellRichness)], by = subRegionName]
     res_hotspots_nums <- res_hotspots_nums[!is.na(res_hotspots_nums$subRegionName)]
     res_hotspots_nums <- res_hotspots_nums[, .(cellRichness, subRegionName, country)]
     setnames(res_hotspots_nums, "cellRichness", "richnessPeaks")
@@ -257,42 +277,74 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     vebcat("Skipping Potential Area of Occupancy Figure.", color = "indicator")
   } else {
     paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv")
-
-    paoo_files <- parallel_spec_handler(
-      spec.dirs = sp_dirs,
-      shape = shape,
-      dir = dirname(dirname(paoo_file)),
-      hv.project.method = "0.5-inclusion",
-      col.n = "species-9",
-      out.order = "-TPAoO",
-      fun = get_paoo,
-      verbose = verbose
+    
+    paoo_files <- list()
+    
+    for (group in names(sp_group_dirs)) {
+      group_dirs <- sp_group_dirs[[group]]$filename
+      
+      paoo <- parallel_spec_handler(
+        spec.dirs = group_dirs,
+        shape = shape,
+        dir = paste0(dirname(dirname(paoo_file)), "/paoo-", group),
+        hv.project.method = "0.5-inclusion",
+        col.n = "species-9",
+        out.order = "-TPAoO",
+        fun = get_paoo,
+        verbose = verbose
+      )
+      
+      paoo_files[[group]] <- paoo
+    }
+    
+    paoo_files_all <- rbindlist(
+      lapply(seq_along(paoo_files), function(i) {
+        paoo_files[[i]][, group := names(paoo_files)[i]]
+      }),
+      use.names = TRUE
     )
+    
+    setorder(paoo_files_all, -TPAoO)
+    paoo_files_all <- paoo_files_all[1:9]
+    setcolorder(paoo_files_all, c(setdiff(names(paoo_files_all), "filename"), "filename"))
+    paoo_files$all <- paoo_files_all
+    rm(paoo_files_all)
+    
+    paoo_stacks <- list()
+    
+    for (group in names(paoo_files)) {
+      filenames <- paoo_files[[group]]$filename
+      
+      paoo <- stack_projections(
+        filenames = filenames,
+        projection = config$projection$out,
+        projection.method = "near",
+        out.dir = paste0(log_dir, "/stacks-paoo/", group),
+        binary = TRUE,
+        verbose = verbose
+      )  
+      
+      paoo_stacks[[group]] <- paoo
+    }
+    
+    world_map <- get_world_map(projection = config$projection$out)
 
-    paoo <- stack_projections(
-      filenames = paoo_files$filename,
-      projection = out_projection,
-      projection.method = "near",
-      out.dir = paste0(log_dir, "/stack-aoo"),
-      binary = TRUE,
-      verbose = verbose
-    )
-
-    world_map <- get_world_map(projection = out_projection)
-
-    visualize_paoo(
-      rast = paoo,
-      region = world_map,
-      region.name = vis.region.name,
-      extent = region_ext,
-      projection = out_projection,
-      vis.wrap = 3,
-      save.dir = plot_dir,
-      save.device = vis.save.device,
-      save.unit = vis.save.unit,
-      vis.title = vis.title,
-      verbose = verbose
-    )
+    for (stack in names(paoo_stacks)) {
+      visualize_paoo(
+        rast = paoo_stacks[[stack]],
+        region = world_map,
+        region.name = vis.region.name,
+        extent = region_ext,
+        projection = config$projection$out,
+        vis.wrap = 3,
+        save.dir = plot_dir,
+        save.name = paste0("figure-3-", stack),
+        save.device = vis.save.device,
+        save.unit = vis.save.unit,
+        vis.title = vis.title,
+        verbose = verbose
+      )
+    }
 
     paoo_md <- paoo_files[, 1:3]
 
@@ -317,6 +369,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   } else {
     # Figure 3: Stack probability tif files and use the highest numbers to get a color gradient
     # Get the max values of all probability raster files
+    
     prob_mean <- parallel_spec_handler(
       spec.dirs = sp_dirs,
       shape = shape,

@@ -62,7 +62,20 @@ check_crs <- function(x, projection, projection.method = NULL, verbose = FALSE) 
     } else {
       x <- terra::project(x, projection, method = projection.method)
     }
-  }  
+  }
+  
+  if (is.spatVector(x)) {
+    if (any(!is.valid(x))) {
+      vebcat("shape is not valid, trying to validate..", color = "nonFatalError")
+      x <- makeValid(x)
+      if (any(!is.valid(x))) {
+        vebcat("Successfully validated the shape", color = "proSuccess")
+      } else {
+        vebcat("Failed to validate shape", color = "nonFatalError")
+        vebcat("You can safely ignore this warning if you are projecting a world map to polar projections to use in polar settings.", color = "highlight")
+      }
+    }
+  }
   
   return(x)
 }

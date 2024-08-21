@@ -58,23 +58,39 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   }
 
   catn("Creating cluster of", max_cores, "core(s).")
-
+  
+  config <- config
+  
   cl <- makeCluster(max_cores)
-
-  clusterEvalQ(cl, {
-    source("./src/utils/utils.R")
-    source("./src/setup/setup_sequence.R")
-    source_all("./src/visualize/components")
-  })
-
+  
   # Get the exports that are not null
-  export_vars <- c("sp_dirs", "shape", "hv.project.method", "fun.execute", "batch", "node.log.append", "test", "verbose", "node_dir", "ram_log", "extra")
-
+  export_vars <- c("sp_dirs", "shape", "hv.project.method", "fun.execute", "batch", "node.log.append", "test", "verbose", "node_dir", "ram_log", "extra", "config")
+  
   # export_vars <- export_vars[sapply(export_vars, function(x) !is.null(get(x)))]
-
+  
   vebprint(export_vars, verbose, "export_vars:")
-
+  
   clusterExport(cl, export_vars, envir = environment())
+  
+tryCatch({
+  clusterEvalQ(cl, {
+    
+    global_config <- config
+    source("./src/utils/utils.R")
+    
+    config <- global_config
+    
+    source("./src/setup/setup_sequence.R")
+    
+    source_all("./src/visualize/components")
+    
+  })
+}, error = function(e) {
+  vebcat("An error occurred in the parallel process ~ stopping cluster and closing connections.", color = "fatalError")
+  stopCluster(cl)
+  closeAllConnections()
+  stop(e$message)
+})
 
   current_disk_space <- get_disk_space("/export", units = "GB")
 
@@ -99,7 +115,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   mem_used_gb <- get_mem_usage(type = "used", format = "gb")
   mem_limit_gb <- config$memory$mem_limit / 1024^3
 
-  catn("Running parallel with", end, "iteration(s).")
+  catn("Running parallel with", highcat(end), "iteration(s).")
   execute_timer <- start_timer("Execute process")
   calculate_etc(timer_res + (1.45 * max_cores), max_cores, length(spec.dirs))
 
