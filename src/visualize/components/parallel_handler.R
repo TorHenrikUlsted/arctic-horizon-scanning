@@ -13,7 +13,8 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
 
   node_dir <- paste0(dir, "/nodes")
   create_dir_if(node_dir)
-
+  invisible(gc()) # Garbage collect to avoid garbage collection issues when getting peak ram
+  
   # Get max core usage
   used_mem <- get_mem_usage(type = "used", format = "gb")
   remain_mem <- ((config$memory$mem_limit / 1024^3) - used_mem)
@@ -257,11 +258,15 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
   create_dir_if(dir)
 
   logs_sub_dir <- paste0(dir, "/", hv.project.method)
+  vebprint(logs_sub_dir, verbose, "logs sub directory:")
+  
   out_dir <- paste0(progressive_dirname(dir, end = 5), "/results")
-
+  
   create_dir_if(logs_sub_dir, out_dir)
 
-  out_file <- paste0(out_dir, "/", basename(dir), ".csv")
+  out_file <- paste0(out_dir, "/", basename(progressive_dirname(dir, end = 7)), "/", basename(dir), ".csv")
+  
+  vebprint(out_file, verbose, "out file:")
 
   if (file.exists(out_file)) {
     post_timer <- start_timer("Post processing")

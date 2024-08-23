@@ -11,8 +11,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   hv.method = "box"
   vis.projection = "laea"
   vis.title = TRUE
-  vis.region.name = "Region"
-  vis.subregion.name = "Sub Region"
+  vis.region.name = "The Arctic"
+  vis.subregion.name = "Floristic Province"
   vis.composition.taxon = "order"
   vis.save.device = "jpeg"
   vis.save.unit = "px"
@@ -29,9 +29,14 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   result_dir <- paste0(vis_dir, "/results")
   rast_dir <- paste0(log_dir, "/rasters")
   plot_dir <- paste0(vis_dir, "/plots")
+  log_dir_cell <- paste0(log_dir, "/cell")
+  log_dir_aoo <- paste0(log_dir, "/area-of-occupancy")
+  log_stacks_aoo <- paste0(log_dir_aoo, "-stacks")
+  log_dir_suitability <- paste0(log_dir, "/suitability")
+  log_stacks_suitability <- paste0(log_dir_suitability, "-stacks")
 
-  # create dirs
-  create_dir_if(stats_dir, log_dir, result_dir, rast_dir, plot_dir)
+  # create dirs if they do not exist
+  create_dir_if(stats_dir, log_dir, result_dir, rast_dir, plot_dir, log_dir_cell, log_dir_aoo, log_stacks_aoo, log_dir_suitability)
 
   ##########################
   #       Load files       #
@@ -115,7 +120,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   )
   
   # Split filenames into groups
-  sp_group_dirs <- split_spec_by_group(sp_dirs, sp_stats, "cleanName", verbose)
+  sp_group_dirs <- split_spec_by_group(sp_dirs, sp_stats, "cleanName", is.file = TRUE, verbose)
   
   group_richness <- list()
   
@@ -124,7 +129,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     # Get the cell richness per group
     inc_dt <- parallel_spec_handler(
       spec.dirs = group_dirs,
-      dir = paste0(log_dir, "/cell/cell-", group),
+      dir = paste0(log_dir_cell, "/", group),
       shape = shape,
       hv.project.method = "0.5-inclusion",
       fun = get_inclusion_cell,
@@ -209,7 +214,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   ##########################
 
   # Figure 2: Stack inclusion tif files and calculate species in each cell to get potential hotspots
-
   fig_name <- paste0("figure-2", ".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Hotspots Figure.", color = "indicator")
@@ -231,7 +235,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       hotspots[richness] <- hotspot_raster 
     }
     
-    world_map <- get_world_map(projection = config$projection$out) # Use WGSRPD instead
+    world_map <- get_world_map(projection = config$projection$out)
     
     for (hotspot in names(hotspots)) {
       hotspot_raster <- hotspots[[hotspot]]
@@ -276,8 +280,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Potential Area of Occupancy Figure.", color = "indicator")
   } else {
-    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv")
-    
     paoo_files <- list()
     
     for (group in names(sp_group_dirs)) {
@@ -286,7 +288,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       paoo <- parallel_spec_handler(
         spec.dirs = group_dirs,
         shape = shape,
-        dir = paste0(dirname(dirname(paoo_file)), "/paoo-", group),
+        dir = paste0(log_dir_aoo, "/", group),
         hv.project.method = "0.5-inclusion",
         col.n = "species-9",
         out.order = "-TPAoO",
@@ -297,34 +299,30 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       paoo_files[[group]] <- paoo
     }
     
-    paoo_files_all <- rbindlist(
-      lapply(seq_along(paoo_files), function(i) {
-        paoo_files[[i]][, group := names(paoo_files)[i]]
-      }),
-      use.names = TRUE
-    )
-    
-    setorder(paoo_files_all, -TPAoO)
-    paoo_files_all <- paoo_files_all[1:9]
-    setcolorder(paoo_files_all, c(setdiff(names(paoo_files_all), "filename"), "filename"))
-    paoo_files$all <- paoo_files_all
-    rm(paoo_files_all)
-    
     paoo_stacks <- list()
     
-    for (group in names(paoo_files)) {
-      filenames <- paoo_files[[group]]$filename
+    for (i in 1:(length(paoo_files) + 1)) {
+      
+      if (i == length(paoo_files) + 1) {
+        group_name <- "all"
+        group <- combine_top_groups(paoo_files, "-TPAoO")
+      } else {
+        group_name <- names(paoo_files)[i]
+        group <- paoo_files[[i]]
+      }
+      
+      filenames <- group$filename
       
       paoo <- stack_projections(
         filenames = filenames,
         projection = config$projection$out,
         projection.method = "near",
-        out.dir = paste0(log_dir, "/stacks-paoo/", group),
+        out.dir = paste0(log_stacks_aoo, "/", group_name),
         binary = TRUE,
         verbose = verbose
       )  
       
-      paoo_stacks[[group]] <- paoo
+      paoo_stacks[[group_name]] <- paoo
     }
     
     world_map <- get_world_map(projection = config$projection$out)
@@ -338,15 +336,17 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
         projection = config$projection$out,
         vis.wrap = 3,
         save.dir = plot_dir,
-        save.name = paste0("figure-3-", stack),
+        save.name = paste0("figure-3A-", stack),
         save.device = vis.save.device,
         save.unit = vis.save.unit,
         vis.title = vis.title,
         verbose = verbose
       )
     }
+    
+    paoo_files$all <- combine_top_groups(paoo_files, "-TPAoO")
 
-    paoo_md <- paoo_files[, 1:3]
+    paoo_md <- paoo_files$all[, 1:3]
 
     mdwrite(
       config$files$post_seq_md,
@@ -358,6 +358,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(paoo_files, paoo, paoo_md, world_map)
     invisible(gc())
   }
+  
 
   ##########################
   #        Figure 3B       #
@@ -373,39 +374,67 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     prob_mean <- parallel_spec_handler(
       spec.dirs = sp_dirs,
       shape = shape,
-      dir = paste0(log_dir, "/suitability"),
+      dir = log_dir_suitability,
       hv.project.method = "probability",
       col.n = "species-9",
       out.order = "-totalMean",
       fun = get_prob_stats,
       verbose = verbose
     )
-
-    # Read the rasters with the highest max values
-    prob_stack <- stack_projections(
-      filenames = prob_mean$filename,
-      projection = out_projection,
-      projection.method = "bilinear",
-      out.dir = paste0(log_dir, "/stack-suitability-", "totalMean"),
-      verbose = verbose
-    )
-
-    world_map <- get_world_map(projection = out_projection)
-
-    visualize_suitability(
-      stack = prob_stack,
-      region = world_map,
-      region.name = vis.region.name,
-      extent = region_ext,
-      projection = out_projection,
-      vis.unit = "mean",
-      vis.wrap = 3,
-      vis.title = vis.title,
-      save.dir = plot_dir,
-      save.device = vis.save.device,
-      save.unit = vis.save.unit,
-      verbose = verbose
-    )
+    
+    all_probs <- fread(paste0(result_dir, "/suitability/suitability.csv"))
+    
+    split_prob <- split_spec_by_group(all_probs, sp_stats, "cleanName", verbose)
+    
+    split_prob <- lapply(split_prob, function(x) {
+      x <- unique(x, by = "species")
+      setorder(x, -totalMean)
+      x <- x[1:9]
+      setcolorder(x, c(setdiff(names(x), "filename"), "filename"))
+    })
+    
+    
+    prob_stacks <- list()
+    
+    for (i in 1:(length(split_prob) + 1)) {
+      if (i == length(split_prob) + 1) { # +1 for all together to save memory
+        group_name <- "all"
+        group <- combine_top_groups(split_prob, "-totalMean")
+      } else {
+        group <- split_prob[[i]]
+        group_name <- names(split_prob)[i]
+      }
+      
+      prob_stack <- stack_projections(
+        filenames = group$filename,
+        projection = config$projection$out,
+        projection.method = "bilinear",
+        out.dir = paste0(log_stacks_suitability, "/totalMean/", group_name),
+        verbose = verbose
+      )
+      
+      prob_stacks[[group_name]] <- prob_stack
+    }
+    
+    world_map <- get_world_map(projection = config$projection$out)
+    
+    for (stack in names(prob_stacks)) {
+      visualize_suitability(
+        stack = prob_stacks[[stack]],
+        region = world_map,
+        region.name = vis.region.name,
+        extent = region_ext,
+        projection = config$projection$out,
+        vis.unit = "mean",
+        vis.wrap = 3,
+        vis.title = vis.title,
+        save.dir = plot_dir,
+        save.name = paste0("figure-3B-", stack),
+        save.device = vis.save.device,
+        save.unit = vis.save.unit,
+        verbose = verbose
+      )
+    }
 
     prob_vals_md <- copy(prob_mean)
     prob_vals_md <- prob_vals_md[, filename := NULL]
@@ -438,10 +467,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
     for (i in 1:length(prob_stacks)) {
       stack_val <- prob_stacks[i]
-
+      
       prob_vals <- parallel_spec_handler(
         spec.dirs = sp_dirs,
-        dir = paste0(log_dir, "/suitability"),
+        shape = shape,
+        dir = log_dir_suitability,
         hv.project.method = "probability",
         col.n = "species-9",
         out.order = paste0("-", stack_val),
@@ -450,17 +480,17 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       )
 
       vals_stack <- stack_projections(
-        filenames = prob_vals$filename,
-        projection = out_projection,
+        filenames = group$filename,
+        projection = config$projection$out,
         projection.method = "bilinear",
-        out.dir = paste0(log_dir, "/stack-suitability-", stack_val),
+        out.dir = paste0(log_stacks_suitability, "/", stack_val, "/all"),
         verbose = verbose
       )
 
       prob_list[[i]] <- vals_stack
     }
 
-    world_map <- get_world_map(projection = out_projection)
+    world_map <- get_world_map(projection = config$projection$out)
 
     visualize_suit_units(
       stack.mean = prob_list[[1]],
@@ -469,10 +499,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       region = world_map,
       region.name = vis.region.name,
       extent = region_ext,
-      projection = out_projection,
+      projection = config$projection$out,
       vis.wrap = 1,
       vis.title = vis.title,
       save.dir = plot_dir,
+      save.name = "figure-3C",
       save.device = vis.save.device,
       save.unit = vis.save.unit,
       return = TRUE,
@@ -492,20 +523,28 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Potential Area of Occupancy x Suitability Figure.", color = "indicator")
   } else {
-    paoo_file <- paste0(log_dir, "/area-of-occupancy/0.5-inclusion/area-of-occupancy.csv")
+    paoo_files <- list()
+    
+    for (group in names(sp_group_dirs)) {
+      group_dirs <- sp_group_dirs[[group]]$filename
+      
+      paoo <- parallel_spec_handler(
+        spec.dirs = group_dirs,
+        shape = shape,
+        dir = paste0(log_dir_aoo, "/", group),
+        hv.project.method = "0.5-inclusion",
+        col.n = "species-9",
+        out.order = "-TPAoO",
+        fun = get_paoo,
+        verbose = verbose
+      )
+      
+      paoo_files[[group]] <- paoo
+    }
+    
+    paoo_files_subset <- combine_top_groups(paoo_files, "-TPAoO")
 
-    paoo_files <- parallel_spec_handler(
-      spec.dirs = sp_dirs,
-      shape = shape,
-      dir = dirname(dirname(paoo_file)),
-      hv.project.method = "0.5-inclusion",
-      col.n = "species-9",
-      out.order = "-TPAoO",
-      fun = get_paoo,
-      verbose = verbose
-    )
-
-    paoo_files_subset <- copy(paoo_files$filename)
+    paoo_files_subset <- copy(paoo_files_subset$filename)
 
     prob_paoo_files <- gsub("0.5-inclusion", "probability", paoo_files_subset)
 
@@ -522,23 +561,23 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
       paoo_files <- stack_projections(
         filenames = paoo_batch,
-        projection = out_projection,
+        projection = config$projection$out,
         projection.method = "near",
-        out.dir = paste0(log_dir, "/stack-aoo"),
+        out.dir = paste0(log_stacks_aoo, "/top-", f_names),
         binary = TRUE,
         verbose = verbose
       )
 
       prob_files <- stack_projections(
         filenames = prob_batch,
-        projection = out_projection,
+        projection = config$projection$out,
         projection.method = "bilinear",
-        out.dir = paste0(log_dir, "/stack-prob-aoo"),
+        out.dir = paste0(log_stacks_suitability, "/totalMean/top-", f_names),
         binary = FALSE,
         verbose = verbose
       )
 
-      world_map <- get_world_map(projection = out_projection)
+      world_map <- get_world_map(projection = config$projection$out)
 
       visualize_dist_suit(
         stack.paoo = paoo_files,
@@ -546,7 +585,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
         region = world_map,
         region.name = vis.region.name,
         extent = region_ext,
-        projection = out_projection,
+        projection = config$projection$out,
         vis.wrap = 1,
         vis.title = vis.title,
         save.dir = plot_dir,
@@ -569,8 +608,27 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Composition Figure.", color = "indicator")
   } else {
-    paoo_file <- paste0(result_dir, "/area-of-occupancy.csv")
     # Figure 4: stacked barplot wtih taxa per sub region
+    paoo_files <- list()
+    
+    for (group in names(sp_group_dirs)) {
+      group_dirs <- sp_group_dirs[[group]]$filename
+      
+      paoo <- parallel_spec_handler(
+        spec.dirs = group_dirs,
+        shape = shape,
+        dir = paste0(log_dir_aoo, "/", group),
+        hv.project.method = "0.5-inclusion",
+        col.n = "species-9",
+        out.order = "-TPAoO",
+        fun = get_paoo,
+        verbose = verbose
+      )
+      
+      paoo_files[[group]] <- paoo
+    }
+    
+    paoo_file <- combine_top_groups(paoo_files, "-TPAoO")
 
     richness_dt <- get_taxon_richness(
       paoo.file <- paoo_file,
@@ -646,9 +704,27 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Connections figure.", color = "indicator")
   } else {
-    paoo_file <- paste0(result_dir, "/area-of-occupancy.csv")
-    # Figure 4: stacked barplot wtih taxa per sub region
-
+    paoo_files <- list()
+    
+    for (group in names(sp_group_dirs)) {
+      group_dirs <- sp_group_dirs[[group]]$filename
+      
+      paoo <- parallel_spec_handler(
+        spec.dirs = group_dirs,
+        shape = shape,
+        dir = paste0(log_dir_aoo, "/", group),
+        hv.project.method = "0.5-inclusion",
+        col.n = "species-9",
+        out.order = "-TPAoO",
+        fun = get_paoo,
+        verbose = verbose
+      )
+      
+      paoo_files[[group]] <- paoo
+    }
+    
+    paoo_file <- combine_top_groups(paoo_files, "-TPAoO")
+    
     richness_dt <- get_taxon_richness(
       paoo.file <- paoo_file,
       stats.file <- sp_stats,
@@ -669,7 +745,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
         verbose = verbose
       )
 
-      # Figure 5: Sankey with floristic regions
+      # Figure 5: connections map
       visualize_connections(
         dt = connections_dt,
         taxon = taxon,
@@ -681,7 +757,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
         save.unit = vis.save.unit,
         save.name = paste0("figure-5", figure),
         plot.show = plot.show,
-        verbose = verbose
+        verbose = TRUE
       )
     }
 
@@ -694,8 +770,10 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     subsets <- c("subRegionName", "country", "originCountry", "originCountryCode", "connections")
 
     con_spec <- connections_md[, c(.SD, mget(subsets)), .SDcols = "cleanName"]
+    con_res_dir <- paste0(result_dir, "/connections")
+    create_dir_if(con_res_dir)
 
-    fwrite(con_spec, paste0(result_dir, "/connections-species.csv"), bom = TRUE)
+    fwrite(con_spec, paste0(con_res_dir, "/species.csv"), bom = TRUE)
 
     con_fam <- connections_md[, c(.SD, mget(subsets)), .SDcols = "family"]
 
@@ -703,7 +781,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
     con_fam <- unique(con_fam, by = "family")
 
-    fwrite(con_fam, paste0(result_dir, "/connections-family.csv"), bom = TRUE)
+    fwrite(con_fam, paste0(con_res_dir, "/family.csv"), bom = TRUE)
 
     con_order <- connections_md[, c(.SD, mget(subsets)), .SDcols = "order"]
 
@@ -711,7 +789,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
     con_order <- unique(con_order, by = "order")
 
-    fwrite(con_order, paste0(result_dir, "/connections-order.csv"), bom = TRUE)
+    fwrite(con_order, paste0(con_res_dir, "/order.csv"), bom = TRUE)
 
 
     con_subregion <- copy(connections_md)
@@ -783,8 +861,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     catn("Species min absolute median latitude:", highcat(min(spec_count_dt$medianLat)))
 
     catn("Species max absolute median latitude:", highcat(max(spec_count_dt$medianLat)))
-
-    merged_dt <- merge(lat_stats, spec_count_dt, by = "cleanName")
+    
+    merged_dt <- spec_count_dt[lat_stats, on = "cleanName"]
 
     merged_dt <- unique(merged_dt, by = "cleanName")
 

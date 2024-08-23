@@ -297,7 +297,7 @@ visualize_paoo <- function(rast, region, region.name, extent, projection, vis.gr
   if (save.name != "figure-3") {
     name <- str_to_title(strsplit(save.name, "-")[[1]][[3]])
   } else {
-    name <- "Specie"
+    name <- "Species"
   }
   
   catn("Checking crs for raster.")
@@ -369,6 +369,12 @@ visualize_paoo <- function(rast, region, region.name, extent, projection, vis.gr
 
 visualize_suitability <- function(stack, region, region.name, extent, projection, vis.gradient = "viridis-b", vis.unit = NULL, vis.wrap = TRUE, vis.title = FALSE, save.dir, save.name = "figure-3B", save.device = "jpeg", save.unit = "px", plot.save = TRUE, return = FALSE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing suitability plot", color = "funInit")
+  
+  if (save.name != "figure-3B") {
+    name <- str_to_title(strsplit(save.name, "-")[[1]][[3]])
+  } else {
+    name <- "Species"
+  }
 
   stack <- check_crs(stack, projection, "bilinear", verbose = verbose)
   region <- check_crs(region, projection, "near", verbose = verbose)
@@ -393,8 +399,8 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
       na.value = config$ggplot$gradient$na.value
     ) +
     labs(
-      title = if (vis.title) paste0("Potential New Alien Climatic suitability in ", region.name),
-      fill = paste0("Potential Climatic Suitability"), # if (!is.null(vis.unit)) {paste0(" (", vis.unit, ")")} ),
+      title = if (vis.title) paste0("Potential New Alien Climatic suitability\n for ", name, " in ", region.name),
+      fill = paste0("Potential Climatic Suitability"), 
       color = "Country"
     ) +
     coord_sf(
@@ -406,9 +412,11 @@ visualize_suitability <- function(stack, region, region.name, extent, projection
     theme(
       strip.text = element_text(size = 16, face = "italic")
     )
+  
+  custom_labeller <- create_custom_labeller(pattern = config$species$file_separator, width = 10)
 
   if (!is.null(vis.wrap)) {
-    fig3B <- fig3B + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = label_wrap_gen(width = 50))
+    fig3B <- fig3B + facet_wrap(~lyr, nrow = vis.wrap, ncol = 3, labeller = labeller(lyr = custom_labeller))
   }
 
   if (plot.show) print(fig3B)
@@ -702,7 +710,7 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
 #    Connections 5    #
 #######################
 
-visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-3D", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_connections <- function(dt, taxon, region.name, subregion.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-5", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Connections map", color = "funInit")
 
   wm <- get_world_map(projection = config$projection$crs$mollweide)
@@ -882,4 +890,40 @@ visualize_lat_distribution <- function(input.dt, model.scale = "", region.name, 
   config$ggplot$gradient$guide <- saved_config
 
   vebcat("Absolute Median Latitude plot Visualized Successfully", color = "funSuccess")
+}
+
+visualize_sankey <- function(dt, taxon, level, plot.show = F, verbose = F) {
+  vebcat("Visualizing data in a sankey plot", color = "funInit")
+  
+  dt_sank <- copy(dt)
+  
+  #dt_sank <- dt_sank[!is.na(dt_sank[[taxon]])]
+  #dt_sank <- dt_sank[complete.cases(dt_sank[[taxon]])]
+  
+  catn("Creating sankey plot.")
+  print(unique(dt_sank$country))
+  
+  fig5 <- ggplot(data = dt_sank, aes(axis1 = dt_sank[[level]], axis2 = country, y = relativeRichness)) +
+    scale_x_discrete(limits = c("Origin", "Destination"), expand = c(.1, .1)) +
+    labs(
+      y = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness"),
+      #fill = paste0(toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon))),
+      title = paste0("Relative ", toupper(substr(taxon, 1, 1)), substr(taxon, 2, nchar(taxon)), " Richness from origin region to Arctic region")
+    ) +
+    geom_flow() +
+    geom_stratum() +
+    geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 3) +
+    theme_minimal() +
+    theme(
+      axis.text = element_text(size = 10),
+      plot.title = element_text(vjust = 0.5, hjust = 0.5)
+    )
+  
+  
+  if (plot.show) print(fig5)
+  
+  catn("Saving sankey plot.")
+  ggsave("./outputs/visualize/plots/figure-5.jpeg", device = "jpeg", unit = "px", width = 3840, height = 3500, plot = fig5)
+  
+  vebcat("Sankey plot successfully visualized", color = "funSuccess")
 }

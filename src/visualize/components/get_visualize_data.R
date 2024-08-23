@@ -293,37 +293,37 @@ get_region_cells <- function(shape, template.filename, out.dir, verbose = FALSE)
   return(cell_regions_dt)
 }
 
-split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, verbose = FALSE) {
+split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, is.file = FALSE, verbose = FALSE) {
   
   if (!is.null(match.dt) && is.null(match.colname) || is.null(match.dt) && !is.null(match.colname)) {
     vebcat("match.dt and match.colname cannot have one as NULL when being used.", color = "fatalError")
     stop("Edit split_spec_by_group(match.dt, match.colname)")
   }
   
-  init_length <- length(spec)
+  if (is.character(spec)) {
+    if (is.file) {
+      spec <- data.table(filename = spec)
+    } else {
+      spec <- data.table(species = spec)
+    }
+  }
   
-  cleaned_spec <- clean_spec_filename(spec)
+  match.dt <- unique(match.dt[, .(get(match.colname), order)], by = "V1")
+  setnames(match.dt, "V1", "species")
   
-  vebprint(cleaned_spec, verbose, "Cleaned species names:")
-  
-  if (is.null(match.dt)) {
-    spec_taxons <- as.data.table(get_spec_taxons(cleaned_spec))
-    spec_taxons <- spec_taxons[, .(species, order)]
-  } else {
-    spec_taxons <- data.table(species = cleaned_spec)
-    spec_taxons <- merge(spec_taxons, unique(match.dt, by = match.colname), by.x = "species", by.y = match.colname)
-    spec_taxons <- spec_taxons[, .(species, order)]
+  if (is.data.table(spec)) {
+    init_length <- nrow(spec)
+    if (is.file) spec[, species := clean_spec_filename(filename)]
+    spec_taxons <- spec[match.dt, on = "species"]
   }
   
   vebprint(spec_taxons, verbose, "Species data table with order:")
   
   spec_group <- get_spec_group_dt(spec_taxons)
   
+  setcolorder(spec_group, setdiff(names(spec_group), "filename"))
+  
   vebprint(spec_group, verbose, "Species data table with groups:")
-  
-  spec_group[, filename := setNames(spec, cleaned_spec)[species]]
-  
-  vebprint(spec_group, verbose, "Species data table with filenames:")
   
   spec_group <- split(spec_group, by = "group")
   
@@ -334,6 +334,24 @@ split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, ver
   }
   
   return(spec_group)
+}
+
+combine_top_groups <- function(x, out.order) {
+  
+  group <- rbindlist(x)
+  
+  if (grepl("-", out.order)) {
+    out.order <- gsub("-", "", out.order)
+    indecies <- order(-group[[out.order]])
+    group <- group[indecies, ]
+  } else {
+    indecies <- order(group[[out.order]])
+    group <- group[indecies, ]
+  }
+  
+  group <- group[1:9]
+  
+  return(group)
 }
 
 get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbose = FALSE) {
@@ -543,7 +561,7 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
     )]
     
     vebprint(any(!is.na(sp_regions_dt$cellOccupancy)), verbose, text = "Any not NA:")
-    vebprint(any(sp_regions_dt$cellOccupancy != 0), vebose, text = "Any not 0:")
+    vebprint(any(sp_regions_dt$cellOccupancy != 0), verbose, text = "Any not 0:")
     
     sp_regions_dt <- unique(sp_regions_dt[!is.na(cellOccupancy) & !is.na(subRegionName)], by = "cell")
     
@@ -860,22 +878,24 @@ calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
 get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   vebcat("Getting region richness", color = "funInit")
 
-  paoo_dt <- fread(paoo.file)
+  if (is.character(paoo.file)) {
+    paoo.file <- fread(paoo.file)
+  }
   sp_stats <- copy(stats)
 
-  paoo_dt <- paoo_dt[, .(species, TPAoO, PAoO, subRegionName, country, subRegionLong, subRegionLat, westEast)]
-
+  paoo_dt <- paoo.file[, .(species, TPAoO, PAoO, subRegionName, country, subRegionLong, subRegionLat, westEast)]
+  
   setnames(paoo_dt, "species", "cleanName")
-
+  
   old_names <- c("country", "countryCode", "meanLong", "meanLat") # Later changed to median
   new_names <- c("originCountry", "originCountryCode", "originMeanLong", "originMeanLat")
   setnames(sp_stats, old_names, new_names)
   sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originMeanLong, originMeanLat)]
-
+  
   merged_dt <- merge(paoo_dt, sp_stats, by = "cleanName", allow.cartesian = TRUE)
 
   merged_dt <- merged_dt[subRegionName == "", subRegionName := NA]
-
+  
   vebcat("Number of species:", highcat(length(unique(merged_dt$species))))
   vebcat("Number of subRegions:", highcat(length(unique(merged_dt$subRegionName))))
 

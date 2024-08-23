@@ -1606,21 +1606,3 @@ replace_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL,
 
   invisible(replaced_data)
 }
-
-send_notification_email <- function(subject, body, script_name = "Your R Script") {
-  from <- paste0(script_name, " <", Sys.getenv("EMAIL_USER"), ">")
-  to <- Sys.getenv("EMAIL_FORWARD")
-  
-  sendmail(
-    from = from,
-    to = to,
-    subject = subject,
-    msg = body,
-    control = list(
-      smtpServer = "smtp.gmail.com:587",
-      smtpUser = Sys.getenv("EMAIL_USER"),
-      smtpPassword = Sys.getenv("EMAIL_PASS"),
-      authMethod = "LOGIN"
-    )
-  )
-}
