@@ -24,13 +24,15 @@ main <- function(
     vis.save.unit = "px",
     plot.show = FALSE,
     verbose = FALSE,
+    example = FALSE,
     force.seq = NULL
   ) {
   
   config_handler(
     climate.database,
     approach,
-    vis.projection
+    vis.projection,
+    example
   )
   
   if (is.null(spec.unknown) & is.null(test)) {

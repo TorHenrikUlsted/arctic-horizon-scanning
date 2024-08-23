@@ -1,13 +1,12 @@
 ## Example script
 source("./src/utils/utils.R")
+config$run$example = TRUE
 source("./src/setup/setup_sequence.R")
 source("./src/filter/filter_sequence.R")
 source("./src/hypervolume/parallel_hypervolume.R")
 source("./src/hypervolume/node_hypervolume.R")
 source("./src/hypervolume/hypervolume.R")
 source("./src/visualize/visualize.R")
-source_all("./example/src/filter")
-source_all("./example/src/setup")
 source("./src/main.R")
 
 main(
@@ -35,6 +34,7 @@ main(
   vis.save.unit = "px",
   plot.show = FALSE,
   verbose = TRUE,
+  example = TRUE,
   force.seq = "setup"
 )
 

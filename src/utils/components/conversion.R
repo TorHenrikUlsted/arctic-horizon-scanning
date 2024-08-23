@@ -19,9 +19,20 @@ to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
   return(input)
 }
 
-check_crs <- function(object, projection, projection.method, verbose = FALSE) {
+check_crs <- function(x, projection, projection.method = NULL, verbose = FALSE) {
   
   projection <- get_crs_config(projection)
+  
+  if (is.null(projection.method)) {
+    data_nature <- determine_data_nature(x)
+    vebprint(data_nature, verbose, "Data nature:")
+    
+    if (data_nature == "continuous") {
+      projection.method <- "bilinear"
+    } else {
+      projection.method <- "near"
+    }
+  }
   
   tryCatch({
    prj_crs <- crs(projection, proj = TRUE)
@@ -36,20 +47,37 @@ check_crs <- function(object, projection, projection.method, verbose = FALSE) {
     }
   )
   
-  vebprint(object, verbose, "Input object:")
+  vebprint(x, verbose, "Input object:")
   vebprint(crs(projection, proj = TRUE), verbose, "Input projection:")
-  vebprint(projection.method, verbose, "Input projection method:")
+  vebprint(projection.method, verbose, "Projection method:")
   
-  if (is.null(crs(object)) || is.null(crs(projection))) {
+  if (is.null(crs(x)) || is.null(crs(projection))) {
     stop("Either the object or the projection has an empty CRS.")
   }
   
-  if (!identical(crs(object, proj = TRUE), prj_crs)) {
-    catn("Reprojecting", highcat(as.character(crs(object, proj = TRUE))), "-->", highcat(as.character(crs(projection, proj = TRUE))), "\n")
-    object <- terra::project(object, projection, method = projection.method)
-  }  
+  if (!identical(crs(x, proj = TRUE), prj_crs)) {
+    catn("Reprojecting", highcat(as.character(crs(x, proj = TRUE))), "-->", highcat(as.character(crs(projection, proj = TRUE))), "\n")
+    if (is.spatVector(x)) {
+      x <- terra::project(x, projection)
+    } else {
+      x <- terra::project(x, projection, method = projection.method)
+    }
+  }
   
-  return(object)
+  if (is.spatVector(x)) {
+    if (any(!is.valid(x))) {
+      vebcat("shape is not valid, trying to validate..", color = "nonFatalError")
+      x <- makeValid(x)
+      if (any(!is.valid(x))) {
+        vebcat("Successfully validated the shape", color = "proSuccess")
+      } else {
+        vebcat("Failed to validate shape", color = "nonFatalError")
+        vebcat("You can safely ignore this warning if you are projecting a world map to polar projections to use in polar settings.", color = "highlight")
+      }
+    }
+  }
+  
+  return(x)
 }
 
 to_char <- function(input, string = "Updated input:", terminate = TRUE, verbose = FALSE) {

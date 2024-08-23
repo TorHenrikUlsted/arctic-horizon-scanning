@@ -218,24 +218,123 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
   return(spec_dt)
 }
 
-get_order_group <- function(dt, verbose = FALSE) {
-  dt_res <- copy(dt)
+clean_spec_filename <- function(x) {
+  
+  base <- basename(x)
+  
+  clean_name <- tools::file_path_sans_ext(base)
+  
+  clean_name <- gsub("-", " ", clean_name)
+  #clean_name <- gsub(config$species$file_separator, " ", clean_name)
+  
+  return(clean_name)
+}
 
-  dt_res[, group := as.character(NA)]
+get_spec_taxons <- function(spec) { 
+  if (length(spec) == 1) {
+    vebcat("Checking for one species")
+    fun <- "name_backbone"
+  } else if (length(spec) > 1) {
+    vebcat("Using checklist")
+    fun <- "name_backbone_checklist"
+  } else if (nrow(spec) > 1) {
+    vebcat("Using checklist")
+    fun <- "name_backbone_checklist"
+  } else {
+    vebcat("Checking for one species")
+    fun <- "name_backbone"
+  }
+  
+  tryCatch({
+    result <- do.call(fun, list(name = spec))
+    if (any(is.na(result$order))) {
+      vebcat("Some species returned NA:", color = "nonFatalError")
+      index <- which(is.na(result$order))
+      vebprint(spec[index])
+    }
+    return(result)
+  }, error = function(e) {
+    message("First attempt failed. Retrying...")
+    Sys.sleep(0.5)  
+    tryCatch({
+      result <- do.call(fun, list(name = spec))
+      if (any(is.na(result$order))) {
+        vebcat("Some species returned NA:", color = "nonFatalError")
+        index <- which(is.na(result$order))
+        vebprint(spec[index])
+      }
+      return(result)
+    }, error = function(e) {
+      message("Second attempt also failed. Error: ", e$message)
+      return(NULL)
+    })
+  })
+}
 
-  dt_res[order %in% config$species$angiosperms, group := "angiosperm"]
-  dt_res[order %in% config$species$gymnosperms, group := "gymnosperm"]
-  dt_res[order %in% config$species$pteridophytes, group := "pteridophyte"]
+get_spec_group <- function(spec) {
+  res <- get_spec_taxons(spec)
+  
+  if (res$order %in% config$species$angiosperms) {
+    result <- "angiosperms"
+  } else if (res$order %in% config$species$gymnosperms) {
+    result <- "gymnosperms"
+  } else if (res$order %in% config$species$pteridophytes) {
+    result <- "pteridophytes"
+  } else {
+    result <- "unknowns"
+  }
+  
+  return(result)
+}
+
+get_spec_group_dt <- function(spec, spec.col = NULL, verbose = FALSE) {
+  dt <- copy(spec)
+  
+  if (is.null(spec.col)) {
+    spec.col <- names(dt)[1]
+    vebcat("Assuming species names is in the first column in the data table, found:", highcat(spec.col))
+  }
+    
+  
+  dt[, group := fcase(
+    is.na(order), "unknowns",
+    order %in% config$species$angiosperms, "angiosperms",
+    order %in% config$species$gymnosperms, "gymnosperms",
+    order %in% config$species$pteridophytes, "pteridophytes",
+    default = "others"
+  )]
+  
+  vebprint(dt, verbose, "After adding groups:")
+  
+  unknown_species <- dt[group %in% c("unknowns", "others"), get(spec.col)]
+  if (length(unknown_species) > 0) {
+    vebcat("Order not found for species:", color = "nonFatalError")
+    vebprint(unknown_species)
+  }
+    
+  return(dt)
+}
+
+get_order_group <- function(dt, spec.col = NULL, verbose = FALSE) {
+  dt_res <- get_spec_group_dt(dt, spec.col)
 
   # Concatenate the vectors in the desired order
   all_orders <- c(config$species$pteridophytes, config$species$gymnosperms, config$species$angiosperms)
 
   # Only keep the orders that are present in dt_res$order
   valid_orders <- all_orders[all_orders %in% dt_res$order]
+  
+  vebprint(valid_orders, verbose, "Valid Orders:")
 
   # Set the levels of the order factor
-  dt_res$order <- factor(dt_res$order, levels = valid_orders)
-
+  #dt_res$order <- factor(dt_res$order, levels = valid_orders)
+  
+  dt_res[, orderFactor := factor(order, levels = valid_orders)]
+  
+  vebprint(dt_res, verbose, "factor:")
+  
+  setorder(dt_res, orderFactor)
+  
   return(dt_res)
 }
 
@@ -268,6 +367,42 @@ find_peaks <- function(data, column, threshold = 0.01, verbose = FALSE) {
 #        Spatial         #
 ##########################
 
+is.spatVector <- function(x) {
+  if (inherits(x, "SpatVector")) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+is.spatRaster <- function(x) {
+  if (inherits(x, "SpatRaster")) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+determine_data_nature <- function(x) {
+  dt <- datatype(x)
+  
+  discrete_datatypes <- c("INT1U", "INT2S", "INT4S", "INT4U", "INT8S", "INT8U", "LOG1S")
+  continuous_datatypes <- c("FLT4S", "FLT8S")
+  
+  if (is.spatVector(x)) {
+    return("discrete")  # Always use "near" for SpatVectors
+  }
+  
+  if (all(dt %in% continuous_datatypes)) {
+    return("continuous")
+  } else if (all(dt %in% discrete_datatypes)) {
+    return("discrete")
+  } else {
+    warning("Mixed or unclear data types. Defaulting to 'near' method.")
+    return("discrete")
+  }
+}
+
 get_crs_config <- function(projection.name, vebose = FALSE) {
   
   try({
@@ -292,7 +427,7 @@ get_crs_config <- function(projection.name, vebose = FALSE) {
 
   projection <- input_args[[projection.name]]
   
-  catn("Choosing projection:", projection.name)
+  catn("Using projection:", projection.name)
   
   return(projection)
 }
