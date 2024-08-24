@@ -12,7 +12,7 @@ source("./src/main.R")
 main(
   spec.known = filter_arctic,
   spec.unknown = filter_glonaf,
-  test = NULL,
+  test = "small",
   approach = "precautionary",
   coord.uncertainty = NULL,
   climate.database = "worldclim",

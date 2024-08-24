@@ -1145,6 +1145,32 @@ mdwrite <- function(source, text = NULL, data = NULL, image = NULL, image.out = 
   close(con)
 }
 
+write_wrangled_md <- function(dt.list, name, column = "scientificName") {
+  fl <- length(unique(dt.list$formatted, by = column)[[column]])
+  
+  counts <- lapply(dt.list, function(dt) {
+    if (!is.null(dt)) length(unique(dt, by = column)[[column]])
+  })
+  
+  sum <- sum(unlist(counts[names(counts) != "formatted"]), na.rm = TRUE)
+  
+  md_dt <- data.table(formatted = fl, lost = sum)
+  
+  for (key in names(dt.list)) {
+    if (key != "formatted" && !is.null(dt.list[[key]])) {
+      md_dt[[key]] <- counts[[key]]
+    }
+  }
+  
+  setcolorder(md_dt, c(setdiff(names(md_dt), "lost"), "lost"))
+  
+  mdwrite(
+    config$files$post_seq_md,
+    text = paste0("2;", name),
+    data = md_dt
+  )
+}
+
 create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
   sp_occ_out <- "./outputs/post-process/derived-data/datasetKey-count.csv"
   derived_data_zip_out <- "./outputs/post-process/derived-data/derived-dataset.zip"

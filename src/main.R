@@ -71,6 +71,8 @@ main <- function(
     verbose = TRUE
   )
   
+  stop("Manual stop by me no fret!")
+  
   sp_dir <- filter_sequence(
     spec.known = spec.known, 
     spec.unknown = spec.unknown,

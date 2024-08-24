@@ -51,20 +51,27 @@ wrangle_dfs <- function(src, column, dynamic.name.source) {
 
 wrangle_if <- function(fun.name, column, verbose = FALSE) {
   fun <- get(fun.name)
-
+  
   name <- sub("^wrangle_", "", fun.name)
 
+  if (grepl("test", fun.name)) {
+    name <- sub("^wrangle_test_", "", fun.name)
+    dir <- paste0("./outputs/setup/wrangle/test/", name)
+  } else {
+    dir <- paste0("./outputs/setup/wrangle/", name)
+    present_out <- paste0(dir, "/", name, "-present.csv")
+    absent_out <- paste0(dir, "/", name, "-absent.csv")
+  }
+  
   vebcat("List name:", highcat(name), veb = verbose)
-
-  dir <- paste0("./outputs/setup/wrangle/", name)
+  vebcat("Directory:", highcat(dir), veb = verbose)
+  
   create_dir_if(dir)
-
-  formatted_out <- paste0(dir, "/", name, "-formatted.csv")
-
   present_out <- paste0(dir, "/", name, "-present.csv")
-  if (!file.exists(present_out)) present_out <- NULL
-
   absent_out <- paste0(dir, "/", name, "-absent.csv")
+  
+  if (!file.exists(present_out)) present_out <- NULL
+  
   if (!file.exists(absent_out)) absent_out <- NULL
 
   if ((!is.null(present_out) || !is.null(absent_out))) {
@@ -80,14 +87,16 @@ wrangle_if <- function(fun.name, column, verbose = FALSE) {
     vebcat("Initiating", name, "wrangling protocol.", color = "funInit")
 
     res <- fun(name = name, column = column, verbose = verbose)
-
+    
     vebcat(name, "wrangling protocol successfully completed.", color = "funSuccess")
   }
 
+  name <- sub("^wrangle_", "", fun.name)
+  
   result <- list()
   if (!is.null(res$present)) result[[paste0(name, "_present")]] <- res$present
   if (!is.null(res$absent)) result[[paste0(name, "_absent")]] <- res$absent
-
+  
   return(result)
 }
 
@@ -110,7 +119,7 @@ wrangle_all <- function(column, verbose = FALSE) {
         vebcat("Wrangling function:", fun_name, veb = verbose)
 
         res <- wrangle_if(fun.name = fun_name, column = column, verbose = verbose)
-
+        
         for (sublist_name in names(res)) {
           results[[paste0(name, "$", sublist_name)]] <- res[[sublist_name]]
         }
@@ -134,22 +143,23 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
     split_name <- strsplit(name, "_")[[1]]
     parent_folder <- split_name[1]
     child_folder <- split_name[2] # present / absent
-
+    
     out_dir <- paste0(out.dir, "/", parent_folder)
-
+    
     out_dir_child <- paste0(out_dir, "/", child_folder)
+    
     create_dir_if(out_dir_child)
 
     check_file <- paste0(out_dir_child, "/wfo-one-uniq.csv")
 
     file_name <- paste0(parent_folder, "-", child_folder, "-wfo")
-
+    
     if (!file.exists(check_file)) {
       # Run synonym check on the species
       sp_synonyms <- check_syn_wfo(
         checklist = wrangled_dfs[[name]],
         column = column,
-        folder = paste0(out_dir, "/", child_folder),
+        folder = out_dir_child,
         cores.max = cores.max,
         verbose = verbose,
         counter = counter
@@ -172,10 +182,29 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
       } else {
         catn("The WFO.match result is clean.")
       }
-
+      
       # Select best match and remove duplications
-      sp_checked <- check_syn_wfo_one(sp_synonyms, folder = out_dir_child)
-
+      sp_checked <- check_syn_wfo_one(
+        sp_synonyms, 
+        folder = out_dir_child
+      )
+      
+      origin_dt <- length(unique(wrangled_dfs[[name]], by = column)[[column]])
+      wfo_match_dt <- length(unique(rbindlist(sp_synonyms), by = "scientificName")$scientificName)
+      wfo_one_dt <- length(unique(rbindlist(sp_checked), by = "scientificName")$scientificName)
+      
+      md_dt <- data.table(
+        wrangledSpecies = origin_dt, 
+        wfoMatchSpecies = wfo_match_dt,
+        wfoOneSpecies = wfo_one_dt
+      )
+      
+      mdwrite(
+        config$files$post_seq_md,
+        text = paste0("2;WFO.one result species number for ", name, " :"),
+        data = md_dt
+      )
+      
       return(setNames(list(sp_checked), name))
     } else {
       catn(highcat(name), "already synonym checked.")
@@ -191,14 +220,11 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
   vebcat("Setting up raw data.", color = "funInit")
 
   files_dir <- "./outputs/setup/wrangle"
-  file_ext <- "wfo-one-uniq.csv"
   
   create_dir_if(files_dir)
   
-  files <- get_files(files_dir, include.files = file_ext)
-
   checklist <- wrangle_all(column = column, verbose = verbose)
-
+  
   if (!is.null(checklist)) {
     vebprint(names(checklist), verbose, "dfs added to checklist:")
 
@@ -210,6 +236,12 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
       verbose = verbose,
       counter = counter
     )
+    
+    files <- get_files(files_dir, include.files = "wfo-one-uniq.csv")
+    print(files)
+    
+    # Add number of species per df
+    
 
     if (all(sapply(checked_dfs, is.null))) {
       catn("All data frames already exist.")
@@ -220,16 +252,20 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
 
       # Loop over each list in checked_dfs
       for (i in 1:length(checked_dfs)) {
-        if (!is.null(checked_dfs[[i]]$wfo_one_nomatch) && nrow(checked_dfs[[i]]$wfo_one_nomatch) > 0) {
-          if (names(checked_dfs)[i] != "") {
-            catn("Getting nomatches for:", highcat(names(checked_dfs)[i]))
+        dt <- checked_dfs[[i]]
+        dt_name <- names(checked_dfs)[i]
+        vebprint(dt, verbose, paste0("Synonym checked data table ", dt_name, " :"))
+        
+        if (!is.null(dt$wfo_one_nomatch) && nrow(dt$wfo_one_nomatch) > 0) {
+          if (dt_name != "") {
+            catn("Getting nomatches for:", highcat(dt_name))
 
-            checked_dfs[[i]]$wfo_one_nomatch$dfOrigin <- names(checked_dfs)[i]
-            catn("Adding an origin column with:", highcat(names(checked_dfs)[i]))
+            dt$wfo_one_nomatch$dfOrigin <- dt_name
+            catn("Adding an origin column with:", highcat(dt_name))
           }
 
           # rbind the wfo_one_nomatch data frame from each list
-          combined_df <- rbind(combined_df, checked_dfs[[i]]$wfo_one_nomatch)
+          combined_df <- rbind(combined_df, dt$wfo_one_nomatch)
         }
       }
 
