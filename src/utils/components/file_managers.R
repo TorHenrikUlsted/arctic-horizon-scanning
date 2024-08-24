@@ -61,8 +61,9 @@ download_if <- function(out.file, download.file.ext, download.direct = NULL, dow
         new_dir <- paste0(dirname(out.file), "/", list.files(dirname(out.file)))
         
         # check for new dir creation
-        if (!identical(dirname(out.file), dirname(new_dir[1]))) {
-          vebprint(dirname(new_dir[1]), verbose, "Renaming files to dir:")
+        if (!identical(dirname(out.file), new_dir)) {
+          vebprint(new_dir, verbose, "Renaming files from new dir:")
+          vebprint(dirname(out.file), verbose, "To out dir:")
           catn("Files unzipped, renaming...")
           
           for (file in list.files(new_dir, full.names = TRUE)) {
@@ -107,7 +108,7 @@ download_if <- function(out.file, download.file.ext, download.direct = NULL, dow
     }
     
   } else {
-    vebcat(name, "Already installed", name, color = "funSuccess")
+    vebcat(name, "Already installed at", out.file, color = "funSuccess")
   }
 }
 

@@ -1,6 +1,6 @@
 cite_packages <- function(pkgs, formats = c("bibtex")) {
-  lapply(formats, function(format) {
-    all_citations <- lapply(pkgs, function(pkg) {
+  citations <- setNames(lapply(formats, function(format) {
+    all_citations <- setNames(lapply(pkgs, function(pkg) {
       tryCatch(
         {
           cit <- citation(pkg)
@@ -19,18 +19,35 @@ cite_packages <- function(pkgs, formats = c("bibtex")) {
           return(bib)
         },
         error = function(e) {
-          stop(conditionMessage(e))
+          warning(paste("Error citing package", pkg, ":", conditionMessage(e)))
+          return(NULL)
         }
       )
-    })
-    # Filter out NA values
-    all_citations <- all_citations[!is.na(all_citations)]
+    }), pkgs)
     
-    if (!dir.exists("./outputs/utils/references/")) dir.create("./outputs/utils/references/", recursive = T)
+    # Remove NULL entries
+    all_citations <- all_citations[!sapply(all_citations, is.null)]
     
-    # Write to file
-    file_name <- paste0("./outputs/utils/references/citations.", format)
+    return(all_citations)
+  }), formats)
+  
+  return(citations)
+}
+
+write_citations <- function(citations, out.dir) {
+  # Filter out NA values
+  citations <- citations[!is.na(citations)]
+  
+  if (!dir.exists(out.dir)) dir.create(out.dir, recursive = T)
+  
+  # Write to file
+  for (format in names(citations)) {
+    file_name <- paste0(out.dir, "/citations", ".", format)
     
-    writeLines(unlist(all_citations), file_name)
-  })
+    citation_texts <- sapply(citations, function(x) paste(x$citation, collapse = "\n"))
+    
+    writeLines(unlist(citations), file_name)
+  }
+  
+  catn("Citations written to directory:", colcat(out.dir, color = "output"))
 }

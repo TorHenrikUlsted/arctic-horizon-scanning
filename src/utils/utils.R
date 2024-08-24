@@ -7,7 +7,8 @@ tryCatch({
 pkgs = c(
   "data.table",
   "rgbif",
-  "dplyr",
+  "yaml",
+  #"dplyr",
   "WorldFlora",
   "geodata",
   "terra",
@@ -38,7 +39,8 @@ pkgs = c(
   "stringr",
   "knitr",
   "httr",
-  "jsonlite"
+  "jsonlite",
+  "rcrossref"
 )
 
 options(repos = c(CRAN = "https://cloud.r-project.org"))
@@ -75,7 +77,8 @@ cc <- custom_colors()
 
 cat("Creating reference list. \n")
 source("./src/utils/components/cite_packages.R")
-cite_packages(pkgs, formats = "bibtex")
+format <- "bibtex"
+cited_packages <- cite_packages(pkgs, formats = format)
 
 cat("Loading condition handlers. \n")
 source("./src/utils/components/condition_handlers.R")
@@ -101,13 +104,17 @@ source("./src/utils/components/conversion.R")
 cat("Setting up loaders. \n")
 source("./src/utils/components/loader.R")
 WFO_file <- load_wfo()
+cat("Citing loaders. \n")
+cited_packages[[format]] <- c(cited_packages[[format]], load_apg(cite = TRUE))
+cited_packages[[format]] <- c(cited_packages[[format]], load_ppg(cite = TRUE))
+cited_packages[[format]] <- c(cited_packages[[format]], load_gpg(cite = TRUE))
 
 cat("Setting up config. \n")
 source("./src/utils/components/config.R")
 
-cat("Loading config handler. \n")
-source("./src/utils/components/config_handler.R")
-
 cat("Loading WGSRPD. \n")
 download_github_dir_if("tdwg", "wgsrpd", "master", "level2", "resources/region/wgsrpd/level2")
 download_github_dir_if("tdwg", "wgsrpd", "master", "level3", "resources/region/wgsrpd/level3")
+
+# Functions relying on packages
+write_citations(cited_packages, "./outputs/utils/citations")
