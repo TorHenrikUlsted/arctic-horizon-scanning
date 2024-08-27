@@ -3,9 +3,9 @@ wrangle_test_small <- function(name, column, verbose = FALSE) {
   dir <- paste0("./outputs/setup/wrangle/test")
   create_dir_if(dir)
   
-  absent_out <- paste0(dir, "/", name, "-absent.csv")
+  absent_out <- paste0(dir, "/", name, "/", name, "-absent.csv")
   
-  formatted <- fread(paste0("./resources/data-raw/test/", name, ".csv"), sep = "\t")
+  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
   setnames(formatted, old = "scientificName", new = column)
   
@@ -28,9 +28,9 @@ wrangle_test_big <- function(name, column, verbose = FALSE) {
   dir <- paste0("./outputs/setup/wrangle/test")
   create_dir_if(dir)
   
-  absent_out <- paste0(dir, "/", name, "-absent.csv")
+  absent_out <- paste0(dir, "/", name, "/", name, "-absent.csv")
   
-  formatted <- fread(paste0("./resources/data-raw/test/", name, ".csv"), sep = "\t")
+  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
   setnames(formatted, old = "scientificName", new = column)
   
@@ -53,9 +53,9 @@ wrangle_test_known <- function(name, column, verbose = FALSE) {
   dir <- paste0("./outputs/setup/wrangle/test")
   create_dir_if(dir)
   
-  present_out <- paste0(dir, "/", name, "-present.csv")
+  present_out <- paste0(dir, "/", name, "/", name, "-present.csv")
   
-  formatted <- fread(paste0("./resources/data-raw/test/", name, ".csv"), sep = "\t")
+  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
   setnames(formatted, old = "scientificName", new = column)
   

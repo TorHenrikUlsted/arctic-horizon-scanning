@@ -1,5 +1,5 @@
 filter_test_known <- function(dts, column, verbose = FALSE) {
-  tp <- dts[["test_present"]]
+  tp <- dts$test_known
   
   setnames(tp, old = colnames(tp), new = column)
   
@@ -13,21 +13,21 @@ filter_test_small <- function(known.filtered, dts, column, verbose = FALSE) {
   
   create_dir_if(test_dir)
   
-  tp <- known.filtered$present
+  test_present <- known.filtered$present
   
-  ts <- dts[["test_small"]]
+  test_small <- dts[["test_small"]]
   
-  setnames(ts, old = colnames(ts), new = column)
+  setnames(test_small, old = colnames(test_small), new = column)
   
-  vebprint(ts, text = "test_small dt:")
+  vebprint(test_small, text = "test_small dt:")
   
   # Remove known tests from the test lists
   test_small <- write_filter_fun(
     file.out = paste0(test_dir, "/test-small-final.csv"),
-    spec.in = ts,
+    spec.in = test_small,
     fun = function() {
-      ts <- dplyr::anti_join(ts, tp, by = column)
-      return(ts)
+      test_small <- anti_union(test_small, test_present, column)
+      return(test_small)
     }
   )
   
@@ -42,23 +42,23 @@ filter_test_big <- function(known.filtered, dts, column, verbose = FALSE) {
   
   create_dir_if(test_dir)
   
-  tp <- known.filtered$present
+  test_present <- known.filtered$present
   
-  tb <- dts[["test_big"]]
+  test_big <- dts[["test_big"]]
   
-  setnames(tb, old = colnames(tb), new = column)
+  setnames(test_big, old = colnames(test_big), new = column)
   
-  vebprint(tb, text = "test_big dt:")
+  vebprint(test_big, text = "test_big dt:")
   
   # Remove known tests from the test lists
   test_big <- write_filter_fun(
     file.out = paste0(test_dir, "/test-big-final.csv"),
-    spec.in = tb,
+    spec.in = test_big,
     fun = function() {
       # First merge to only get species from both dfs
-      ts <- dplyr::anti_join(tb, tp, by = column)
+      test_big <- anti_union(test_big, test_present, column)
       
-      return(ts)
+      return(test_big)
     })
   
   return(list(

@@ -91,13 +91,13 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier,
   spec_name <- gsub(".csv", "", basename(spec_filename))
   spec_name <- trimws(spec_name)
 
-  sp_node_log <- paste0(log_nodes, "/", iteration, "-", gsub(" ", spec.file.separator, spec_name), "-log.txt")
+  sp_node_log <- paste0(log_nodes, "/", iteration, "-", gsub(" ", config$species$file_separator, spec_name), "-log.txt")
 
   failed_its_log <- paste0(log_dir, "/failed-iterations.txt")
   highest_it_log <- paste0(log_dir, "/highest-iteration.txt")
 
-create_file_if(highest_it_log, failed_its_log, keep = TRUE)
-create_file_if(sp_node_log, failed_its_log)
+  create_file_if(highest_it_log, failed_its_log, keep = TRUE)
+  create_file_if(sp_node_log, failed_its_log)
 
   try(sp_log <- file(sp_node_log, open = "at"))
   sink(sp_log, type = "output")
@@ -130,20 +130,20 @@ create_file_if(sp_node_log, failed_its_log)
       # Condense data
       spec_condensed <- condense_taxons(spec.dt = spec)
 
-      #cntry_condensed <- condense_country(spec.dt = spec)
-      
+      # cntry_condensed <- condense_country(spec.dt = spec)
+
       cntry_condensed <- find_wgsrpd_region(
-        spec.dt = spec, 
-        projection = "longlat", 
-        longitude = "decimalLongitude", 
-        latitude = "decimalLatitude", 
-        wgsrpd.dir = "./resources/region/wgsrpd", 
-        wgsrpdlvl = "3", 
-        wgsrpdlvl.name = TRUE, 
-        unique = TRUE, 
+        spec.dt = spec,
+        projection = "longlat",
+        longitude = "decimalLongitude",
+        latitude = "decimalLatitude",
+        wgsrpd.dir = "./resources/region/wgsrpd",
+        wgsrpdlvl = "3",
+        wgsrpdlvl.name = TRUE,
+        unique = TRUE,
         verbose = verbose
       )
-      
+
       # Subset data
       spec <- spec[, .(cleanName, decimalLongitude, decimalLatitude, coordinateUncertaintyInMeters, countryCode, stateProvince, year)]
     },
@@ -168,7 +168,7 @@ create_file_if(sp_node_log, failed_its_log)
       close(sp_node_log)
     }
   )
-  
+
   catn("Checking result and finishing up")
 
   cbmnd_res <- cbind(res, spec_condensed)
@@ -194,7 +194,7 @@ create_file_if(sp_node_log, failed_its_log)
       Sys.sleep(3)
     } else {
       Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
-      lock_node_it <- lock(lock.dir, lock.n = 1, paste0("Locked by ", iteration, "_", gsub(" ", spec.file.separator, spec_name)))
+      lock_node_it <- lock(lock.dir, lock.n = 1, paste0("Locked by ", iteration, "_", gsub(" ", config$species$file_separator, spec_name)))
       if (!is.null(lock_node_it) && file.exists(lock_node_it)) {
         break
       }
@@ -215,7 +215,7 @@ create_file_if(sp_node_log, failed_its_log)
 
     try(err_con <- file(err.file, open = "a"))
     writeLines(paste0(
-      "Hypervolume sequence failed the output check for node", iteration, " and species: ", gsub(" ", spec.file.separator, spec_name)
+      "Hypervolume sequence failed the output check for node", iteration, " and species: ", gsub(" ", config$species$file_separator, spec_name)
     ), err_con)
 
     close(err_con)

@@ -112,3 +112,43 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     finished = finished
   ))
 }
+
+optimize_queue <- function(dt, cores.max, high_ram_threshold = 0.2, verbose = FALSE) {
+  setorder(dt, -medianLat)
+  n_high_ram <- ceiling(nrow(dt) * high_ram_threshold)
+  high_ram_species <- dt[1:n_high_ram, filename]
+  low_ram_species <- dt[(n_high_ram + 1):nrow(dt), filename]
+  
+  chunks <- vector("list", cores.max)
+  
+  for (i in seq_along(high_ram_species)) {
+    core_index <- (i - 1) %% total_cores + 1
+    chunks[[core_index]] <- c(chunks[[core_index]], high_ram_species[i])
+  }
+  
+  current_core <- 1
+  for (species in low_ram_species) {
+    while (length(chunks[[current_core]]) >= ceiling(length(high_ram_species) / total_cores)) {
+      current_core <- (current_core %% total_cores) + 1
+    }
+    chunks[[current_core]] <- c(chunks[[current_core]], species)
+    current_core <- (current_core %% total_cores) + 1
+  }
+  
+  # Print statistics
+  vebcat("Created", highcat(length(chunks)), "chunks")
+  vebcat("High-RAM species:", highcat(length(high_ram_species)))
+  vebcat("Low-RAM species:", highcat(length(low_ram_species)))
+  
+  # Print distribution of high-RAM species across chunks
+  high_ram_dist <- sapply(chunks, function(chunk) sum(chunk %in% high_ram_species))
+  vebprint(high_ram_dist, text = "Distribution of high-RAM species across chunks:")
+  
+  # Print average median latitude for each chunk
+  avg_lat <- sapply(chunks, function(chunk) {
+    mean(spec_count_dt[filename %in% chunk, medianLat])
+  })
+  
+  vebcat("Average median latitude for each chunk:", highcat(round(avg_lat, 2)))
+  return(chunks) 
+}

@@ -88,16 +88,18 @@ hypervolume_sequence <- function(
     spec_removed[, filename := NULL]
 
     catn(highcat(nrow(spec_removed)), "Species with too few observations were removed.")
-
     fwrite(spec_removed, removed_file, bom = TRUE)
 
     spec_count_dt <- spec_count_dt[removed == FALSE, ]
-
-    setorder(spec_count_dt, medianLat)
-
+    
+    optimize_queue(
+      dt, 
+      cores.max, 
+      high_ram_threshold = 0.2, 
+      verbose = FALSE
+    )
+    
     spec_list <- spec_count_dt$filename
-
-    vebprint(head(spec_list, 10), verbose, "species list sample:")
 
     writeLines(spec_list, spec_list_file)
 

@@ -42,12 +42,17 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
     error = function(e) err(e, err.file = err.file, err.txt = "Error when acquiring region data", iteration = iteration)
   )
   
-  coord_uncertainty <- calc_coord_uncertainty(
-    region = biovars_region,
-    projection = config$run$projection$crs,
-    unit.out = "m",
-    dir.out = "./outputs/setup/region",
-    verbose = verbose
+  withCallingHandlers({
+    coord_uncertainty <- calc_coord_uncertainty(
+      region = biovars_region,
+      projection = config$projection$out,
+      unit.out = "m",
+      dir.out = "./outputs/setup/region",
+      verbose = verbose
+    )
+  },
+  warning =  function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when calculating coordinate uncertainty", iteration = iteration),
+  error = function(e) err(e, err.file = err.file, err.txt = "Error when calculating coordinate uncertainty", iteration = iteration)
   )
   
   vebcat("Climate setup protocol completed successfully", color = "funSuccess")

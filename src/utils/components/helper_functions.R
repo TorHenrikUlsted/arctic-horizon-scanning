@@ -199,6 +199,8 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
 
   if (approach == "precautionary") {
     spec_dt <- spec_dt[, (col.name) := species]
+    print(spec_dt)
+    stop("Stopped by me, select_species_approach")
   } else if (approach == "conservative") { # the conservative approach also needs to handle cases where scientificNames are actually not just the species name.... use remove_authorship()
     spec_dt <- combine_columns_dt(
       "species", "taxonRank", "infraspecificEpithet",
@@ -223,8 +225,7 @@ clean_spec_filename <- function(x) {
   
   clean_name <- tools::file_path_sans_ext(base)
   
-  clean_name <- gsub("-", " ", clean_name)
-  #clean_name <- gsub(config$species$file_separator, " ", clean_name)
+  clean_name <- gsub(config$species$file_separator, " ", clean_name)
   
   return(clean_name)
 }
@@ -1154,7 +1155,7 @@ write_wrangled_md <- function(dt.list, name, column = "scientificName") {
   
   sum <- sum(unlist(counts[names(counts) != "formatted"]), na.rm = TRUE)
   
-  md_dt <- data.table(formatted = fl, lost = sum)
+  md_dt <- data.table(formatted = fl, lost = (fl - sum))
   
   for (key in names(dt.list)) {
     if (key != "formatted" && !is.null(dt.list[[key]])) {

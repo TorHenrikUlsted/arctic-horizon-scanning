@@ -11,7 +11,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
 
   seq_set_file <- paste0(setup_log, "/setup-completed.txt")
 
-  if (!is.null(force.seq) && (force.seq == "all" || force.seq == "setup")) {
+  if (!is.null(force.seq) && ("all" %in% force.seq || "setup" %in% force.seq)) {
     catn("Forcing Setup sequence.")
     if (file.exists(seq_set_file)) file.remove(seq_set_file)
   }
@@ -36,7 +36,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     br_out <- paste0(save_dir, "/biovars-region-subset.tif")
 
     wfo_speed <- check_system_speed(
-      df.path = "./resources/data-raw/speed-test-species.csv",
+      df.path = "./resources/data-raw/test/speed-test-species.csv",
       test.name = "wfo-speed",
       sample.size = NULL,
       cores.max = 1,
@@ -57,9 +57,13 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
       test = "small",
       approach = approach,
       cores.max = cores.max,
+      force.seq = force.seq,
+      verbose = verbose
     )
-
+    
     region_shape <- setup_region()
+    
+    stop("Stopped by me")
     
     biovars <- setup_climate(
       region_shape,

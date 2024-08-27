@@ -1,11 +1,11 @@
-filter_arctic <- function(dts, column, verbose = FALSE) {
+filter_known <- function(dts, column, verbose = FALSE) {
   ##############
   # Initialize
   ##############
 
   mdwrite(
     config$files$post_seq_md,
-    text = "2;Arctic"
+    text = "3;Arctic"
   )
 
   aba_absent <- dts$aba_absent
@@ -15,7 +15,7 @@ filter_arctic <- function(dts, column, verbose = FALSE) {
   ambio_present <- dts$ambio_present
 
   # Union_dfs merges and removes duplicates while also provide info on how many are removed
-  arctic_present <- union_dfs(aba_present, ambio_present, verbose = T)
+  arctic_present <- union_dts(aba_present, ambio_present, verbose = T)
 
   write_filter_fun(
     file.out = "./outputs/filter/arctic/arctic-present-final.csv",
@@ -24,13 +24,14 @@ filter_arctic <- function(dts, column, verbose = FALSE) {
 
   # -------------------------------------------------------------------------- #
 
-  arctic_absent <- union_dfs(aba_absent, ambio_absent, verbose = T)
+  arctic_absent <- union_dts(aba_absent, ambio_absent, verbose = T)
 
   arctic_absent <- write_filter_fun(
     file.out = "./outputs/filter/arctic/arctic-absent-final.csv",
     spec.in = arctic_absent,
     fun = function() {
       # Also remove all arctic_present from absent in case some standard names have changed
+      print(column)
       ab <- anti_union(arctic_absent, arctic_present, column)
 
       return(ab)

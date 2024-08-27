@@ -51,8 +51,7 @@ chunk_file <- function(file.path, approach = "precautionary", cores.max = 1, chu
   }
 
   if (i_start > total_chunks) {
-    vebcat("The starting iteration number is above total_chunks. Stopping the chunking process.", color = "nonFatalError")
-    return()
+    return(vebcat("Data already chunked", color = "funSuccess"))
   }
 
   if (is.vector(chunk.column) && length(chunk.column) > 1) {
@@ -101,6 +100,7 @@ chunk_file <- function(file.path, approach = "precautionary", cores.max = 1, chu
         )
 
         new_column <- chunk.column
+
         tryCatch(
           {
             select_species_approach(
@@ -110,7 +110,11 @@ chunk_file <- function(file.path, approach = "precautionary", cores.max = 1, chu
             )
           },
           error = function(e) {
-            catn("Error when combining column names.")
+            catn("Error when selecting spcies approach.")
+            catn("Approach:", approach)
+            catn("Colmn name input:", chunk.column)
+            vebprint(data, text = "Input data:")
+            catn("Error message:")
             catn(e$message)
 
             catn("Length unique cleaned species name:", length(unique(data[[chunk.column]])))
@@ -149,11 +153,11 @@ chunk_file <- function(file.path, approach = "precautionary", cores.max = 1, chu
         tryCatch(
           {
             lapply(names(data_list), function(x) {
-              # Replace spaces with spec.file.separator in x
-              x <- gsub(" ", spec.file.separator, x)
+              # Replace spaces with config$species$file_separator in x
+              x <- gsub(" ", config$species$file_separator, x)
 
-              # Remove trailing spec.file.separator, if any
-              x <- sub(paste0(spec.file.separator, "$"), "", x)
+              # Remove trailing config$species$file_separator, if any
+              x <- sub(paste0(config$species$file_separator, "$"), "", x)
 
               # Create the filename
               file_name <- paste0(chunk.dir, "/", chunk.name, "/", x, ".csv")
@@ -202,6 +206,7 @@ chunk_file <- function(file.path, approach = "precautionary", cores.max = 1, chu
 #####################
 
 chunk_loaded_df <- function(dt, approach = "precautionary", chunk.name = "species", chunk.column, chunk.dir, iterations = NULL, verbose = FALSE) {
+  vebcat("Initiating loaded dataframe chunking protocol.", color = "funInit")
   # File to store the last iteration number
   last_iteration_file <- paste0(chunk.dir, "/loaded-iteration.txt")
 
@@ -213,12 +218,10 @@ chunk_loaded_df <- function(dt, approach = "precautionary", chunk.name = "specie
       iterations <- as.integer(readLines(last_iteration_file))
 
       if (iterations >= n_total) {
-        return(catn("The data has already been chunked."))
+        return(vebcat("Data already chunked", color = "funSuccess"))
       }
     }
   }
-
-  vebcat("Initiating loaded dataframe chunking protocol.", color = "funInit")
 
   dt <- select_species_approach(
     dt = dt,
@@ -257,11 +260,11 @@ chunk_loaded_df <- function(dt, approach = "precautionary", chunk.name = "specie
         cat(sprintf("\r%10.0f | %16.0f | %8.0f", i, n_total, n_total - i))
         flush.console()
 
-        # Replace spaces with spec.file.separator in x
-        spec <- gsub(" ", spec.file.separator, spec)
+        # Replace spaces with config$species$file_separator in x
+        spec <- gsub(" ", config$species$file_separator, spec)
 
-        # Remove trailing spec.file.separator, if any
-        spec <- sub(paste0(spec.file.separator, "$"), "", spec)
+        # Remove trailing config$species$file_separator, if any
+        spec <- sub(paste0(config$species$file_separator, "$"), "", spec)
 
         # Create the filename
         file_name <- paste0(chunk.dir, "/", chunk.name, "/", spec, ".csv")
@@ -293,6 +296,7 @@ chunk_loaded_df <- function(dt, approach = "precautionary", chunk.name = "specie
 ################
 
 clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterations = NULL, verbose = F) {
+  vebcat("Initiating chunk cleaning protocol.", color = "funInit")
   err_log <- paste0(chunk.dir, "/cleaner-error.txt")
   create_file_if(err_log)
 
@@ -311,12 +315,11 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
       iterations <- as.integer(readLines(last_iteration_file))
 
       if (iterations >= n_total) {
-        return(catn("This data has already been cleaned."))
+        return(vebcat("This data has already been cleaned.", color = "funSuccess"))
       }
     }
   }
 
-  vebcat("Initiating chunk cleaning protocol.", color = "funInit")
 
   if (is.null(iterations) || is.na(iterations)) {
     iterations <- seq_along(chunk_files)
@@ -341,7 +344,7 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
 
     name <- gsub(".csv", "", name)
 
-    name <- gsub(spec.file.separator, " ", name)
+    name <- gsub(config$species$file_separator, " ", name)
 
     name_nospace <- gsub("\\s+", "", name)
 
@@ -363,7 +366,7 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
   writeLines(as.character(j), it_con)
   close(it_con)
 
-  chunk_files <- gsub("\\s+", "", gsub(spec.file.separator, "", gsub(".csv", "", basename(list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)))))
+  chunk_files <- gsub("\\s+", "", gsub(config$species$file_separator, "", gsub(".csv", "", basename(list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)))))
 
   missing_sp <- chunk_files[!(chunk_files %in% gsub("\\s+", "", sp_w_keys$species))]
 

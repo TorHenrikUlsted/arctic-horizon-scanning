@@ -68,7 +68,6 @@ suppressMessages(loadfonts(device = "all"))
 #------------------------#
 
 #Handle all inputs and split into parts by "."
-config$run <- list()
 config_handler <- function(...) {
   call_args <- match.call(expand.dots = FALSE)$`...`
   args <- list(...)

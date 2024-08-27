@@ -63,7 +63,7 @@ wrangle_ambio <- function(name, column, verbose = FALSE) {
   
   mdwrite(
     config$files$post_seq_md,
-    text = "2;Wrangled AMBIO",
+    text = "3;Wrangled AMBIO",
     data = md_dt
   )
   

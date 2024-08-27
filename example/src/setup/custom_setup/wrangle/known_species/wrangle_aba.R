@@ -178,7 +178,7 @@ wrangle_aba <- function(name, column, verbose = F) {
   mdwrite(
     config$files$post_seq_md,
     text = paste0(
-      "2;ABA\n\n",
+      "3;ABA\n\n",
       "Number of species in aba formatted:", nrow(aba_formatted), "**  ",
       "Number of species in aba present:", nrow(aba_present), "**   ",
       "Number of species in aba absent:", nrow(aba_absent), "**",

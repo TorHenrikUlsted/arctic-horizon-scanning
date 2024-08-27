@@ -2,7 +2,6 @@ main <- function(
     spec.known = NULL,
     spec.unknown = NULL,
     test = NULL,
-    approach = "precautionary",
     column = "scientificName",
     climate.database = "wordlclim",
     coord.uncertainty = NULL,
@@ -30,7 +29,6 @@ main <- function(
   
   config_handler(
     climate.database,
-    approach,
     vis.projection,
     example
   )
@@ -71,12 +69,9 @@ main <- function(
     verbose = TRUE
   )
   
-  stop("Manual stop by me no fret!")
-  
   sp_dir <- filter_sequence(
     spec.known = spec.known, 
     spec.unknown = spec.unknown,
-    approach = approach,
     test = test,
     column = column,
     coord.uncertainty = coord.uncertainty,

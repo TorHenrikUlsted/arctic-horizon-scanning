@@ -1,6 +1,5 @@
 ## Example script
 source("./src/utils/utils.R")
-config$run$example = TRUE
 source("./src/setup/setup_sequence.R")
 source("./src/filter/filter_sequence.R")
 source("./src/hypervolume/parallel_hypervolume.R")
@@ -9,11 +8,12 @@ source("./src/hypervolume/hypervolume.R")
 source("./src/visualize/visualize.R")
 source("./src/main.R")
 
+config$simulation$approach = "precautionary"
+
 main(
-  spec.known = filter_arctic,
-  spec.unknown = filter_glonaf,
+  spec.known = "arctic",
+  spec.unknown = "glonaf",
   test = "small",
-  approach = "precautionary",
   coord.uncertainty = NULL,
   climate.database = "worldclim",
   region = NULL,
@@ -30,12 +30,12 @@ main(
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",
-  vis.save.device = "svg", 
+  vis.save.device = "svg",
   vis.save.unit = "px",
   plot.show = FALSE,
-  verbose = TRUE,
+  verbose = FALSE,
   example = TRUE,
-  force.seq = "setup"
+  force.seq = c("filter")
 )
 
 create_derived_dataset(

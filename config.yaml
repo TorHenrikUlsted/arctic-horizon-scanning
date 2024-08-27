@@ -38,8 +38,7 @@ species:
     "subsp.": "subsp."
     "var.": "var."
     "f.": "f."
-  standard_infraEpithets_taxonRank:
-    "SPECIES": null
+  taxonRank_infraEpithets:
     "SUBSPECIES": "subsp."
     "VARIETY": "var."
     "FORM": "f."
@@ -94,3 +93,5 @@ ggplot:
       size: 18
       hjust: 0.5
     legend.position: "bottom"
+run:
+  example: TRUE

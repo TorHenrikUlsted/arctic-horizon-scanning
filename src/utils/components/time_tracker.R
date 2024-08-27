@@ -55,14 +55,14 @@ end_timer <- function(id) {
   }
 }
 
-calculate_etc <- function(timer.res, cores = 1, data.length = 1) {
+calculate_etc <- function(timer.res, cores = 1, data.length = 1, invisible = FALSE) {
   etc <- (timer.res / cores) * data.length
   
   time <- calculate_time(etc)
   
   vebcat("Estimated time to completion:", time$days, "day(s)", time$hrs, "hour(s)", time$mins, "minute(s)", round(time$secs, 2), "second(s)", color = "timer")
   
-  return(time)
+  ifelse (invisible, return(invisible()), return(time))
 }
 
 print_all_timers <- function() {
