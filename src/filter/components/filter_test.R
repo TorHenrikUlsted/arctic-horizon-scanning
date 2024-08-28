@@ -1,10 +1,10 @@
 filter_test_known <- function(dts, column, verbose = FALSE) {
-  tp <- dts$test_known
+  test_present <- dts$test_known
   
-  setnames(tp, old = colnames(tp), new = column)
+  setnames(test_present, old = colnames(test_present), new = column)
   
   return(list(
-    present = tp
+    present = test_present
   ))
 }
 

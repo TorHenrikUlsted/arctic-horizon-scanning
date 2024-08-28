@@ -172,8 +172,8 @@ combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = N
       vebprint(unique(combined_dt$customList), verbose, "Unique Custom list items:")
     }
   } else {
-    vebcat("To use custom column you need to specify the column name as a string.", color = "fatalError")
-    vebcat("To use custom list you need to specify the list as a list object.", color = "fatalError")
+    vebcat("To use custom.column you need to specify the column name as a string.", color = "fatalError")
+    vebcat("To use custom.list you need to specify the list as a list object.", color = "fatalError")
     stop("Both custom.col and custom.list have to be not null if they are to be used.")
   }
 
@@ -199,15 +199,13 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
 
   if (approach == "precautionary") {
     spec_dt <- spec_dt[, (col.name) := species]
-    print(spec_dt)
-    stop("Stopped by me, select_species_approach")
   } else if (approach == "conservative") { # the conservative approach also needs to handle cases where scientificNames are actually not just the species name.... use remove_authorship()
     spec_dt <- combine_columns_dt(
       "species", "taxonRank", "infraspecificEpithet",
       dt = spec_dt,
       column.name = col.name,
       custom.col = "taxonRank",
-      custom.list = config$species$standard_infraEpithets_taxonRank,
+      custom.list = config$species$taxonRank_infraEpithets,
       sep = " ",
       verbose = verbose
     )

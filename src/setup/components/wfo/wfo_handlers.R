@@ -111,7 +111,7 @@ wfo_parallel <- function(checklist, column, out.dir = "./", cores.max = 1, evals
   
   wfo_result <- rbindlist(wfo_parallel_result)
   
-  wfo_result[, subSeq := seq_len(.N), by = OriSeq]
+  wfo_result[, Subseq := seq_len(.N), by = OriSeq]
   
   return(wfo_result)
 }
@@ -134,7 +134,6 @@ wfo_parallel <- function(checklist, column, out.dir = "./", cores.max = 1, evals
 ##    if speciesIdentical == FALSE -- if New.accepted == FALSE -- write out -- md[speciesCheck] -- check manually
 
 wfo_mismatch_check <- function(wfo.result, col.origin = "rawName", out.file = NULL, unchecked = FALSE, verbose = FALSE) {
-  vebprint(return.mismatches, verbose, "Return Mismatches:")
   vebprint(unchecked, verbose, "Include unchecked results:")
   vebprint(names(wfo.result), verbose, "Input data table names:")
   vebprint(nrow(wfo.result), verbose, "Number of rows in the input data table:")
@@ -155,10 +154,15 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "rawName", out.file = NU
   vebprint(names(dt), verbose, "Updated data table names:")
   
   if (!skip) {
+    dt[, scientificName := gsub("\\s+", " ", trimws(scientificName))] # Remove double spaces
+    dt[, input.ORIG := gsub("\\s+", " ", trimws(input.ORIG))] # Remove double spaces
+    dt[, input := gsub("\\s+", " ", trimws(input))] # Remove double spaces
+    dt[, Old.name := gsub("\\s+", " ", trimws(Old.name))] # Remove double spaces
+    
     dt <- dt[, `:=`(
       mismatch.input = input != input.ORIG,
       mismatch.old = New.accepted == TRUE & input.ORIG != Old.name,
-      mismatch.scientific = New.accepted == FALSE & input.ORIG != scientificName,
+      mismatch.scientific = New.accepted == FALSE & input.ORIG != trimws(scientificName),
       mismatch.any = NA
     )]
     
@@ -174,9 +178,13 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "rawName", out.file = NU
     main_res <- dt[(dt$mismatch.any == FALSE)]
     mis_res <- dt[(dt$mismatch.any == TRUE)]
   }
+  # remove any identical input.ORIG that are in the wfo output to not cause future issues when handling manually
+  removed_species <- main_res[input.ORIG %in% mis_res$input.ORIG]
+  mis_res <- rbind(mis_res, removed_species, fill = TRUE)
+  main_res <- main_res[!input.ORIG %in% mis_res$input.ORIG]
   
   vebprint(mis_res, verbose, "Mismatching results:")
-  catn("Found", highcat(nrow(sp_count)), "mismatching species.")
+  catn("Found", highcat(nrow(mis_res)), "mismatching species.")
   
   if (nrow(mis_res) > 0) {
     if (!is.null(out.file)) {

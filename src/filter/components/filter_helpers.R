@@ -198,11 +198,18 @@ select_wfo_column <- function(dir.path, col.unique, col.select = NULL, col.combi
   return(dt_list = dt_list)
 }
 
-fix_nomatches <- function(dts, nomatch.edited, column, verbose = FALSE) {
+fix_manual <- function(dts, manual.edited, column, verbose = FALSE) {
   catn("Fixing nomatches.")
+  
+  if (!file.exists(manual.edited)) {
+    catn("Manually edited file not found")
+    vebcat("Assuming there are no issues...", color = "warning")
+    Sys.sleep(3)
+    return(dts)
+  }
 
   # Combine no-matches
-  edited_nomatch <- fread(nomatch.edited, encoding = "UTF-8")
+  edited_nomatch <- fread(manual.edited, encoding = "UTF-8")
 
   # Remove NAs and blank values in the newName df
   formatted <- edited_nomatch[!is.na(acceptedName) & acceptedName != "", .(acceptedName, listOrigin)]

@@ -1,6 +1,12 @@
 check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir = "./", verbose = FALSE) {
   vebcat("Initiating the WFO.one synonym check", color = "funInit")
-    
+  
+  if (!is.data.table(wfo.match.dt)) {
+    vebcat("Input data not a data.table", color = "fatalError")
+    vebprint(wfo.match.dt, text = "found:")
+    stop("Check WFO.one input data")
+  }
+  
   wfo_one_checklist <- WFO.one(
     WFO.result = wfo.match.dt, 
     priority = "Accepted",
@@ -31,7 +37,6 @@ check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir =
   wfo_one_na <- wfo_na_check(
     wfo.result = wfo_one_nomatch$clean, 
     out.file = paste0(out.dir, "/wfo-one-na.csv"),
-    return.na = FALSE,
     verbose = verbose
   ) # removes NA scientificNames
   
@@ -40,7 +45,6 @@ check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir =
   wfo_one_dups <- wfo_duplication_check(
     wfo.result = wfo_one_na$clean, 
     out.file = paste0(out.dir, "/wfo-one-duplicates.csv"), 
-    return.duplicates = FALSE,
     verbose = verbose
   ) # removes duplicate scientificNames
   

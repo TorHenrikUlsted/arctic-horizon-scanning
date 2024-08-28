@@ -38,18 +38,25 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
 
     dts <- select_wfo_column(
       dir.path = "./outputs/setup/wrangle", # change this to outputs path also edit in wfo
-      pattern = "wfo-one-uniq.csv",
+      pattern = "wfo-one-clean.csv",
       col.unique = column,
       col.select = NULL,
       verbose = verbose
     )
-
-    dts <- fix_nomatches(
+    
+    if (!is.null(test)) {
+      manual_edited <- "./resources/data-raw/test/manual-edit/wfo-nomatch-editeds.csv"
+    } else {
+      manual_edited <- "./resources/manual-edit/wfo-nomatch-editeds.csv"
+    }
+    
+    dts <- fix_manual(
       dts = dts,
-      nomatch.edited = "./resources/manual-edit/wfo-nomatch-edited.csv",
+      manual.edited = ,
       column = column,
       verbose = verbose
     )
+    
     
     if (is.null(coord.uncertainty) & file.exists(coord_un_file)) {
       coord.uncertainty <- as.numeric(readLines(coord_un_file))
@@ -104,9 +111,6 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
       spec_known <- get("filter_known")
       spec_unknown <- get("filter_unknown")
     }
-    
-    print(spec_known)
-    print(spec_unknown)
     
     if (!is.null(spec_known)) {
       known <- spec_known(

@@ -70,23 +70,16 @@ wrangle_if <- function(fun.name, column, verbose = FALSE) {
   present_out <- paste0(dir, "/", name, "-present.csv")
   absent_out <- paste0(dir, "/", name, "-absent.csv")
   
-  print(present_out)
-  print(absent_out)
-  
   if (!file.exists(present_out)) present_out <- NULL
   if (!file.exists(absent_out)) absent_out <- NULL
   
   if ((!is.null(present_out) || !is.null(absent_out))) {
     catn(highcat(name), "already wrangled, loading files..")
     
-    print("")
-
     res <- list()
 
     if (!is.null(present_out)) res$present <- fread(present_out, sep = "\t")
     if (!is.null(absent_out)) res$absent <- fread(absent_out, sep = "\t")
-
-    catn("files loaded.")
   } else {
     vebcat("Initiating", name, "wrangling protocol.", color = "funInit")
 
@@ -177,7 +170,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
         verbose = verbose
       )
       
-      vebprint(sp_checked, text = "WFO.one checked list:")
+      vebprint(sp_checked, verbose, text = "WFO.one checked list:")
       
       manual_checks <- sum(
         nrow(sp_synonyms$mismatch), 
@@ -190,7 +183,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
       
       md_dt <- data.table(
         wrangle = nrow(wrangled_dfs[[name]]), 
-        match = nrow(wfo_match_dt),
+        match = nrow(sp_synonyms$clean) + (nrow(sp_synonyms$mismatch)),
         one = nrow(sp_checked$raw),
         result = nrow(sp_checked$clean),
         lost = lost_diff,
@@ -206,8 +199,17 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
         text = paste0("3;Standardization results ", name, " :"),
         data = md_dt
       )
+      print(unique(sp_synonyms$mismatch, by = paste0(column, ".ORIG")))
+      print(sp_checked$mismatch)
+      
+      
       
       sp_checked$raw = NULL
+      sp_checked$mismatch <- rbind(
+        sp_checked$mismatch, 
+        unique(sp_synonyms$mismatch, by = paste0(column, ".ORIG")),
+        fill = TRUE
+      )
       
       # Choose approach
       if (config$simulation$approach == "precautionary") {
@@ -216,7 +218,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
         sp_checked$clean[, scientificName := NULL]
         sp_checked$clean[, scientificName := fifelse(is.na(genus) | is.na(specificEpithet), 
                                        NA_character_, 
-                                       paste(trimws(genus), " ", trimws(specificEpithet)))]
+                                       paste0(trimws(genus), " ", trimws(specificEpithet)))]
         
         sp_checked$clean <- unique(sp_checked$clean, by = "scientificName")
         new_n <- nrow(sp_checked$clean)
@@ -274,47 +276,53 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
       vebcat("Combining no-matches.", veb = verbose)
 
       combined_dt <- data.table()
+      combined_test <- data.table()
 
       # Loop over each list in checked_dfs
       for (dt_name in names(checked_dts)) {
         wfo_one <- checked_dts[[dt_name]]
         if (!is.null(wfo_one$clean)) wfo_one$clean <- NULL
-        if (!is.null(wfo_one$clean)) wfo_one$duplicate <- NULL
+        if (!is.null(wfo_one$duplicate)) wfo_one$duplicate <- NULL
         
-        vebprint(wfo_one, verbose, paste0("Synonym checked data table ", dt_name, " :"))
+        vebprint(wfo_one, verbose, paste0("Checking data table ", dt_name, " :"))
         
-        dts_to_combine <- list()
-        
-        for (component in c("mismatch", "nomatch", "na")) {
+        process_component <- function(component) {
           if (!is.null(wfo_one[[component]]) && nrow(wfo_one[[component]]) > 0) {
             catn("Appending", component, "for:", highcat(dt_name))
-            wfo_one[[component]][, listOrigin := dt_name]
-            wfo_one[[component]][, resultType := component]
-            dts_to_combine <- c(dts_to_combine, list(wfo_one[[component]]))
+            wfo_one[[component]][, `:=`(listOrigin = dt_name, resultType = component)]
+            return(wfo_one[[component]])
           }
+          return(NULL)
         }
         
-        if (length(dts_to_combine) > 0) {
-          combined_dt <- rbindlist(list(combined_dt, dts_to_combine), fill = TRUE)
-        }
+        components <- c("mismatch", "nomatch", "na")
+        processed_components <- lapply(components, process_component)
         
+        if (grepl("test", dt_name)) {
+          combined_test <- rbindlist(c(list(combined_test), processed_components), fill = TRUE)
+        } else {
+          combined_dt <- rbindlist(c(list(combined_dt), processed_components), fill = TRUE)
+        }
       }
-
+        
       manual_combined <- unique(combined_dt, by = column)
-
-      catn("Writing combined no-matches to:", colcat(files_dir, color = "output"))
+      mct <- unique(combined_test, by = column)
       
       mdwrite(
         config$files$post_seq_md,
-        text = paste0("3;Combined nomatches: **", nrow(nomatch_combined), "**")
+        text = paste0("3;Combined nomatches: **", nrow(manual_combined), "**")
       )
 
-      if (nrow(nomatch_combined) > 0) {
-        catn("There were", highcat(nrow(nomatch_combined)), "species without matches. \n")
-        vebcat("These need to be checked manually.", color = "indicator")
-        fwrite(nomatch_combined, paste0(files_dir, "/combined-wfo-nomatch.csv"), bom = T)
+      if (nrow(manual_combined) > 0) {
+        catn("There were", highcat(nrow(manual_combined)), "species that need manual handling")
+        catn("Writing combined no-matches to:", colcat(files_dir, color = "output"))
+        fwrite(manual_combined, paste0(files_dir, "/combined-wfo-nomatch.csv"), bom = T)
       } else {
-        catn("There were", highcat(0), "species without any matches. \n")
+        catn("There were", highcat(0), "species in need of manual handling \n")
+      }
+      
+      if (nrow(mct) > 0) {
+        fwrite(mct, paste0(files_dir, "/test/combined-wfo-nomatch.csv"), bom = T)
       }
     }
   }

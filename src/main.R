@@ -30,7 +30,7 @@ main <- function(
   config_handler(
     climate.database,
     vis.projection,
-    example
+    test
   )
   
   if (is.null(spec.unknown) & is.null(test)) {
@@ -60,13 +60,13 @@ main <- function(
   )
   
   setup_sequence(
-    hv.method = "box",
-    hv.accuracy = "accurate", 
-    hv.incl.t = 0.5,
-    hv.dims = c(18, 10, 3, 4),
+    hv.method = hv.method,
+    hv.accuracy = hv.accuracy, 
+    hv.incl.t = hv.incl.t,
+    hv.dims = hv.dims,
     cores.max = max_cores$total,
     force.seq = force.seq,
-    verbose = TRUE
+    verbose = verbose
   )
   
   sp_dir <- filter_sequence(

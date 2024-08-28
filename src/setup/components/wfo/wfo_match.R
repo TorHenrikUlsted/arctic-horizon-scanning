@@ -7,7 +7,7 @@ check_syn_wfo <- function(checklist, column, out.dir, cores.max = 1, verbose = F
   
   if (file.exists(out_file)) {
     catn("Reading existing WFO.match file from:", colcat(out_file, color = "output"))
-    return(fread(out_file))
+    return(list(clean = fread(out_file)))
   }
   
   vebcat("Initiating WFO synonym check", color = "funInit")
