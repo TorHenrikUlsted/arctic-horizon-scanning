@@ -45,6 +45,8 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     )
 
     system.speed.wfo <<- wfo_speed
+    
+    invisible(gc())
 
     setup_raw_data(
       column = "rawName",
@@ -61,9 +63,10 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
       verbose = verbose
     )
     
-    region_shape <- setup_region()
+    rm(sp_dir)
+    invisible(gc())
     
-    stop("Stopped by me")
+    region_shape <- setup_region()
     
     biovars <- setup_climate(
       region_shape,
@@ -82,6 +85,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
       )
 
       vebcat("Check the correlation matrix and pick climate variables, Stopping process", color = "fatalError")
+      stop("Choose dimensions based on the correlation matrix")
     } else {
       catn("loading biovars.")
       
@@ -93,7 +97,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
 
       region_hv <- setup_hv_region(
         biovars$region,
-        out.dir = paste0(setup_dir, "/region"),
+        out.dir = handle_biovar_saves(),
         method = hv.method
       )
 

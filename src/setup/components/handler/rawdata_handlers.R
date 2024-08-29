@@ -213,7 +213,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
       
       # Choose approach
       if (config$simulation$approach == "precautionary") {
-        catn("Using precautionary method to remove infraSpecificEpithets")
+        vebcat("Using precautionary method to remove infraSpecificEpithets", color = "indicator")
         orig_n <- nrow(sp_checked$clean)
         sp_checked$clean[, scientificName := NULL]
         sp_checked$clean[, scientificName := fifelse(is.na(genus) | is.na(specificEpithet), 
@@ -310,19 +310,38 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
       
       mdwrite(
         config$files$post_seq_md,
-        text = paste0("3;Combined nomatches: **", nrow(manual_combined), "**")
+        text = paste0("3;Combined for manual handling: **", nrow(manual_combined), "**")
       )
 
       if (nrow(manual_combined) > 0) {
         catn("There were", highcat(nrow(manual_combined)), "species that need manual handling")
-        catn("Writing combined no-matches to:", colcat(files_dir, color = "output"))
-        fwrite(manual_combined, paste0(files_dir, "/combined-wfo-nomatch.csv"), bom = T)
+        catn("Writing manual edit combined to:", colcat(files_dir, color = "output"))
+        fwrite(manual_combined, paste0(files_dir, "/combined-wfo-mismatches.csv"), bom = T)
+        
+        man_dt <- data.table(
+          rawName = manual_combined[[paste0(column, ".ORIG")]],
+          acceptedName = NA,
+          acceptedNameAuthorship = NA,
+          listOrigin = manual_combined$listOrigin,
+          source = NA
+        )
+        catn("Use this file to manually edit:", colcat(files_dir, color = "output"))
+        fwrite(man_dt, paste0(files_dir, "/manual-check-file.csv"), bom = T)
       } else {
         catn("There were", highcat(0), "species in need of manual handling \n")
       }
       
       if (nrow(mct) > 0) {
-        fwrite(mct, paste0(files_dir, "/test/combined-wfo-nomatch.csv"), bom = T)
+        fwrite(mct, paste0(files_dir, "/test/combined-wfo-mismatches.csv"), bom = T)
+        
+        man_dt <- data.table(
+          rawName = mct[[paste0(column, ".ORIG")]],
+          acceptedName = NA,
+          acceptedNameAuthorship = NA,
+          listOrigin = mct$listOrigin,
+          source = NA
+        )
+        fwrite(man_dt, paste0(files_dir, "/test/manual-check-file.csv"), bom = T)
       }
     }
   }

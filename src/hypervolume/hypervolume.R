@@ -3,8 +3,8 @@ source_all("./src/hypervolume/components")
 process_species <- function(spec.dt, spec.name, process.dir, method, points.projection = "longlat", verbose = F, iteration, warn.file, err.file) {
   vebcat("Initiating data processing protocol.", color = "funInit")
 
-  biovars_world <- rast("./outputs/setup/region/biovars-world-subset.tif")
-
+  biovars_world <- rast(paste0(handle_biovar_saves(), "/biovars-world-subset.tif"))
+  
   vebcat("Starting species data process.", veb = verbose)
 
   withCallingHandlers(
@@ -48,8 +48,6 @@ process_species <- function(spec.dt, spec.name, process.dir, method, points.proj
   )
 
   vebprint(head(sp_mat, 3), verbose, "Processed environment data sample:")
-  
-  
 
   vebcat("Data processing protocol completed successfully.", color = "funSuccess")
 
@@ -64,12 +62,12 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
   create_dir_if(lock.dir)
 
   catn("Reading raster files.")
-  biovars_region <- rast("./outputs/setup/region/biovars-region-subset.tif")
+  biovars_region <- rast(paste0(handle_biovar_saves(), "/biovars-region-subset.tif"))
   
   # check if need to setup, or read setup region
   region_hv <- setup_hv_region(
     biovars_region,
-    out.dir = "./outputs/setup/region",
+    out.dir = handle_biovar_saves(),
     method = method
   )
 
@@ -192,13 +190,14 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
     {
       sp_hv <- hypervolume(spec.mat, name = spec.name, method = method, verbose = T)
     },
-    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when analyzing hypervolume", iteration = iteration),
+    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when computing hypervolume", iteration = iteration),
     error = function(e) {
      unlock(lock_analysis)
-      err(e, err.file = err.file, err.txt = "Error when analyzing hypervolume", iteration = iteration)
+      err(e, err.file = err.file, err.txt = "Error when computing hypervolume", iteration = iteration)
     }
   )
-
+  
+  catn("Analyzing statistics.")
   withCallingHandlers(
     {
       analyzed_hv_stats <- analyze_hv_stats(sp_hv, region_hv, spec.name, verbose = verbose)
@@ -253,14 +252,15 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           type = "inclusion",
           fast.or.accurate = accuracy,
           accurate.method.threshold = quantile(sp_hv@ValueAtRandomPoints, threshold),
-          verbose = TRUE
+          verbose = verbose
         )
 
         names(inc_project) <- ("inclusionScore")
         
-        inc_project <- reproject_region(
-          inc_project, 
-          projection = config$projection$out, 
+        inc_project <- check_crs(
+          inc_project,
+          projection = config$projection$out,
+          projection.method = "near",
           res = config$projection$raster_scale_m,
           verbose = verbose
         )
@@ -287,9 +287,10 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         
         names(prob_project) <- ("suitabilityScore")
         
-        prob_project <- reproject_region(
-          prob_project, 
-          projection = config$projection$out, 
+        prob_project <- check_crs(
+          prob_project,
+          projection = config$projection$out,
+          projection.method = "bilinear",
           res = config$projection$raster_scale_m,
           verbose = verbose
         )

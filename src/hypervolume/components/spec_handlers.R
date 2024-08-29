@@ -67,13 +67,14 @@ count_observations <- function(spec.list, dimensions, method = "median", verbose
   return(counted_species)
 }
 
-most_used_name <- function(x, max.number = 1) {
+most_used_name <- function(x, max.number = 1, verbose = FALSE) {
   name <- unique(x)
 
   if (length(name) > max.number) {
     vebcat("Found too many different names.", color = "nonFatalError")
 
     freq_table <- table(x)
+    vebprint(freq_table, verbose, "Most used names table:")
 
     name <- names(which.max(freq_table))
   }
@@ -95,7 +96,7 @@ condense_taxons <- function(spec.dt, verbose = FALSE) {
   for (i in 1:length(taxon_cols)) {
     column <- taxon_cols[[i]]
 
-    name <- most_used_name(column)
+    name <- most_used_name(column, max.number = 1, verbose)
 
     ct_cols[[1, i]] <- name
   }
@@ -242,8 +243,9 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
   if (!is.data.table(dt)) {
     stop("Input must be a data.table")
   }
-
   vebcat("Preparing species", color = "funInit")
+  
+  projection = get_crs_config(projection)
 
   vebprint(head(dt, 3), verbose, text = "Data frame sample:")
 
@@ -262,7 +264,6 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
   }
 
   vebcat("Cleaning species using coordinateCleaner.", veb = verbose)
-
   # "flag" sets adds true/false to the corresponding tests
   tryCatch(
     {
@@ -270,6 +271,7 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
     },
     error = function(e) {
       vebcat("Error when cleaning Coordinates:", e$message, color = "nonFatalError")
+      stop(e)
     }
   )
 
@@ -280,33 +282,27 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
 
   vebcat("Converting species to points.", veb = verbose)
 
-  if (projection == "longlat") {
-    prj <- config$projection$crs$longlat
-  } else if (projection == "laea") {
-    prj <- config$projection$crs$laea
-  } else {
-    vebcat("missing projection, using longlat.", veb = verbose)
-    prj <- config$projection$crs$longlat
-  }
-
   tryCatch(
     {
       thinned_dt <- thin_occ_data(
         dt,
         long = "decimalLongitude",
         lat = "decimalLatitude",
-        projection = prj,
+        projection = projection,
         res = config$projection$raster_scale_m,
         seed = config$simulation$seed,
         verbose = verbose
       )
-
-      sp_points <- vect(thinned_dt, geom = c("decimalLongitude", "decimalLatitude"), crs = prj)
+      print(thinned_dt)
+      
     },
     error = function(e) {
-      vebcat("Error when thinning data and making species into points:", e$message, color = "nonFatalError")
+      vebcat("Error when thinning data:", e$message, color = "nonFatalError")
+      stop(e)
     }
   )
+  
+  sp_points <- vect(thinned_dt, geom = c("decimalLongitude", "decimalLatitude"), crs = projection)
 
   if (verbose == T) {
     if (!any(is.na(sp_points))) {

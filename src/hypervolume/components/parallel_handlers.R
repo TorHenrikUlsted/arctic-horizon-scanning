@@ -114,31 +114,52 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
 }
 
 optimize_queue <- function(dt, cores.max, high_ram_threshold = 0.2, verbose = FALSE) {
+  catn("Optimizing queue")
+  
+  vebcat("Input data:", veb = verbose)
+  vebprint(dt, veb = verbose)
+  
+  if (nrow(dt) <= cores.max) {
+    vebcat("Number of species is less than or equal to number of cores. Returning one species per chunk.", veb = verbose)
+    chunks <- lapply(1:nrow(dt), function(i) dt$filename[i])
+    return(chunks)
+  }
+  
   setorder(dt, -medianLat)
-  n_high_ram <- ceiling(nrow(dt) * high_ram_threshold)
+  n_high_ram <- max(1, min(ceiling(nrow(dt) * high_ram_threshold), nrow(dt) - 1))
   high_ram_species <- dt[1:n_high_ram, filename]
   low_ram_species <- dt[(n_high_ram + 1):nrow(dt), filename]
+  
+  vebcat("High RAM species:", veb = verbose)
+  vebprint(high_ram_species, veb = verbose)
+  vebcat("Low RAM species:", veb = verbose)
+  vebprint(low_ram_species, veb = verbose)
   
   chunks <- vector("list", cores.max)
   
   for (i in seq_along(high_ram_species)) {
-    core_index <- (i - 1) %% total_cores + 1
+    core_index <- (i - 1) %% cores.max + 1
     chunks[[core_index]] <- c(chunks[[core_index]], high_ram_species[i])
   }
   
-  current_core <- 1
-  for (species in low_ram_species) {
-    while (length(chunks[[current_core]]) >= ceiling(length(high_ram_species) / total_cores)) {
-      current_core <- (current_core %% total_cores) + 1
+  vebcat("Chunks after distributing high RAM species:", veb = verbose)
+  vebprint(chunks, veb = verbose)
+  
+  if (length(low_ram_species) > 0) {
+    current_core <- 1
+    for (species in low_ram_species) {
+      chunks[[current_core]] <- c(chunks[[current_core]], species)
+      current_core <- (current_core %% cores.max) + 1
     }
-    chunks[[current_core]] <- c(chunks[[current_core]], species)
-    current_core <- (current_core %% total_cores) + 1
   }
   
+  # Remove empty chunks
+  chunks <- chunks[sapply(chunks, length) > 0]
+  
   # Print statistics
-  vebcat("Created", highcat(length(chunks)), "chunks")
-  vebcat("High-RAM species:", highcat(length(high_ram_species)))
-  vebcat("Low-RAM species:", highcat(length(low_ram_species)))
+  vebcat("Created", highcat(length(chunks)), "chunks", veb = verbose)
+  vebcat("High-RAM species:", highcat(length(high_ram_species)), veb = verbose)
+  vebcat("Low-RAM species:", highcat(length(low_ram_species)), veb = verbose)
   
   # Print distribution of high-RAM species across chunks
   high_ram_dist <- sapply(chunks, function(chunk) sum(chunk %in% high_ram_species))
@@ -146,9 +167,9 @@ optimize_queue <- function(dt, cores.max, high_ram_threshold = 0.2, verbose = FA
   
   # Print average median latitude for each chunk
   avg_lat <- sapply(chunks, function(chunk) {
-    mean(spec_count_dt[filename %in% chunk, medianLat])
+    mean(dt[filename %in% chunk, medianLat])
   })
   
-  vebcat("Average median latitude for each chunk:", highcat(round(avg_lat, 2)))
+  vebprint(round(avg_lat, 2), text = "Average median latitude for each chunk:")
   return(chunks) 
 }

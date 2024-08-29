@@ -23,7 +23,6 @@ main <- function(
     vis.save.unit = "px",
     plot.show = FALSE,
     verbose = FALSE,
-    example = FALSE,
     force.seq = NULL
   ) {
   
@@ -62,7 +61,7 @@ main <- function(
   setup_sequence(
     hv.method = hv.method,
     hv.accuracy = hv.accuracy, 
-    hv.incl.t = hv.incl.t,
+    hv.incl.threshold = hv.incl.threshold,
     hv.dims = hv.dims,
     cores.max = max_cores$total,
     force.seq = force.seq,

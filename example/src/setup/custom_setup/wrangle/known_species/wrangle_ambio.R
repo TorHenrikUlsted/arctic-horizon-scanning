@@ -18,6 +18,7 @@ wrangle_ambio <- function(name, column, verbose = FALSE) {
   formatted <- formatted[-1, ]
   ## give the first column a name
   colnames(formatted)[1] <- "scientificName"
+  formatted <- unique(formatted, by = "scientificName")
 
   vebcat("Creating present df.", veb = verbose)
   # Create present and absent lists
@@ -50,9 +51,9 @@ wrangle_ambio <- function(name, column, verbose = FALSE) {
   absent <- set_df_utf8(absent)
   fwrite(absent, absent_out, row.names = F, bom = T)
   
-  fl <- length(unique(formatted, by = "scientificName")$scientificName)
-  pl <- length(unique(present, by = column)[[column]])
-  al <- length(unique(absent, by = column)[[column]])
+  fl <- nrow(formatted)
+  pl <- nrow(present)
+  al <- nrow(absent)
   
   md_dt <- data.table(
     formatted = fl,

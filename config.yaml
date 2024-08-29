@@ -1,5 +1,6 @@
 simulation:
   seed: 12034
+  approach: "precautionary"
 
 projection:
   crs:
@@ -95,3 +96,5 @@ ggplot:
     legend.position: "bottom"
 run:
   example: TRUE
+  climate:
+    database: "worldclim"

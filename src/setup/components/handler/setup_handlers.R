@@ -8,6 +8,7 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
         show.plot = show.plot, 
         verbose = verbose
       )
+      invisible(gc())
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when getting worldClim data", iteration = iteration),
     error = function(e) err(e, err.file = err.file, err.txt = "Error when getting worldClim data", iteration = iteration)
@@ -21,6 +22,7 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
         biovars_world, 
         verbose = verbose
       )
+      invisible(gc())
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when scaling biovars_world", iteration = iteration),
     error = function(e) err(e, err.file = err.file, err.txt = "Error when scaling biovars_world", iteration = iteration)
@@ -37,6 +39,7 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
         show.plot = show.plot,
         verbose = verbose
       )
+      invisible(gc())
     },
     warning =  function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when acquiring region data", iteration = iteration),
     error = function(e) err(e, err.file = err.file, err.txt = "Error when acquiring region data", iteration = iteration)
@@ -50,6 +53,7 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
       dir.out = "./outputs/setup/region",
       verbose = verbose
     )
+    invisible(gc())
   },
   warning =  function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when calculating coordinate uncertainty", iteration = iteration),
   error = function(e) err(e, err.file = err.file, err.txt = "Error when calculating coordinate uncertainty", iteration = iteration)
@@ -65,7 +69,7 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
 
 setup_hv_region <- function(biovars_region, out.dir, method) {
   vebcat("Setting up region Hypervolume", color = "funInit")
-
+  
   region_out <- paste0(paste0(out.dir), "/hypervolume-", method, ".rds")
 
   if (file.exists(region_out)) {
@@ -124,23 +128,28 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
   } else {
     catn("Running low peak ram setup by using", highcat(sp_list_setup[[1]]), "wait time: 3 min.")
 
-    create_file_if(low_file)
-
-    ram_control <- start_mem_tracking(low_file, stop_file)
-
-    hypervolume_sequence(
-      spec.list = sp_list_setup,
-      iterations = 1,
-      min.disk.space = min_disk_space,
-      verbose = TRUE,
-      hv.dir = hv_setup_dir,
-      hv.method = hv.method, 
-      hv.accuracy = hv.accuracy, 
-      hv.dims = hv.dims, 
-      hv.incl.threshold = hv.incl.threshold
-    )
-   
-    stop_mem_tracking(ram_control, stop_file)
+    tryCatch({
+      catn("Starting memory tracker")
+      ram_control <- start_mem_tracking(low_file, stop_file)
+      
+      hypervolume_sequence(
+        spec.list = sp_list_setup,
+        iterations = "Abelmoschus manihot",
+        min.disk.space = min_disk_space,
+        verbose = TRUE,
+        hv.dir = hv_setup_dir,
+        hv.method = hv.method, 
+        hv.accuracy = hv.accuracy, 
+        hv.dims = hv.dims, 
+        hv.incl.threshold = hv.incl.threshold
+      )
+      
+    }, error = function(e) {
+      vebcat("Error when running low memory hypervolume sequence", color = "fatalError")
+      stop(e)
+    }, finally = {
+      stop_mem_tracking(ram_control, stop_file)
+    })
   }
 
   if (file.exists(high_file)) {
@@ -149,22 +158,28 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
     catn("Running high peak ram setup using", highcat(sp_list_setup[[3]]), "wait time: 25 min.")
     create_file_if(high_file)
 
-    ram_control <- start_mem_tracking(high_file, stop_file)
-
-    # Run a hypervolume sequence of sax. opp.
-    hypervolume_sequence(
-      spec.list = sp_list_setup,
-      iterations = 3,
-      min.disk.space = min_disk_space,
-      verbose = TRUE,
-      hv.dir = hv_setup_dir,
-      hv.method = hv.method, 
-      hv.accuracy = hv.accuracy, 
-      hv.dims = hv.dims, 
-      hv.incl.threshold = hv.incl.threshold
-    )
-
-    stop_mem_tracking(ram_control, stop_file)
+    tryCatch({
+      ram_control <- start_mem_tracking(high_file, stop_file)
+      
+      # Run a hypervolume sequence of sax. opp.
+      hypervolume_sequence(
+        spec.list = sp_list_setup,
+        iterations = "Saxifraga oppositifolia",
+        min.disk.space = min_disk_space,
+        verbose = TRUE,
+        hv.dir = hv_setup_dir,
+        hv.method = hv.method, 
+        hv.accuracy = hv.accuracy, 
+        hv.dims = hv.dims, 
+        hv.incl.threshold = hv.incl.threshold
+      )
+      
+    }, error = function(e) {
+      vebcat("Error when running high memory hypervolume sequence", color = "fatalError")
+      stop(e)
+    }, finally = {
+      stop_mem_tracking(ram_control, stop_file)
+    })
   }
 
   peak_mem_low <- as.numeric(readLines(low_file))

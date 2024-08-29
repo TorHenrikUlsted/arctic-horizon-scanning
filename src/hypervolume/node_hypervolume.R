@@ -11,23 +11,31 @@ node_hypervolume <- function(
     hv.method,
     hv.accuracy,
     hv.dims) {
+  
+  node_timer <- start_timer(paste0("node", iteration))
+  
+  tryCatch({
+    node <- setup_node(
+      pro.dir = process.dir,
+      iteration = iteration,
+      min.disk.space = min.disk.space,
+      verbose = verbose
+    )
+  }, error = function(e) {
+    vebcat("Error when setting up node in iteration:", iteration, color = "fatalError")
+    stop(e)
+  })
+  
+  
   tryCatch(
     {
-      node_timer <- start_timer(paste0("node", iteration))
-
-      node <- setup_node(
-        pro.dir = process.dir,
-        iteration = iteration,
-        min.disk.space = min.disk.space,
-        verbose = verbose
-      )
-
       process_node(
         pro.dir = process.dir,
         identifier = node$identifier,
         lock.dir = node$locks,
         lock.setup = node$lock.setup,
         node.it.log = node$it.log,
+        node.init.log = node$init.log,
         iteration = iteration,
         spec.list = spec.list,
         columns.to.read = columns.to.read,
@@ -140,17 +148,14 @@ node_hypervolume <- function(
         }
       )
 
-      end_timer(node_timer)
     },
-    warning = function(w) warn(w, warn.file = node$warn, warn.txt = "Warning in node_hypervolume", iteration = iteration),
+    warning = function(w) warn(w, warn.file = node$warn.file, warn.txt = "Warning in node_hypervolume", iteration = iteration),
     error = function(e) {
-      closeAllConnections()
-      err(e, err.file = node$err, err.txt = "Error in node_hypervolume", iteration = iteration)
+      err(e, err.file = node$err.file, err.txt = "Error in node_hypervolume", iteration = iteration)
     }
   )
-
-  rm(ls())
-  invisible(gc())
-
+  
+  end_timer(node_timer)
+  
   return(catn("Node returning."))
 }

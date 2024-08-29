@@ -62,7 +62,7 @@ handle_region_dt <- function(dt) {
   return(dt)
 }
 
-setup_region <- function(verbose = FALSE) {
+setup_region <- function(projection = "longlat", verbose = FALSE) {
   vebcat("Initiating Region setup.", color = "funInit")
   region_setup_timer <- start_timer("region-setup-timer")
   
@@ -88,12 +88,7 @@ setup_region <- function(verbose = FALSE) {
       verbose = verbose
     )
     
-    # Reproject first becaus of line issue
-    cavm <- reproject_region(
-      cavm, 
-      projection = "longlat", 
-      issue.line = TRUE
-    )
+    cavm <- fix_antimeridian(cavm, 0.00001, verbose)
     
     catn("Removing non-Arctic regions.")
     # Remove Non-Arctic (21) ice Sheet (0), and glaciers (1)
@@ -154,12 +149,7 @@ setup_region <- function(verbose = FALSE) {
     cavm$floregLong <- sapply(fp_centroids[index], function(x) terra::crds(x)[1])
     cavm$floregLat <- sapply(fp_centroids[index], function(x) terra::crds(x)[2])
     
-    if (all(terra::is.valid(cavm))) {
-      vebcat("Cavm shape is valid", color = "proSuccess")
-    } else {
-      vebcat("Cavm shape is invalid", color = "fatalError")
-      stop("ERROR: was not able to make a valid shapefile.")
-    }
+    cavm <- check_crs(cavm, projection)
     
     create_dir_if(dirname(result_shp))
     

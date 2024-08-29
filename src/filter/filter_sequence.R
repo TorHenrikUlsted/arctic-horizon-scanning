@@ -45,14 +45,18 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
     )
     
     if (!is.null(test)) {
-      manual_edited <- "./resources/data-raw/test/manual-edit/wfo-nomatch-editeds.csv"
+      manual_out <- "./outputs/setup/wrangle/test/manual-check-file.csv"
+      manual_edited <- "./resources/data-raw/test/manual-check-file.csv"
     } else {
-      manual_edited <- "./resources/manual-edit/wfo-nomatch-editeds.csv"
+      manual_out <- "./outputs/setup/wrangle/manual-check-file.csv"
+      manual_edited <- list.files("./resources/manual-edit", pattern = ".csv", full.names = TRUE)
     }
+    
+    if (nrow(fread(manual_out, nrows = 0)) == 0) manual_edited = 0
     
     dts <- fix_manual(
       dts = dts,
-      manual.edited = ,
+      manual.edited = manual_edited,
       column = column,
       verbose = verbose
     )

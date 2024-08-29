@@ -8,8 +8,6 @@ source("./src/hypervolume/hypervolume.R")
 source("./src/visualize/visualize.R")
 source("./src/main.R")
 
-config$simulation$approach = "precautionary"
-
 main(
   spec.known = "arctic",
   spec.unknown = "glonaf",
@@ -24,7 +22,7 @@ main(
   hv.accuracy = "accurate",
   hv.dims = c(18, 10, 3, 4),
   hv.incl.threshold = 0.5,
-  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
+  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp", # change to simply name
   vis.projection = "laea",
   vis.title = TRUE,
   vis.region.name = "the Arctic", 
@@ -34,14 +32,13 @@ main(
   vis.save.unit = "px",
   plot.show = FALSE,
   verbose = FALSE,
-  example = TRUE,
-  force.seq = c("filter")
+  force.seq = NULL
 )
 
 create_derived_dataset(
   occurrences.dir = paste0(
     "./outputs/filter/", 
-    gsub("filter_", "", get_obj_name(filter_glonaf)), 
+    "glonaf",
     "/chunk/species"
   ),
   verbose = FALSE

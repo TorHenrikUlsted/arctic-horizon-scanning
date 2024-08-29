@@ -463,81 +463,45 @@ convert_spatial_dt <- function(spatial, verbose = FALSE) {
   return(dt)
 }
 
-reproject_region <- function(region, projection, res = NULL, issue.line = FALSE, issue.threshold = 0.00001, verbose = FALSE) {
-  catn("Reprojecting region")
-
-  vebprint(class(region), verbose, "Class of input object:")
-
-  if (!is.null(res) && "SpatVector" %in% class(region)) {
-    vebcat("Resolution scale cannot be used for shapefiles, ignoring 'resolution scale.'res' parameter.", color = "nonFatalError")
-    res <- NULL
+fix_antimeridian <- function(x, threshold = 0.00001, verbose) {
+  catn("Fixing antimeridian issue.")
+  
+  ext_east <- terra::ext(ext(x)$xmin, 0, ext(x)$ymin, ext(x)$ymax)
+  ext_west <- terra::ext(threshold, ext(x)$xmax, ext(x)$ymin, ext(x)$ymax)
+  
+  vect_east <- terra::crop(x, ext_east)
+  vect_west <- terra::crop(x, ext_west)
+  
+  proj_east <- terra::project(vect_east, config$projection$crs$longlat)
+  proj_west <- terra::project(vect_west, config$projection$crs$longlat)
+  
+  if (verbose) {
+    plot(proj_east, main = "East side")
+    plot(proj_west, main = "West side")
   }
+  
+  x_fixed <- rbind(proj_west, proj_east)
+  
+  if (verbose) plot(x_fixed, main = "Combined")
+  
+  return(x_fixed)
+}
 
-  if (issue.line == T) {
-    catn("Attempting to fix line issues.")
-
-    catn("Getting extents.")
-    ext_east <- terra::ext(ext(region)$xmin, 0, ext(region)$ymin, ext(region)$ymax)
-    ext_west <- terra::ext(issue.threshold, ext(region)$xmax, ext(region)$ymin, ext(region)$ymax)
-
-    catn("Cropping in half.")
-    vect_east <- terra::crop(region, ext_east)
-    vect_west <- terra::crop(region, ext_west)
-
-    catn("Reprojecting to longlat.")
-    proj_east <- terra::project(vect_east, config$projection$crs$longlat)
-    catn("Plotting left side.")
-    if (verbose) plot(proj_east)
-    proj_west <- terra::project(vect_west, config$projection$crs$longlat)
-    catn("plotting right side.")
-    if (verbose) plot(proj_west)
-
-    region_longlat <- rbind(proj_west, proj_east)
-
-    if (verbose) plot(region_longlat)
-
-    return(region_longlat)
-  }
-
-  if (projection == "longlat") {
-    catn("Choosing", highcat("longlat"), "coordinate system.")
-    prj <- config$projection$crs$longlat
-  } else if (projection == "laea") {
-    catn("Choosing", highcat("laea"), "coordinate system.")
-    prj <- config$projection$crs$laea
-  } else if (projection == "mollweide") {
-    catn("Choosing", highcat("mollweide"), "coordinate system.")
-    prj <- config$projection$crs$mollweide
-  } else if (projection == "stere") {
-    catn("Choosing", highcat("stere"), "coordinate system.")
-    prj <- stere_crs
-  } else {
-    stop("You can only choose projection 'longlat', 'laea', 'stere', or 'mollweide'.")
-  }
-
-
-  if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
-    vebcat("Original CRS not identical to current CSR.", veb = verbose)
-    catn("Reprojecting region to:\n", highcat(crs(prj, proj = T)))
-
-    if ("SpatVector" %in% class(region)) {
-      vebcat("Using the SpatVector method.", veb = verbose)
-      reproj_region <- terra::project(region, prj)
+fix_shape <- function(shape, verbose = FALSE) {
+  if (any(!is.valid(shape))) {
+    catn("Some geoms of", substitute(deparse(shape)), "are invalid.")
+    catn("Attempting to fix.")
+    valid_shape <- makeValid(shape)
+    if (any(!is.valid(valid_shape))) {
+      vebcat("Failed to fix invalid geoms.", color = "nonFatalError")
     } else {
-      reproj_region <- terra::project(region, prj, res = res)
+      vebcat("Successfully made all geoms valid.", color = "proSuccess")
     }
-
-    if (!isTRUE(identical(crs(region, proj = TRUE), crs(prj, proj = TRUE)))) {
-      vebcat("Reprojection completed successfully", color = "funSuccess")
-    } else {
-      vebcat("Reprojection failed.", color = "fatalError")
-    }
+    return(valid_shape)
   } else {
-    catn("CRS already correct.")
-    reproj_region <- region
+    catn("All", substitute(deparse(shape)), "geoms are valid.")
+    return(shape)
   }
-
-  return(reproj_region)
 }
 
 fix_shape <- function(shape, verbose = FALSE) {
@@ -559,6 +523,9 @@ fix_shape <- function(shape, verbose = FALSE) {
 }
 
 thin_occ_data <- function(dt, long = "decimalLongitude", lat = "decimalLatitude", projection = "+proj=longlat +datum=WGS84 +ellps=WGS84", res = 1000, seed = 123, verbose = FALSE) {
+  setDT(dt)
+  setalloccol(dt)
+  
   # Add an ID to the input dt
   dt[, ID := .I]
 
@@ -570,10 +537,10 @@ thin_occ_data <- function(dt, long = "decimalLongitude", lat = "decimalLatitude"
   vebprint(sp_points, verbose, "species points:")
 
   sp_ext <- ext(sp_points)
-
+  
   # Create an empty raster with the same extent as the points
   r_points <- rast(sp_ext, crs = projection, res = resolution)
-  values(r_points) <- 1:length(sp_points)
+  values(r_points) <- 1:ncell(r_points)
   vebprint(r_points, verbose, "blank raster with same extent as points:")
 
   if (verbose) {
@@ -593,10 +560,10 @@ thin_occ_data <- function(dt, long = "decimalLongitude", lat = "decimalLatitude"
   vebprint(thinned_data, verbose, "Thinned data by choosing a random sample:")
 
   # Merge output with original data table
-  thinned_dt <- merge(thinned_data, dt, by = "ID")
+  thinned_dt <- dt[thinned_data, on = "ID", nomatch = 0]
 
   # Remove unnecessary columns
-  thinned_dt <- thinned_dt[, -c("ID", "cell", "value")]
+  thinned_dt[, c("ID", "cell", "value") := NULL]
 
   return(thinned_dt)
 }
@@ -645,7 +612,6 @@ calc_coord_uncertainty <- function(region, projection = "longlat", unit.out = "k
 
     vebprint(region_ext, text = "Region Extent:")
     
-    projection <- get_crs_config(projection)
     region <- check_crs(region, projection = projection, projection.method = "bilinear")
 
     if (projection == "longlat") {
@@ -819,18 +785,18 @@ loop_orig_occ <- function(spec.occ.vect, region, file.out, with.coords = TRUE, v
   fwrite(spec_dt_out, file.out)
 }
 
-thin_occ_data <- function(dt, res, long, lat, verbose = FALSE) {
-  catn("Thinning occurrence data.")
-
-  res_in_deg <- res / (111.32 * config$projection$raster_scale_m)
-
-  data[, cell_id := paste(floor(longitude / resolution_in_degrees),
-    floor(latitude / resolution_in_degrees),
-    sep = "_"
-  )]
-
-  return(thinned_data)
-}
+# thin_occ_data <- function(dt, res, long, lat, verbose = FALSE) {
+#   catn("Thinning occurrence data.")
+# 
+#   res_in_deg <- res / (111.32 * config$projection$raster_scale_m)
+# 
+#   data[, cell_id := paste(floor(longitude / resolution_in_degrees),
+#     floor(latitude / resolution_in_degrees),
+#     sep = "_"
+#   )]
+# 
+#   return(thinned_data)
+# }
 
 get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.per.subregion = FALSE, inside = TRUE, verbose = FALSE) {
   uniq_subregions <- unique(region[[region.sub]])

@@ -6,7 +6,7 @@ analyze_correlation <- function(raster_stack, file.out, verbose = FALSE) {
   
   if (file.exists(file_out)) {
     catn("Correlation analysis already exists at:", colcat(paste0(file.out, "/correlation-matrix.csv"), color = "output"))
-    return()
+    return(invisible())
   }
   
   create_dir_if(file.out)
@@ -18,7 +18,7 @@ analyze_correlation <- function(raster_stack, file.out, verbose = FALSE) {
   vebprint(stack_corr, text = "Stack_corr$correlation:", veb = verbose)
 
   # Create correlation plot
-  vebcat("Plotting correlation.", veb = verbose)
+  catn("Plotting correlation.")
   
   # Open a PNG device
   png(filename = paste0(file.out, "/corrplot-circle.png"), width = 1920, height = 1080, pointsize = 20)
@@ -46,5 +46,5 @@ analyze_correlation <- function(raster_stack, file.out, verbose = FALSE) {
   
   vebcat("Correlation analyzed successfully", color = "funSuccess")
   
-  return()
+  return(invisible())
 }

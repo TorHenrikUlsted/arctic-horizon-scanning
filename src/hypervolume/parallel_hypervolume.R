@@ -10,7 +10,6 @@ hypervolume_sequence <- function(
     hv.accuracy,
     hv.dims,
     hv.incl.threshold) {
-  on.exit(closeAllConnections())
 
   vebcat("Initiating hypervolume sequence", color = "seqInit")
 
@@ -50,18 +49,20 @@ hypervolume_sequence <- function(
     infraspecificEpithet = character(0),
     taxonRank = character(0),
     scientificName = character(0),
-    countryCode = character(0),
-    country = character(0),
-    meanLong = numeric(0),
-    meanLat = numeric(0)
+    level3Name = character(0),
+    level3Code = character(0),
+    level2Code = integer(0),
+    level1Code = integer(0),
+    level3Long = numeric(0),
+    level3Lat = numeric(0)
   )
-
+  
   if (!file.exists(stats_file)) {
     fwrite(init_dt, stats_file, row.names = F, bom = T)
   }
 
   custom_exports <- c(
-    hv.dir,
+    hv_dir,
     hv.method,
     hv.accuracy,
     hv.dims,
@@ -92,17 +93,15 @@ hypervolume_sequence <- function(
 
     spec_count_dt <- spec_count_dt[removed == FALSE, ]
     
-    optimize_queue(
-      dt, 
+    spec_list <- optimize_queue(
+      spec_count_dt, 
       cores.max, 
       high_ram_threshold = 0.2, 
       verbose = FALSE
     )
     
-    spec_list <- spec_count_dt$filename
-
-    writeLines(spec_list, spec_list_file)
-
+    writeLines(unlist(spec_list), spec_list_file)
+    catn("Adding to markdown file")
     mdwrite(
       config$files$post_seq_md,
       text = paste0(
@@ -116,7 +115,13 @@ hypervolume_sequence <- function(
   } else {
     spec_list <- readLines(spec_list_file)
   }
-
+  
+  if (is.character(iterations)) {
+    spec_list <- unlist(spec_list)
+    spec_list <- spec_list[grep(iterations, gsub(config$species$file_separator, " ", spec_list))]
+    iterations <- length(spec_list)
+  }
+  
   catn("Starting hypervolume with", highcat(length(spec_list)), "species.")
 
   parallel <- setup_parallel(
@@ -196,17 +201,17 @@ hypervolume_sequence <- function(
       })
     },
     error = function(e) {
+      vebcat("Error in hypervolume parallel process, stopping clusters and closing all connections.", color = "fatalError")
+      stop(e)
+    }, finally = {
+      catn("Cleaning up parallel process.")
       stopCluster(parallel$cl)
       closeAllConnections()
-      vebcat("Error in hypervolume parallel process, stopping clusters and closing all connections.", color = "fatalError")
-      print(e)
     }
   )
 
-  catn("Finishing up.")
-
-  stopCluster(parallel$cl)
-
+  catn("Finishing up")
+  
   highest_iteration <- as.integer(readLines(parallel$highest.iteration))
   do_not_return <- FALSE
 

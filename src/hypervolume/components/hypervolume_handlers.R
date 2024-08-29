@@ -1,8 +1,48 @@
 analyze_hv_stats <- function(sp_hv, region_hv, spec.name, verbose) {
-  catn("Analyzing hypervolume for", highcat(sp_hv@Name))
+  catn("Analyzing hypervolume for", highcat(sp_hv@Name), "\n")
   
-  hv_set <- hypervolume_set(sp_hv, region_hv, check.memory = F)
+  # Check if the hypervolumes have the same number of dimensions
+  if (length(sp_hv@Dimensionality) != length(region_hv@Dimensionality)) {
+    stop("The species hypervolume and region hypervolume have different numbers of dimensions")
+  }
   
+  # Check if the hypervolumes have the same variable names
+  if (!all(colnames(sp_hv@Data) %in% colnames(region_hv@Data))) {
+    catn("Column names in species and region hypervolumes don't match.")
+    vebprint(colnames(sp_hv@Data), text = "Species hypervolume names found:")
+    vebprint(colnames(region_hv@Data), text = "Region hypervolume names found:")
+    catn("Possible to rename with colnames(hypervolume@Data) <- new_names")
+    stop("Column names in species and region hypervolumes don't match.")
+  }
+  
+  if (!all(names(sp_hv@Parameters$kde.bandwidth) %in% names(region_hv@Parameters$kde.bandwidth))) {
+    catn("Bandwidth names in species and region hypervolumes don't match.")
+    vebprint(names(sp_hv@Parameters$kde.bandwidth), text = "Species Bandwidth names found:")
+    vebprint(names(region_hv@Parameters$kde.bandwidth), text = "Region Bandwidth names found:")
+    catn("Possible to rename with names(hypervolume@Parameters$kde.bandwidth) <- new_names")
+    stop("Bandwidth names in species and region hypervolumes don't match.")
+  }
+  
+  if (!all(colnames(sp_hv@RandomPoints) %in% colnames(region_hv@RandomPoints))) {
+    catn("RandomPoint names in species and region hypervolumes don't match.")
+    vebprint(colnames(sp_hv@RandomPoints), text = "Species RandomPoint names found:")
+    vebprint(colnames(region_hv@RandomPoints), text = "Region RandomPoint names found:")
+    catn("Possible to rename with names(hypervolume@Parameters$kde.bandwidth) <- new_names")
+    stop("RandomPoint names in species and region hypervolumes don't match.")
+  }
+  
+  catn("Using hypervolume_set")
+  tryCatch({
+    hv_set <- hypervolume_set(sp_hv, region_hv, check.memory = FALSE)
+  }, error = function(e) {
+    print(colnames(sp_hv@Data))
+    print(colnames(region_hv@Data))
+    print(colnames(hv_set@Data))
+    catn("Error in hypervolume_set:", e$message)
+    stop(e)
+  })
+  
+  catn("Using hypervolume_overlap_statistics")
   hv_stats <- hypervolume_overlap_statistics(hv_set)
   
   sp_surviv_region <- 1 - hv_stats[[4]]
@@ -213,10 +253,10 @@ check_hv_results <- function(res, init.dt, hv.dir, hv.incl.threshold = 0.5, verb
       
       r_crs <- terra::crs(r, proj = TRUE)
       
-      e_crs <- terra::crs(config$projection$out, proj = TRUE)
+      e_crs <- terra::crs(get_crs_config(config$projection$out), proj = TRUE)
       
       if (!identical(r_crs, e_crs)) {
-        catn("The CRS is not identical:", proj_dir)
+        catn("The CRS are not identical:", proj_dir)
         vebprint(e_crs, text = "Expected CRS:")
         vebprint(r_crs, text = "output CRS:")
         check <- FALSE
