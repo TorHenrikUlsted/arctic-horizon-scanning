@@ -120,21 +120,6 @@ check_updates <- function(pkgs) {
           cat("The library path for some dependencies in the package ", pkg, " is not writable. Installing the dependencies to the personal library.\n")
           
           install.packages(pkg)
-          
-          # for (i in dependencies) {
-          #   print(i)
-          # 
-          #   suppressWarnings(
-          #     install.packages(
-          #       pkgs = i,
-          #       lib = .libPaths()[1],
-          #       ask = FALSE,
-          #       dependencies = TRUE,
-          #       repos = options()$repos,
-          #       type = getOption("pkgType")
-          #     )
-          #   )
-          # }
         }
       }
       

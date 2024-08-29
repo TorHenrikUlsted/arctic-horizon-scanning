@@ -17,57 +17,35 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
 
   if (!is.null(iterations)) {
     batch_iterations <- iterations
-
     catn("Initiating specific iteration(s)", highcat(batch_iterations))
   } else {
-    node_its <- readLines(node_it_file)
+    node_its <- as.integer(gsub("node", "", readLines(node_it_file)))
+    highest_it <- as.integer(readLines(highest_it_file))
+    
     vebcat("Node iterations:", node_its, veb = verbose)
-
-    if (is.na(node_its[1]) || node_its[1] == "") {
-      catn("Node iterations file is empty.")
-
-      highest_it <- as.integer(readLines(highest_it_file))
-      if (is.na(highest_it[1])) {
-        catn("Highest iteration is null. Assuming sequence has never been run before.")
-        start_iteration <- 1
-      } else {
-        catn("Previous session completed successfully on iteration", highcat(highest_it))
-        catn("Input list is expected to take", highcat(length(spec.list)), "iterations.")
-        start_iteration <- highest_it + 1
-      }
+    vebcat("Highest completed iteration:", highest_it, veb = verbose)
+    
+    if (length(node_its) == 0 || is.na(node_its[1])) {
+      start_iteration <- if (is.na(highest_it)) 1 else highest_it + 1
     } else {
-      node_it <- gsub("node", "", node_its)
-
-      vebcat("Node iterations from previous session:", node_it, veb = verbose)
-
-      start_iteration <- as.integer(min(node_it))
-
-      catn("Previous session found, Continuing from iteration", highcat(start_iteration))
+      start_iteration <- max(highest_it, max(node_its)) + 1
     }
-
-    if (start_iteration >= length(spec.list)) {
-      catn("Start iteration:", highcat(start_iteration), "number of species:", highcat(length(spec.list)))
-      finished <- TRUE
-      return(list(
-        finished = finished
-      ))
+    
+    if (start_iteration > length(spec.list)) {
+      catn("All iterations completed. No more processing needed.")
+      return(list(finished = TRUE))
     }
-
-    # If iterations is not provided, start from the highest saved iteration
-    i <- start_iteration
+    
     end <- length(spec.list)
-    batch_iterations <- i:end
-
-    catn("Initiating from iteration:", highcat(i), "to", highcat(end))
-  }
+    batch_iterations <- unique(c(node_its, start_iteration:end))
+    catn("Processing iterations:", highcat(paste(batch_iterations, collapse = ", ")))
+  } 
 
   cores_max <- min(length(batch_iterations), cores.max)
 
   catn("Creating cluster of", highcat(cores_max), "core(s).")
-
+  
   cl <- makeCluster(cores_max)
-
-  vebcat("Including the necessary components in each core.", veb = verbose)
 
   cluster_params <- c(
     "par.dir",
@@ -80,13 +58,31 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     names(custom.exports),
     "custom.evals"
   )
+  
+  vebcat("Exporting cluster parameters", veb = verbose)
 
   clusterExport(cl, cluster_params, envir = environment())
+  
+  vebcat("Including the necessary components in each core.", veb = verbose)
 
-  clusterEvalQ(cl, {
-    for (file in custom.evals) {
-      source(file)
-    }
+  tryCatch({
+    clusterEvalQ(cl, {
+      source("./src/utils/utils.R")
+      load_utils(parallel = TRUE)
+      for (file in custom.evals) {
+        tryCatch({
+          source(file, local = TRUE)
+        }, error = function(e) {
+          stop(paste("Error in file", file, ":", e$message))
+        })
+      }
+    })
+  }, error = function(e) {
+    vebcat("Error when sourcing files for each core.", color = "fatalError")
+    vebprint(custom.evals, text = "Files attempted to source:")
+    stopCluster(cl)
+    closeAllConnections()
+    stop(e)
   })
 
   vebcat("Creating a vector for the results.", veb = verbose)

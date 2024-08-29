@@ -1,4 +1,4 @@
-filter_known <- function(dts, column, verbose = FALSE) {
+filter_arctic <- function(dts, column, verbose = FALSE) {
   ##############
   # Initialize
   ##############

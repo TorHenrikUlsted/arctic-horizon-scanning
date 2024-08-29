@@ -1,4 +1,4 @@
-filter_unknown <- function(known.filtered, dts, column, verbose = FALSE) {
+filter_glonaf <- function(known.filtered, dts, column, verbose = FALSE) {
   ##############
   # Initialize
   ##############

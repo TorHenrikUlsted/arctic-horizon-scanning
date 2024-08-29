@@ -152,6 +152,7 @@ node_hypervolume <- function(
     warning = function(w) warn(w, warn.file = node$warn.file, warn.txt = "Warning in node_hypervolume", iteration = iteration),
     error = function(e) {
       err(e, err.file = node$err.file, err.txt = "Error in node_hypervolume", iteration = iteration)
+      stop(e)
     }
   )
   

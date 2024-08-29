@@ -3,8 +3,8 @@ source_all("./src/hypervolume/components")
 process_species <- function(spec.dt, spec.name, process.dir, method, points.projection = "longlat", verbose = F, iteration, warn.file, err.file) {
   vebcat("Initiating data processing protocol.", color = "funInit")
 
-  biovars_world <- rast(paste0(handle_biovar_saves(), "/biovars-world-subset.tif"))
-  
+  biovars_world <- rast(paste0(build_climate_path(), "/biovars-world-subset.tif"))
+
   vebcat("Starting species data process.", veb = verbose)
 
   withCallingHandlers(
@@ -38,7 +38,7 @@ process_species <- function(spec.dt, spec.name, process.dir, method, points.proj
         biovars_world,
         verbose = verbose
       )
-      
+
       # remove sp_points to save ram
       rm(sp_points)
       invisible(gc())
@@ -62,12 +62,12 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
   create_dir_if(lock.dir)
 
   catn("Reading raster files.")
-  biovars_region <- rast(paste0(handle_biovar_saves(), "/biovars-region-subset.tif"))
-  
+  biovars_region <- rast(paste0(build_climate_path(), "/biovars-region-subset.tif"))
+
   # check if need to setup, or read setup region
   region_hv <- setup_hv_region(
     biovars_region,
-    out.dir = handle_biovar_saves(),
+    out.dir = build_climate_path(),
     method = method
   )
 
@@ -95,7 +95,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           samples_per_point = spp,
           random_points = nrp,
           excluded = TRUE,
-          analyzed_hv_stats = c(0,0,1,1),
+          analyzed_hv_stats = c(0, 0, 1, 1),
           included_sp = c(rep(TRUE, 0), rep(FALSE, nobs))
         ))
       }
@@ -141,7 +141,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           samples_per_point = spp,
           random_points = nrp,
           excluded = TRUE,
-          analyzed_hv_stats = c(0,0,1,1),
+          analyzed_hv_stats = c(0, 0, 1, 1),
           included_sp = included_sp
         ))
       }
@@ -192,18 +192,18 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when computing hypervolume", iteration = iteration),
     error = function(e) {
-     unlock(lock_analysis)
+      unlock(lock_analysis)
       err(e, err.file = err.file, err.txt = "Error when computing hypervolume", iteration = iteration)
     }
   )
-  
+
   catn("Analyzing statistics.")
   withCallingHandlers(
     {
       analyzed_hv_stats <- analyze_hv_stats(sp_hv, region_hv, spec.name, verbose = verbose)
 
       vebprint(analyzed_hv_stats, text = "Hypervolume Statistics:")
-      
+
       # If the region is unique and does not overlap with any of the species
       if (analyzed_hv_stats[[4]] == 1) {
         catn(spec.name, colcat("Excluded from further hypervolume analysis.", color = "nonFatalError"))
@@ -222,7 +222,6 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         ))
       } else {
         catn(spec.name, colcat("Included for further hypervolume analysis.", color = "proSuccess"))
-        
       }
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when analyzing statistics", iteration = iteration),
@@ -236,7 +235,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
     {
       create_dir_if(proj_dir)
       catn("Projecting inclusion analysis.")
-      catn("Using the", paste0("'",accuracy,"'"), "inclusion accuracy.")
+      catn("Using the", paste0("'", accuracy, "'"), "inclusion accuracy.")
       catn("Using", incl_threshold, "threshold(s).")
       ## Projections for inclusion
       for (threshold in incl_threshold) {
@@ -245,7 +244,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           catn(threshold, "-inclusion analysis file already exists.")
           next
         }
-        
+
         inc_project <- hypervolume_project(
           sp_hv,
           biovars_region,
@@ -256,15 +255,15 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         )
 
         names(inc_project) <- ("inclusionScore")
-        
+
         inc_project <- check_crs(
           inc_project,
-          projection = config$projection$out,
+          projection = config$simulation$projection,
           projection.method = "near",
           res = config$projection$raster_scale_m,
           verbose = verbose
         )
-        
+
         vebcat("Writing out raster file:", colcat(out_file), color = "output")
         writeRaster(inc_project, out_file, overwrite = TRUE)
 
@@ -272,32 +271,32 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
         invisible(gc())
       }
 
-     
+
       out_file <- paste0(proj_dir, "/probability.tif")
-      
+
       if (!file.exists(out_file)) {
         catn("Projecting probability analysis.")
-        
+
         prob_project <- hypervolume_project(
           sp_hv,
           biovars_region,
           type = "probability",
           verbose = verbose
         )
-        
+
         names(prob_project) <- ("suitabilityScore")
-        
+
         prob_project <- check_crs(
           prob_project,
-          projection = config$projection$out,
+          projection = config$simulation$projection,
           projection.method = "bilinear",
           res = config$projection$raster_scale_m,
           verbose = verbose
         )
-        
+
         vebcat("Writing out raster file:", colcat(out_file), color = "output")
         writeRaster(prob_project, out_file, overwrite = TRUE)
-        
+
         rm(prob_project)
         invisible(gc())
       } else {
@@ -308,7 +307,7 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
     error = function(e) {
       unlock(lock_analysis)
       err(e, err.file = err.file, err.txt = "Error when projecting hypervolume", iteration = iteration)
-    } 
+    }
   )
 
   vebcat("Unlocking analysis lock.", veb = verbose)

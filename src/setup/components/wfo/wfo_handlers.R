@@ -119,20 +119,6 @@ wfo_parallel <- function(checklist, column, out.dir = "./", cores.max = 1, evals
 #------------------------#
 ####   mismatch case  ####
 #------------------------#
-
-## ISSUE: Betula pubescens subs. pubescens --> Crassula pubescens
-## How to handle:
-## 1. Get species name of original species
-## 2. Get species name of output species
-## 3. Check for identical copies of genus names -- genusIdentical: TRUE/FALSE
-## 4. Check for identical copies of species names -- speciesIdentical: TRUE/FALSE
-## 5. if genusIdentical == FALSE -- write out file -- md[genusCheck] -- check manually
-## 6.
-##    if speciesIdentical == FALSE -- if New.accepted == TRUE -- Assume safe
-##  Example safe: Equisetum hyemale subsp. affine --> Equisetum praealtum Raf.
-
-##    if speciesIdentical == FALSE -- if New.accepted == FALSE -- write out -- md[speciesCheck] -- check manually
-
 wfo_mismatch_check <- function(wfo.result, col.origin = "rawName", out.file = NULL, unchecked = FALSE, verbose = FALSE) {
   vebprint(unchecked, verbose, "Include unchecked results:")
   vebprint(names(wfo.result), verbose, "Input data table names:")

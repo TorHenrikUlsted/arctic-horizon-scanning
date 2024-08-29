@@ -47,11 +47,21 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
       }
       
       if (!is.null(region)) {
+        if (is.character(region) && file.exists(region)) {
+          catn("Region is not a well known text format, trying to convert...")
+          region <- load_region(region)
+          if (is.spatVector(region)) {
+            region <- vect_to_wkt(region)
+          } else {
+            vebcat("Region input into GBIF is not a filename for a vector.", color = "fatalError")
+            stop("Change gbif.occ.region parameter.")
+          }
+        }
         predicates <- c(predicates, list(pred("geometry", region)))
       }
-
+      
       out <- do.call(occ_download, c(predicates, list(format = "SIMPLE_CSV")))
-
+      
       tryCatch(
         {
           catn("Queueing download.")
@@ -78,7 +88,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
     if (!is.null(download.key)) catn("Downlad key found.")
     if (!is.null(download.doi)) catn("Doi found.")
   }
-
+  
   tryCatch(
     {
       if (!file.exists(paste0(file.name, ".csv"))) {
@@ -91,15 +101,15 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
         } else {
           catn("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found.")
         }
-
+        
         catn("Unzipping GBIF file.")
-
+        
         unzip(paste0(download_path, "/", download.key, ".zip"), exdir = download_path)
-
+        
         csv <- paste0(download_path, "/", download.key, ".csv")
         
         catn("Renaming CSV file.")
-
+        
         file.rename(from = csv, to = paste0(file.name, ".csv"))
         
       } else {

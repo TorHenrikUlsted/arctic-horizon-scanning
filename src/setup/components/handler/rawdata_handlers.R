@@ -199,10 +199,6 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
         text = paste0("3;Standardization results ", name, " :"),
         data = md_dt
       )
-      print(unique(sp_synonyms$mismatch, by = paste0(column, ".ORIG")))
-      print(sp_checked$mismatch)
-      
-      
       
       sp_checked$raw = NULL
       sp_checked$mismatch <- rbind(
@@ -215,21 +211,30 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
       if (config$simulation$approach == "precautionary") {
         vebcat("Using precautionary method to remove infraSpecificEpithets", color = "indicator")
         orig_n <- nrow(sp_checked$clean)
-        sp_checked$clean[, scientificName := NULL]
+        sp_checked$clean[, scientificName.ORIG := scientificName] # Keep the original
+        sp_checked$clean[, scientificName := NULL] # Remove the column
+        # Change to species name
         sp_checked$clean[, scientificName := fifelse(is.na(genus) | is.na(specificEpithet), 
                                        NA_character_, 
-                                       paste0(trimws(genus), " ", trimws(specificEpithet)))]
+                                       paste0(trimws(genus), " ", trimws(specificEpithet)))] 
+        # Identify change
+        sp_checked$clean[, scientificName.changed := scientificName != scientificName.ORIG] 
+        
+        changed_n <- nrow(sp_checked$clean[scientificName.changed == TRUE])
         
         sp_checked$clean <- unique(sp_checked$clean, by = "scientificName")
+        
         new_n <- nrow(sp_checked$clean)
         
-        catn(highcat(orig_n - new_n), "infraspecificEpithets removed")
+        catn(highcat(changed_n), "infraspecificEpithets Changed to species")        
+        catn(highcat(orig_n - new_n), "duplicate species removed")
         
         mdwrite(
           config$files$post_seq_md,
           text = paste0(
             "3;Standardization precautionary conversion\n\n",
-            "Removed ", orig_n - new_n, " infraspecificEpithets"
+            "Removed **", changed_n, "** infraspecificEpithets Changed to species\n",
+            "Removed **", orig_n - new_n, "** duplicate species removed"
           )
         )
         

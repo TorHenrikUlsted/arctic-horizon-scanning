@@ -92,6 +92,6 @@ config_handler <- function(...) {
     }
     name_parts <- strsplit(name, "$", fixed = TRUE)[[1]]
     
-    config$run <<- set_nested(config$run, name_parts, args[[original_name]])
+    config$simulation <<- set_nested(config$simulation, name_parts, args[[original_name]])
   }
 }

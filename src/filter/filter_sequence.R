@@ -1,5 +1,5 @@
 source_all("./src/filter/components")
-if (config$run$example) { 
+if (config$simulation$example) {
   source_all("./example/src/filter")
   src_dir <- "./example/src"
 } else {
@@ -7,18 +7,20 @@ if (config$run$example) {
   src_dir <- "./src"
 }
 
-filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
-  on.exit(closeAllConnections())
+filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
   vebcat("Initiating filtering sequence", color = "seqInit")
 
   #------------------------#
   ####       Setup      ####
   #------------------------#
 
+  if (is.null(spec.unknown)) stop("spec.unknown cannot be NULL")
+
   filter_timer <- start_timer("filter_timer")
 
-  coord_un_file <- "./outputs/setup/region/coordinateUncertainty-m.txt"
-  seq_fin_file <- "./outputs/filter/filter-sequence-completed.txt"
+  coord_un_file <- paste0(build_climate_path(), "/coordinateUncertainty-m.txt")
+  seq_fin_file <- paste0("./outputs/filter/", gsub("_", "-", spec.unknown), "/filter-sequence-completed.txt")
+  
 
   if (!is.null(force.seq) && ("all" %in% force.seq | "filter" %in% force.seq)) {
     catn("Forcing filter sequence.")
@@ -29,6 +31,25 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
     catn("filter sequence already run, skipping process.")
     chunk_dir <- readLines(seq_fin_file)
   } else {
+    if (grepl("test", spec.unknown)) {
+      manual_out <- "./outputs/setup/wrangle/test/manual-check-file.csv"
+      manual_edited <- "./resources/data-raw/test/manual-check-file.csv"
+    } else {
+      manual_out <- "./outputs/setup/wrangle/manual-check-file.csv"
+      manual_edited <- list.files("./resources/manual-edit", pattern = ".csv", full.names = TRUE)
+    }
+
+    if (length(manual_edited) == 0 && (!file.exists(manual_out) || nrow(fread(manual_out, nrows = 0)) > 0)) {
+      vebcat("Need manually handled file to continue", color = "fatalError")
+      if (file.exists(manual_out)) {
+        catn("Found", highcat(nrow(fread(manual_out, nrows = 0))), "species in need of manual handling.")
+        catn("Find the file in:", colcat(manual_out, color = "output"))
+      } else {
+        catn("Could not find manually handled output file, check setup process and input data.")
+      }
+      stop("Modify manually handled file")
+    }
+
     mdwrite(
       config$files$post_seq_md,
       text = "1;Filter Sequence"
@@ -43,61 +64,57 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
       col.select = NULL,
       verbose = verbose
     )
-    
-    if (!is.null(test)) {
-      manual_out <- "./outputs/setup/wrangle/test/manual-check-file.csv"
-      manual_edited <- "./resources/data-raw/test/manual-check-file.csv"
-    } else {
-      manual_out <- "./outputs/setup/wrangle/manual-check-file.csv"
-      manual_edited <- list.files("./resources/manual-edit", pattern = ".csv", full.names = TRUE)
+
+    if (length(manual_edited) > 0) {
+      dts <- fix_manual(
+        dts = dts,
+        manual.edited = manual_edited,
+        column = column,
+        verbose = verbose
+      )
     }
     
-    if (nrow(fread(manual_out, nrows = 0)) == 0) manual_edited = 0
-    
-    dts <- fix_manual(
-      dts = dts,
-      manual.edited = manual_edited,
-      column = column,
-      verbose = verbose
+    # Change symbols to config need to filename safe
+    dts <- apply_symbol_fix(
+      dts, 
+      "scientificName", 
+      config$species$symbols,
+      reverse = FALSE,
+      verbose
     )
-    
     
     if (is.null(coord.uncertainty) & file.exists(coord_un_file)) {
       coord.uncertainty <- as.numeric(readLines(coord_un_file))
     }
-    
+
     vebprint(dts, verbose, "all data tables:")
-    
+
     #------------------------#
     ####   Filter lists   ####
     #------------------------#
     # get original number of species
-    if (!is.null(test)) {
+    if (grepl("test", spec.unknown)) {
       kpn <- nrow(dts[["test_known"]])
       kan <- 0
-      spec_known <- get("filter_test_known")
 
-      if (test == "small") {
+      if (grepl("small", spec.unknown)) {
         un <- nrow(dts[["test_small"]])
-        spec_unknown <- get("filter_test_small")
         download.key <- "0180552-240321170329656"
         download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
-      } else if (test == "big") {
+      } else if (grepl("big", spec.unknown)) {
         un <- nrow(dts[["test_big"]])
-        spec_unknown <- get("filter_test_big")
         download.key <- "0180885-240321170329656"
         download.doi <- "https://doi.org/10.15468/dl.sgf54g"
       } else {
-        vebcat("Test has to be either 'small' or 'big'.", color = "fatalError")
-        stop("Change the test parameter.")
+        vebcat("Test has to be either 'test_small' or 'test_big'.", color = "fatalError")
+        stop("Change the spec.unknown parameter.")
       }
     } else {
-      print(names(dts))
       known_names <- basename(list.files(paste0(src_dir, "/setup/custom_setup/wrangle/known_species")))
       known_names <- gsub("^wrangle_|\\.R$", "", known_names)
-      pattern <- paste0("^(", paste(known_names, collapse="|"), ")")
+      pattern <- paste0("^(", paste(known_names, collapse = "|"), ")")
       known_dts <- dts[grep(pattern, names(dts))]
-      
+
       kn <- list(present = 0, absent = 0)
       for (dt_name in names(known_dts)) {
         dt <- known_dts[[dt_name]]
@@ -111,11 +128,11 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
       kpn <- sum(unlist(kn$present))
       kan <- sum(unlist(kn$absent))
       un <- nrow(dts[[paste0(spec.unknown, "_absent")]])
-      
-      spec_known <- get("filter_known")
-      spec_unknown <- get("filter_unknown")
     }
-    
+
+    spec_known <- get(paste0("filter_", spec.known))
+    spec_unknown <- get(paste0("filter_", spec.unknown))
+
     if (!is.null(spec_known)) {
       known <- spec_known(
         dts = dts,
@@ -129,7 +146,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
       Sys.sleep(5)
     }
     vebprint(known, text = "known output:", veb = verbose)
-    
+
     if (is.null(spec_unknown)) {
       vebcat("Error, spec_unknown is NULL.", color = "fatalError")
       vebprint(spec_unknown, text = "spec_unknown:")
@@ -142,13 +159,19 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
         verbose = verbose
       )
     }
-    
+
     vebprint(known, text = "known output:", veb = verbose)
-    
+
     kfpn <- nrow(known$present)
-    kfan <- nrow(known$absent)
+    if (is.null(known$absent)) {
+      kfan <- 0
+    } else {
+      (
+        kfan <- nrow(known$absent)
+      )
+    }
     ufn <- nrow(unknown$spec)
-    
+
     md_dt <- data.table(
       present.in = kpn,
       present.out = kfpn,
@@ -156,14 +179,14 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
       absent.out = kfan,
       unknown.in = un,
       unknown.out = ufn
-    ) 
-    
+    )
+
     mdwrite(
       config$files$post_seq_md,
       text = "2;Filter function summary",
       data = md_dt
     )
-    
+
     #------------------------#
     ####    Occurrence    ####
     #------------------------#
@@ -185,7 +208,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
     } else {
       sp_occ <- paste0(occ_name, ".csv")
     }
-    
+
     #------------------------#
     ####     Chunking     ####
     #------------------------#
@@ -211,7 +234,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown = NULL, test = NULL,
       con = seq_fin_file
     )
   }
-  
+
   mdwrite(
     config$files$post_seq_md,
     text = paste0("3;Number of species returned from chunking **", length(list.files(paste0(chunk_dir, "/species"))), "**")

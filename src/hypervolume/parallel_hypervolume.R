@@ -60,7 +60,7 @@ hypervolume_sequence <- function(
   if (!file.exists(stats_file)) {
     fwrite(init_dt, stats_file, row.names = F, bom = T)
   }
-
+  
   custom_exports <- c(
     hv_dir,
     hv.method,
@@ -68,15 +68,14 @@ hypervolume_sequence <- function(
     hv.dims,
     hv.incl.threshold
   )
-
+  
   custom_evals <- c(
-    "./src/utils/utils.R",
     "./src/setup/setup_sequence.R",
     "./src/hypervolume/hypervolume.R",
     "./src/hypervolume/node_hypervolume.R",
     "./src/hypervolume/parallel_hypervolume.R"
   )
-
+  
   if (!file.exists(spec_list_file)) {
     spec_count_dt <- count_observations(
       spec.list = spec.list,
@@ -84,13 +83,13 @@ hypervolume_sequence <- function(
       method = "median",
       verbose = verbose
     )
-
+    
     spec_removed <- spec_count_dt[removed == TRUE, ]
     spec_removed[, filename := NULL]
-
+    
     catn(highcat(nrow(spec_removed)), "Species with too few observations were removed.")
     fwrite(spec_removed, removed_file, bom = TRUE)
-
+    
     spec_count_dt <- spec_count_dt[removed == FALSE, ]
     
     spec_list <- optimize_queue(
@@ -114,6 +113,7 @@ hypervolume_sequence <- function(
     )
   } else {
     spec_list <- readLines(spec_list_file)
+    catn("Read from file with", highcat(length(spec_list)), "species")
   }
   
   if (is.character(iterations)) {
@@ -123,7 +123,7 @@ hypervolume_sequence <- function(
   }
   
   catn("Starting hypervolume with", highcat(length(spec_list)), "species.")
-
+  
   parallel <- setup_parallel(
     par.dir = hv_dir,
     spec.list = spec_list,
@@ -135,13 +135,13 @@ hypervolume_sequence <- function(
     custom.exports = custom_exports,
     custom.evals = custom_evals
   )
-
+  
   if (parallel$finished) {
-    return(catn("Hypervolume already finished a run for this list."))
+    return(vebcat("Hypervolume already finished a run for this list.", color = "funSuccess"))
   }
-
-  vebprint(clusterEvalQ(parallel$cl, ls()), veb = verbose, text = "All cluster variables:")
-
+  
+  vebprint(clusterEvalQ(parallel$cl, ls())[[1]], veb = verbose, text = "cluster variables sample:")
+  
   tryCatch(
     {
       clusterApplyLB(parallel$cl, parallel$batch, function(j) {
@@ -149,7 +149,7 @@ hypervolume_sequence <- function(
         # RAM check
         mem_used_gb <- get_mem_usage(type = "used", format = "gb")
         mem_limit_gb <- config$memory$mem_limit / 1024^3
-
+        
         while (mem_used_gb >= mem_limit_gb & !file.exists(paste0(par.dir, "/logs/escape.txt"))) {
           if (!ram_msg) {
             ram_con <- file(parallel$ram.use, open = "a")
@@ -161,7 +161,7 @@ hypervolume_sequence <- function(
           Sys.sleep(runif(1, 0, 1)) # Add random seconds between 0 and 1 to apply difference if multiple nodes are in queue
           mem_used_gb <- get_mem_usage(type = "used", format = "gb")
         }
-
+        
         node_hypervolume(
           process.dir = par.dir, # par.dir because it comes from inside the parllel setup
           iteration = j,
@@ -195,13 +195,12 @@ hypervolume_sequence <- function(
           hv.accuracy = hv.accuracy,
           hv.dims = hv.dims
         )
-
-        rm(ls())
+        
         invisible(gc())
       })
     },
     error = function(e) {
-      vebcat("Error in hypervolume parallel process, stopping clusters and closing all connections.", color = "fatalError")
+      vebcat("Error in hypervolume parallel process ~ stopping clusters and closing all connections.", color = "fatalError")
       stop(e)
     }, finally = {
       catn("Cleaning up parallel process.")
@@ -209,12 +208,12 @@ hypervolume_sequence <- function(
       closeAllConnections()
     }
   )
-
+  
   catn("Finishing up")
   
   highest_iteration <- as.integer(readLines(parallel$highest.iteration))
   do_not_return <- FALSE
-
+  
   if (highest_iteration >= length(spec_list)) {
     vebcat("Parallel process finished all iterations.", color = "funSuccess")
   } else {
@@ -223,22 +222,22 @@ hypervolume_sequence <- function(
   }
   catn("Highest iteration/Expected highest iteration:")
   vebcat(highest_iteration, "/", length(spec_list), color = "indicator")
-
+  
   # Check if all nodes ran
   stats_file_its <- fread(paste0(stats_dir, "/stats.csv"), select = "iteration")
   stats_file_its <- unique(stats_file_its$iteration)
   expected_its <- 1:(length(spec_list))
-
+  
   missing_iterations <- setdiff(expected_its, stats_file_its)
-
+  
   if (length(missing_iterations) > 0) {
     do_not_return <- TRUE
     vebcat("Missing iterations found:\n", missing_iterations, color = "fatalError")
   }
-
+  
   end_timer(parallell_timer)
-
+  
   vebcat("Hypervolume sequence completed succesfully", color = "seqSuccess")
-
+  
   if (do_not_return) stop("Stopping process from going to visualization sequence because of missing data.")
 }
