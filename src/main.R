@@ -1,12 +1,9 @@
 main <- function(
     spec.known = NULL,
     spec.unknown = NULL,
-    test = NULL,
-    approach = "precautionary",
     column = "scientificName",
-    climate.database = "wordlclim",
     coord.uncertainty = NULL,
-    region = NULL,
+    gbif.occ.region = NULL,
     download.key = NULL,
     download.doi = NULL,
     hv.iterations = NULL,
@@ -15,7 +12,6 @@ main <- function(
     hv.dims = NULL,
     hv.incl.threshold = 0.5,
     vis.shape = NULL,
-    vis.projection = "laea",
     vis.title = TRUE,
     vis.region.name = "Region", 
     vis.subregion.name = "Sub Region", 
@@ -24,36 +20,11 @@ main <- function(
     vis.save.unit = "px",
     plot.show = FALSE,
     verbose = FALSE,
-    example = FALSE,
     force.seq = NULL
   ) {
   
-  config_handler(
-    climate.database,
-    approach,
-    vis.projection,
-    example
-  )
-  
-  if (is.null(spec.unknown) & is.null(test)) {
-    vebcat("Error: cannot have both spec.unknown and test as NULL.", color = "fatalError")
-    stop("Add function to spec.unknown or use test = 'small' or test = 'big'.")
-  }
-  
-  if (!is.null(test)) {
-    if (test == "small") {
-      hv_dir <- paste0("./outputs/hypervolume/test-small")
-      vis_dir <- paste0("./outputs/visualize/test-small")
-    } else if (test == "big") {
-      hv_dir <- paste0("./outputs/hypervolume/test-big")
-      vis_dir <- paste0("./outputs/visualize/test-big")
-    }
-  } else {
-    hv_dir <- paste0("./outputs/hypervolume/", gsub("filter_", "", deparse(substitute(spec.unknown))))
-    vis_dir <- paste0("./outputs/visualize/", gsub("filter_", "", deparse(substitute(spec.unknown))))
-    expected_res_name <- gsub("filter_", "", deparse(substitute(spec.unknown)))
-    known_list <- gsub("filter_", "", deparse(substitute(spec.known)))
-  }
+  hv_dir <- paste0("./outputs/hypervolume/", spec.unknown)
+  vis_dir <- paste0("./outputs/visualize/", spec.unknown)
   
   max_cores <- calc_num_cores(
     ram.high = config$memory$total_cores,
@@ -62,24 +33,27 @@ main <- function(
   )
   
   setup_sequence(
-    hv.method = "box",
-    hv.accuracy = "accurate", 
-    hv.incl.t = 0.5,
-    hv.dims = c(18, 10, 3, 4),
+    hv.method = hv.method,
+    hv.accuracy = hv.accuracy, 
+    hv.incl.threshold = hv.incl.threshold,
+    hv.dims = hv.dims,
     cores.max = max_cores$total,
     force.seq = force.seq,
-    verbose = TRUE
+    verbose = verbose
   )
+  
+  if (is.null(spec.unknown)) {
+    vebcat("Error: cannot have spec.unknown as NULL", color = "fatalError")
+    stop("Add name to spec.unknown or use 'test_small' OR 'test_big'.")
+  }
   
   sp_dir <- filter_sequence(
     spec.known = spec.known, 
     spec.unknown = spec.unknown,
-    approach = approach,
-    test = test,
     column = column,
     coord.uncertainty = coord.uncertainty,
     cores.max = max_cores,
-    region = region,
+    region = gbif.occ.region,
     download.key = download.key,
     download.doi = download.doi,
     force.seq = force.seq,
@@ -108,7 +82,8 @@ main <- function(
   max_cores <- calc_num_cores(
     ram.high = peak_ram$high, 
     ram.low = peak_ram$low, 
-    verbose =  FALSE
+    cores.total = config$memory$total_cores,
+    verbose =  verbose
   )
   
   cores_max_high <- min(length(sp_list), max_cores$high)
@@ -135,12 +110,12 @@ main <- function(
   
   visualize_sequence(
     out.dir = vis_dir,
-    res.unknown = expected_res_name,
-    res.known = known_list,
+    res.unknown = spec.unknown,
+    res.known = spec.known,
     shape = vis.shape,
     hv.dir = hv_dir, 
     hv.method = hv.method,
-    vis.projection = vis.projection,
+    vis.projection = config$simulation$projection,
     vis.title = vis.title,
     vis.region.name = vis.region.name,
     vis.subregion.name = vis.subregion.name,

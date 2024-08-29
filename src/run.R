@@ -8,9 +8,8 @@ source("./src/visualize/visualize.R")
 source("./src/main.R")
 
 main(
-  spec.known = filter_known,
-  spec.unknown = filter_unknown,
-  test = "small",
+  spec.known = NULL,
+  spec.unknown = NULL,
   approach = "precautionary",
   coord.uncertainty = NULL,
   region = NULL,

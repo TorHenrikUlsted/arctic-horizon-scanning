@@ -1,56 +1,74 @@
 wrangle_test_small <- function(name, column, verbose = FALSE) {
   # The name is taken from the function name
-  dir <- paste0("./outputs/setup/wrangle/", name)
+  dir <- paste0("./outputs/setup/wrangle/test")
   create_dir_if(dir)
   
-  absent_out <- paste0(dir, "/", name, "-absent.csv")
+  absent_out <- paste0(dir, "/", name, "/", name, "-absent.csv")
   
-  dt <- fread(paste0("./resources/data-raw/test/", name, ".csv"), sep = "\t")
+  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
-  setnames(dt, old = "scientificName", new = column)
+  setnames(formatted, old = "scientificName", new = column)
   
-  dt <- set_df_utf8(dt)
-  fwrite(dt, absent_out, row.names = F, bom = T)
+  absent <- set_df_utf8(formatted)
+  fwrite(absent, absent_out, row.names = F, bom = T)
+  
+  write_wrangled_md(
+    dt.list = list(formatted = formatted, absent = absent),
+    name = "Test Small",
+    column = column
+  )
   
   return(list(
-    absent = dt
+    absent = absent
   ))
 }
 
 wrangle_test_big <- function(name, column, verbose = FALSE) {
   # The name is taken from the function name
-  dir <- paste0("./outputs/setup/wrangle/", name)
+  dir <- paste0("./outputs/setup/wrangle/test")
   create_dir_if(dir)
   
-  absent_out <- paste0(dir, "/", name, "-absent.csv")
+  absent_out <- paste0(dir, "/", name, "/", name, "-absent.csv")
   
-  dt <- fread(paste0("./resources/data-raw/test/", name, ".csv"), sep = "\t")
+  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
-  setnames(dt, old = "scientificName", new = column)
+  setnames(formatted, old = "scientificName", new = column)
   
-  dt <- set_df_utf8(dt)
-  fwrite(dt, absent_out, row.names = F, bom = T)
+  absent <- set_df_utf8(formatted)
+  fwrite(absent, absent_out, row.names = F, bom = T)
+  
+  write_wrangled_md(
+    dt.list = list(formatted = formatted, absent = absent),
+    name = "Test Big",
+    column = column
+  )
   
   return(list(
-    absent = dt
+    absent = absent
   ))
 }
 
-wrangle_test <- function(name, column, verbose = FALSE) {
+wrangle_test_known <- function(name, column, verbose = FALSE) {
   # The name is taken from the function name
-  dir <- paste0("./outputs/setup/wrangle/", name)
+  dir <- paste0("./outputs/setup/wrangle/test")
   create_dir_if(dir)
   
-  present_out <- paste0(dir, "/", name, "-present.csv")
+  present_out <- paste0(dir, "/", name, "/", name, "-present.csv")
   
-  dt <- fread(paste0("./resources/data-raw/test/", name, ".csv"), sep = "\t")
+  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
-  setnames(dt, old = "scientificName", new = column)
+  setnames(formatted, old = "scientificName", new = column)
   
-  dt <- set_df_utf8(dt)
-  fwrite(dt, present_out, row.names = F, bom = T)
+  present <- set_df_utf8(formatted)
+  fwrite(present, present_out, row.names = F, bom = T)
+  
+  write_wrangled_md(
+    dt.list = list(formatted = formatted, present = present),
+    name = "Test known",
+    column = column
+  )
   
   return(list(
-    present = dt
+    present = present
   ))
 }

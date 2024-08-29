@@ -17,57 +17,35 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
 
   if (!is.null(iterations)) {
     batch_iterations <- iterations
-
     catn("Initiating specific iteration(s)", highcat(batch_iterations))
   } else {
-    node_its <- readLines(node_it_file)
+    node_its <- as.integer(gsub("node", "", readLines(node_it_file)))
+    highest_it <- as.integer(readLines(highest_it_file))
+    
     vebcat("Node iterations:", node_its, veb = verbose)
-
-    if (is.na(node_its[1]) || node_its[1] == "") {
-      catn("Node iterations file is empty.")
-
-      highest_it <- as.integer(readLines(highest_it_file))
-      if (is.na(highest_it[1])) {
-        catn("Highest iteration is null. Assuming sequence has never been run before.")
-        start_iteration <- 1
-      } else {
-        catn("Previous session completed successfully on iteration", highcat(highest_it))
-        catn("Input list is expected to take", highcat(length(spec.list)), "iterations.")
-        start_iteration <- highest_it + 1
-      }
+    vebcat("Highest completed iteration:", highest_it, veb = verbose)
+    
+    if (length(node_its) == 0 || is.na(node_its[1])) {
+      start_iteration <- if (is.na(highest_it)) 1 else highest_it + 1
     } else {
-      node_it <- gsub("node", "", node_its)
-
-      vebcat("Node iterations from previous session:", node_it, veb = verbose)
-
-      start_iteration <- as.integer(min(node_it))
-
-      catn("Previous session found, Continuing from iteration", highcat(start_iteration))
+      start_iteration <- max(highest_it, max(node_its)) + 1
     }
-
-    if (start_iteration >= length(spec.list)) {
-      catn("Start iteration:", highcat(start_iteration), "number of species:", highcat(length(spec.list)))
-      finished <- TRUE
-      return(list(
-        finished = finished
-      ))
+    
+    if (start_iteration > length(spec.list)) {
+      catn("All iterations completed. No more processing needed.")
+      return(list(finished = TRUE))
     }
-
-    # If iterations is not provided, start from the highest saved iteration
-    i <- start_iteration
+    
     end <- length(spec.list)
-    batch_iterations <- i:end
-
-    catn("Initiating from iteration:", highcat(i), "to", highcat(end))
-  }
+    batch_iterations <- unique(c(node_its, start_iteration:end))
+    catn("Processing iterations:", highcat(paste(batch_iterations, collapse = ", ")))
+  } 
 
   cores_max <- min(length(batch_iterations), cores.max)
 
   catn("Creating cluster of", highcat(cores_max), "core(s).")
-
+  
   cl <- makeCluster(cores_max)
-
-  vebcat("Including the necessary components in each core.", veb = verbose)
 
   cluster_params <- c(
     "par.dir",
@@ -80,13 +58,31 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     names(custom.exports),
     "custom.evals"
   )
+  
+  vebcat("Exporting cluster parameters", veb = verbose)
 
   clusterExport(cl, cluster_params, envir = environment())
+  
+  vebcat("Including the necessary components in each core.", veb = verbose)
 
-  clusterEvalQ(cl, {
-    for (file in custom.evals) {
-      source(file)
-    }
+  tryCatch({
+    clusterEvalQ(cl, {
+      source("./src/utils/utils.R")
+      load_utils(parallel = TRUE)
+      for (file in custom.evals) {
+        tryCatch({
+          source(file, local = TRUE)
+        }, error = function(e) {
+          stop(paste("Error in file", file, ":", e$message))
+        })
+      }
+    })
+  }, error = function(e) {
+    vebcat("Error when sourcing files for each core.", color = "fatalError")
+    vebprint(custom.evals, text = "Files attempted to source:")
+    stopCluster(cl)
+    closeAllConnections()
+    stop(e)
   })
 
   vebcat("Creating a vector for the results.", veb = verbose)
@@ -111,4 +107,65 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     highest.iteration = highest_it_file,
     finished = finished
   ))
+}
+
+optimize_queue <- function(dt, cores.max, high_ram_threshold = 0.2, verbose = FALSE) {
+  catn("Optimizing queue")
+  
+  vebcat("Input data:", veb = verbose)
+  vebprint(dt, veb = verbose)
+  
+  if (nrow(dt) <= cores.max) {
+    vebcat("Number of species is less than or equal to number of cores. Returning one species per chunk.", veb = verbose)
+    chunks <- lapply(1:nrow(dt), function(i) dt$filename[i])
+    return(chunks)
+  }
+  
+  setorder(dt, -medianLat)
+  n_high_ram <- max(1, min(ceiling(nrow(dt) * high_ram_threshold), nrow(dt) - 1))
+  high_ram_species <- dt[1:n_high_ram, filename]
+  low_ram_species <- dt[(n_high_ram + 1):nrow(dt), filename]
+  
+  vebcat("High RAM species:", veb = verbose)
+  vebprint(high_ram_species, veb = verbose)
+  vebcat("Low RAM species:", veb = verbose)
+  vebprint(low_ram_species, veb = verbose)
+  
+  chunks <- vector("list", cores.max)
+  
+  for (i in seq_along(high_ram_species)) {
+    core_index <- (i - 1) %% cores.max + 1
+    chunks[[core_index]] <- c(chunks[[core_index]], high_ram_species[i])
+  }
+  
+  vebcat("Chunks after distributing high RAM species:", veb = verbose)
+  vebprint(chunks, veb = verbose)
+  
+  if (length(low_ram_species) > 0) {
+    current_core <- 1
+    for (species in low_ram_species) {
+      chunks[[current_core]] <- c(chunks[[current_core]], species)
+      current_core <- (current_core %% cores.max) + 1
+    }
+  }
+  
+  # Remove empty chunks
+  chunks <- chunks[sapply(chunks, length) > 0]
+  
+  # Print statistics
+  vebcat("Created", highcat(length(chunks)), "chunks", veb = verbose)
+  vebcat("High-RAM species:", highcat(length(high_ram_species)), veb = verbose)
+  vebcat("Low-RAM species:", highcat(length(low_ram_species)), veb = verbose)
+  
+  # Print distribution of high-RAM species across chunks
+  high_ram_dist <- sapply(chunks, function(chunk) sum(chunk %in% high_ram_species))
+  vebprint(high_ram_dist, text = "Distribution of high-RAM species across chunks:")
+  
+  # Print average median latitude for each chunk
+  avg_lat <- sapply(chunks, function(chunk) {
+    mean(dt[filename %in% chunk, medianLat])
+  })
+  
+  vebprint(round(avg_lat, 2), text = "Average median latitude for each chunk:")
+  return(chunks) 
 }

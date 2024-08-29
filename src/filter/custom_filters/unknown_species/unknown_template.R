@@ -63,7 +63,7 @@ filter_unknown <- function(known.filtered, dfs, column, verbose = FALSE) { # cha
       data_absent <- anti_union(data_species, known_present, by = column)
 
       # If you will use the known_absent in another list, remove it here instead
-      data_absent <- union_dfs(data_absent, known_absent, by = column)
+      data_absent <- union_dts(data_absent, known_absent, by = column)
 
       return(data_absent)
     }

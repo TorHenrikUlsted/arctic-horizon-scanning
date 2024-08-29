@@ -19,19 +19,14 @@ to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
   return(input)
 }
 
-check_crs <- function(x, projection, projection.method = NULL, verbose = FALSE) {
+check_crs <- function(x, projection, projection.method = NULL, res = NULL, verbose = FALSE) {
   
   projection <- get_crs_config(projection)
   
   if (is.null(projection.method)) {
     data_nature <- determine_data_nature(x)
     vebprint(data_nature, verbose, "Data nature:")
-    
-    if (data_nature == "continuous") {
-      projection.method <- "bilinear"
-    } else {
-      projection.method <- "near"
-    }
+    projection.method <- if (data_nature == "continuous") "bilinear" else "near"
   }
   
   tryCatch({
@@ -39,11 +34,8 @@ check_crs <- function(x, projection, projection.method = NULL, verbose = FALSE) 
   },
     error = function(e) {
       vebcat("Error when trying to get crs.", color = "fatalError")
-      catn("Example of Accepted format:")
-      catn("+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84")
-      catn("Example of not accepted format:")
-      catn("laea")
-      stop("Check if input projection is a real crs and not a string name.")
+      vebprint(projection, text = "Found:")
+      stop("Check input projection")
     }
   )
   
@@ -59,22 +51,18 @@ check_crs <- function(x, projection, projection.method = NULL, verbose = FALSE) 
     catn("Reprojecting", highcat(as.character(crs(x, proj = TRUE))), "-->", highcat(as.character(crs(projection, proj = TRUE))), "\n")
     if (is.spatVector(x)) {
       x <- terra::project(x, projection)
+      x <- fix_shape(x, verbose)
     } else {
-      x <- terra::project(x, projection, method = projection.method)
+      x <- terra::project(x, projection, method = projection.method, res = res)
     }
-  }
-  
-  if (is.spatVector(x)) {
-    if (any(!is.valid(x))) {
-      vebcat("shape is not valid, trying to validate..", color = "nonFatalError")
-      x <- makeValid(x)
-      if (any(!is.valid(x))) {
-        vebcat("Successfully validated the shape", color = "proSuccess")
-      } else {
-        vebcat("Failed to validate shape", color = "nonFatalError")
-        vebcat("You can safely ignore this warning if you are projecting a world map to polar projections to use in polar settings.", color = "highlight")
-      }
+
+    if (identical(crs(x, proj = TRUE), prj_crs)) {
+      vebcat("Reprojection completed successfully", color = "funSuccess")
+    } else {
+      vebcat("Reprojection result does not match target CRS.", color = "nonFatalError")
     }
+  } else {
+    vebcat("Input object already in target projection. No reprojection needed.", color = "funSuccess")
   }
   
   return(x)

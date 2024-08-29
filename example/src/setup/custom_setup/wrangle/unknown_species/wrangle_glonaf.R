@@ -29,7 +29,7 @@ wrangle_glonaf <- function(name, column, verbose = FALSE) {
   mdwrite(
     config$files$post_seq_md,
     text = paste0(
-      "2;GloNAF\n\n",
+      "3;GloNAF\n\n",
       "Number of species in GloNAF formatted:", nrow(formatted), "**  ",
       "Number of species in GloNAF species output:", nrow(glonaf_species), "**",
     )

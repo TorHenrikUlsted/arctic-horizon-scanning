@@ -39,14 +39,22 @@ warn <- function(w, warn.file, warn.txt, iteration = NULL) {
 err <- function(e, err.file, err.txt, iteration = NULL) {
   err_msg <- conditionMessage(e)
   create_file_if(err.file, keep = TRUE)
-  err_con <- file(err.file, open = "a")
+  err_con <- try(file(err.file, open = "a"))
   
-  if (!is.null(iteration)) {
-    writeLines(paste(err.txt, "in iteration", iteration, ":", err_msg), err_con)
-  } else {
-    writeLines(paste(err.txt, ":", err_msg), err_con)
-  }
-  close(err_con)
+  tryCatch({
+    if (!is.null(iteration)) {
+      writeLines(paste(err.txt, "in iteration", iteration, ":", err_msg), err_con)
+    } else {
+      writeLines(paste(err.txt, ":", err_msg), err_con)
+    }
+  }, finally = {
+    if (is.character(err_con)) {
+      warning("err_con is a character, not a connection. Cannot close.")
+    } else {
+      tryCatch(close(err_con), error = function(e) warning("Failed to close connection: ", e$message))
+    }
+  })
+  
   stop(e)
 }
 

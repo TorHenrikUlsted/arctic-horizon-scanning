@@ -1,4 +1,4 @@
-wrangle_ambio <- function(name, column, verbose = F) {
+wrangle_ambio <- function(name, column, verbose = FALSE) {
   dir <- paste0("./outputs/setup/wrangle/", name)
   create_dir_if(dir)
 
@@ -6,7 +6,7 @@ wrangle_ambio <- function(name, column, verbose = F) {
   present_out <- paste0(dir, "/", name, "-present.csv")
   absent_out <- paste0(dir, "/", name, "-absent.csv")
 
-  preformat <- fread(paste0("./resources/data-raw/", name, ".csv"), header = F)
+  preformatted <- fread(paste0("./resources/data-raw/", name, ".csv"), header = F)
 
   vebcat("filtering rows.", veb = verbose)
   ## remove the not important rows and columns
@@ -18,6 +18,7 @@ wrangle_ambio <- function(name, column, verbose = F) {
   formatted <- formatted[-1, ]
   ## give the first column a name
   colnames(formatted)[1] <- "scientificName"
+  formatted <- unique(formatted, by = "scientificName")
 
   vebcat("Creating present df.", veb = verbose)
   # Create present and absent lists
@@ -49,17 +50,24 @@ wrangle_ambio <- function(name, column, verbose = F) {
 
   absent <- set_df_utf8(absent)
   fwrite(absent, absent_out, row.names = F, bom = T)
-
+  
+  fl <- nrow(formatted)
+  pl <- nrow(present)
+  al <- nrow(absent)
+  
+  md_dt <- data.table(
+    formatted = fl,
+    present = pl,
+    absent = al,
+    lost = fl - sum(pl, al)
+  )
+  
   mdwrite(
     config$files$post_seq_md,
-    text = paste0(
-      "2;Ambio\n\n",
-      "Number of species in ambio formatted:", nrow(formatted), "**  ",
-      "Number of species in ambio present:", nrow(present), "**   ",
-      "Number of species in ambio absent:", nrow(absent), "**",
-    )
+    text = "3;Wrangled AMBIO",
+    data = md_dt
   )
-
+  
   return(list(
     present = present,
     absent = absent

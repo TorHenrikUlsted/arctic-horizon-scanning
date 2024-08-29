@@ -8,7 +8,6 @@ wrangle_aba <- function(name, column, verbose = F) {
 
   # read CSV file
   preformat <- fread(paste0("./resources/data-raw/", name, ".csv"), header = F)
-
   ## format the ABA CSV file
   # Remove empty columns
   vebcat("selecting columns", veb = verbose)
@@ -24,9 +23,13 @@ wrangle_aba <- function(name, column, verbose = F) {
 
   # Remove row 1:6
   aba_selected <- aba_selected[-c(1:6), ]
-
-  # Assume that aba_selected is your existing data frame
-  # and that the first column contains the mixed Family, Genus, and Species text
+  
+  names(aba_selected)[1] <- "speciesCode"
+  # Remove text in the end and blank rows
+  aba_selected <- aba_selected[!grepl("^Total|^Number|^Mean", speciesCode) & speciesCode != ""]
+  
+  # Remove parenthesis in the 
+  aba_selected <- aba_selected[, speciesCode := gsub("[()]", "", speciesCode)]
 
   # Create new columns for Class, Family, Genus, and Species
   aba_selected$class <- ""
@@ -113,17 +116,20 @@ wrangle_aba <- function(name, column, verbose = F) {
   vebcat("Formatting df.", veb = verbose)
   # Remove column 1 which is now the old information of class, family, genus, species and subSpecies
   aba_formatted <- aba_selected[, -1]
-
-  # Remove empty rows and rows with all columns NA
-  aba_formatted <- aba_formatted[!apply(aba_formatted, 1, function(x) all(is.na(x) | x == "")), ]
+  
+  # Remove columns where species = "" or NA
+  aba_formatted <- aba_formatted[!is.na(scientificName)]
+  
+  # Remove .sp authorname
+  aba_formatted <- aba_formatted[!grepl("\\bsp\\.\\s*\\w*\\b", scientificName)]
 
   # Remove all quotes in the names
-  aba_formatted$scientificName <- gsub('"', "", aba_formatted$scientificName)
+  cols_to_clean <- c("class", "family", "genus", "species", "scientificName")
+  
+  # Remove double quotes from all specified columns in one operation
+  aba_formatted[, (cols_to_clean) := lapply(.SD, function(x) gsub('"', "", x)), .SDcols = cols_to_clean]
 
-  # Remove all rows where combined_names are NA
-  aba_formatted <- aba_formatted[complete.cases(aba_formatted$scientificName), ]
-
-  ## Move the new columns to be the first four columns of the data frame
+  ## Move the new columns to be the first four columns of the data table
   col_names <- colnames(aba_formatted)
 
   new_order <- c(col_names[(length(col_names) - 5):length(col_names)], col_names[1:(length(col_names) - 6)])
@@ -139,31 +145,29 @@ wrangle_aba <- function(name, column, verbose = F) {
 
   vebcat("Creating conditions.", veb = verbose)
   ## Create conditions for absence
-  c1 <- ifelse(aba_formatted$borderline == 1, TRUE, FALSE)
-  c2 <- apply(aba_formatted[, 7:32], 1, function(x) all(x %in% c("-", "?", "**")))
+  # Define columns to check
+  cols_to_check <- names(aba_formatted)[which(names(aba_formatted) == "CW"):which(names(aba_formatted) == "YK")]
+  aba_formatted[, borderline := borderline == 1]
+  aba_formatted[, absent := all(.SD %in% c("-", "?", "**")), .SDcols = cols_to_check]
 
   vebcat("Making ABA present.", veb = verbose)
-  ## use the !conditions to get species present in the Arctic
-  aba_present <- aba_formatted[!(c1 | c2), ]
-  ## remove the rows with empty cell from column 7 to 33.
-  aba_present <- aba_present[!apply(aba_present[, 7:33], 1, function(x) any(x == "")), ]
-  ## select only the species with scientificName
-  aba_present <- select(aba_present, scientificName)
-  aba_present$scientificName <- trimws(aba_present$scientificName)
-
-  setnames(aba_present, old = "scientificName", new = column)
+  aba_present <- aba_formatted[!(borderline | absent)]
+  aba_present <- aba_present[, .(scientificName = trimws(scientificName))]
 
   vebcat("Making ABA absent.", veb = verbose)
-  ## use conditions to create a new dataset by choosing only those satisfying the conditions from the aba_formatted dataset
-  aba_absent <- aba_formatted[c1 | c2, ]
-  ## remove the rows with empty cell from column 7 to 33.
-  aba_absent <- aba_absent[!apply(aba_absent[, 7:33], 1, function(x) any(x == "")), ]
-  ## select only the species with scientificName
-  aba_absent <- select(aba_absent, scientificName)
-  aba_absent$scientificName <- trimws(aba_absent$scientificName)
-
-  setnames(aba_absent, old = "scientificName", new = column)
-
+  aba_absent <- aba_formatted[borderline | absent]
+  aba_absent <- aba_absent[, .(scientificName = trimws(scientificName))]
+  
+  setnames(aba_present, "scientificName", column)
+  setnames(aba_absent, "scientificName", column)
+  
+  lost <- nrow(aba_formatted) - (nrow(aba_present) + nrow(aba_absent))
+  
+  if (lost > 0) {
+    vebcat("Error: formatted is not distributed equally in absent and present data tables.", color = "fatalError")
+    stop("Something went wrong when wranling the ABA")
+  }
+  
   catn("Writing out files to:", colcat(dir, color = "output"))
 
   set_df_utf8(aba_formatted)
@@ -174,17 +178,19 @@ wrangle_aba <- function(name, column, verbose = F) {
 
   set_df_utf8(aba_absent)
   fwrite(aba_absent, absent_out, row.names = F, bom = T)
+  
+  md_dt <- data.table(
+    formatted = nrow(aba_formatted),
+    present = nrow(aba_present),
+    absent = nrow(aba_absent),
+    lost = lost
+  )
 
   mdwrite(
     config$files$post_seq_md,
-    text = paste0(
-      "2;ABA\n\n",
-      "Number of species in aba formatted:", nrow(aba_formatted), "**  ",
-      "Number of species in aba present:", nrow(aba_present), "**   ",
-      "Number of species in aba absent:", nrow(aba_absent), "**",
-    )
+    text = paste0("3;ABA"),
+    data = md_dt
   )
-
 
   return(list(
     present = aba_present,

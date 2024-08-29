@@ -1,5 +1,5 @@
 source_all("./src/setup/components")
-if (config$run$example) { 
+if (config$simulation$example) {
   source_all("./example/src/setup")
 } else {
   source_all("./src/setup/custom_setup")
@@ -11,7 +11,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
 
   seq_set_file <- paste0(setup_log, "/setup-completed.txt")
 
-  if (!is.null(force.seq) && (force.seq == "all" || force.seq == "setup")) {
+  if (!is.null(force.seq) && ("all" %in% force.seq || "setup" %in% force.seq)) {
     catn("Forcing Setup sequence.")
     if (file.exists(seq_set_file)) file.remove(seq_set_file)
   }
@@ -30,13 +30,13 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     err_out <- paste0(setup_log, "/error.txt")
 
     create_file_if(warn_out, err_out)
-    
-    save_dir <- handle_biovar_saves()
+
+    save_dir <- build_climate_path()
     bw_out <- paste0(save_dir, "/biovars-world-subset.tif")
     br_out <- paste0(save_dir, "/biovars-region-subset.tif")
 
     wfo_speed <- check_system_speed(
-      df.path = "./resources/data-raw/speed-test-species.csv",
+      df.path = "./resources/data-raw/test/speed-test-species.csv",
       test.name = "wfo-speed",
       sample.size = NULL,
       cores.max = 1,
@@ -46,6 +46,8 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
 
     system.speed.wfo <<- wfo_speed
 
+    invisible(gc())
+
     setup_raw_data(
       column = "rawName",
       cores.max = cores.max,
@@ -54,13 +56,18 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     )
 
     sp_dir <- filter_sequence(
-      test = "small",
+      spec.unknown = "small",
       approach = approach,
       cores.max = cores.max,
+      force.seq = force.seq,
+      verbose = verbose
     )
 
+    rm(sp_dir)
+    invisible(gc())
+
     region_shape <- setup_region()
-    
+
     biovars <- setup_climate(
       region_shape,
       iteration = 1,
@@ -78,9 +85,10 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
       )
 
       vebcat("Check the correlation matrix and pick climate variables, Stopping process", color = "fatalError")
+      stop("Choose dimensions based on the correlation matrix")
     } else {
       catn("loading biovars.")
-      
+
       biovars$world <- terra::subset(biovars$world, hv.dims)
       if (!file.exists(bw_out)) writeRaster(biovars$world, bw_out)
 
@@ -89,9 +97,12 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
 
       region_hv <- setup_hv_region(
         biovars$region,
-        out.dir = paste0(setup_dir, "/region"),
+        out.dir = build_climate_path(),
         method = hv.method
       )
+
+      rm(biovars)
+      invisible(gc())
 
       setup_hv_sequence(
         hv.method = hv.method,

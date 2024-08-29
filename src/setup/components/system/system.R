@@ -22,7 +22,7 @@ check_system_speed <- function(df.path, test.name = "cpu-speed", sample.size = N
     result <- fun(
       subset = subset, 
       column = colnames(subset), 
-      folder = dir_path, 
+      out.dir = dir_path, 
       cores.max = min(nrow(df), cores.max), 
       verbose = verbose
     )
@@ -47,12 +47,11 @@ check_system_speed <- function(df.path, test.name = "cpu-speed", sample.size = N
   return(time_const)
 }
 
-wfo_speed <- function(subset, column, folder, cores.max, verbose = FALSE) {
-  
+wfo_speed <- function(subset, column, out.dir, cores.max, verbose = FALSE) {
   result <- check_syn_wfo(
     checklist = subset, 
     column = colnames(subset), 
-    folder = folder, 
+    out.dir = out.dir, 
     cores.max = cores.max, 
     verbose = verbose, 
     counter = 1

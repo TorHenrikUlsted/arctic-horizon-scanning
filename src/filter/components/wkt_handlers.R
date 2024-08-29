@@ -23,29 +23,42 @@ wkt_anti_clockwise <- function(extents) {
   return(anticlockwise_wkt)
 }
 
-vect_to_wkt <- function(vect, out.file, min.x = F, max.x = F, min.y = F, max.y = F) {
+vect_to_wkt <- function(vect, out.file, min.x = NULL, max.x = NULL, min.y = NULL, max.y = NULL) {
   vebcat("Converting vector to Well-known-text format.", color = "funInit")
   
-  if (class(vect) != "SpatVector") {
+  if (!inherits(vect, "SpatVector")) {
     stop("The input vect must be a SpatVector.")
+  }
+  
+  xy_params <- list(min.x = min.x, max.x = max.x, min.y = min.y, max.y = max.y)
+  
+  if (any(!sapply(xy_params, function(x) is.null(x) || is.character(x)))) {
+    stop("x and y must be characters or NULL.")
   }
   
   if (is.na(crs(vect)) || crs(vect) == "") {
     catn("No projection found, adding longlat.")
-    # Assign a CRS if it doesn't have one
     crs(vect) <- "+proj=longlat +datum=WGS84 +no_defs"
   }
   
-  ext_region <- ext(vect)
-  if (class(ext_region) == "SpatExtent") {
-    ext_region <- c(ext_region$xmin, ext_region$xmax, ext_region$ymin, ext_region$ymax)
-  }
+  ext_region <- as.vector(ext(vect))
   
-  # Check if any min or max values are true
-  if (min.x) ext_region[1] <- -180 
-  if (max.x) ext_region[2] <- 180 
-  if (min.y) ext_region[3] <- -90 
-  if (max.y) ext_region[4] <- 90 
+  for (i in seq_along(xy_params)) {
+    param <- xy_params[[i]]
+    param_name <- names(xy_params)[i]
+    
+    if (!is.null(param)) {
+      if (param == "min" && param_name == "min.x") {
+        ext_region[1] <- -180
+      } else if (param == "max" && param_name == "max.x") {
+        ext_region[2] <- 180
+      } else if (param == "min" && param_name == "min.y") {
+        ext_region[3] <- -90
+      } else if (param == "max" && param_name == "max.y") {
+        ext_region[4] <- 90
+      }
+    }
+  }
   
   catn("Making GBIF friendly WKT.")
   

@@ -1,56 +1,71 @@
-check_syn_wfo_one <- function(wfo_checklist, folder) {
-  vebcat("Starting the WFO.one synonym check", color = "funInit")
+check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir = "./", verbose = FALSE) {
+  vebcat("Initiating the WFO.one synonym check", color = "funInit")
   
-  wfo_one_checklist <- lapply(wfo_checklist, function(df) {
-    WFO.one(WFO.result = df, priority = "Accepted", spec.name = "scientificName", verbose = F, counter = 100)
-  })
+  if (!is.data.table(wfo.match.dt)) {
+    vebcat("Input data not a data.table", color = "fatalError")
+    vebprint(wfo.match.dt, text = "found:")
+    stop("Check WFO.one input data")
+  }
   
-  wfo_one_checklist <- rbindlist(wfo_one_checklist)
+  wfo_one_checklist <- WFO.one(
+    WFO.result = wfo.match.dt, 
+    priority = "Accepted",
+    spec.name = "scientificName",
+    verbose = FALSE, 
+    counter = 100
+  )
   
-  wfo_one_nomatch <- data.frame(wfo_one_checklist[wfo_one_checklist$One.Reason == "no match found", ])
+  fwrite(wfo_one_checklist, paste0(out.dir, "/wfo-one.csv"), bom = T)
+  out_file <- paste0(out.dir, "/wfo-one-clean.csv")
   
- if (nrow(wfo_one_nomatch) == 0) {
-   vebcat("No missing matches found.", color = "proSuccess")
- } else {
-   catn(
-     colcat("Missing matches for", color = "nonFatalError"), 
-     highcat(nrow(wfo_one_nomatch)), colcat("species, manually check these.", color = "nonFatalError")
+  wfo_one_mis <- wfo_mismatch_check(
+    wfo.result = wfo_one_checklist, 
+    col.origin = column,
+    out.file = paste0(out.dir, "/wfo-one-mismatch.csv"),
+    unchecked = FALSE,
+    verbose = verbose
+  ) # returns list of clean and mismatched info
+  
+  wfo_one_nomatch <- wfo_nomatch_check(
+    wfo.result = wfo_one_mis$clean, 
+    out.file = paste0(out.dir, "/wfo-one-nomatch.csv"),
+    verbose = verbose
+  ) # removes nomatches
+  
+  wfo_one_mis$clean = NULL # remove the clean to save memory
+  
+  wfo_one_na <- wfo_na_check(
+    wfo.result = wfo_one_nomatch$clean, 
+    out.file = paste0(out.dir, "/wfo-one-na.csv"),
+    verbose = verbose
+  ) # removes NA scientificNames
+  
+  wfo_one_nomatch$clean = NULL # remove the clean to save memory
+  
+  wfo_one_dups <- wfo_duplication_check(
+    wfo.result = wfo_one_na$clean, 
+    out.file = paste0(out.dir, "/wfo-one-duplicates.csv"), 
+    verbose = verbose
+  ) # removes duplicate scientificNames
+  
+  wfo_one_na$clean = NULL # remove the clean to save memory
+  
+  wfo_one_res <- wfo_one_dups$clean
+  wfo_one_dups$clean = NULL
+  
+  catn("Writing unique file to:", colcat(out_file, color = "output"))
+  fwrite(wfo_one_res, out_file, bom = T)
+  
+  vebcat("WFO.one results recieved", color = "funSuccess")
+
+  return(
+    list(
+      raw = wfo_one_checklist,
+      clean = wfo_one_res,
+      mismatch = wfo_one_mis$mismatch,
+      nomatch = wfo_one_nomatch$nomatch,
+      na = wfo_one_na$na,
+      duplicate = wfo_one_dups$duplicate
     )
- }
-  catn("Writing out to:", colcat(paste0(folder, "-wfo-one-nomatch.csv"), color = "output"))
-  
-  wfo_one_nomatch <- set_df_utf8(wfo_one_nomatch)
-
-  fwrite(wfo_one_nomatch, paste0(folder, "/wfo-one-nomatch.csv"), bom = T)
-  
-  wfo_one_match <- data.frame(wfo_one_checklist[wfo_one_checklist$One.Reason != "no match found",])
-  
-  catn("Removed", highcat(nrow(wfo_one_checklist) - nrow(wfo_one_match)), "missing matches from WFO.one result.")
-  
-  wfo_one_dups <- wfo_one_match[duplicated(wfo_one_match$scientificName), ]
-  
-  catn("Found", highcat(nrow(wfo_one_dups)), "duplicated species from the WFO.one result.")
-  
-  catn("Writing out to:", colcat(paste0(folder, "/wfo-one-duplicates.csv"), color = "output"))
-  
-  wfo_one_dups <- set_df_utf8(wfo_one_dups)
-  
-  fwrite(wfo_one_dups, paste0(folder, "/wfo-one-duplicates.csv"), bom = T)
-  
-  wfo_one_uniq <- wfo_one_match[!duplicated(wfo_one_match$scientificName), ]
-  
-  catn("Removed", highcat(nrow(wfo_one_match) - nrow(wfo_one_uniq)), "species from the WFO.one result.")
-  
-  catn("Writing csv file out to", colcat(paste0(folder, "/wfo-one-uniq.csv"), color = "output"))
-
-  wfo_one_uniq <- set_df_utf8(wfo_one_uniq)
-  
-  fwrite(wfo_one_uniq, paste0(folder, "/wfo-one-uniq.csv"), bom = T)
-  
-  vebcat("WFO_one results recieved", color = "funSuccess")
-
-  return(list(
-    wfo_one_uniq = wfo_one_uniq,
-    wfo_one_nomatch = wfo_one_nomatch
-  ))
+  )
 }

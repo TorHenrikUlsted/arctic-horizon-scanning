@@ -1,6 +1,6 @@
-clean_output_species <- function(out.dir, dt.result, dt.expected, clean.dirs = NULL, clean.files = NULL, verbose = FALSE) {
+check_output_species <- function(out.dir, dt.result, dt.expected, hv.removed, clean.dirs = NULL, clean.files = NULL, verbose = FALSE) {
   cleaned_file <- paste0(out.dir, "/cleaned-results.csv")
-  unexpected_file <- paste0(out.dir, "/unexpected-results.csv")
+  unexpected_file <- paste0(out.dir, "/gbif-changed-results.csv")
 
   if (file.exists(cleaned_file) && file.exists(unexpected_file)) {
     catn("Reading cleaned file.")
@@ -9,199 +9,128 @@ clean_output_species <- function(out.dir, dt.result, dt.expected, clean.dirs = N
     vebcat("Cleaning results.", color = "funInit")
 
     result_dt <- fread(dt.result)
+    hv_removed <- fread(hv.removed)
     expected_dt <- fread(dt.expected, sep = "\t")
-
+    
     result_names <- gsub("\\s+", config$species$file_separator, result_dt$cleanName)
+    hv_removed <- gsub("\\s+", config$species$file_separator, hv_removed$species)
     expected_names <- gsub("\\s+", config$species$file_separator, expected_dt$scientificName)
+    
+    vebprint(unique(result_names), verbose, text = "Result:")
+    vebprint(unique(hv_removed), verbose, text = "Removed:")
+    vebprint(unique(expected_names),verbose, text = "Expected:")
+    
+    # get unmatched and write out
+    unmatched <- result_names[!result_names %in% expected_names & !hv_removed %in% expected_names]
+    unmatched <- gsub(config$species$file_separator, " ", unmatched)
+    unmatched <- data.table(scientificName = unique(unmatched))
+    
+    catn("Writing GBIF changed names to:", colcat(unexpected_file, color = "output"))
+    fwrite(unmatched, unexpected_file, bom = TRUE)
 
-    # Clean the result file
-    unmatched <- result_names[!result_names %in% expected_names]
-    unmatched <- sort(unmatched)
-    unmatched_check <- gsub(config$species$file_separator, " ", unmatched)
-    # Get rows that are not expected to exist in the data
-    unexpected_results <- result_dt[result_dt$cleanName %in% unmatched_check, ]
-    catn("Writing unexpected results to:", colcat(unexpected_file, color = "output"))
-    fwrite(unexpected_results, unexpected_file, bom = TRUE)
-
-    # Get rows that are expected to exist in the data
-    cleaned_results <- result_dt[!result_dt$cleanName %in% unmatched_check, ]
-    catn("Writing cleaned results to:", colcat(cleaned_file, color = "output"))
-    fwrite(cleaned_results, cleaned_file, bom = TRUE)
-
-    # Clean result directories
-    if (is.null(clean.dirs) && is.null(clean.files)) {
-      vebcat("Skipping cleaning of directories and files.", veb = verbose)
-    } else {
-      if (!is.null(clean.dirs)) {
-        dirs <- list.dirs(clean.dirs)
-
-        matched_dirs <- sapply(dirs, function(d) {
-          base <- gsub("\\s+", config$species$file_separator, basename(d))
-
-          if (base %in% unmatched) {
-            return(d)
-          } else {
-            return(NA)
-          }
-        })
-
-        matched_dirs <- matched_dirs[!is.na(matched_dirs)]
-        matched_dirs <- unname(matched_dirs)
-
-        vebprint(matched_dirs, verbose, "Matched Directories:")
-
-        catn("Number of matched direcotries:", highcat(length(matched_dirs)))
-        unlink(matched_dirs, recursive = TRUE)
-
-        post_dirs <- list.dirs(clean.dirs)
-
-        l_diff <- length(dirs) - length(post_dirs)
-
-        if (l_diff == 0) {
-          vebcat("Error, could not remove directories.", color = "nonFatalError")
-        } else {
-          vebcat("Successfully removed", l_diff, "directories.", color = "proSuccess")
-        }
-      } else {
-        vebcat("Skipping cleaning of directories.", veb = verbose)
-      }
-
-      if (!is.null(clean.files)) {
-        files <- list.files(clean.files)
-
-        matched_files <- sapply(files, function(f) {
-          base <- gsub("\\s+", config$species$file_separator, basename(f))
-
-          if (base %in% unmatched) {
-            return(f)
-          } else {
-            return(NA)
-          }
-        })
-
-        matched_files <- matched_files[!is.na(matched_files)]
-        matched_files <- unname(matched_files)
-
-        vebprint(matched_files, verbose, "Matched Files:")
-
-        catn("Number of matched Files:", highcat(length(matched_files)))
-        file.remove(matched_files)
-
-        post_files <- list.files(clean.files)
-
-        l_diff <- length(files) - length(post_files)
-
-        if (l_diff == 0) {
-          vebcat("Error, could not remove files.", color = "nonFatalError")
-        } else {
-          vebcat("Successfully removed", l_diff, "files.", color = "proSuccess")
-        }
-      } else {
-        vebcat("Skipping cleaning of files.", veb = verbose)
-      }
-    }
-
-    vebcat("Results successfully cleaned.", color = "funSuccess")
-    return(cleaned_results)
+    vebcat("Results successfully checked", color = "funSuccess")
+    return(result_dt)
   }
 }
 
 
 filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv.dir, hv.method, verbose = FALSE) {
   vebcat("Initializing stats data.", color = "funInit")
-
+  
   inc_sp_out <- paste0(out.dir, "/included-species.csv")
   exc_sp_out <- paste0(out.dir, "/excluded-species.csv")
   infra_sp_out <- paste0(out.dir, "/included-infraspecifics-region.csv")
   sp_w_infra_out <- paste0(out.dir, "/species-with-infraspecifics.csv")
-
+  
   if (any(!sapply(c(inc_sp_out, exc_sp_out, infra_sp_out, sp_w_infra_out), file.exists))) {
     included_sp <- vis.dt[excluded == FALSE, ]
-
+    
     catn("Writing out to file:", colcat(inc_sp_out, color = "output"))
-
+    
     fwrite(included_sp, inc_sp_out, bom = TRUE)
-
+    
     vebcat("Number of included species:", highcat(length(unique(included_sp$cleanName))))
-
+    
     # Get underlying taxons and check if they are in the analysis
-
+    
     infrasp <- copy(included_sp)
-
+    
     setnames(infrasp, "cleanName", "species")
-
+    
     infrasp <- unique(infrasp, by = "species")
-
+    
     infrasp <- infrasp[, .(species)]
-
+    
     known_sp <- fread(known.list, sep = "\t")
-
+    
     catn("Acquiring underlying taxon ranks.")
-
+    
     infrasp[, matched_infraSpecificEpithet := sapply(species, function(x) {
       # cat("\rProcessing species", x)
       matched_subspecies <- known_sp$scientificName[grepl(x, known_sp$scientificName)]
       if (length(matched_subspecies) > 0) matched_subspecies else NA
     })]
-
+    
     infrasp <- infrasp[!is.na(matched_infraSpecificEpithet), ]
-
+    
     infrasp <- infrasp[, list(matched_infraSpecificEpithet = unlist(matched_infraSpecificEpithet)), by = species]
-
+    
     vebcat("Found", highcat(length(unique(infrasp$species))), "species with underlying taxons.")
-
+    
     catn("Writing out to file:", colcat(infra_sp_out, color = "output"))
     fwrite(infrasp, infra_sp_out, bom = TRUE)
-
+    
     # Check if they are in the analysis
     unknwon_files <- list.files(unknown.chunk.dir)
-
+    
     unknwon_names <- gsub(config$species$file_separator, " ", gsub(".csv", "", unknwon_files))
-
+    
     matches <- unique(infrasp$species) %in% unknwon_names
-
+    
     matched <- unique(infrasp$species)[matches]
-
+    
     infraspecifics <- data.table(species = character(), taxonRank = character(), infraspecificEpithet = character(), scientificName = character())
-
-    for (i in 1:length(matched)) {
-      cat("\rChecking species if included in analysis:", i, "/", length(matched))
-      sp_file <- paste0(unknown.chunk.dir, "/", paste0(gsub(" ", config$species$file_separator, matched[i]), ".csv"))
-      sp_name <- matched[i]
-      sp <- fread(sp_file)
-
-      infrasp <- unique(sp$infraspecificEpithet)
-      scientificName <- unique(sp$scientificName)
-      taxonRank <- unique(sp$taxonRank)
-
-      infraspecifics <- rbind(infraspecifics, data.table(
-        species = sp_name,
-        taxonRank = taxonRank,
-        infraspecificEpithet = infrasp,
-        scientificName = scientificName
-      ))
+    
+    if (length(matched > 0)) {
+      for (i in 1:length(matched)) {
+        cat("\rChecking species if included in analysis:", i, "/", length(matched))
+        sp_file <- paste0(unknown.chunk.dir, "/", paste0(gsub(" ", config$species$file_separator, matched[i]), ".csv"))
+        sp_name <- matched[i]
+        sp <- fread(sp_file)
+        
+        infrasp <- unique(sp$infraspecificEpithet)
+        scientificName <- unique(sp$scientificName)
+        taxonRank <- unique(sp$taxonRank)
+        
+        infraspecifics <- rbind(infraspecifics, data.table(
+          species = sp_name,
+          taxonRank = taxonRank,
+          infraspecificEpithet = infrasp,
+          scientificName = scientificName
+        ))
+      }
+      catn()
     }
-    catn()
-
+    
     vebcat("Found", highcat(length(unique(!is.na(infraspecifics$infraspecificEpithet)))), "Species with additional underlying taxons.")
-
+    
     catn("Writing out to file:", colcat(sp_w_infra_out, color = "output"))
     fwrite(infraspecifics, sp_w_infra_out, bom = TRUE)
-
+    
     # Get excluded results
-
+    
     excluded_sp <- vis.dt[excluded == TRUE, ]
-
+    
     vebcat("Number of excluded species:", highcat(length(unique(excluded_sp$cleanName))))
-
+    
     catn("Writing out to file:", colcat(exc_sp_out, color = "output"))
     fwrite(excluded_sp, exc_sp_out, bom = TRUE)
-
+    
     mdwrite(
       config$files$post_seq_md,
       text = "1;Visualize Sequence",
     )
-
+    
     mdwrite(
       config$files$post_seq_md,
       text = paste0(
@@ -213,83 +142,83 @@ filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv
     excluded_sp <- fread(exc_sp_out)
     included_sp <- fread(inc_sp_out)
   }
-
+  
   rm(excluded_sp)
   invisible(gc())
-
+  
   vebcat("Stats successfully initialised.", color = "funSuccess")
-
+  
   return(included_sp)
 }
 
 get_region_cells <- function(shape, template.filename, out.dir, verbose = FALSE) {
   vebcat("Converting region to data table with raster extents.", color = "funInit")
-
+  
   out_file <- paste0(out.dir, "/region-cell.csv")
-
+  
   if (file.exists(out_file)) {
     cell_regions_dt <- fread(out_file)
   } else {
     region <- load_region(shape)
-
+    
     sp_rast <- load_sp_rast(template.filename) # Use as template
-
+    
     if (!identical(ext(sp_rast), ext(region))) {
       catn("Cropping region extent to match species")
       region <- crop(region, ext(sp_rast))
     }
-
+    
     catn("Extracting raster from region.")
     sp_cell_dt <- extract_raster_to_dt(sp_rast, region, value = "toRemove", cells = TRUE)
     sp_cell_dt[, toRemove := NULL]
     sp_cell_dt <- unique(sp_cell_dt, by = "cell")
-
+    
     vebprint(sp_cell_dt, verbose)
     catn("Difference between nrows and unique cells:", highcat(nrow(sp_cell_dt) - length(unique(sp_cell_dt$cell))))
-
+    
     catn("Converting region to data table.")
     region_dt <- as.data.frame(region)
     region_dt <- as.data.table(region_dt)
     region_dt[, ID := .I]
     region_dt <- handle_region_dt(region_dt)
-
+    
     vebprint(region_dt, verbose)
-
+    
     catn("Merging raster_dt and region_dt.")
     sp_regions_dt <- merge(sp_cell_dt, region_dt, by = "ID")
     setnames(sp_regions_dt, "ID", "regionId")
-
+    
     sp_regions_dt <- unique(sp_regions_dt, by = "cell")
-
+    
     catn("Difference between nrows and unique cells:", highcat(nrow(sp_regions_dt) - length(unique(sp_regions_dt$cell))))
-
+    
     vebprint(sp_regions_dt, verbose)
-
+    
     # Merge cell regions with the raster cells
     catn("Extracting raster cells.")
     sp_dt <- extract_raster_to_dt(sp_rast, value = "toRemove", cells = TRUE)
     sp_dt[, toRemove := NULL]
-
+    
     vebprint(sp_dt, verbose)
-
+    
     catn("Merging raster cells with region by cells.")
     cell_regions_dt <- merge(sp_dt, sp_regions_dt, by = "cell", all = FALSE)
-
+    
     cell_regions_dt[country == "", country := NA]
     cell_regions_dt[subRegionName == "", subRegionName := NA]
-
+    
     catn("Difference between nrows and unique cells:", highcat(nrow(cell_regions_dt) - length(unique(cell_regions_dt$cell))))
-
+    
     vebprint(unique(cell_regions_dt$subRegionName), verbose, text = "SubRegions:")
-
+    
     fwrite(cell_regions_dt, out_file, bom = TRUE)
   }
-
+  
   vebcat("Final Number of subRegions:", highcat(length(unique(cell_regions_dt$subRegionName))))
   catn("Final Number of rows:", highcat(nrow(cell_regions_dt)))
-
+  
   vebcat("Successfully converted region to data table with raster extents.", color = "funSuccess")
-
+  
   return(cell_regions_dt)
 }
 
@@ -367,7 +296,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbo
     
     return(summed_dt)
   }
-
+  
   execute <- function(spec.filename, region = NULL, extra = NULL, verbose = NULL) {
     # Do it in batches, that is faster and saves space
     sp_name <- clean_spec_filename(dirname(spec.filename[1]))
@@ -375,7 +304,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbo
     
     sp_rast <- load_sp_rast(spec.filename[1])
     vebprint(sp_rast, text = "Raster:")
-
+    
     summed_dt <- extract_raster_to_dt(sp_rast, value = "richnessSum", cells = TRUE)
     summed_dt <- unique(summed_dt, by = "cell")
     
@@ -393,59 +322,59 @@ get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbo
       
       sp_rast <- load_sp_rast(spec_file)
       vebprint(sp_rast, verbose, text = "Raster:")
-
+      
       res_dt <- extract_raster_to_dt(sp_rast, value = "cellAbundance", cells = TRUE)
       res_dt <- unique(res_dt, by = "cell")
-
+      
       vebprint(res_dt, verbose, "Finished Raster:")
-
+      
       summed_dt[res_dt, on = "cell", richnessSum := 
-          fifelse(is.na(richnessSum) & is.na(i.cellAbundance), NA_real_,
-                  fifelse(is.na(richnessSum), i.cellAbundance,
-                          fifelse(is.na(i.cellAbundance), richnessSum,
-                                  richnessSum + i.cellAbundance)))
+                  fifelse(is.na(richnessSum) & is.na(i.cellAbundance), NA_real_,
+                          fifelse(is.na(richnessSum), i.cellAbundance,
+                                  fifelse(is.na(i.cellAbundance), richnessSum,
+                                          richnessSum + i.cellAbundance)))
       ]
-
+      
       catn("nrow", nrow(summed_dt), "| max Richness", max(summed_dt$richnessSum, na.rm = TRUE))
     }
     catn()
-
+    
     return(summed_dt)
   }
-
+  
   # Handle the parallel results will return a list of results
   process <- function(parallel.res, extra, verbose) { # parallel.res is a list of data tables
     dt_summed <- parallel.res[[1]]
     dt_list <- parallel.res[[2]]
-
+    
     vebcat("Number of rows:", highcat(nrow(dt_summed)))
     vebcat("Number of unique cells:", highcat(length(unique(dt_summed$cell))))
-
+    
     vebprint(dt_init, veb = verbose, "Init data table:")
     vebprint(dt_list, veb = verbose, "dt list:")
-
+    
     for (i in 1:length(dt_list)) {
       cat("\rProcessing list", i, "/", length(dt_list))
-
+      
       dt_sp <- dt_list[[i]] 
-
+      
       dt_summed[dt_sp, on = "cell", cellRichness := 
                   fifelse(is.na(cellRichness) & is.na(i.richnessSum), NA_real_, # NA + NA = NA
                           fifelse(is.na(cellRichness), i.richnessSum, # NA + value = value
                                   fifelse(is.na(i.richnessSum), cellRichness, # value + NA = value
                                           cellRichness + i.richnessSum))) # value1 + value2 = sum of values
       ]
-
+      
     }
     catn()
-
-
+    
+    
     vebcat("Number of rows:", highcat(nrow(dt_summed)))
     vebcat("Number of unique cells:", highcat(length(unique(dt_summed$cell))))
-
+    
     return(dt_summed)
   }
-
+  
   return(list(
     init = init,
     execute = execute,
@@ -460,30 +389,30 @@ convert_template_raster <- function(input.values, template.filename, projection,
     out_file <- paste0(out.dir, "/hotspots.tif")
   }
   
-
+  
   if (file.exists(out_file)) {
     catn("Reading", highcat(basename(out_file)))
     return(terra::rast(out_file))
   }
-
+  
   vebcat("Converting raster", color = "funInit")
-
+  
   template <- terra::rast(template.filename)
   # Check length
   catn("Length of input / raster")
   catn(length(input.values), "/", ncell(template))
-
+  
   terra::values(template) <- NA
-
+  
   terra::values(template) <- input.values
-
+  
   template <- check_crs(template, projection = projection, projection.method = projection.method)
-
+  
   catn("Writing raster to:", colcat(out_file, color = "output"))
   writeRaster(template, out_file)
-
+  
   vebcat("Raster converted successfully", color = "funSuccess")
-
+  
   return(template)
 }
 
@@ -514,7 +443,7 @@ get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pol
     world_map <- ne_countries(scale = scale, returnclass = "sf")
     world_map <- vect(world_map)
   } 
-
+  
   if (!is.null(pole)) {
     if (pole == "north") {
       equator_extent <- ext(-180, 180, 0, 90)
@@ -523,14 +452,14 @@ get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pol
     } else {
       stop("pole has to be either 'south' or 'north'.")
     }
-
+    
     world_map <- crop(world_map, equator_extent)
   }
-
+  
   world_map <- suppressWarnings(check_crs(world_map, projection))
-
+  
   vebcat("World Map setup completed successfully", color = "funSuccess")
-
+  
   return(world_map)
 }
 
@@ -538,17 +467,17 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
   execute <- function(spec.filename, region, extra, verbose) {
     sp_name <- basename(dirname(spec.filename))
     sp_name <- gsub(config$species$file_separator, " ", sp_name)
-
+    
     sp_rast <- terra::rast(spec.filename)
-
+    
     catn("Converting region to data table.")
     region_dt <- as.data.table(as.data.frame(region))[, ID := .I]
     region_dt <- handle_region_dt(region_dt)
-
+    
     catn("Extracting raster cells.")
     sp_dt <- extract_raster_to_dt(sp_rast, region, value = "cellOccupancy", cells = TRUE)
     tot_cells <- sp_dt[!is.na(cell), uniqueN(cell)]
-
+    
     catn("Merging raster_dt and region_dt.")
     sp_regions_dt <- merge(sp_dt, region_dt, by = "ID")
     setnames(sp_regions_dt, "ID", "regionId")
@@ -571,7 +500,7 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
     
     sp_tpaoo <- sp_regions_dt[, sum(cellOccupancy)]
     sp_proptpaoo <- sp_tpaoo / tot_cells
-
+    
     vebcat("Species Total Potential Area of Occupancy:", highcat(sp_tpaoo))
     
     sp_tpaoo_region <- sp_regions_dt[, .(
@@ -583,9 +512,9 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
       subRegionLat = first(subRegionLat),
       westEast = first(westEast)
     ), by = "subRegionName"]
-
+    
     sp_tpaoo_region[, propPAoO := PAoO / nCellsRegion, by = "subRegionName"]
-
+    
     vebprint(sp_tpaoo_region, verbose, "Species Potential Area of Occupancy in each subregion:")
     
     out_dt <- sp_tpaoo_region[, .(
@@ -614,23 +543,23 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
 
 stack_projections <- function(filenames, projection, projection.method, out.dir, binary = FALSE, verbose = FALSE) {
   vebcat("Stacking rasters", color = "funInit")
-
+  
   nodes_dir <- paste0(out.dir, "/nodes")
   rasters_dir <- paste0(out.dir, "/", gsub(".tif", "", basename(filenames)[1]))
-
+  
   create_dir_if(nodes_dir, rasters_dir)
-
+  
   rast_out_names <- paste0(basename(dirname(filenames)), ".tif")
-
+  
   raster_files <- list.files(rasters_dir, full.names = FALSE)
-
+  
   skip <- FALSE
-
+  
   if (all(rast_out_names %in% raster_files)) {
     catn("Found raster files, skipping to stacking.")
     skip <- TRUE
   }
-
+  
   if (!skip) {
     
     tryCatch({
@@ -667,7 +596,7 @@ stack_projections <- function(filenames, projection, projection.method, out.dir,
       catn("Stacking rasters in parallel.")
       
       # Apply the function in parallel
-     clusterApplyLB(cl, 1:length(filenames), function(i) {
+      clusterApplyLB(cl, 1:length(filenames), function(i) {
         tryCatch({
           node_file <- paste0(nodes_dir, "/", paste0("node", i))
           create_file_if(node_file)
@@ -744,26 +673,26 @@ stack_projections <- function(filenames, projection, projection.method, out.dir,
   
   catn("Listing files and stacking them.")
   raster_files <- list.files(rasters_dir, full.names = TRUE)
-
+  
   # Order it by filenames order
   ordered <- raster_files[match(rast_out_names, basename(raster_files))]
   vebprint(ordered, verbose, "Ordered Rasters:")
-
+  
   stack <- terra::rast(ordered[1])
-
+  
   for (i in 2:length(ordered)) {
     cat("\rStacking", i, "/", length(ordered))
-
+    
     file <- ordered[i]
-
+    
     raster <- terra::rast(file)
-
+    
     stack <- c(stack, raster)
   }
   catn()
-
+  
   vebcat("Successfully stacked rasters", color = "funSuccess")
-
+  
   return(stack)
 }
 
@@ -771,27 +700,27 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
   execute <- function(spec.filename, region, extra, verbose) {
     sp_name <- basename(dirname(spec.filename))
     sp_name <- gsub(config$species$file_separator, " ", sp_name)
-
+    
     sp_rast <- terra::rast(spec.filename)
-
+    
     catn("Converting region to data table.")
     region_dt <- as.data.frame(region)
     region_dt <- as.data.table(region_dt)
     region_dt[, ID := .I]
     region_dt <- handle_region_dt(region_dt)
-
+    
     catn("Extracting raster cells.")
     sp_dt <- extract_raster_to_dt(sp_rast, region, value = "cellSuitability", cells = TRUE)
-
+    
     sp_dt <- sp_dt[!is.na(cellSuitability)]
-
+    
     catn("Merging raster_dt and region_dt.")
     sp_regions_dt <- merge(sp_dt, region_dt, by = "ID")
     setnames(sp_regions_dt, "ID", "regionId")
     sp_regions_dt <- unique(sp_regions_dt, by = "cell")
     sp_regions_dt <- sp_regions_dt[, .(cellSuitability, subRegionName, country)]
     sp_regions_dt <- sp_regions_dt[, species := sp_name]
-
+    
     sp_Tmin <- min(sp_regions_dt$cellSuitability, na.rm = TRUE)
     sp_Tmean <- mean(sp_regions_dt$cellSuitability, na.rm = TRUE)
     sp_Tmedian <- median(sp_regions_dt$cellSuitability, na.rm = TRUE)
@@ -799,7 +728,7 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
     # sp_Tq2 <- quantile(sp_regions_dt$cellSuitability, probs = 0.5, na.rm = TRUE)
     # sp_Tq3 <- quantile(sp_regions_dt$cellSuitability, probs = 0.75, na.rm = TRUE)
     sp_Tmax <- max(sp_regions_dt$cellSuitability, na.rm = TRUE)
-
+    
     vebcat("Species Total min Suitability:", sp_Tmin)
     vebcat("Species Total mean Suitability:", sp_Tmean)
     vebcat("Species Total median Suitability:", sp_Tmedian)
@@ -807,7 +736,7 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
     # vebcat("Species Total 2. quantile Suitability:", sp_Tq2)
     # vebcat("Species Total 3. quantile Suitability:", sp_Tq3)
     vebcat("Species Total max Suitability:", sp_Tmax)
-
+    
     total_dt <- data.table(
       species = sp_name,
       totalMin = sp_Tmin,
@@ -819,7 +748,7 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
       totalMax = sp_Tmax,
       filename = spec.filename
     )
-
+    
     data_region <- sp_regions_dt[, regionMin := min(cellSuitability, na.rm = TRUE), by = subRegionName]
     data_region <- sp_regions_dt[, regionMean := mean(cellSuitability, na.rm = TRUE), by = subRegionName]
     data_region <- sp_regions_dt[, regionMedian := median(cellSuitability, na.rm = TRUE), by = subRegionName]
@@ -827,29 +756,29 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
     # data_region <- sp_regions_dt[, regionq2 := quantile(cellSuitability, probs = 0.5, na.rm = TRUE), by = subRegionName]
     # data_region <- sp_regions_dt[, regionq3 := quantile(cellSuitability, probs = 0.75, na.rm = TRUE), by = subRegionName]
     data_region <- sp_regions_dt[, regionMax := max(cellSuitability, na.rm = TRUE), by = subRegionName]
-
+    
     data_region <- data_region[regionMax > 0, ]
-
+    
     vebprint(data_region, text = "Species data for each subRegion:")
-
+    
     out_dt <- merge(total_dt, data_region, by = "species", all = TRUE)
-
+    
     out_dt <- out_dt[, .(
       species, totalMin, totalMean, totalMedian, totalMax,
       regionMin, regionMean, regionMedian, regionMax,
       subRegionName, country, filename
     )]
-
+    
     out_dt <- unique(out_dt, by = "subRegionName")
-
+    
     vebprint(out_dt, veb = verbose, "Finished data table:")
-
+    
     rm(total_dt, data_region)
     invisible(gc())
-
+    
     return(out_dt)
   }
-
+  
   return(list(
     execute = execute
   ))
@@ -857,32 +786,32 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
 
 calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
   catn("Calculating richness for", highcat(taxon))
-
+  
   dt_copy <- copy(dt)
-
+  
   dt_copy[, taxonRichness := uniqueN(cleanName, na.rm = TRUE), by = c(taxon, "subRegionName")]
-
+  
   vebprint(dt_copy, verbose, text = "Taxon Richness before sum:")
-
+  
   # Calculate total taxon richness
   dt_copy[, totalRichness := uniqueN(cleanName, na.rm = TRUE), by = subRegionName]
-
+  
   # Calculate relative richness
   dt_copy[, relativeRichness := taxonRichness / totalRichness]
-
+  
   vebprint(dt_copy, verbose, text = "Taxon Richness after sum:")
-
+  
   return(dt_copy)
 }
 
 get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   vebcat("Getting region richness", color = "funInit")
-
+  
   if (is.character(paoo.file)) {
     paoo.file <- fread(paoo.file)
   }
   sp_stats <- copy(stats)
-
+  
   paoo_dt <- paoo.file[, .(species, TPAoO, PAoO, subRegionName, country, subRegionLong, subRegionLat, westEast)]
   
   setnames(paoo_dt, "species", "cleanName")
@@ -893,63 +822,63 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originMeanLong, originMeanLat)]
   
   merged_dt <- merge(paoo_dt, sp_stats, by = "cleanName", allow.cartesian = TRUE)
-
+  
   merged_dt <- merged_dt[subRegionName == "", subRegionName := NA]
   
   vebcat("Number of species:", highcat(length(unique(merged_dt$species))))
   vebcat("Number of subRegions:", highcat(length(unique(merged_dt$subRegionName))))
-
+  
   merged_dt <- merged_dt[!is.na(subRegionName)]
-
+  
   vebcat("Number of species after removing NA subregions:", highcat(length(unique(merged_dt$species))))
   vebcat("Number of subRegions after removing NA subregions:", highcat(length(unique(merged_dt$subRegionName))))
-
+  
   vebprint(merged_dt, verbose, text = "Merged Data Table:")
-
+  
   richness_dt <- calculate_taxon_richness(
     merged_dt,
     taxon = taxon,
   )
-
+  
   richness_dt <- get_order_group(
     richness_dt
   )
-
+  
   richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName"))
-
+  
   richness_dt <- richness_dt[, groupRelativeRichness := sum(relativeRichness), by = .(group, subRegionName)]
-
-
+  
+  
   vebprint(richness_dt[, .(sumofRR = sum(relativeRichness)), by = "subRegionName"], verbose, text = "final sum of RelativeRichness per region:")
-
+  
   vebcat("Successfully acquired region richness", color = "funSuccess")
-
+  
   return(richness_dt)
 }
 
 get_connections <- function(dt, taxon, verbose = FALSE) {
   dt_copy <- copy(dt)
-
+  
   dt_copy <- dt_copy[!is.na(subRegionName) & subRegionName != "" & !is.na(originCountry) & originCountry != ""]
-
+  
   dt_copy <- dt_copy[, connections := .N, by = c(taxon, "subRegionName", "originCountry")]
-
+  
   dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", "originCountry"))
-
+  
   return(dt_copy)
 }
 
 get_con_points <- function(dt, projection, longitude, latitude, verbose = FALSE) {
   vebprint(dt, verbose, "Input dt:")
-
+  
   points <- vect(dt, geom = c(longitude, latitude), crs = config$projection$crs$longlat)
-
+  
   vebprint(points, verbose, "Points data:")
-
+  
   points <- reproject_region(points, projection, verbose = verbose)
-
+  
   vebprint(points, verbose, "Reprojected points:")
-
+  
   return(points)
 }
 
@@ -959,35 +888,35 @@ calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
     text = "1;List number of rows",
     veb = write.md
   )
-
+  
   catn("Number of rows in the different files:")
   catn("--------------------------------------")
-
+  
   for (i in 1:length(dt.filenames)) {
     file <- dt.filenames[i]
-
+    
     name_dir <- progressive_dirname(file, begin, end)
-
+    
     name <- paste0(basename(name_dir), " - ", basename(file))
-
+    
     file_length <- system_calc_rows(file)
-
+    
     catn(paste0(name, ":"), highcat(file_length))
-
+    
     mdwrite(
       config$files$post_seq_md,
       text = paste0("2;", name),
       veb = write.md
     )
-
+    
     mdwrite(
       config$files$post_seq_md,
       text = paste0("Number of species: **", file_length, "**"),
       veb = write.md
     )
   }
-
-
-
+  
+  
+  
   return(invisible())
 }

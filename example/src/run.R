@@ -1,6 +1,6 @@
 ## Example script
 source("./src/utils/utils.R")
-config$run$example = TRUE
+load_utils()
 source("./src/setup/setup_sequence.R")
 source("./src/filter/filter_sequence.R")
 source("./src/hypervolume/parallel_hypervolume.R")
@@ -9,14 +9,15 @@ source("./src/hypervolume/hypervolume.R")
 source("./src/visualize/visualize.R")
 source("./src/main.R")
 
+# Can run tests with
+# spec.known = "test_known"
+# spec.unknown = "test_small" OR "test_big"
+
 main(
-  spec.known = filter_arctic,
-  spec.unknown = filter_glonaf,
-  test = NULL,
-  approach = "precautionary",
+  spec.known = "test_known",
+  spec.unknown = "test_big",
   coord.uncertainty = NULL,
-  climate.database = "worldclim",
-  region = NULL,
+  gbif.occ.region = NULL, # If wanting to download files within a shapefile -- converted to WKT
   download.key = "0186013-240321170329656",
   download.doi = "https://doi.org/10.15468/dl.awqjxw",
   hv.iterations = NULL,
@@ -24,24 +25,22 @@ main(
   hv.accuracy = "accurate",
   hv.dims = c(18, 10, 3, 4),
   hv.incl.threshold = 0.5,
-  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
-  vis.projection = "laea",
+  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp", # change to simply name
   vis.title = TRUE,
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",
-  vis.save.device = "svg", 
+  vis.save.device = "svg",
   vis.save.unit = "px",
   plot.show = FALSE,
   verbose = TRUE,
-  example = TRUE,
-  force.seq = "setup"
+  force.seq = NULL
 )
 
 create_derived_dataset(
   occurrences.dir = paste0(
     "./outputs/filter/", 
-    gsub("filter_", "", get_obj_name(filter_glonaf)), 
+    "glonaf",
     "/chunk/species"
   ),
   verbose = FALSE

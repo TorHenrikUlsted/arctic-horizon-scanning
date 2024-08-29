@@ -59,6 +59,7 @@ get_process_mem_use <- function(unit = "gb") {
 
 start_mem_tracking <- function(file.out, file.stop) {
   if(file.exists(file.stop)) file.remove(file.stop)
+  create_file_if(file.out)
   
   init_val <- get_mem_usage(type = "used", format = "gb")
   # Create a control object

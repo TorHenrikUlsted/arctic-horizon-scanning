@@ -53,22 +53,13 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
 
   vebcat("The node has escaped the node-iterations traffic.", veb = verbose)
 
-
   try(node_con <- file(node_it, open = "at"))
   identifier <- paste0("node", iteration)
   writeLines(identifier, node_con)
   close(node_con)
-
+  
   # Check if the current disk space is less than the minimum required
   if (current_disk_space <= min.disk.space) stop("Insufficient disk space. Stopping processing.")
-
-  catn("Init-log finished.")
-
-  if (verbose) {
-    sink(type = "message")
-    sink(type = "output")
-    close(init_log)
-  }
 
   return(list(
     dir = node_dir,
@@ -76,6 +67,7 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
     locks = node_lock_dir,
     lock.setup = lock_node_it,
     it.log = node_it,
+    init.log = init_log,
     warn.file = warn_file,
     err.file = err_file
   ))
@@ -83,21 +75,32 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
 
 # --------------------------- Process node ---------------------------- #
 
-process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, identifier, iteration, spec.list, columns.to.read, init.dt, hv.incl.threshold = 0.5, verbose, warn.file, err.file, fun) {
+process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, node.init.log, identifier, iteration, spec.list, columns.to.read, init.dt, hv.incl.threshold = 0.5, verbose, warn.file, err.file, fun) {
+  catn("Processing node opened")
   log_dir <- paste0(pro.dir, "/logs")
   log_nodes <- paste0(log_dir, "/nodes")
 
   spec_filename <- spec.list[[iteration]]
   spec_name <- gsub(".csv", "", basename(spec_filename))
   spec_name <- trimws(spec_name)
-
-  sp_node_log <- paste0(log_nodes, "/", iteration, "-", gsub(" ", spec.file.separator, spec_name), "-log.txt")
+  
+  sp_node_log <- paste0(log_nodes, "/", iteration, "-", gsub(" ", config$species$file_separator, spec_name), "-log.txt")
+  
+  catn(sp_node_log)
 
   failed_its_log <- paste0(log_dir, "/failed-iterations.txt")
   highest_it_log <- paste0(log_dir, "/highest-iteration.txt")
 
-create_file_if(highest_it_log, failed_its_log, keep = TRUE)
-create_file_if(sp_node_log, failed_its_log)
+  create_file_if(highest_it_log, failed_its_log, keep = TRUE)
+  create_file_if(sp_node_log, failed_its_log)
+  
+  catn("Init-log finished.")
+  
+  if (verbose) {
+    sink(type = "message")
+    sink(type = "output")
+    close(node.init.log)
+  }
 
   try(sp_log <- file(sp_node_log, open = "at"))
   sink(sp_log, type = "output")
@@ -128,29 +131,28 @@ create_file_if(sp_node_log, failed_its_log)
   tryCatch(
     {
       # Condense data
-      spec_condensed <- condense_taxons(spec.dt = spec)
+      spec_condensed <- condense_taxons(spec.dt = spec, verbose)
 
-      #cntry_condensed <- condense_country(spec.dt = spec)
-      
+      # cntry_condensed <- condense_country(spec.dt = spec)
+
       cntry_condensed <- find_wgsrpd_region(
-        spec.dt = spec, 
-        projection = "longlat", 
-        longitude = "decimalLongitude", 
-        latitude = "decimalLatitude", 
-        wgsrpd.dir = "./resources/region/wgsrpd", 
-        wgsrpdlvl = "3", 
-        wgsrpdlvl.name = TRUE, 
-        unique = TRUE, 
+        spec.dt = spec,
+        projection = "longlat",
+        longitude = "decimalLongitude",
+        latitude = "decimalLatitude",
+        wgsrpd.dir = "./resources/region/wgsrpd",
+        wgsrpdlvl = "3",
+        wgsrpdlvl.name = TRUE,
+        unique = TRUE,
         verbose = verbose
       )
-      
+
       # Subset data
       spec <- spec[, .(cleanName, decimalLongitude, decimalLatitude, coordinateUncertaintyInMeters, countryCode, stateProvince, year)]
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when condensing data", iteration = iteration),
     error = function(e) {
       close(sp_log)
-      closeAllConnections()
       err(e, err.file = err.file, err.txt = "Error when condensing data", iteration = iteration)
     }
   )
@@ -165,10 +167,11 @@ create_file_if(sp_node_log, failed_its_log)
       vebcat("Error occurred in main function for node", iteration, ":", e$message, color = "nonFatalError")
       sink(type = "message")
       sink(type = "output")
-      close(sp_node_log)
+      close(sp_log)
+      stop(e)
     }
   )
-  
+
   catn("Checking result and finishing up")
 
   cbmnd_res <- cbind(res, spec_condensed)
@@ -194,7 +197,7 @@ create_file_if(sp_node_log, failed_its_log)
       Sys.sleep(3)
     } else {
       Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
-      lock_node_it <- lock(lock.dir, lock.n = 1, paste0("Locked by ", iteration, "_", gsub(" ", spec.file.separator, spec_name)))
+      lock_node_it <- lock(lock.dir, lock.n = 1, paste0("Locked by ", iteration, "_", gsub(" ", config$species$file_separator, spec_name)))
       if (!is.null(lock_node_it) && file.exists(lock_node_it)) {
         break
       }
@@ -215,7 +218,7 @@ create_file_if(sp_node_log, failed_its_log)
 
     try(err_con <- file(err.file, open = "a"))
     writeLines(paste0(
-      "Hypervolume sequence failed the output check for node", iteration, " and species: ", gsub(" ", spec.file.separator, spec_name)
+      "Hypervolume sequence failed the output check for node", iteration, " and species: ", gsub(" ", config$species$file_separator, spec_name)
     ), err_con)
 
     close(err_con)
@@ -265,7 +268,7 @@ create_file_if(sp_node_log, failed_its_log)
   unlock(lock_node_it)
 
   catn("Node finished successfully.")
-
+  
   sink(type = "message")
   sink(type = "output")
   close(sp_log)

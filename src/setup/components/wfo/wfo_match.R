@@ -1,124 +1,76 @@
-check_syn_wfo <- function(checklist, column, folder, cores.max = 1, verbose = FALSE, counter = 1) {
+check_syn_wfo <- function(checklist, column, out.dir, cores.max = 1, verbose = FALSE, counter = 1) {
   if (!"data.table" %in% class(checklist) && !"data.frame" %in% class(checklist)) {
     stop("The input data is not in the 'data.table' or 'data.frame' format.", print(class(checklist)))
   }
+  checklist <- as.data.table(checklist)
+  out_file <- paste0(out.dir, "/wfo-match.csv")
+  
+  if (file.exists(out_file)) {
+    catn("Reading existing WFO.match file from:", colcat(out_file, color = "output"))
+    return(list(clean = fread(out_file)))
+  }
   
   vebcat("Initiating WFO synonym check", color = "funInit")
-  
-  cores.max <- min(nrow(checklist), cores.max)
-  
-  catn("Running the WFO synonym check with column:", colcat(column, color = "indicator"), "for table:")
-  print(head(checklist, 3))
-  
-  catn("Analyzing: ", highcat(nrow(checklist)), "species using", highcat(cores.max),"cores.")
-  
-  if (!exists("system.speed.wfo", where = .GlobalEnv)) system.speed.wfo <- 3.5
-  
-  time.setup = 30
-  
-  eta <- (nrow(checklist) * system.speed.wfo) / cores.max + time.setup
-  
-  # Convert the estimated time to days, hours, minutes, and seconds
-  days <- floor(eta / (24*60*60))
-  hours <- floor((eta %% (24*60*60)) / (60*60))
-  minutes <- floor((eta %% (60*60)) / 60)
-  seconds <- round(eta %% 60, 2)
-  
-  
-  vebcat(paste("Estimated wait time:", days, "days", hours, "hours", minutes, "minutes", round(seconds, 2), "seconds"), color = "timer")
-  
   wfo_timer <- start_timer("wfo_match")
   
-  catn("Sorting into chunks.")
+  catn("Running the WFO synonym check for", highcat(nrow(checklist)), "species with column", highcat(column))
+  vebprint(head(checklist, 3), text = "Table sample:")
   
-  n_seq_chunk <- ceiling(nrow(checklist) / cores.max)
-  
-  # Create a list to store the row indices for each chunk - this is to edit the OriSeq in the end
-  n_seq <- lapply(seq_len(cores.max), function(i) {
-    ((i - 1) * n_seq_chunk + 1):min(i * n_seq_chunk, nrow(checklist))
-  })
-  
-  chunks <- split(checklist, rep(1:cores.max, each = ceiling(nrow(checklist) / cores.max), length.out = nrow(checklist)))
-  
-  catn("Running WFO.match in", highcat(length(chunks)), "chunks with", highcat(ceiling(nrow(checklist) / cores.max)), "species in each chunk.")
-  
-  node_wfo_dir <- paste0(folder, "/wfo-match-nodes")
-  create_dir_if(node_wfo_dir)
-  
-  catn("WFO.match progress can be found at:", colcat(node_wfo_dir, color = "indicator"))
-  
-  cl <- makeCluster(cores.max)
-  
-  export_vars <- c("node_wfo_dir")
-  
-  clusterExport(cl, export_vars, envir = environment())
-  
-  clusterEvalQ(cl, {
-    library(parallel)
-    library(WorldFlora)
-    library(data.table)
-    library(crayon)
-    source("./src/utils/components/custom_colors.R")
-    cc <- custom_colors()
-    source("./src/utils/components/condition_handlers.R")
-    source("./src/utils/components/time_tracker.R")
-    source("./src/utils/components/file_managers.R")
-    source("./src/utils/components/loader.R")
-    WFO_file <- load_wfo()
-  })
-  
-  
-  wfo_checklist <- clusterApplyLB(cl, seq_along(chunks), function(i) {
-    tryCatch({
-      chunk <- chunks[[i]]
-      
-      log_file_out <- paste0(node_wfo_dir, "/", "node-", i, "-log.txt")
-      create_file_if(log_file_out)
-      
-      try(log_file_out <- file(log_file_out, open = "at"))
-      sink(log_file_out, type = "output")
-      sink(log_file_out, type = "message")
-      
-      catn("Chunk number", i)
-      catn("chunk length", nrow(chunk))
-      
-      matched_list <- WFO.match(spec.data = chunk, spec.name = column, WFO.file = WFO_file, verbose = verbose, counter = counter)
-    }, error = function(e) {
-      sink(type = "message")
-      sink(type = "output")
-      close(log_file_out)
-      
-      vebcat("Error when running WFO.match in iteration", i, "~ Stopping cluster and closing all connections.", color = "fatalError")
-      end_timer(wfo_timer)
-      stopCluster(cl)
-      closeAllConnections()
-      stop(e$message)
-    })
+  if (nrow(checklist) < 10) {
+    wfo_result <- WFO.match(
+      spec.data = checklist, 
+      spec.name = column, 
+      WFO.file = WFO_file, 
+      verbose = verbose, 
+      counter = counter
+    )
+  } else {
     
-    catn("Node finished.")
+    custom_evals <- list(
+      packages = c(
+        "WorldFlora", 
+        "data.table"
+      ),
+      source = c(
+        "./src/utils/components/condition_handlers.R",
+        "./src/utils/components/time_tracker.R",
+        "./src/utils/components/file_managers.R",
+        "./src/utils/components/loader.R"
+      )
+    )
     
-    sink(type = "message")
-    sink(type = "output")
-    close(log_file_out)
+    cores_max <- calc_num_cores(
+      ram.high = 2,
+      cores.total = config$memory$total_cores,
+      verbose = verbose
+    )
     
-    invisible(gc())
-    
-    return(matched_list)
-  })
+    wfo_result <- wfo_parallel(
+      checklist = checklist,
+      column = column,
+      out.dir = out.dir,
+      cores.max = min(nrow(checklist), cores_max$total),
+      evals = custom_evals,
+      counter = counter,
+      verbose = verbose
+    )
+  }
   
-  catn("Finishing up.")
   
-  stopCluster(cl)
+  if (!is.data.table(wfo_result)) wfo_result <- as.data.table(wfo_result)
+  fwrite(wfo_result, paste0(out.dir, "/wfo-match.csv"), bom = T)
   
-  wfo_checklist_bound <- rbindlist(wfo_checklist)
-  
-  wfo_checklist_bound <- set_df_utf8(wfo_checklist_bound)
-  
-  fwrite(wfo_checklist_bound, paste0(folder, "/wfo-match.csv"), bom = T)
+  wfo_result <- wfo_mismatch_check(
+    wfo.result = wfo_result, 
+    col.origin = column,
+    out.file = paste0(out.dir, "/wfo-match-mismatches.csv"),
+    unchecked = FALSE,
+    verbose = verbose
+  ) # returns list of clean and mismatched info
   
   end_timer(wfo_timer)
   
-  vebcat("WFO synonym check completed", color = "funSuccess")
+  vebcat("WFO.match synonym check completed", color = "funSuccess")
   
-  return(wfo_checklist)
+  return(wfo_result)
 }
