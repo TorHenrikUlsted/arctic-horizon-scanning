@@ -38,17 +38,20 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       manual_out <- "./outputs/setup/wrangle/manual-check-file.csv"
       manual_edited <- list.files("./resources/manual-edit", pattern = ".csv", full.names = TRUE)
     }
-
-    if (length(manual_edited) == 0 && (!file.exists(manual_out) || nrow(fread(manual_out, nrows = 0)) > 0)) {
+    
+    man_l <- nrow(fread(manual_out))
+    
+    if (length(manual_edited) == 0 && (!file.exists(manual_out) || man_l > 0)) {
       vebcat("Need manually handled file to continue", color = "fatalError")
       if (file.exists(manual_out)) {
-        catn("Found", highcat(nrow(fread(manual_out, nrows = 0))), "species in need of manual handling.")
+        catn("Found", highcat(man_l), "species in need of manual handling.")
         catn("Find the file in:", colcat(manual_out, color = "output"))
       } else {
         catn("Could not find manually handled output file, check setup process and input data.")
       }
       stop("Modify manually handled file")
     }
+    
 
     mdwrite(
       config$files$post_seq_md,
@@ -64,7 +67,8 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       col.select = NULL,
       verbose = verbose
     )
-
+    
+    print(length(manual_edited))
     if (length(manual_edited) > 0) {
       dts <- fix_manual(
         dts = dts,
@@ -75,13 +79,14 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
     }
     
     # Change symbols to config need to filename safe
-    dts <- apply_symbol_fix(
-      dts, 
-      "scientificName", 
-      config$species$symbols,
-      reverse = FALSE,
-      verbose
-    )
+    lapply(dts, function(dt) {
+      dt[, `:=` (
+        scientificName = {
+          tmp <- clean_symbols(scientificName, config$species$standard_symbols, verbose)
+          clean_designations(tmp, config$species$standard_infraEpithets, verbose)
+        } 
+      )]
+    })
     
     if (is.null(coord.uncertainty) & file.exists(coord_un_file)) {
       coord.uncertainty <- as.numeric(readLines(coord_un_file))
@@ -129,7 +134,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       kan <- sum(unlist(kn$absent))
       un <- nrow(dts[[paste0(spec.unknown, "_absent")]])
     }
-
+    
     spec_known <- get(paste0("filter_", spec.known))
     spec_unknown <- get(paste0("filter_", spec.unknown))
 

@@ -315,28 +315,69 @@ combine_columns <- function(dt, col1, col2, col3, verbose = FALSE) {
   return(dt)
 }
 
-remove_authorship <- function(dt, verbose = FALSE) {
-  vebcat("Removing Authorship from scientificName.", veb = verbose)
+remove_authorship <- function(x, infraspecifics = c("subsp.", "ssp.", "var.", "f."), symbols = c("×"), verbose = FALSE) {
+  if(verbose) cat("Removing Authorship strings\n")
   
-  signs <- c("×")
+  components <- strsplit(x, " ")[[1]]
+  result <- c(components[1], components[2])
   
-  dt[, cleanName := sapply(scientificName, function(x) {
+  process_component <- function(index, condition) {
+    if (length(components) > index && condition) {
+      result <<- c(result, components[index], components[index + 1])
+    }
+  }
+  
+  if (length(components) > 2) {
+    for (i in 2:min(5, length(components) - 1)) {
+      condition <- switch(i,
+                          `2` = components[i] %in% symbols,
+                          `3` = components[i] %in% infraspecifics,
+                          `4` = components[i] %in% c(infraspecifics, symbols),
+                          `5` = components[i] %in% symbols)
+      process_component(i, condition)
+    }
+  }
+  
+  return(paste(result, collapse = " "))
+}
+
+remove_authorship_dt <- function(dt, column = "scientificName", infraspecifics = c("subsp.", "ssp.", "var.", "f."), symbols = c("×"), verbose = FALSE) {
+  vebcat("Removing Authorship from", column)
+  
+  dt[, removedAuthorship := 
+       sapply(get(column), function(x) 
+         remove_authorship(
+           x,
+           infraspecifics = infraspecifics,
+           symbols = symbols,
+           verbose = verbose
+         )
+       )
+  ]
+  
+  return(dt)
+}
+
+remove_authorship_dt <- function(dt, column = "scientificName", infraspecifics = c("subsp.", "ssp.", "var.", "f."), symbols = c("×"), verbose = FALSE) {
+    vebcat("Removing Authorship from scientificName.", veb = verbose)
+    
+  dt[, removedAuthorship := sapply(get(column), function(x) {
     components <- strsplit(x, " ")[[1]]
     result <- c(components[1], components[2])
     
-    if (components[2] %in% signs) {
+    if (components[2] %in% symbols) {
       result <- c(result, components[3])
     }
     
-    if (components[3] %in% config$species$infraEpithet_designations) {
+    if (components[3] %in% infraspecifics) {
       result <- c(result, components[3], components[4])
     }
     
-    if (components[4] %in% config$species$infraEpithet_designations || components[4] %in% signs) {
+    if (components[4] %in% infraspecifics || components[4] %in% symbols) {
       result <- c(result, components[4], components[5])
     }
     
-    if (components[5] %in% signs) {
+    if (components[5] %in% symbols) {
       result <- c(result, components[5], components[6])
     }
     
@@ -345,6 +386,58 @@ remove_authorship <- function(dt, verbose = FALSE) {
   })]
   
   return(dt)
+}
+
+filter_approach <- function(dt, out.file, verbose = FALSE) {
+  vebcat("Using precautionary method to remove infraSpecificEpithets", color = "indicator")
+  # At this point scientificName is the chosen column
+  orig_n <- nrow(dt)
+  sci_n <- length(dt$scientificName)
+  
+  approach_dt <- copy(dt)
+  approach_dt[, scientificName.ORIG := scientificName] # Keep the original
+  approach_dt[, scientificName := NULL] # Remove the column
+  
+  # Change to species name
+  approach_dt[, scientificName := fifelse(
+    is.na(genus) | is.na(specificEpithet),
+    NA_character_, 
+    fifelse(!is.na(Hybrid) & Hybrid != "",
+            paste0(trimws(genus), " ", trimws(Hybrid), trimws(specificEpithet)),
+            paste0(trimws(genus), " ", trimws(specificEpithet))
+    )
+  )]
+  # Identify change
+  approach_dt[, scientificName.changed := scientificName != scientificName.ORIG] 
+  
+  changed_n <- nrow(approach_dt[scientificName.changed == TRUE])
+  
+  approach_dt <- unique(approach_dt, by = "scientificName")
+  
+  new_n <- nrow(approach_dt)
+  spec_n <- length(approach_dt$scientificName)
+  
+  md_dt <- data.table(
+    input = orig_n,
+    output = new_n,
+    scientificName = sci_n,
+    species = spec_n,
+    changed = changed_n,
+    duplicate = orig_n - new_n
+  )
+  
+  catn(highcat(changed_n), "infraspecificEpithets Changed to species")        
+  catn(highcat(orig_n - new_n), "duplicate species removed")
+  
+  mdwrite(
+    config$files$post_seq_md,
+    text = "3;Standardization precautionary conversion",
+    data <- md_dt
+  )
+  
+  fwrite(approach_dt, out.file, bom = TRUE)
+  
+  return(approach_dt)
 }
 
 # spec.occ can be either filepath or data frame

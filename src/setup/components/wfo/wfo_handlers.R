@@ -29,7 +29,7 @@ wfo_parallel <- function(checklist, column, out.dir = "./", cores.max = 1, evals
   node_wfo_dir <- paste0(out.dir, "/wfo-match-nodes")
   create_dir_if(node_wfo_dir)
   
-  catn("WFO.match progress can be found at:", colcat(node_wfo_dir, color = "indicator"))
+  catn("WFO.match progress can be found at:", colcat(node_wfo_dir, color = "output"))
   
   cl <- makeCluster(cores.max)
   
@@ -126,14 +126,13 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "rawName", out.file = NU
   
   dt <- copy(wfo.result)
   skip <- FALSE
-  new_cols <- c("mismatch.input", "mismatch.old", "mismatch.scientific", "mismatch.any")
+  new_cols <- c("mismatch.old", "mismatch.scientific", "mismatch.any")
   if (all(new_cols %in% names(dt))) skip <- TRUE
   vebprint(skip, verbose, "Skip:")
   
-  input_orig <- paste0(col.origin, ".ORIG")
-  setnames(dt, old = c(col.origin, input_orig), new = c("input", "input.ORIG"))
+  setnames(dt, old = col.origin, new = "input")
   
-  cols_to_select <- c("input", "input.ORIG", "scientificName", "New.accepted", "Old.status", "Old.name", "Fuzzy.dist", "mismatch.input", "mismatch.old", "mismatch.scientific", "mismatch.any")
+  cols_to_select <- c("input", "structure", "rest", "scientificName", "New.accepted", "Old.status", "Old.name", "Fuzzy.dist", "mismatch.old", "mismatch.scientific", "mismatch.any")
   if (unchecked) cols_to_select <- c(cols_to_select, "taxonomicStatus")
   
   vebprint(cols_to_select, verbose, "Columns to select:")
@@ -141,18 +140,37 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "rawName", out.file = NU
   
   if (!skip) {
     dt[, scientificName := gsub("\\s+", " ", trimws(scientificName))] # Remove double spaces
-    dt[, input.ORIG := gsub("\\s+", " ", trimws(input.ORIG))] # Remove double spaces
     dt[, input := gsub("\\s+", " ", trimws(input))] # Remove double spaces
     dt[, Old.name := gsub("\\s+", " ", trimws(Old.name))] # Remove double spaces
+    dt[, `:=`(input = {
+        tmp <- clean_symbols(input, config$species$standard_symbols, verbose = verbose)
+        clean_designations(tmp, config$species$standard_infraEpithets, verbose = verbose)
+      })]
+    
+    dt[, c("structure", "input", "rest") := {
+      res <- lapply(input, function(x) clean_spec_name(x, config$species$standard_infraEpithets, config$species$standard_symbols, verbose))
+      
+      if(verbose) {
+        cat("Number of results:", length(res), "\n")
+        cat("First result:\n")
+        print(res[[1]])
+        cat("\n")
+      }
+      
+      list(
+        vapply(res, function(x) x$structure, character(1)),
+        vapply(res, function(x) x$result, character(1)),
+        vapply(res, function(x) x$other, character(1))
+      )
+    }]
     
     dt <- dt[, `:=`(
-      mismatch.input = input != input.ORIG,
-      mismatch.old = New.accepted == TRUE & input.ORIG != Old.name,
-      mismatch.scientific = New.accepted == FALSE & input.ORIG != trimws(scientificName),
+      mismatch.old = New.accepted == TRUE & trimws(input) != trimws(Old.name),
+      mismatch.scientific = New.accepted == FALSE & trimws(input) != trimws(scientificName) & Fuzzy.dist >= 5,
       mismatch.any = NA
     )]
     
-    dt[, mismatch.any := mismatch.input | mismatch.old | mismatch.scientific]
+    dt[, mismatch.any :=  mismatch.old | mismatch.scientific]
   } else {
     catn("Using preexisting columns")
   }
@@ -164,27 +182,27 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "rawName", out.file = NU
     main_res <- dt[(dt$mismatch.any == FALSE)]
     mis_res <- dt[(dt$mismatch.any == TRUE)]
   }
-  # remove any identical input.ORIG that are in the wfo output to not cause future issues when handling manually
-  removed_species <- main_res[input.ORIG %in% mis_res$input.ORIG]
+  # remove any identical input that are in the wfo output to not cause future issues when handling manually
+  removed_species <- main_res[input %in% mis_res$input]
   mis_res <- rbind(mis_res, removed_species, fill = TRUE)
-  main_res <- main_res[!input.ORIG %in% mis_res$input.ORIG]
+  main_res <- main_res[!input %in% mis_res$input]
   
   vebprint(mis_res, verbose, "Mismatching results:")
   catn("Found", highcat(nrow(mis_res)), "mismatching species.")
   
   if (nrow(mis_res) > 0) {
     if (!is.null(out.file)) {
-      write_res <- unique(mis_res, by = "input.ORIG")
+      write_res <- unique(mis_res, by = "input")
       write_res <- write_res[, ..cols_to_select]
-      setnames(write_res, old = c("input", "input.ORIG"), new = c(col.origin, input_orig))
+      setnames(write_res, old = "input", new = col.origin)
       catn("Writing to file:", colcat(out.file, color = "output"))
       fwrite(write_res, out.file, bom = TRUE)
     } 
   } 
   
   return(list(
-    clean = setnames(main_res, old = c("input", "input.ORIG"), new = c(col.origin, input_orig)),
-    mismatch = setnames(mis_res, old = c("input", "input.ORIG"), new = c(col.origin, input_orig))
+    clean = setnames(main_res, old = "input", new = col.origin),
+    mismatch = setnames(mis_res, old = "input", new = col.origin)
   ))
 }
 

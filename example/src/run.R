@@ -1,6 +1,7 @@
 ## Example script
 source("./src/utils/utils.R")
 load_utils()
+config$simulation$example = TRUE
 source("./src/setup/setup_sequence.R")
 source("./src/filter/filter_sequence.R")
 source("./src/hypervolume/parallel_hypervolume.R")
@@ -14,26 +15,26 @@ source("./src/main.R")
 # spec.unknown = "test_small" OR "test_big"
 
 main(
-  spec.known = "test_known",
-  spec.unknown = "test_big",
+  spec.known = "arctic",
+  spec.unknown = "glonaf",
   coord.uncertainty = NULL,
   gbif.occ.region = NULL, # If wanting to download files within a shapefile -- converted to WKT
-  download.key = "0186013-240321170329656",
-  download.doi = "https://doi.org/10.15468/dl.awqjxw",
+  download.key = NULL,
+  download.doi = NULL,
   hv.iterations = NULL,
   hv.method = "box",
   hv.accuracy = "accurate",
   hv.dims = c(18, 10, 3, 4),
   hv.incl.threshold = 0.5,
   vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp", # change to simply name
-  vis.title = TRUE,
+  vis.title = FALSE,
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order",
   vis.save.device = "svg",
   vis.save.unit = "px",
   plot.show = FALSE,
-  verbose = TRUE,
+  verbose = FALSE,
   force.seq = NULL
 )
 

@@ -38,9 +38,9 @@ species:
     - "f."
   standard_infraEpithets:
     "ssp.": "subsp."
-    "subsp.": "subsp."
-    "var.": "var."
-    "f.": "f."
+    "subspecies": "subsp."
+    "variety": "var."
+    "form": "f."
   taxonRank_infraEpithets:
     "SUBSPECIES": "subsp."
     "VARIETY": "var."
@@ -51,8 +51,11 @@ species:
     - "s. lat."
     - "coll."
     - "sp."
-  symbols:
+  filename_symbols:
     "×": "^x^"
+    "x": "^x^"
+  standard_symbols:
+    "x": "×"
 
 files:
   post_seq_md: "./outputs/post-process/markdown/sequence-numbers.md"

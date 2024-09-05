@@ -21,6 +21,7 @@ config$species$gymnosperms <- load_gpg(rank = config$species$clade_rank)
 for (projection in names(config$projection$crs)) {
   config$projection$crs[[projection]] <- crs(config$projection$crs[[projection]])
 }
+rm(projection)
 
 # laea
 config$projection$crs$laea <- edit_crs(config$projection$crs$laea, "PROJCRS", "Lambert Azimuthal Equal Area")

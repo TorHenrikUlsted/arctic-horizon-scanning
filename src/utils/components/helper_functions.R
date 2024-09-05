@@ -103,7 +103,6 @@ remove_designations <- function(spec, verbose = FALSE) {
 
 remove_infraEpithet <- function(spec, verbose = FALSE) {
   # Remove ignored designations
-  
   spec <- remove_designations(spec = spec, verbose = verbose)
   
   for (d in config$species$infraEpithet_designations) {
@@ -148,38 +147,106 @@ reverse_list <- function(list) {
   return(reversed)
 }
 
-fix_symbols <- function(text, symbol.list, reverse = FALSE, verbose = FALSE) {
-  if (!is.character(text)) {
-    warning("Input is not character. Coercing to character.")
-    text <- as.character(text)
-  }
-  
-  if (!is.list(symbol.list)) {
-    stop("symbol.list must be a list")
-  }
-  
-  working_list <- if (reverse) reverse_list(symbol.list) else symbol.list
-  
-  for (old_symbol in names(working_list)) {
-    new_symbol <- working_list[[old_symbol]]
-    vebcat("Replacing", old_symbol, "with", new_symbol, veb = verbose)
-    text <- gsub(old_symbol, new_symbol, text, fixed = TRUE)
-  }
-  return(text)
-}
-
-apply_symbol_fix <- function(dts, column, symbol.list, reverse = FALSE, verbose = FALSE) {
-  if (!is.list(dts)) stop("Input must be a list of data.tables")
-  
-  lapply(dts, function(dt) {
-    if (!column %in% names(dt)) {
-      warning(paste("Column", column, "not found in data table. Skipping."))
-      return(dt)
+clean_symbols <- function(x, symbols, verbose = FALSE) {
+  for (symbol in names(symbols)) {
+    replacement <- symbols[[symbol]]
+    
+    if (symbol == "×") {
+      # For the Unicode hybrid symbol, replace all instances
+      pattern <- symbol
+      x <- gsub(pattern, replacement, x, fixed = TRUE)
+    } else if (symbol == "x") {
+      # For the normal "x", replace when it's at the start of the string followed by a space,
+      # or when it has spaces on both sides
+      pattern <- "(^x(?=\\s)|(?<=\\s)x(?=\\s))"
+      x <- gsub(pattern, replacement, x, perl = TRUE)
     }
     
-    dt[, (column) := fix_symbols(get(column), symbol.list, reverse, verbose)]
-    return(dt)
-  })
+    vebcat(paste("Replaced", symbol, "with", replacement), veb = verbose)
+  }
+  return(x)
+}
+
+
+clean_designations <- function(x, designations, verbose = FALSE) {
+  for (designation in names(designations)) {
+    # standardize dashes to hyphens
+    x <- gsub("–", "-", x)
+    
+    # Escape special characters in the designation
+    escaped_designation <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", designation)
+    
+    # Create patterns for different cases
+    patterns <- c(
+      paste0("(?<=\\s|^)", escaped_designation, "(?=\\s|$)"),  # standalone
+      paste0("(?<=\\s|^)", escaped_designation, "\\.?(?=\\s|$)"),  # with or without a period
+      paste0("(?<=\\s|^)", tolower(escaped_designation), "(?=\\s|$)")  # lowercase version
+    )
+    
+    for (pattern in patterns) {
+      vebcat("Pattern:", pattern, veb = verbose)
+      vebcat("Replacement:", designations[[designation]], veb = verbose)
+      
+      # Apply the pattern and replacement
+      x <- gsub(pattern, designations[[designation]], x, perl = TRUE)
+      
+      vebcat("Result after replacement:", x, veb = verbose)
+    }
+  }
+  
+  # Remove any double periods that might have been introduced
+  x <- gsub("\\.\\.", ".", x)
+  
+  return(x)
+}
+
+clean_spec_name <- function(x, designations, symbols, verbose = FALSE) {
+  # Get unique standardized designations and symbols
+  unique_designations <- unique(unlist(designations))
+  escaped_designations <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", unique_designations)
+  designation_pattern <- paste(escaped_designations, collapse = "|")
+  
+  unique_symbols <- unique(unlist(symbols))
+  escaped_symbols <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", unique_symbols)
+  symbol_pattern <- paste(escaped_symbols, collapse = "|")
+  
+  # Split the name
+  parts <- strsplit(gsub("\\s+", " ", trimws(x)), " ")[[1]]
+  
+  vebprint(parts, verbose, "Parts:")
+  
+  # Identify the structure
+  structure <- fcase(
+    grepl(symbol_pattern, parts[1]), "interGenericHybrid",
+    grepl(symbol_pattern, parts[2]), "interSpecificHybrid",
+    any(grepl(paste0("^(", designation_pattern, ")$"), parts)), "infraspecificTaxon",
+    length(parts) >= 4 && grepl(symbol_pattern, parts[3]) & !grepl(symbol_pattern, parts[5]), "intraSpecificHybrid",
+    length(parts) >= 4 && grepl(symbol_pattern, parts[3]) & grepl(symbol_pattern, parts[5]), "intraSpecificHybrid2",
+    default = "species"
+  )
+  
+ result_parts <- switch(structure,
+    "species" = paste(parts[1:min(2, length(parts))], collapse = " "),
+    "interGenericHybrid" = paste(parts[1:3], collapse = " "),
+    "interSpecificHybrid" = paste(parts[1:3], collapse = " "),
+    "infraspecificTaxon" = {
+      infraspecific_index <- which(grepl(paste0("^(", designation_pattern, ")$"), parts))[1]
+      paste(c(parts[1:2], parts[infraspecific_index:(infraspecific_index+1)]), collapse = " ")
+    },
+    "intraSpecificHybrid" = paste(parts[1:4], collapse = " "),
+    "intraSpecificHybrid2" = paste(parts[1:6], collapse = " ")
+  )
+  
+  result <- paste(result_parts, collapse = " ")
+  
+  # Get the remaining parts
+  other <- if(length(parts) > length(strsplit(result, " ")[[1]])) {
+    paste(parts[(length(strsplit(result, " ")[[1]]) + 1):length(parts)], collapse = " ")
+  } else {
+    NA_character_
+  }
+  
+  return(list(structure = structure, result = result, other = other))
 }
 
 # Combine the a row for all specified columns as strings. If custom.col and custom.list are used, the custom.col will be swapped out with the data from the custom.list.
@@ -238,7 +305,7 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
   
   if (approach == "precautionary") {
     spec_dt <- spec_dt[, (col.name) := species]
-  } else if (approach == "conservative") { # the conservative approach also needs to handle cases where scientificNames are actually not just the species name.... use remove_authorship()
+  } else if (approach == "conservative") { 
     spec_dt <- combine_columns_dt(
       "species", "taxonRank", "infraspecificEpithet",
       dt = spec_dt,

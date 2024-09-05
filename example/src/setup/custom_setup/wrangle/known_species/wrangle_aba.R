@@ -30,6 +30,12 @@ wrangle_aba <- function(name, column, verbose = F) {
   
   # Remove parenthesis in the 
   aba_selected <- aba_selected[, speciesCode := gsub("[()]", "", speciesCode)]
+  
+  # Clean symbols and designations
+  aba_selected[, `:=`(speciesCode = {
+    tmp <- clean_symbols(speciesCode, config$species$standard_symbols, verbose = verbose)
+    clean_designations(tmp, config$species$standard_infraEpithets, verbose = verbose)
+  })]
 
   # Create new columns for Class, Family, Genus, and Species
   aba_selected$class <- ""
