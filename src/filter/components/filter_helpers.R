@@ -417,25 +417,29 @@ filter_approach <- function(dt, out.file, verbose = FALSE) {
   new_n <- nrow(approach_dt)
   spec_n <- length(approach_dt$scientificName)
   
-  md_dt <- data.table(
-    input = orig_n,
-    output = new_n,
-    scientificName = sci_n,
-    species = spec_n,
-    changed = changed_n,
-    duplicate = orig_n - new_n
-  )
-  
   catn(highcat(changed_n), "infraspecificEpithets Changed to species")        
   catn(highcat(orig_n - new_n), "duplicate species removed")
   
-  mdwrite(
-    config$files$post_seq_md,
-    text = "3;Standardization precautionary conversion",
-    data <- md_dt
-  )
-  
-  fwrite(approach_dt, out.file, bom = TRUE)
+  if (changed_n > 0) {
+    md_dt <- data.table(
+      input = orig_n,
+      output = new_n,
+      scientificName = sci_n,
+      species = spec_n,
+      changed = changed_n,
+      duplicate = orig_n - new_n
+    )
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = "3;Standardization precautionary conversion",
+      data <- md_dt
+    )
+    
+    fwrite(approach_dt, out.file, bom = TRUE)
+  } else {
+    catn("All species already in the correct approach format")
+  }
   
   return(approach_dt)
 }

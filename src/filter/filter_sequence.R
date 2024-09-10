@@ -51,7 +51,6 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       }
       stop("Modify manually handled file")
     }
-    
 
     mdwrite(
       config$files$post_seq_md,
@@ -68,7 +67,6 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       verbose = verbose
     )
     
-    print(length(manual_edited))
     if (length(manual_edited) > 0) {
       dts <- fix_manual(
         dts = dts,
@@ -78,11 +76,25 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       )
     }
     
-    # Change symbols to config need to filename safe
+    # Change symbols with config to be filename safe and check if it is in the correct approach
     lapply(dts, function(dt) {
+      if (config$simulation$approach == "precautionary") {
+       dt <- filter_approach(
+          dt,
+          out.file = paste0("./outputs/filter/", 
+                            ifelse(grepl("test", names(dt)), 
+                                   gsub("_", "-", names(dt)), 
+                                   sub("_.*", "", names(dt))
+                            ), 
+                            "/approach-filtering.csv"
+          ),
+          verbose = verbose
+        )
+      }
+      
       dt[, `:=` (
         scientificName = {
-          tmp <- clean_symbols(scientificName, config$species$standard_symbols, verbose)
+          tmp <- clean_symbols(scientificName, config$species$filename_symbols, verbose)
           clean_designations(tmp, config$species$standard_infraEpithets, verbose)
         } 
       )]
