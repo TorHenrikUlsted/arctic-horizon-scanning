@@ -147,52 +147,93 @@ reverse_list <- function(list) {
   return(reversed)
 }
 
+clean_string <- function(x, verbose = FALSE) {
+  x <- gsub("–", "-", x) # dashes to hyphens
+  x <- gsub("\u00A0", " ", x) # Replace non-breaking spaces with regular spaces
+  x <- gsub("([A-Z]),", "\\1.", x) # If one capital letter then ",", change to ".", then remove double "."
+  x <- gsub('"', "", x) # Remove " in a string
+  x <- gsub("\\.\\.", ".", x) # remove double "." with only one
+  x <- gsub("\\.", ". ", x) # Add space after every "."
+  # Remove standalone "x" where the next word is longer than 1 character and ends with a period
+  x <- gsub("\\s+x\\s+(?=\\S{2,}\\.)\\s*", " ", x, perl = TRUE)
+  
+  x <- gsub("\\s+", " ", x) # Remove double spaces
+  x <- trimws(x) # trim trailing spaces
+  
+  vebcat("Cleaned string:", x, veb = verbose)
+  vebcat("ASCII values:", paste(sapply(strsplit(x, "")[[1]], function(ch) as.integer(charToRaw(ch))), collapse = " "), veb = verbose)
+  
+  return(x)
+}
+
+create_symbol_pattern <- function(symbol, verbose = FALSE) {
+  escaped_symbol <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", symbol)
+  
+  patterns <- if (tolower(symbol) == "x") {
+    c(
+      paste0("(?<=\\s|^)[", escaped_symbol, toupper(escaped_symbol), "](?=\\s|$)"), # standalone
+      paste0("(?<=\\s)[", escaped_symbol, toupper(escaped_symbol), "](?=\\s)") # surrounded by spaces
+    )
+  } else if (symbol == "×") {
+    escaped_symbol # anywhere in the string
+  } else {
+    c(
+      paste0("(?<=\\s|^)", escaped_symbol, "(?=\\s|$)"), # standalone
+      paste0("(?<=\\s)", escaped_symbol, "(?=\\s)") # surrounded by spaces
+    )
+  }
+  
+  if (is.character(patterns) && length(patterns) == 1) {
+    patterns <- list(patterns) # Ensure patterns is always a list
+  }
+  
+  return(patterns)
+}
+
 clean_symbols <- function(x, symbols, verbose = FALSE) {
   for (symbol in names(symbols)) {
     replacement <- symbols[[symbol]]
     
-    if (symbol == "×") {
-      # For the Unicode hybrid symbol, replace all instances
-      pattern <- symbol
-      x <- gsub(pattern, replacement, x, fixed = TRUE)
-    } else if (symbol == "x") {
-      # For the normal "x", replace when it's at the start of the string followed by a space,
-      # or when it has spaces on both sides
-      pattern <- "(^x(?=\\s)|(?<=\\s)x(?=\\s))"
-      x <- gsub(pattern, replacement, x, perl = TRUE)
-    }
+    patterns <- create_symbol_pattern(symbol, verbose)
     
-    vebcat(paste("Replaced", symbol, "with", replacement), veb = verbose)
+    for (pattern in patterns) {
+      x <- gsub(pattern, paste0(" ", replacement, " "), x, perl = TRUE)
+      vebcat(paste("Replaced", pattern, "with", replacement), veb = verbose)
+    }
   }
+  
+  x <- trimws(gsub("\\s+", " ", x)) # Clean up any extra spaces
   return(x)
 }
 
+create_designation_pattern <- function(designation, verbose = FALSE) {
+  # Remove trailing period if present
+  base_designation <- sub("\\.$", "", designation)
+  
+  # Escape special characters in the designation
+  escaped_designation <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", base_designation)
+  
+  patterns <- c(
+    paste0("(?<=\\s|^)", escaped_designation, "(?=\\s|$)"), # without period
+    paste0("(?<=\\s|^)", escaped_designation, "\\.?(?=\\s|$)"), # with optional period
+    paste0("(?<=\\s|^)", tolower(escaped_designation), "(?=\\s|$)"), # lowercase without period
+    paste0("(?<=\\s|^)", tolower(escaped_designation), "\\.?(?=\\s|$)") # lowercase with optional period
+  )
+  
+  return(patterns)
+}
 
 clean_designations <- function(x, designations, verbose = FALSE) {
   for (designation in names(designations)) {
-    # standardize dashes to hyphens
-    x <- gsub("–", "-", x)
-    
-    # Escape special characters in the designation
-    escaped_designation <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", designation)
-    
     # Create patterns for different cases
-    patterns <- c(
-      paste0("(?<=\\s|^)", escaped_designation, "(?=\\s|$)"),  # standalone
-      paste0("(?<=\\s|^)", escaped_designation, "\\.?(?=\\s|$)"),  # with or without a period
-      paste0("(?<=\\s|^)", tolower(escaped_designation), "(?=\\s|$)")  # lowercase version
-    )
+    patterns <- create_designation_pattern(designation, verbose)
     
     for (pattern in patterns) {
-      vebcat("Pattern:", pattern, veb = verbose)
-      vebcat("Replacement:", designations[[designation]], veb = verbose)
-      
       # Apply the pattern and replacement
       x <- gsub(pattern, designations[[designation]], x, perl = TRUE)
-      
-      vebcat("Result after replacement:", x, veb = verbose)
     }
   }
+  
   
   # Remove any double periods that might have been introduced
   x <- gsub("\\.\\.", ".", x)
@@ -200,53 +241,369 @@ clean_designations <- function(x, designations, verbose = FALSE) {
   return(x)
 }
 
-clean_spec_name <- function(x, designations, symbols, verbose = FALSE) {
+uniq_list_pattern <- function(list, verbose = FALSE) {
   # Get unique standardized designations and symbols
-  unique_designations <- unique(unlist(designations))
-  escaped_designations <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", unique_designations)
-  designation_pattern <- paste(escaped_designations, collapse = "|")
+  unique_items <- unique(unlist(list))
+  # Escape designations and make pattern
+  escaped_items <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", unique_items)
+  pattern <- paste(escaped_items, collapse = "|")
   
-  unique_symbols <- unique(unlist(symbols))
-  escaped_symbols <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", unique_symbols)
-  symbol_pattern <- paste(escaped_symbols, collapse = "|")
+  return(pattern)
+}
+
+identify_structure <- function(x, symbol.pattern, designation.pattern, verbose = FALSE) {
+  # Split the name, keeping parentheses together
+  x <- gsub("\\(\\s", "(", x) # Remove space immediately after opening parenthesis
+  x <- gsub("\\s\\)", ")", x) # Remove space immediately before closing parenthesis
   
-  # Split the name
-  parts <- strsplit(gsub("\\s+", " ", trimws(x)), " ")[[1]]
+  # Split the name, keeping parentheses together
+  parts <- str_match_all(x, "<<[^>]+>>|\\([^()]*\\)|\\S+")[[1]]
+  parts <- parts[parts != ""] # Remove any empty parts
   
-  vebprint(parts, verbose, "Parts:")
+  # Find the index of the designation, if it exists
+  designation_indices <- which(sapply(parts, function(part) grepl(paste0("^(", designation.pattern, ")$"), part, perl = TRUE)))
+  # Find the indices of the symbols, if they exist
+  symbol_indices <- which(sapply(parts, function(part) grepl(paste0("^(", symbol.pattern, ")$"), part, perl = TRUE)))
   
-  # Identify the structure
-  structure <- fcase(
-    grepl(symbol_pattern, parts[1]), "interGenericHybrid",
-    grepl(symbol_pattern, parts[2]), "interSpecificHybrid",
-    any(grepl(paste0("^(", designation_pattern, ")$"), parts)), "infraspecificTaxon",
-    length(parts) >= 4 && grepl(symbol_pattern, parts[3]) & !grepl(symbol_pattern, parts[5]), "intraSpecificHybrid",
-    length(parts) >= 4 && grepl(symbol_pattern, parts[3]) & grepl(symbol_pattern, parts[5]), "intraSpecificHybrid2",
-    default = "species"
-  )
+  vebprint(parts, verbose, text = "Parts:")
+  vebcat("symbol_indices:", symbol_indices, veb = verbose)
+  vebcat("symbol count:", length(symbol_indices), veb = verbose)
+  vebcat("designation_indices:", designation_indices, veb = verbose)
+  vebcat("designation_count:", length(designation_indices), veb = verbose)
   
- result_parts <- switch(structure,
-    "species" = paste(parts[1:min(2, length(parts))], collapse = " "),
-    "interGenericHybrid" = paste(parts[1:3], collapse = " "),
-    "interSpecificHybrid" = paste(parts[1:3], collapse = " "),
-    "infraspecificTaxon" = {
-      infraspecific_index <- which(grepl(paste0("^(", designation_pattern, ")$"), parts))[1]
-      paste(c(parts[1:2], parts[infraspecific_index:(infraspecific_index+1)]), collapse = " ")
-    },
-    "intraSpecificHybrid" = paste(parts[1:4], collapse = " "),
-    "intraSpecificHybrid2" = paste(parts[1:6], collapse = " ")
-  )
-  
-  result <- paste(result_parts, collapse = " ")
-  
-  # Get the remaining parts
-  other <- if(length(parts) > length(strsplit(result, " ")[[1]])) {
-    paste(parts[(length(strsplit(result, " ")[[1]]) + 1):length(parts)], collapse = " ")
-  } else {
-    NA_character_
+  # Check if the designation is followed by "NA" at the end
+  if (length(designation_indices) > 0) {
+    to_remove <- c()
+    for (i in 1:length(designation_indices)) {
+      d <- designation_indices[i]
+      
+      # Check if this is the last part or if the next part is NA
+      if (length(parts) == d || is.na(parts[d + 1])) {
+        to_remove <- c(to_remove, i)
+      }
+      
+      # Check if the word before the designation ends on a "." and is "f."
+      if ((grepl("\\.$", parts[(d - 1)]) | grepl("Baker", parts[(d - 1)])) &
+          grepl("^f\\.$", parts[d])) {
+        to_remove <- c(to_remove, i)
+      }
+      
+      # Check if the next index is also a designation
+      if (i < length(designation_indices) && designation_indices[(i + 1)] == d + 1) {
+        to_remove <- c(to_remove, i)
+      }
+      
+      # Check if the word after the "f." is a single letter and not identical to genus
+      if (grepl("^f\\.$", parts[d]) && grepl("^[A-Za-z]$", parts[(d + 1)]) && parts[(d + 1)] != substr(parts[1], 1, 1)) {
+        to_remove <- c(to_remove, i)
+      }
+    }
+    
+    # Remove the flagged indices
+    if (length(to_remove) > 0) {
+      if (length(designation_indices) > 1) {
+        designation_indices <- designation_indices[-to_remove]
+      } else {
+        # If there's only one designation and it's flagged for removal
+        designation_indices <- NULL
+      }
+    }
+    
+    # If all designations were removed, set to NULL
+    if (length(designation_indices) == 0) {
+      designation_indices <- NULL
+    }
   }
   
-  return(list(structure = structure, result = result, other = other))
+  # Remove symbols right before or after a designation
+  if ((length(designation_indices) > 0 & length(symbol_indices) > 0) &
+      (any(symbol_indices + 1 == designation_indices) || any(symbol_indices - 1 == designation_indices))
+  ) {
+    symbols_to_remove <- c()
+    for (i in seq_along(designation_indices)) {
+      for (j in seq_along(symbol_indices)) {
+        if (symbol_indices[j] + 1 == designation_indices[i] || symbol_indices[j] - 1 == designation_indices[i]) {
+          symbols_to_remove <- c(symbols_to_remove, symbol_indices[j])
+        }
+      }
+    }
+    
+    if (length(symbols_to_remove) > 0) {
+      parts <- parts[-symbols_to_remove]
+      symbol_indices <- symbol_indices[!symbol_indices %in% symbols_to_remove]
+    }
+  }
+  
+  # CASES
+  if (any(grepl("'([A-Z][^']+)'", parts)) & length(designation_indices) == 0) {
+    structure <- fcase(
+      length(symbol_indices) == 0 & length(designation_indices) == 0, "cultivar",
+      length(symbol_indices) > 0 & length(designation_indices) == 0, "hybridCultivar",
+      default = "unknownCultivar"
+    )
+  } else if (length(designation_indices) > 0 & length(symbol_indices) == 0) {
+    structure <- fcase(
+      length(designation_indices) == 1, "infraspecificTaxon",
+      length(designation_indices) > 1, "MultiInfraspecificTaxon",
+      default = "unknownInfraspecific"
+    )
+  } else if (length(designation_indices) == 0 & length(symbol_indices) > 0) {
+    structure <- fcase(
+      symbol_indices[1] == 1 || symbol_indices[1] > 1 &&
+        symbol_indices[1] < length(parts) &&
+        substr(parts[1], 1, 1) == toupper(substr(parts[1], 1, 1)) &&
+        substr(parts[symbol_indices[1] + 1], 1, 1) == toupper(substr(parts[symbol_indices[1] + 1], 1, 1)) &&
+        !grepl("^[A-Z]\\.$", parts[symbol_indices[1] + 1]) && # Not an abbreviated genus
+        parts[1] != parts[symbol_indices[1] + 1], "interGenericHybrid",
+      symbol_indices[1] == 2, "intraGenericHybrid",
+      length(parts) >= 4 &&
+        length(symbol_indices) == 1 &&
+        symbol_indices[1] > 2 &&
+        (parts[symbol_indices[1] + 1] == parts[1] ||
+           grepl("^[A-Z]\\.$", parts[symbol_indices[1] + 1]) ||
+           substr(parts[symbol_indices[1] + 1], 1, 1) == tolower(substr(parts[symbol_indices[1] + 1], 1, 1)) ||
+           parts[symbol_indices[1] + 1] == tolower(parts[symbol_indices[1] + 1])), "interSpecificHybrid",
+      length(parts) >= 4 && length(symbol_indices) > 1 && (symbol_indices[1] == 3 || symbol_indices[1] > 3), "MultiIntraSpecificHybrid",
+      default = "unknownHybrid"
+    )
+  } else if (length(designation_indices) == 0 & length(symbol_indices) == 0) {
+    structure <- "species"
+  } else if (length(designation_indices) > 0 & length(symbol_indices) > 0) {
+    structure <- fcase(
+      any(grepl(symbol.pattern, parts[1])), "interGenericHybridTaxon",
+      any(grepl(symbol.pattern, parts[2])) | any(grepl(symbol.pattern, parts[3])), "interSpecificHybridTaxon",
+      default = "unknownInfraHybrid"
+    )
+  } else {
+    structure <- "unknown"
+  }
+  
+  # Initialize all fields with NA
+  part_id <- list(
+    genus = NA_character_,
+    specificEpithet = NA_character_,
+    infraspecificRank = NA_character_,
+    hybrid = NA_character_,
+    infraspecificEpithet = NA_character_,
+    cleanName = NA_character_,
+    other = NA_character_,
+    fullName = NA_character_,
+    extra = NA_character_,
+    structure = structure
+  )
+  
+  # Assign names based on the structure
+  used_parts <- 0
+  switch(structure,
+         "species" = {
+           part_id$genus <- parts[1]
+           if (length(parts) >= 2 && grepl("\\.$", parts[2])) {
+             part_id$other <- parts[2]
+             parts <- parts[-2]
+           }
+           part_id$specificEpithet <- parts[2]
+           part_id$cleanName <- paste(parts[1:2], collapse = " ")
+           used_parts <- 2
+         },
+         "infraspecificTaxon" = {
+           if (grepl("^[A-Za-z]\\.$", parts[(designation_indices + 1)])) {
+             parts <- parts[-(designation_indices + 1)] # Remove the part after designation
+           }
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- parts[2]
+           part_id$infraspecificRank <- parts[designation_indices]
+           infra_index <- 1
+           if (designation_indices < (length(parts) - 1) &&
+               grepl("^cv\\.|cvgr\\.$", parts[designation_indices]) &&
+               grepl("^'", parts[designation_indices + 1]) &&
+               !grepl("'$", parts[designation_indices + 1])) {
+             infra_index <- 2
+           }
+           part_id$infraspecificEpithet <- parts[designation_indices + infra_index]
+           part_id$cleanName <- paste(parts[c(1:2, designation_indices:(designation_indices + infra_index))], collapse = " ")
+           used_parts <- designation_indices + infra_index
+         },
+         "MultiInfraspecificTaxon" = {
+           part_id$extra <- paste(parts[c(1:2, designation_indices[2]:length(parts))], collapse = " ")
+           parts <- parts[-(designation_indices[2]:length(parts))]
+           
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- parts[2]
+           part_id$infraspecificRank <- parts[designation_indices[1]]
+           part_id$infraspecificEpithet <- parts[designation_indices[1] + 1]
+           part_id$cleanName <- paste(parts[c(1:2, designation_indices[1]:(designation_indices[1] + 1))], collapse = " ")
+           
+           used_parts <- designation_indices[1] + 1
+         },
+         "interGenericHybrid" = {
+           if (grepl("^[A-Z]", parts[1]) & substr(parts[1], 1, 1) != substr(parts[symbol_indices[1] + 1], 1, 1)) {
+             if (symbol_indices != 3) {
+               parts <- parts[-(3:(symbol_indices - 1))] # remove up to symbol
+               symbol_indices <- symbol_indices - length(3:(symbol_indices - 1)) # set symbol to new position
+             }
+             part_id$genus <- parts[1]
+             part_id$specificEpithet <- paste(parts[2:5], collapse = " ")
+             part_id$hybrid <- parts[3]
+             part_id$cleanName <- paste(parts[1:5], collapse = " ")
+             used_parts <- 5
+           } else {
+             part_id$hybrid <- parts[1]
+             part_id$genus <- paste(parts[1:2], collapse = " ")
+             part_id$specificEpithet <- parts[3]
+             part_id$cleanName <- paste(parts[1:3], collapse = " ")
+             used_parts <- 3
+           }
+         },
+         "intraGenericHybrid" = {
+           part_id$genus <- parts[1]
+           part_id$hybrid <- parts[2]
+           part_id$specificEpithet <- paste(parts[2:3], collapse = " ")
+           part_id$cleanName <- paste(parts[1:3], collapse = " ")
+           used_parts <- 3
+         },
+         "interSpecificHybrid" = {
+           if (symbol_indices != 3) {
+             parts <- parts[-(3:(symbol_indices - 1))] # remove up to symbol
+             symbol_indices <- symbol_indices - length(3:(symbol_indices - 1)) # set symbol to new position
+           }
+           if ((grepl("^[A-Z]\\.$", parts[symbol_indices[1] + 1]) || parts[symbol_indices[1] + 1] == parts[1]) && substr(parts[symbol_indices[1] + 1], 1, 1) == substr(parts[1], 1, 1)) {
+             parts <- parts[-(symbol_indices[1] + 1)]
+           } # Remove uppercase letter with "." after if identical to first uppercase letter of genus
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- paste(parts[2:4], collapse = " ")
+           part_id$hybrid <- parts[3]
+           part_id$cleanName <- paste(parts[1:4], collapse = " ")
+           used_parts <- 4
+         },
+         "MultiIntraSpecificHybrid" = {
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- paste(parts[2:6], collapse = " ")
+           part_id$hybrid <- parts[3]
+           part_id$cleanName <- paste(parts[1:6], collapse = " ")
+           used_parts <- 6
+         },
+         "interGenericHybridTaxon" = {
+           part_id$hybrid <- parts[1]
+           part_id$genus <- paste(parts[1:2], collapse = " ")
+           part_id$specificEpithet <- parts[3]
+           part_id$infraspecificRank <- parts[4]
+           part_id$infraspecificEpithet <- parts[5]
+           part_id$cleanName <- paste(parts[1:5], collapse = " ")
+           used_parts <- 5
+         },
+         "interSpecificHybridTaxon" = {
+           if (symbol_indices == 2) {
+             part_id$genus <- parts[1]
+             part_id$hybrid <- parts[2]
+             part_id$specificEpithet <- paste(parts[2:3], collapse = " ")
+             if (designation_indices != 4) {
+               parts <- parts[-(4:(designation_indices - 1))]
+               designation_indices <- designation_indices - length(4:(designation_indices - 1))
+             }
+             part_id$infraspecificRank <- parts[4]
+             part_id$infraspecificEpithet <- parts[5]
+             part_id$cleanName <- paste(parts[1:5], collapse = " ")
+             used_parts <- 5
+           } else {
+             part_id$genus <- parts[1]
+             part_id$specificEpithet <- paste(parts[2:4], collapse = " ")
+             part_id$hybrid <- parts[3]
+             if (designation_indices != 5) {
+               parts <- parts[-(5:(designation_indices - 1))]
+               designation_indices <- designation_indices - length(5:(designation_indices - 1))
+             }
+             part_id$infraspecificRank <- parts[5]
+             part_id$infraspecificEpithet <- parts[6]
+             part_id$cleanName <- paste(parts[1:6], collapse = " ")
+             used_parts <- 6
+           }
+         },
+         "cultivar" = {
+           if (grepl("\\(.*\\)", parts[2])) parts <- parts[-2]
+           cultivar_index <- which(grepl("'", parts[1:length(parts)]))
+           if (cultivar_index > 3) {
+             parts <- parts[-(3:(cultivar_index - 1))]
+             cultivar_index <- cultivar_index - length(3:(cultivar_index - 1))
+           }
+           part_id$genus <- parts[1]
+           if (cultivar_index == 2) {
+             part_id$specificEpithet <- parts[2]
+             part_id$cleanName <- paste(parts[1:2], collapse = " ")
+             used_parts <- 2
+           } else {
+             part_id$specificEpithet <- paste(parts[2:3], collapse = " ")
+             part_id$cleanName <- paste(parts[1:3], collapse = " ")
+             used_parts <- 3
+           }
+         },
+         "hybridCultivar" = {
+           part_id$genus <- parts[1]
+           part_id$hybrid <- parts[2]
+           part_id$specificEpithet <- parts[3]
+           part_id$cleanName <- paste(parts[1:3], collapse = " ")
+           used_parts <- 3
+         },
+         {
+           # For complex cases, assign parts to named fields as much as possible
+           part_id$genus <- parts[1]
+           if (length(parts) > 1) part_id$specificEpithet <- parts[2]
+           if (length(parts) > 2) part_id$hybrid <- parts[3]
+           if (length(parts) > 3) part_id$infraspecificEpithet <- parts[4]
+           part_id$cleanName <- paste(parts[1:min(4, length(parts))], collapse = " ")
+           used_parts <- min(4, length(parts))
+         }
+  )
+  
+  # Add other parts
+  if (used_parts < length(parts)) {
+    other_parts <- parts[(used_parts + 1):length(parts)]
+    part_id$other <- paste(other_parts, collapse = " ")
+  } else if (!is.na(part_id$other) && part_id$other == "") {
+    part_id$other <- NA_character_
+  }
+  
+  # Clean parentheses with "=" inside them and remove "hybrid complex"
+  part_id$other <- gsub("\\s*\\([^()]*=.*?\\)|\\s*hybrid complex", "", part_id$other)
+  
+  # Convert empty strings to NA and ensure character type
+  part_id$other <- as.character(part_id$other) # Ensure character type
+  part_id$other[trimws(part_id$other) == ""] <- NA_character_
+  
+  # Remove any NA values from cleanName
+  part_id$cleanName <- gsub("\\s+", " ", gsub("NA", "", part_id$cleanName))
+  part_id$cleanName <- trimws(part_id$cleanName)
+  
+  if (is.null(part_id$infraspecificRank) || length(part_id$infraspecificRank) == 0) {
+    part_id$infraspecificRank <- NA_character_
+  }
+  
+  part_id$fullName <- ifelse(!is.na(part_id$other),
+                             paste(part_id$cleanName, part_id$other),
+                             part_id$cleanName
+  )
+  
+  return(part_id)
+}
+
+clean_spec_name <- function(x, symbols, designations, verbose = FALSE) {
+  symbol_pattern <- uniq_list_pattern(symbols, verbose)
+  designation_pattern <- uniq_list_pattern(designations, verbose)
+  
+  
+  # Split designations into separate parts
+  for (designation in designation_pattern) {
+    x <- gsub(paste0("(\\s|^)(", designation, ")(\\s|$)"), "\\1\\2 ", x, perl = TRUE)
+  }
+  vebcat("After designation split:", x, veb = verbose)
+  
+  parts_id <- identify_structure(
+    x = x,
+    symbol_pattern,
+    designation_pattern,
+    verbose = verbose
+  )
+  
+  return(parts_id)
 }
 
 # Combine the a row for all specified columns as strings. If custom.col and custom.list are used, the custom.col will be swapped out with the data from the custom.list.
@@ -298,12 +655,14 @@ combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = N
   return(combined_dt)
 }
 
+
 select_species_approach <- function(dt, approach = "precautionary", col.name = "cleanName", custom.list = ".aff", verbose = FALSE) {
   catn("Selecting species using the", highcat(approach), "approach.")
   
   spec_dt <- copy(dt)
   
   if (approach == "precautionary") {
+    # USe new cleaner insted
     spec_dt <- spec_dt[, (col.name) := species]
   } else if (approach == "conservative") { 
     spec_dt <- combine_columns_dt(
@@ -319,6 +678,12 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
     vebcat("Approach can only be 'conservative' or 'precautionary'.", color = "fatalError")
     stop("Change the apporach.")
   }
+  
+  spec_dt[, string.clean := { # Clean symbols & designations
+    tmp <- clean_string(get(col.name), verbose)
+    tmp <- clean_designations(tmp, config$species$standard_infraEpithets, verbose)
+    clean_symbols(tmp, config$species$filename_symbols, verbose)
+  }]
   
   return(spec_dt)
 }

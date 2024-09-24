@@ -103,7 +103,7 @@ chunk_file <- function(file.path, approach = "precautionary", cores.max = 1, chu
 
         tryCatch(
           {
-            select_species_approach(
+           data <- select_species_approach(
               dt = data,
               approach = approach,
               col.name = chunk.column,

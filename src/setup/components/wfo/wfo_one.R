@@ -12,7 +12,7 @@ check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir =
     priority = "Accepted",
     spec.name = "scientificName",
     verbose = FALSE, 
-    counter = 100
+    counter = 10000
   )
   
   fwrite(wfo_one_checklist, paste0(out.dir, "/wfo-one.csv"), bom = T)

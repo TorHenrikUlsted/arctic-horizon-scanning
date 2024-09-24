@@ -76,8 +76,8 @@ wrangle_if <- function(fun.name, column, verbose = FALSE) {
 
     res <- list()
 
-    if (!is.null(present_out)) res$present <- fread(present_out, sep = "\t")
-    if (!is.null(absent_out)) res$absent <- fread(absent_out, sep = "\t")
+    if (!is.null(present_out)) res$present <- fread(present_out)
+    if (!is.null(absent_out)) res$absent <- fread(absent_out)
   } else {
     vebcat("Initiating", name, "wrangling protocol.", color = "funInit")
 
@@ -123,7 +123,7 @@ wrangle_all <- function(column, verbose = FALSE) {
       }
     },
     error = function(e) {
-      vebcat("Error occurred when trying to wrangle all file.", color = "fatalError")
+      vebcat("Error occurred when trying to wrangle all files.", color = "fatalError")
       stop(e$message)
     }
   )
@@ -153,7 +153,10 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
       # Run synonym check on the species
       sp_synonyms <- check_syn_wfo(
         checklist = wrangled_dfs[[name]],
-        column = column,
+        cols = list(
+          spec.name = column,
+          Authorship = if(paste0(column, "Authorship") %in% names(wrangled_dfs[[name]])) paste0(column, "Authorship")
+        ),
         out.dir = out_dir_child,
         cores.max = cores.max,
         verbose = verbose,
@@ -214,14 +217,18 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
       
       # Choose approach
       if (config$simulation$approach == "precautionary") {
+        wfo_data <- WFO.minimal(WFO_file)
+        
         sp_checked$clean <- filter_approach(
           dt = sp_checked$clean,
+          WFO.data = wfo_data,
           out.file = paste0(out_dir_child, "/wfo-one-approach.csv"),
           verbose
         )
-        
+
         sp_checked$mismatch <- filter_approach(
           dt = sp_checked$mismatch,
+          WFO.data = wfo_data,
           out.file = paste0(out_dir_child, "/wfo-one-approach-mismatch.csv"),
           verbose
         )
@@ -265,9 +272,8 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
       catn("All data frames already exist.")
     } else {
       vebcat("Combining no-matches.", veb = verbose)
-
       combined_dt <- data.table()
-
+      
       # Loop over each list in checked_dfs
       for (dt_name in names(checked_dts)) {
         wfo_one <- checked_dts[[dt_name]]
@@ -276,7 +282,6 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
         if (!is.null(wfo_one$duplicate)) wfo_one$duplicate <- NULL
         
         vebprint(wfo_one, verbose, paste0("Checking data table ", dt_name, " :"))
-
         process_status <- function(status) {
           if (!is.null(wfo_one[[status]]) && nrow(wfo_one[[status]]) > 0) {
             catn("Appending", status, "for:", highcat(dt_name))
@@ -285,47 +290,52 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
           }
           return(NULL)
         }
-
+        
         status <- c("mismatch", "nomatch", "na")
         processed <- lapply(status, process_status)
         
         if (grepl("test", dt_name)) files_dir <- paste0(files_dir, "/test")
-
         combined_dt <- rbindlist(c(list(combined_dt), processed), fill = TRUE)
-        manual_combined <- unique(combined_dt, by = column)
+        
+        total_rows <- sum(sapply(processed, function(x) if (!is.null(x)) nrow(x) else 0))
         
         mdwrite(
           config$files$post_seq_md,
-          text = paste0("3;Combined **", dt_name, "** for manual handling for: **", nrow(manual_combined), "**")
+          text = paste0("3;Combined **", dt_name, "** for manual handling for: **", total_rows, "**")
         )
-
-        if (nrow(manual_combined) > 0) {
-          catn("There were", highcat(nrow(manual_combined)), "species that need manual handling")
-          catn("Writing manual edit combined to:", colcat(files_dir, color = "output"))
-          fwrite(manual_combined, paste0(files_dir, "/combined-wfo-mismatches.csv"), bom = T)
-
-          man_dt <- data.table(
-            rawName = manual_combined[[column]],
-            structure = manual_combined$structure,
-            rest = manual_combined$rest,
-            scientificName.ORIG = manual_combined$scientificName.ORIG,
-            scientificName = manual_combined$scientificName,
-            scientificName.changed = manual_combined$scientificName.changed,
-            Old.name = manual_combined$Old.name,
-            mismatch.old = manual_combined$mismatch.old,
-            mismatch.scientific = manual_combined$mismatch.scientific,
-            status = manual_combined$status,
-            acceptedName = NA,
-            acceptedNameAuthorship = NA,
-            source = NA,
-            comment = NA,
-            listOrigin = manual_combined$listOrigin
-          )
-          catn("Use this file to manually edit:", colcat(files_dir, color = "output"))
-          fwrite(man_dt, paste0(files_dir, "/manual-check-file.csv"), bom = T)
-        } else {
-          catn("There were", highcat(0), "species in need of manual handling \n")
-        }
+      }
+      
+      # After the loop, process the combined data
+      manual_combined <- unique(combined_dt, by = column)
+      
+      if (nrow(manual_combined) > 0) {
+        catn("There were", highcat(nrow(manual_combined)), "species that need manual handling")
+        catn("Writing manual edit combined to:", colcat(files_dir, color = "output"))
+        fwrite(manual_combined, paste0(files_dir, "/combined-wfo-mismatches.csv"), bom = TRUE)
+        
+        man_dt <- data.table(
+          verbatimName = manual_combined$verbatimName,
+          interimName = manual_combined[[column]],
+          interimNameAuthorship = if(paste0(column, "Authorship") %in% names(manual_combined)) paste0(column, "Authorship"),
+          wfoName = manual_combined$scientificName.ORIG,
+          wfoSpecies = manual_combined$scientificName,
+          Old.status = manual_combined$Old.status,
+          Old.name = manual_combined$Old.name,
+          name.clean = manual_combined$name.clean,
+          mismatch.old = manual_combined$mismatch.old,
+          mismatch.scientific = manual_combined$mismatch.scientific,
+          status = manual_combined$status,
+          acceptedName = NA_character_,
+          acceptedNameAuthorship = NA_character_,
+          source = NA_character_,
+          comment = NA_character_,
+          listOrigin = manual_combined$listOrigin
+        )
+        
+        catn("Use this file to manually edit:", colcat(files_dir, color = "output"))
+        fwrite(man_dt, paste0(files_dir, "/manual-check-file.csv"), bom = TRUE)
+      } else {
+        catn("There were", highcat(0), "species in need of manual handling \n")
       }
     }
   }

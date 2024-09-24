@@ -40,7 +40,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     invisible(gc())
 
     setup_raw_data(
-      column = "rawName",
+      column = "interimName",
       cores.max = cores.max,
       verbose = verbose,
       counter = 500

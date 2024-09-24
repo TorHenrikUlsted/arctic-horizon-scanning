@@ -76,33 +76,33 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       )
     }
     
-    # Change symbols with config to be filename safe and check if it is in the correct approach
-    lapply(dts, function(dt) {
-      if (config$simulation$approach == "precautionary") {
-       dt <- filter_approach(
-          dt,
-          out.file = paste0("./outputs/filter/", 
-                            ifelse(grepl("test", names(dt)), 
-                                   gsub("_", "-", names(dt)), 
-                                   sub("_.*", "", names(dt))
-                            ), 
-                            "/approach-filtering.csv"
-          ),
-          verbose = verbose
-        )
-      }
-      
-      dt[, `:=` (
-        scientificName = {
-          tmp <- clean_symbols(scientificName, config$species$filename_symbols, verbose)
-          clean_designations(tmp, config$species$standard_infraEpithets, verbose)
-        } 
-      )]
-    })
-    
-    if (is.null(coord.uncertainty) & file.exists(coord_un_file)) {
-      coord.uncertainty <- as.numeric(readLines(coord_un_file))
-    }
+    # # Change symbols with config to be filename safe and check if it is in the correct approach
+    # lapply(dts, function(dt) {
+    #   if (config$simulation$approach == "precautionary") {
+    #    dt <- filter_approach(
+    #       dt,
+    #       out.file = paste0("./outputs/filter/", 
+    #                         ifelse(grepl("test", names(dt)), 
+    #                                gsub("_", "-", names(dt)), 
+    #                                sub("_.*", "", names(dt))
+    #                         ), 
+    #                         "/approach-filtering.csv"
+    #       ),
+    #       verbose = verbose
+    #     )
+    #   }
+    #   
+    #   dt[, `:=` (
+    #     scientificName = {
+    #       tmp <- clean_symbols(scientificName, config$species$standard_symbols, verbose) # GBIF requires standard symbols
+    #       clean_designations(tmp, config$species$standard_infraEpithets, verbose)
+    #     } 
+    #   )]
+    # })
+    # 
+    # if (is.null(coord.uncertainty) & file.exists(coord_un_file)) {
+    #   coord.uncertainty <- as.numeric(readLines(coord_un_file))
+    # }
 
     vebprint(dts, verbose, "all data tables:")
 

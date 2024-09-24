@@ -39,8 +39,20 @@ species:
   standard_infraEpithets:
     "ssp.": "subsp."
     "subspecies": "subsp."
+    "nothosubspecies": "nothosubsp."
     "variety": "var."
-    "form": "f."
+    "nothovariety": "nothovar."
+    "subvariety": "subvar."
+    "convariety": "convar."
+    "form": "subf."
+    "forma": "subf."
+    "subform": "subf."
+    "subforma": "subf."
+    "cultivarGroup": "cvgr."
+    "cultivar": "cv."
+    "grex": "gx."
+    "proles": "prol."
+    "lusus": "lus."
   taxonRank_infraEpithets:
     "SUBSPECIES": "subsp."
     "VARIETY": "var."
@@ -53,9 +65,10 @@ species:
     - "sp."
   filename_symbols:
     "×": "^x^"
-    "x": "^x^"
   standard_symbols:
     "x": "×"
+    "^x^": "×"
+    "Ã—": "×"
 
 files:
   post_seq_md: "./outputs/post-process/markdown/sequence-numbers.md"

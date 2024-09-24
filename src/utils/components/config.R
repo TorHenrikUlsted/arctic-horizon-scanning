@@ -39,6 +39,19 @@ config$projection$crs$stere_north <- edit_crs(config$projection$crs$stere_north,
 config$projection$crs$stere_north <- edit_crs(config$projection$crs$stere_north, "BASEGEOGCRS", "WGS 84")
 
 #------------------------#
+####     Species      ####
+#------------------------#
+
+# Automatically add entries without periods
+no_period_infraEpithet <- setdiff(
+  sub("\\.$", "", unlist(config$species$standard_infraEpithets)),
+  names(config$species$standard_infraEpithets)
+)
+
+for (des in no_period_infraEpithet) config$species$standard_infraEpithets[[des]] <- paste0(des, ".")
+rm(no_period_infraEpithet, des)
+
+#------------------------#
 ####      Files       ####
 #------------------------#
 

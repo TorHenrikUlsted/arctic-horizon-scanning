@@ -1,4 +1,4 @@
-check_syn_wfo <- function(checklist, column, out.dir, cores.max = 1, verbose = FALSE, counter = 1) {
+check_syn_wfo <- function(checklist, cols, out.dir, cores.max = 1, verbose = FALSE, counter = 1) {
   if (!"data.table" %in% class(checklist) && !"data.frame" %in% class(checklist)) {
     stop("The input data is not in the 'data.table' or 'data.frame' format.", print(class(checklist)))
   }
@@ -13,14 +13,36 @@ check_syn_wfo <- function(checklist, column, out.dir, cores.max = 1, verbose = F
   vebcat("Initiating WFO synonym check", color = "funInit")
   wfo_timer <- start_timer("wfo_match")
   
-  catn("Running the WFO synonym check for", highcat(nrow(checklist)), "species with column", highcat(column))
-  vebprint(head(checklist, 3), text = "Table sample:")
+  input_cols <- unlist(cols)
+  
+  # Use the provided columns or default values if not present
+  cols$spec.name <- ifelse(!is.null(cols$spec.name), cols$spec.name, "spec.name")
+  cols$Genus <- ifelse(!is.null(cols$Genus), cols$Genus, "Genus")
+  cols$Species <- ifelse(!is.null(cols$Species), cols$Species, "Species")
+  cols$Infraspecific <- ifelse(!is.null(cols$Infraspecific), cols$Infraspecific, "Infraspecific")
+  cols$Infraspecific.rank <- ifelse(!is.null(cols$Infraspecific.rank), cols$Infraspecific.rank, "Infraspecific.rank")
+  cols$Authorship <- ifelse(!is.null(cols$Authorship), cols$Authorship, "Authorship")
+  
+  catn("Running the WFO synonym check for", 
+       highcat(nrow(checklist)), 
+       "species with column(s):\n", 
+       highcat(paste(input_cols, sep = " = ", collapse = ", "), "\n")
+      )
+  
+  temp_dt <- checklist[, ..input_cols]
+  vebprint(head(temp_dt, 3), text = "Table sample:")
+  rm(temp_dt)
   
   if (nrow(checklist) < 10) {
     wfo_result <- WFO.match(
       spec.data = checklist, 
-      spec.name = column, 
-      WFO.file = WFO_file, 
+      WFO.file = WFO_file,
+      spec.name = cols$spec.name,
+      Genus = cols$Genus,
+      Species = cols$Species,
+      Infraspecific.rank = cols$Infraspecific.rank,
+      Infraspecific = cols$Infraspecific,
+      Authorship = cols$Authorship,
       verbose = verbose, 
       counter = counter
     )
@@ -47,7 +69,7 @@ check_syn_wfo <- function(checklist, column, out.dir, cores.max = 1, verbose = F
     
     wfo_result <- wfo_parallel(
       checklist = checklist,
-      column = column,
+      cols = cols,
       out.dir = out.dir,
       cores.max = min(nrow(checklist), cores_max$total),
       evals = custom_evals,
@@ -62,7 +84,7 @@ check_syn_wfo <- function(checklist, column, out.dir, cores.max = 1, verbose = F
   
   wfo_result <- wfo_mismatch_check(
     wfo.result = wfo_result, 
-    col.origin = column,
+    col.origin = cols$spec.name,
     out.file = paste0(out.dir, "/wfo-match-mismatches.csv"),
     unchecked = FALSE,
     verbose = verbose

@@ -7,10 +7,13 @@ wrangle_test_small <- function(name, column, verbose = FALSE) {
   
   formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
-  setnames(formatted, old = "scientificName", new = column)
+  setnames(formatted, old = "scientificName", new = "verbatimName")
   
-  absent <- set_df_utf8(formatted)
-  fwrite(absent, absent_out, row.names = F, bom = T)
+  formatted[, (column) := verbatimName]
+  
+  absent <- formatted
+  
+  fwrite(absent, absent_out, bom = T)
   
   write_wrangled_md(
     dt.list = list(formatted = formatted, absent = absent),
@@ -30,12 +33,16 @@ wrangle_test_big <- function(name, column, verbose = FALSE) {
   
   absent_out <- paste0(dir, "/", name, "/", name, "-absent.csv")
   
-  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
+  formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"))
   
-  setnames(formatted, old = "scientificName", new = column)
+  setnames(formatted, old = "scientificName", new = "verbatimName")
+  setnames(formatted, old = "author", new = "verbatimNameAuthorship")
   
-  absent <- set_df_utf8(formatted)
-  fwrite(absent, absent_out, row.names = F, bom = T)
+  formatted[, (column) := verbatimName]
+  formatted[, (paste0(column, "Authorship")) := verbatimNameAuthorship]
+  absent <- formatted
+  
+  fwrite(absent, absent_out, bom = T)
   
   write_wrangled_md(
     dt.list = list(formatted = formatted, absent = absent),
@@ -57,10 +64,13 @@ wrangle_test_known <- function(name, column, verbose = FALSE) {
   
   formatted <- fread(paste0("./resources/data-raw/test/", name, "/", name, ".csv"), sep = "\t")
   
-  setnames(formatted, old = "scientificName", new = column)
+  setnames(formatted, old = "scientificName", new = "verbatimName")
   
-  present <- set_df_utf8(formatted)
-  fwrite(present, present_out, row.names = F, bom = T)
+  formatted[, (column) := verbatimName]
+  
+  present <- formatted
+  
+  fwrite(present, present_out, bom = T)
   
   write_wrangled_md(
     dt.list = list(formatted = formatted, present = present),
