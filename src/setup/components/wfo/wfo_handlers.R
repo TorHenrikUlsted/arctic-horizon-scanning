@@ -127,6 +127,7 @@ wfo_parallel <- function(checklist, cols, out.dir = "./", cores.max = 1, evals =
 ####   mismatch case  ####
 #------------------------#
 wfo_mismatch_check <- function(wfo.result, col.origin = "interimName", out.file = NULL, unchecked = FALSE, verbose = FALSE) {
+  vebcat("Running mismatch case", color = "proInit")
   vebprint(unchecked, verbose, "Include unchecked results:")
   vebprint(names(wfo.result), verbose, "Input data table names:")
   vebprint(nrow(wfo.result), verbose, "Number of rows in the input data table:")
@@ -176,30 +177,57 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "interimName", out.file 
     
     # Remove hybrid, double spaces and trim
     non_spec <- c("MultiInfraspecificTaxon", "infraspecificTaxon")
-    dt[, `:=`(
+    dt <- dt[, `:=`(
       name.clean = trimws(gsub(" +", " ", gsub("×", "", name.clean))),
-      specificEpithet.clean = trimws(gsub(" +", " ", gsub("×", "", name.clean))),
+      specificEpithet.clean = trimws(gsub(" +", " ", gsub("×", "", specificEpithet.clean))),
       structure.clean = fifelse(structure.clean %in% non_spec, structure.clean, "species"),
-      clean_name = gsub(" ", "", trimws(name.clean)),
-      clean_old_name = gsub(" ", "", trimws(Old.name)),
-      clean_scientific_name = gsub(" ", "", trimws(scientificName)),
-      clean_species_name = gsub(" ", "", trimws(paste(genus.clean, specificEpithet.clean)))
+      clean_name = trimws(tolower(name.clean)),
+      clean_old_name = trimws(tolower(Old.name)),
+      clean_scientific_name = trimws(tolower(scientificName)),
+      clean_species_name = trimws(paste(tolower(genus.clean), tolower(specificEpithet.clean)))
     )]
     
     # If Old.name is not equal to name.clean/input without author names or as species name, then add to manual
-    # if taxonRank is species, then build a species name
-    # If taxonRank not a species, then use fullname
-    dt <- dt[, `:=`(
-      mismatch.old = New.accepted == TRUE & (
-        clean_old_name != clean_name & (structure.clean == "species" & clean_old_name != clean_species_name)
+    allowed_fuzzy <- 3 # Fuzzy to allow for small spelling mistakes
+    
+    dt[, `:=`(
+      mismatch.old = fcase(
+        New.accepted == FALSE, FALSE, # old.name NA if New.accepted == FALSE
+        
+        clean_old_name != clean_name & # Check infraspecifics vs infraspecifics
+          structure.clean != "species" & 
+          lengths(str_split(clean_old_name, "\\s+")) > 2 & 
+          Fuzzy.dist >= allowed_fuzzy, TRUE, 
+        
+        structure.clean != "species" & # Check species vs infraspecifics
+          lengths(str_split(clean_old_name, "\\s+")) == 2 &
+          clean_old_name != clean_species_name & Fuzzy.dist >= allowed_fuzzy, TRUE,
+        
+        clean_old_name != clean_species_name & # Check species vs species
+          Fuzzy.dist >= allowed_fuzzy, TRUE,
+        
+        default = FALSE
       ),
-      mismatch.scientific = New.accepted == FALSE & (
-        clean_scientific_name != clean_name & (structure.clean == "species" & clean_scientific_name != clean_species_name)
-      ),
-      mismatch.any = NA
+      
+      mismatch.scientific = fcase(
+        New.accepted == TRUE, FALSE,
+        
+        clean_scientific_name != clean_name & # Check infraspecifics vs infraspecifics
+          structure.clean != "species" & 
+          lengths(str_split(clean_scientific_name, "\\s+")) > 2 & 
+          Fuzzy.dist >= allowed_fuzzy, TRUE,
+        
+        structure.clean != "species" & # Check species vs infraspecifics
+          lengths(str_split(clean_scientific_name, "\\s+")) == 2 &
+          clean_scientific_name != clean_species_name & Fuzzy.dist >= allowed_fuzzy, TRUE,
+        
+        clean_scientific_name != clean_species_name & # Check species vs species
+          Fuzzy.dist >= allowed_fuzzy, TRUE,
+        
+        default = FALSE
+      )
     )]
     
-    # & Fuzzy.dist >= 5
     dt[, `:=` (
       mismatch.any = mismatch.old | mismatch.scientific,
       clean_name = NULL,
@@ -221,11 +249,28 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "interimName", out.file 
   }
   
   # remove any identical input that are in the wfo output to not cause future issues when handling manually
+  
   removed_species <- main_res[input %in% mis_res$input]
   mis_res <- rbind(mis_res, removed_species, fill = TRUE)
   main_res <- main_res[!input %in% mis_res$input]
   
-  vebprint(mis_res, verbose, "Mismatching results:")
+  if ((nrow(main_res) + nrow(mis_res)) - nrow(dt) < 0) {
+    vebprint(main_res, text = "Main result data:")
+    vebcat("Data input into mismatching:", highcat(nrow(dt)))
+    vebcat("Data found after mismatching:", highcat(nrow(main_res) + nrow(mis_res)))
+    vebcat("Lost", highcat(nrow(dt) - (nrow(main_res) + nrow(mis_res))), "species")
+    na_old <- which(is.na(main_res$mismatch.old))
+    na_sci <- which(is.na(main_res$mismatch.scientific))
+    vebprint(na_old, text = "Mismatch.old NAs")
+    vebprint(na_sci, text = "Mismatch.scientific NAs")
+    vebcat("Found", highcat(length(na_old)), "mismatch.old NAs")
+    vebcat("Found", highcat(length(na_sci)), "mismatch.scientific NAs")
+    vebcat("ERROR: Species were lost in the mismatching process.", color = "fatalError")
+    stop("Something went wrong during mismatching, check mismatching logic for NAs.")
+  }
+  
+  vebcat("Number of removed species:", highcat(nrow(removed_species)), veb = verbose)
+  vebcat("Rows in main result:", highcat(nrow(main_res)), veb = verbose)
   catn("Found", highcat(nrow(mis_res)), "mismatching species.")
   
   if (nrow(mis_res) > 0) {
@@ -237,6 +282,8 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "interimName", out.file 
       fwrite(write_res, out.file, bom = TRUE)
     } 
   } 
+  
+  vebcat("mismatch case completed successfully", color = "proSuccess")
   
   return(list(
     clean = setnames(main_res, old = "input", new = col.origin),
@@ -281,8 +328,8 @@ wfo_duplication_check <- function(wfo.result, out.file = NULL, verbose = FALSE) 
   dups <- res[duplicated(res$scientificName)]
   res <- res[!duplicated(res$scientificName)]
   
-  vebprint(dups, verbose, "Duplications dt:")
-  vebprint(wfo.result, verbose, "Result dt:")
+  vebprint(nrow(dups), verbose, "Duplications dt:")
+  vebprint(nrow(wfo.result), verbose, "WFO.one result dt:")
   
   if (nrow(dups) > 0 && !is.null(out.file)) {
     catn("Found", highcat(nrow(dups)), "duplicated species from the WFO.one result.")
@@ -330,7 +377,6 @@ wfo_na_check <- function(wfo.result, out.file = NULL, verbose = FALSE) {
 
 WFO.minimal <- function(WFO.file) {
   if (!inherits(try(file.info(WFO.file), silent = TRUE), "try-error")) {
-    catn("Reading file")
     cols_to_read <- c("taxonID", "scientificName", "scientificNameAuthorship", "taxonRank", "nomenclaturalStatus", "taxonomicStatus")
     
     catn("Reading WFO data")
@@ -352,41 +398,8 @@ WFO.minimal <- function(WFO.file) {
 WFO.extract <- function(x, WFO.data, verbose = FALSE) {
   spec_dt <- copy(x)
   
-  spec_dt[, `:=` (
-    scientificName.ORIG = scientificName, # Keep the original
-    scientificName = NULL # Remove the column
-  )]
-  
-  spec_dt[, `:=`(
-    scientificName = fifelse(
-      is.na(genus) | is.na(specificEpithet),
-      NA_character_,
-      fifelse(
-        tolower(taxonRank) == "species",
-        fifelse(
-          is.na(scientificNameAuthorship) | scientificNameAuthorship == "",
-          trimws(scientificName.ORIG),
-          paste(trimws(scientificName.ORIG), trimws(scientificNameAuthorship))
-        ),
-        paste(trimws(genus), trimws(specificEpithet))
-      )
-    ),
-    hasAuthorship = fifelse(
-      is.na(genus) | is.na(specificEpithet),
-      NA,
-      fifelse(
-        tolower(taxonRank) == "species" &
-          !is.na(scientificNameAuthorship) &
-          scientificNameAuthorship != "",
-        TRUE,
-        FALSE
-      )
-    )
-  )]
-  
   need_check <- spec_dt[tolower(taxonRank) != "species"]
   
-  vebprint(need_check, verbose, "Need to be checked dt:")
   vebcat(highcat(nrow(spec_dt)), "scientificNames found")
   vebcat(highcat(nrow(need_check)), "non-species found and need to be checked")
   
@@ -403,10 +416,10 @@ WFO.extract <- function(x, WFO.data, verbose = FALSE) {
     spec_author <- row$scientificNameAuthorship
     spec_replace <- row$scientificName
     
-    vebprint(paste0("^", spec), verbose, "spec:")
-    vebprint(spec_orig, verbose, "spec_orig:")
-    vebprint(spec_author, verbose, "spec_author:")
-    vebprint(spec_replace, verbose, "spec_replace:")
+    #vebcat("spec:", paste0("^", spec), veb = verbose)
+    #vebcat("spec_orig:", spec_orig, veb = verbose)
+    #vebcat("spec_author:", spec_author, veb = verbose)
+    #vebcat("spec_replace:", spec_replace, veb = verbose)
     
     # Find all instances of the species
     checked <- WFO.data[grepl(paste0("^", spec), scientificName)]
@@ -416,7 +429,7 @@ WFO.extract <- function(x, WFO.data, verbose = FALSE) {
     
     # Get length of species taxons
     spec_subset <- checked[which(checked$taxonRank == "species")]
-    vebprint(spec_subset, verbose, "spec_subset")
+    #vebcat("spec_subset:", spec_subset, veb = verbose)
     
     if (nrow(spec_subset) == 0) next
     
@@ -427,7 +440,7 @@ WFO.extract <- function(x, WFO.data, verbose = FALSE) {
       
       # Find the smallest id
       smallest_id <- ids[which.min(as.numeric(gsub("wfo-", "", spec_subset$taxonID)))]
-      vebprint(smallest_id, verbose, "smallest ID:")
+      #vebprint(smallest_id, verbose, "smallest ID:")
       
       # Return new species name from smallest id
       spec_subset <- WFO.data[taxonID == smallest_id]
@@ -437,11 +450,12 @@ WFO.extract <- function(x, WFO.data, verbose = FALSE) {
       new_spec <- spec_subset$scientificName
       author <- FALSE
     } else {
-      new_spec <- paste(spec_subset$scientificName, spec_subset$scientificNameAuthorship)
+      new_spec <- spec_subset$scientificName
+      spec_dt[i]$scientificNameAuthorship <- spec_subset$scientificNameAuthorship
       author <- TRUE
     }
     
-    vebprint(new_spec, verbose, "New species:")
+    #vebcat("New species:", new_spec, veb = verbose)
     
     spec_dt[i]$scientificName <- new_spec
     spec_dt[i]$hasAuthorship <- author

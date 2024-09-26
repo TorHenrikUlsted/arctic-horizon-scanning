@@ -160,8 +160,8 @@ clean_string <- function(x, verbose = FALSE) {
   x <- gsub("\\s+", " ", x) # Remove double spaces
   x <- trimws(x) # trim trailing spaces
   
-  vebcat("Cleaned string:", x, veb = verbose)
-  vebcat("ASCII values:", paste(sapply(strsplit(x, "")[[1]], function(ch) as.integer(charToRaw(ch))), collapse = " "), veb = verbose)
+  # vebcat("Cleaned string:", x, veb = verbose)
+  # vebcat("ASCII values:", paste(sapply(strsplit(x, "")[[1]], function(ch) as.integer(charToRaw(ch))), collapse = " "), veb = verbose)
   
   return(x)
 }
@@ -198,7 +198,7 @@ clean_symbols <- function(x, symbols, verbose = FALSE) {
     
     for (pattern in patterns) {
       x <- gsub(pattern, paste0(" ", replacement, " "), x, perl = TRUE)
-      vebcat(paste("Replaced", pattern, "with", replacement), veb = verbose)
+      # vebcat(paste("Replaced", pattern, "with", replacement), veb = verbose)
     }
   }
   
@@ -265,11 +265,11 @@ identify_structure <- function(x, symbol.pattern, designation.pattern, verbose =
   # Find the indices of the symbols, if they exist
   symbol_indices <- which(sapply(parts, function(part) grepl(paste0("^(", symbol.pattern, ")$"), part, perl = TRUE)))
   
-  vebprint(parts, verbose, text = "Parts:")
-  vebcat("symbol_indices:", symbol_indices, veb = verbose)
-  vebcat("symbol count:", length(symbol_indices), veb = verbose)
-  vebcat("designation_indices:", designation_indices, veb = verbose)
-  vebcat("designation_count:", length(designation_indices), veb = verbose)
+  # vebprint(parts, verbose, text = "Parts:")
+  # vebcat("symbol_indices:", symbol_indices, veb = verbose)
+  # vebcat("symbol count:", length(symbol_indices), veb = verbose)
+  # vebcat("designation_indices:", designation_indices, veb = verbose)
+  # vebcat("designation_count:", length(designation_indices), veb = verbose)
   
   # Check if the designation is followed by "NA" at the end
   if (length(designation_indices) > 0) {
@@ -594,7 +594,6 @@ clean_spec_name <- function(x, symbols, designations, verbose = FALSE) {
   for (designation in designation_pattern) {
     x <- gsub(paste0("(\\s|^)(", designation, ")(\\s|$)"), "\\1\\2 ", x, perl = TRUE)
   }
-  vebcat("After designation split:", x, veb = verbose)
   
   parts_id <- identify_structure(
     x = x,

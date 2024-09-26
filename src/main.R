@@ -24,6 +24,7 @@ main <- function(
   
   hv_dir <- paste0("./outputs/hypervolume/", spec.unknown)
   vis_dir <- paste0("./outputs/visualize/", spec.unknown)
+  vis.shape = paste0("./outputs/setup/region/", vis.shape, "/", vis.shape, ".shp")
   
   max_cores <- calc_num_cores(
     ram.high = config$memory$total_cores,

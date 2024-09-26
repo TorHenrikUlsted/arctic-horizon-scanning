@@ -76,14 +76,19 @@ wrangle_aba <- function(name, column, verbose = F) {
       result$genus <- ""
     } else if (grepl("^[0-9]{4}$", first_component)) {
       # Genus level
-      result$genus <- components[2]
+      genus <- components[2]
+      # Replace "x" with "×" if present at the start of the genus
+      if (startsWith(genus, "x")) {
+        genus <- paste0("×", substr(genus, 2, nchar(genus)))
+      }
+      result$genus <- genus
     } else if (grepl("^[0-9]{6}[a-z]?$", first_component)) {
       # Species level
       full_name <- paste(components[-1], collapse = " ")
       
       # Replace abbreviated genus with full genus name
-      if (grepl("^[A-Z]\\.", full_name)) {
-        full_name <- sub("^[A-Z]\\.", result$genus, full_name)
+      if (grepl("^x?[A-Z]\\.", full_name)) {
+        full_name <- sub("^x?[A-Z]\\.", result$genus, full_name)
       }
       
       result$species <- remove_infraEpithet(full_name)
@@ -104,7 +109,6 @@ wrangle_aba <- function(name, column, verbose = F) {
     current_family <- row_result$family
     current_genus <- row_result$genus
   };catn()
-  
   
   # Remove rows where all taxonomic fields are empty
   aba_selected <- aba_selected[!(scientificName == "")]

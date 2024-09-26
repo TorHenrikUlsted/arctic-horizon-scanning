@@ -13,18 +13,18 @@ union_dts <- function(dt1, dt2, na.rm = TRUE, verbose = FALSE) {
   merged_dt <- unique(rbind(dt1, dt2))
 
   ## Run NA and distinct check
+  na_count <- sum(is.na(merged_dt))
+  
   if (any(is.na(merged_dt)) == T) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     if (na.rm) merged_dt <- na.omit(merged_dt)
   }
 
+  duplicate_count <- sum(duplicated(merged_dt))
+  
   if (any(duplicated(merged_dt)) == T) {
-    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
     merged_dt <- unique(merged_dt)
   }
-
-  duplicate_count <- sum(duplicated(merged_dt))
-  na_count <- sum(is.na(merged_dt))
 
   md_dt <- data.table(
     dt1 = nrow(dt1),
@@ -38,7 +38,7 @@ union_dts <- function(dt1, dt2, na.rm = TRUE, verbose = FALSE) {
 
   md_dt <- kable(md_dt)
 
-  vebprint(md_dt, text = "Anti-join summary:")
+  vebprint(md_dt, text = "Union summary:")
 
   mdwrite(
     config$files$post_seq_md,
@@ -65,18 +65,19 @@ anti_union <- function(remove.from, remove.with, remove.by = NULL, na.rm = TRUE,
   }
   
   ## Run NA and duplicate check
+  na_count <- sum(is.na(merged_dt))
+  
   if (any(is.na(merged_dt)) == TRUE) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     if (na.rm) merged_dt <- na.omit(merged_dt)
   }
   
+  duplicate_count <- sum(duplicated(merged_dt))
+  
   if (any(duplicated(merged_dt)) == TRUE) {
-    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
     merged_dt <- unique(merged_dt)
   }
   
-  duplicate_count <- sum(duplicated(merged_dt))
-  na_count <- sum(is.na(merged_dt))
   
   md_dt <- data.table(
     dt1 = nrow(remove.from),
@@ -90,7 +91,7 @@ anti_union <- function(remove.from, remove.with, remove.by = NULL, na.rm = TRUE,
   
   md_dt <- kable(md_dt)
   
-  vebprint(md_dt, text = "Anti-join summary:")
+  vebprint(md_dt, text = "Anti-union summary:")
   
   mdwrite(
     config$files$post_seq_md,
@@ -116,26 +117,25 @@ inner_union <- function(dt1, dt2, by, na.rm = TRUE, verbose = FALSE) {
   merged_dt <- dt1[dt2, nomatch = 0, on = by]
   
   ## Run NA and duplicate check
+  na_count <- sum(is.na(merged_dt))
+  
   if (any(is.na(merged_dt)) == TRUE) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     if (na.rm) merged_dt <- na.omit(merged_dt)
   }
   
+  duplicate_count <- sum(duplicated(merged_dt))
+  
   if (any(duplicated(merged_dt)) == TRUE) {
-    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
     merged_dt <- unique(merged_dt)
   }
-  
-  duplicate_count <- sum(duplicated(merged_dt))
-  na_count <- sum(is.na(merged_dt))
   
   md_dt <- data.table(
     dt1 = nrow(dt1),
     dt2 = nrow(dt2),
     merged_dt = nrow(merged_dt),
     duplicates = na_count,
-    nas = duplicate_count,
-    removed = (nrow(dt1) + nrow(dt2)) - nrow(merged_dt)
+    nas = duplicate_count
   )
   setnames(md_dt, c("dt1", "dt2"), c(dt1_name, dt2_name))
   
@@ -215,16 +215,52 @@ fix_manual <- function(dts, manual.edited, column, verbose = FALSE) {
   edited <- fread(manual.edited, encoding = "UTF-8")
   
   # Remove NAs and blank values in the newName df
-  formatted <- edited[!is.na(acceptedName) & acceptedName != "", .(acceptedName, listOrigin)]
+  formatted <- edited[!is.na(acceptedName) & acceptedName != "" & acceptedName != "removed", .(acceptedName, acceptedNameAuthorship, listOrigin)]
+  
+  formatted[, acceptedName.ORIG := acceptedName]
+  
+  formatted[, acceptedName := { # Clean symbols & designations
+    tmp <- clean_string(acceptedName, verbose)
+    tmp <- clean_designations(tmp, config$species$standard_infraEpithets, verbose)
+    tmp <- clean_symbols(tmp, config$species$standard_symbols, verbose)
+    acceptedName = gsub("× ", "×", tmp)
+  }]
+  
+  formatted[, splitNames := str_split(acceptedName, " ")]
+  formatted[, taxonRank := lapply(splitNames, function(x) length(x))]
+  formatted[, taxonRank := fifelse(taxonRank <= 3, "species", "infraspecific")]
+  formatted[, genus := sapply(splitNames, `[[`, 1)]
+  formatted[, specificEpithet := sapply(splitNames, `[[`, 2)]
+  formatted[, specificEpithet := gsub("×", "× ", specificEpithet)]
+  formatted[, hasAuthorship := TRUE]
+  
+  old_names <- c("acceptedName", "acceptedName.ORIG", "acceptedNameAuthorship")
+  new_names <- c("scientificName", "scientificName.ORIG", "scientificNameAuthorship")
+  
+  data.table::setnames(
+    formatted, 
+    old = old_names, 
+    new = new_names
+  )
+  
+  # check approach
+  catn("Checking if some inputs are not species...")
+  wfo_data <- WFO.minimal(WFO_file)
+  
+  formatted <- WFO.extract(formatted, wfo_data, verbose = T)
   
   vebprint(formatted, verbose, "Manually formatted data:")
   
   for (i in 1:nrow(formatted)) {
     # Get the scientificName and listOrigin from the current row
-    scientificName <- formatted[i, acceptedName]
+    scientificName <- formatted[i, scientificName]
+    authorship <- formatted[i, scientificNameAuthorship]
     listOrigin <- as.character(formatted[i, listOrigin])
     
-    vebcat("Appending", highcat(as.character(scientificName)), "to", highcat(listOrigin), veb = verbose)
+    vebcat("Appending", 
+           highcat(paste(as.character(scientificName), as.character(authorship))), 
+           "to", highcat(listOrigin), veb = verbose
+          )
     
     # Check if scientificName or listOrigin is missing
     if (is.na(scientificName) | is.na(listOrigin)) {
@@ -239,7 +275,10 @@ fix_manual <- function(dts, manual.edited, column, verbose = FALSE) {
     }
     
     # Create a new data table with the same columns as dts[[listOrigin]]
-    new_row <- data.table(scientificName = scientificName)
+    new_row <- data.table(
+      scientificName = clean_string(paste(scientificName, authorship))
+    )
+    
     setnames(new_row, names(dts[[listOrigin]]))
     
     # Append the scientificName to the corresponding data table in dts
@@ -318,7 +357,38 @@ combine_columns <- function(dt, col1, col2, col3, verbose = FALSE) {
 filter_approach <- function(dt, WFO.data, out.file, verbose = FALSE) {
   vebcat("Using precautionary method to remove infraSpecificEpithets", color = "indicator")
   
+  if (nrow(dt) == 0) {
+    catn(highcat(nrow(dt)), "scientificNames found")
+    return(dt)
+  }
+  
   orig_n <- nrow(dt)
+  
+  dt[, `:=` (
+    scientificName.ORIG = scientificName, # Keep the original
+    scientificNameAuthorship.ORIG = scientificNameAuthorship,
+    scientificName = NULL, # Remove the column
+    scientificNameAuthorship = NULL, # to make it end up at the end of the dataset
+    hasAuthorship := TRUE
+  )]
+  
+  dt[, `:=`(
+    scientificName = scientificName.ORIG,
+    scientificNameAuthorship = scientificNameAuthorship.ORIG
+  )]
+  
+  if (config$simulation$approach != "precautionary") {
+    catn("continuing with conservative approach")
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = "3;Continuing with conservative approach",
+    )
+    
+    fwrite(dt, out.file, bom = TRUE)
+    
+    return(dt)
+  }
   
   approach_dt <- WFO.extract(dt, WFO.data, verbose)
   
@@ -332,24 +402,21 @@ filter_approach <- function(dt, WFO.data, out.file, verbose = FALSE) {
 
   catn(highcat(dups), "duplicate species removed")
 
-  #if (dups > 0) {
-    md_dt <- data.table(
-      input = orig_n,
-      output = new_n,
-      changes = changed,
-      duplicate = dups
-    )
 
-    mdwrite(
-      config$files$post_seq_md,
-      text = "3;Standardization precautionary conversion",
-      data <- md_dt
-    )
+  md_dt <- data.table(
+    input = orig_n,
+    output = new_n,
+    changes = changed,
+    duplicate = dups
+  )
 
-    fwrite(approach_dt, out.file, bom = TRUE)
-  # } else {
-  #   catn("All species already in the correct approach format")
-  # }
+  mdwrite(
+    config$files$post_seq_md,
+    text = "3;Standardization precautionary conversion",
+    data <- md_dt
+  )
+
+  fwrite(approach_dt, out.file, bom = TRUE)
 
   return(approach_dt)
 }

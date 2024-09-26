@@ -23,6 +23,8 @@ check_syn_wfo <- function(checklist, cols, out.dir, cores.max = 1, verbose = FAL
   cols$Infraspecific.rank <- ifelse(!is.null(cols$Infraspecific.rank), cols$Infraspecific.rank, "Infraspecific.rank")
   cols$Authorship <- ifelse(!is.null(cols$Authorship), cols$Authorship, "Authorship")
   
+  vebcat("Cols:", cols, veb = verbose)
+  
   catn("Running the WFO synonym check for", 
        highcat(nrow(checklist)), 
        "species with column(s):\n", 
@@ -30,7 +32,7 @@ check_syn_wfo <- function(checklist, cols, out.dir, cores.max = 1, verbose = FAL
       )
   
   temp_dt <- checklist[, ..input_cols]
-  vebprint(head(temp_dt, 3), text = "Table sample:")
+  vebprint(temp_dt[1:3], text = "Table sample:")
   rm(temp_dt)
   
   if (nrow(checklist) < 10) {
@@ -84,7 +86,7 @@ check_syn_wfo <- function(checklist, cols, out.dir, cores.max = 1, verbose = FAL
   
   wfo_result <- wfo_mismatch_check(
     wfo.result = wfo_result, 
-    col.origin = cols$spec.name,
+    col.origin = cols[["spec.name"]],
     out.file = paste0(out.dir, "/wfo-match-mismatches.csv"),
     unchecked = FALSE,
     verbose = verbose

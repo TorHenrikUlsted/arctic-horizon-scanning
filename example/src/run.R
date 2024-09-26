@@ -26,7 +26,7 @@ main(
   hv.accuracy = "accurate",
   hv.dims = c(18, 10, 3, 4),
   hv.incl.threshold = 0.5,
-  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp", # change to simply name
+  vis.shape = "cavm-noice",
   vis.title = FALSE,
   vis.region.name = "the Arctic", 
   vis.subregion.name = "Floristic Province", 

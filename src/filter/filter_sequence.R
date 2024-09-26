@@ -61,7 +61,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
 
     dts <- select_wfo_column(
       dir.path = "./outputs/setup/wrangle", # change this to outputs path also edit in wfo
-      pattern = "wfo-one-clean.csv",
+      pattern = "wfo-one-approach.csv",
       col.unique = column,
       col.select = NULL,
       verbose = verbose
@@ -75,34 +75,6 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
         verbose = verbose
       )
     }
-    
-    # # Change symbols with config to be filename safe and check if it is in the correct approach
-    # lapply(dts, function(dt) {
-    #   if (config$simulation$approach == "precautionary") {
-    #    dt <- filter_approach(
-    #       dt,
-    #       out.file = paste0("./outputs/filter/", 
-    #                         ifelse(grepl("test", names(dt)), 
-    #                                gsub("_", "-", names(dt)), 
-    #                                sub("_.*", "", names(dt))
-    #                         ), 
-    #                         "/approach-filtering.csv"
-    #       ),
-    #       verbose = verbose
-    #     )
-    #   }
-    #   
-    #   dt[, `:=` (
-    #     scientificName = {
-    #       tmp <- clean_symbols(scientificName, config$species$standard_symbols, verbose) # GBIF requires standard symbols
-    #       clean_designations(tmp, config$species$standard_infraEpithets, verbose)
-    #     } 
-    #   )]
-    # })
-    # 
-    # if (is.null(coord.uncertainty) & file.exists(coord_un_file)) {
-    #   coord.uncertainty <- as.numeric(readLines(coord_un_file))
-    # }
 
     vebprint(dts, verbose, "all data tables:")
 
