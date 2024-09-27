@@ -17,10 +17,10 @@ source("./src/main.R")
 main(
   spec.known = "arctic",
   spec.unknown = "glonaf",
-  coord.uncertainty = NULL,
+  coord.uncertainty = NULL, # Can specify, else tries to estimate output resolution
   gbif.occ.region = NULL, # If wanting to download files within a shapefile -- converted to WKT
-  download.key = NULL,
-  download.doi = NULL,
+  download.key = "0033220-240906103802322",
+  download.doi = "https://doi.org/10.15468/dl.fs9syg",
   hv.iterations = NULL,
   hv.method = "box",
   hv.accuracy = "accurate",

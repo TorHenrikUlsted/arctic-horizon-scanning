@@ -656,13 +656,13 @@ combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = N
 
 
 select_species_approach <- function(dt, approach = "precautionary", col.name = "cleanName", custom.list = ".aff", verbose = FALSE) {
-  catn("Selecting species using the", highcat(approach), "approach.")
+  vebcat("Selecting species using the", highcat(approach), "approach.", veb = verbose)
   
   spec_dt <- copy(dt)
+  spec_dt[species != ""]
   
   if (approach == "precautionary") {
-    # USe new cleaner insted
-    spec_dt <- spec_dt[, (col.name) := species]
+    spec_dt[, (col.name) := species]
   } else if (approach == "conservative") { 
     spec_dt <- combine_columns_dt(
       "species", "taxonRank", "infraspecificEpithet",
@@ -673,16 +673,16 @@ select_species_approach <- function(dt, approach = "precautionary", col.name = "
       sep = " ",
       verbose = verbose
     )
+    
+    spec_dt[, (col.name) := { # Clean symbols & designations
+      tmp <- clean_string(get(col.name), verbose)
+      tmp <- clean_designations(tmp, config$species$standard_infraEpithets, verbose)
+      clean_symbols(tmp, config$species$filename_symbols, verbose)
+    }]
   } else {
     vebcat("Approach can only be 'conservative' or 'precautionary'.", color = "fatalError")
-    stop("Change the apporach.")
+    stop("Change the approach.")
   }
-  
-  spec_dt[, string.clean := { # Clean symbols & designations
-    tmp <- clean_string(get(col.name), verbose)
-    tmp <- clean_designations(tmp, config$species$standard_infraEpithets, verbose)
-    clean_symbols(tmp, config$species$filename_symbols, verbose)
-  }]
   
   return(spec_dt)
 }
@@ -1446,8 +1446,85 @@ system_calc_rows <- function(file.path) {
   } else { # for Unix-based systems like Linux and macOS
     total_rows <- as.numeric(system(paste("awk 'END {print NR}' ", file.path), intern = TRUE))
   }
+  # -1 for header
+  return(total_rows - 1)
+}
+
+system_calc_unique <- function(file.path, column, sep = "\t") {
   
-  return(total_rows)
+  if (is.character(column)) {
+    tmp <- fread(file.path, nrows = 0)
+    column_number <- which(names(tmp) == column)
+    if (length(column_number) == 0) stop("Column name not found")
+  } else if (is.numeric(column)) {
+    column_number <- as.integer(column)
+  } else {
+    stop("Column must be either a name (character) or a number")
+  }
+  
+  if (Sys.info()["sysname"] == "Windows") {
+    # Windows approach using R
+    unique_values <- new.env(hash = TRUE)
+    con <- file(file.path, "r")
+    while (length(line <- readLines(con, n = 1)) > 0) {
+      fields <- strsplit(line, sep, fixed = TRUE)[[1]]
+      if (column_number <= length(fields)) {
+        unique_values[[fields[column_number]]] <- TRUE
+      }
+    }
+    close(con)
+    unique_count <- length(unique_values)
+  } else { # for Unix-based systems like Linux and macOS
+    # Escape the separator for use in awk
+    awk_sep <- gsub("\\", "\\\\", sep, fixed = TRUE)
+    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | sort -u | wc -l", awk_sep, column_number, file.path)
+    unique_count <- as.numeric(system(cmd, intern = TRUE))
+  }
+  # -1 for header
+  return(unique_count - 1)
+}
+
+system_calc_uniq_and_rows <- function(file.path, column = NULL, sep = "\t") {
+  if (is.null(column)) {
+    stop("Column must be specified")
+  }
+  
+  if (is.character(column)) {
+    tmp <- fread(file.path, nrows = 0)
+    column_number <- which(names(tmp) == column)
+    if (length(column_number) == 0) stop("Column name not found")
+  } else if (is.numeric(column)) {
+    column_number <- as.integer(column)
+  } else {
+    stop("Column must be either a name (character) or a number")
+  }
+  
+  # Escape the separator for use in awk
+  awk_sep <- gsub("\\", "\\\\", sep, fixed = TRUE)
+  
+  if (Sys.info()["sysname"] == "Windows") {
+    # Windows approach using PowerShell
+    ps_command <- sprintf("Get-Content '%s' | ForEach-Object { $_.Split('%s')[%d] } | Group-Object | Measure-Object -Property Count, Name", 
+                          file.path, sep, column_number - 1)
+    result <- shell(sprintf("powershell -Command \"%s\"", ps_command), intern = TRUE)
+    
+    # Parse the result -1 for header
+    total_rows <- as.numeric(strsplit(result[1], "\\s+")[[1]][2])
+    unique_count <- as.numeric(strsplit(result[2], "\\s+")[[1]][2])
+  } else {
+    # Unix-based systems (Linux and macOS)
+    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | awk '{count++; unique[$0]++} END {print count, length(unique)}'", 
+                   awk_sep, column_number, file.path)
+    result <- system(cmd, intern = TRUE)
+    
+    # Parse the result
+    values <- as.numeric(strsplit(result, " ")[[1]])
+    total_rows <- values[1]
+    unique_count <- values[2]
+  }
+  
+  # -1 for header
+  return(list(total_rows = total_rows - 1, unique_count = unique_count - 1))
 }
 
 model_to_md <- function(model) {

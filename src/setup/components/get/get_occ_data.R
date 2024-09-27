@@ -4,7 +4,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
   download_path <- dirname(file.name)
   create_dir_if(download_path)
 
-  species_keys <- species_w_keys$usageKey
+  species_keys <- species_w_keys$speciesKey
   
   catn("Number of species keys:", highcat(length(species_keys)))
   vebprint(head(species_keys, 3), verbose, "Species keys sample:")
@@ -91,49 +91,51 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
   
   tryCatch(
     {
-      if (!file.exists(paste0(file.name, ".csv"))) {
-        if (file.exists(paste0(download_path, "/", download.key, ".zip"))) {
-          catn("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found.")
-        } else if (!file.exists(paste0(file.name, ".zip"))) {
+      zip_file <- paste0(download_path, "/", download.key, ".zip")
+      csv_file <- paste0(file.name, ".csv")
+      
+      if (!file.exists(csv_file)) {
+        if (file.exists(zip_file)) {
+          catn("Zip file named", zip_file, "found.")
+        } else {
           message("Trying to install by download key... ")
           catn("Using download key:", download.key)
           out <- occ_download_get(download.key, path = download_path, overwrite = TRUE)
-        } else {
-          catn("ZIP file named", paste0(download_path, "/", download.key, ".zip"), "found.")
         }
         
         catn("Unzipping GBIF file.")
         
-        unzip(paste0(download_path, "/", download.key, ".zip"), exdir = download_path)
+        unzip(zip_file, exdir = download_path)
         
         csv <- paste0(download_path, "/", download.key, ".csv")
         
         catn("Renaming CSV file.")
         
-        file.rename(from = csv, to = paste0(file.name, ".csv"))
+        file.rename(from = csv, to = csv_file)
         
       } else {
-        catn("GBIF Occurrence data found at:", highcat(paste0(file.name, ".csv")))
+        catn("GBIF Occurrence data found at:", highcat(csv_file))
       }
       
-      size <- file.size(paste0(file.name, ".csv")) / 1024^3 
+      size <- file.size(csv_file) / 1024^3 
       size <- round(size, digits = 2)
       catn("File size:", highcat(size), "GB.")
       
       if (size <= 5) {
         catn("File size smaller than 5 GB, reading file...")
-        gbif_occ_df <- fread(paste0(file.name, ".csv"))
+        gbif_occ_df <- fread(csv_file)
         vebprint(head(gbif_occ_df, 3), text = "Sample of data table:")
         vebcat("GBIF occurrences Successfully Loaded.", color = "funSuccess")
         return(gbif_occ_df)
       } else {
         vebcat("File size very big, using file chunking method.", color = "indicator")
+        return(csv_file)
       }
       
       vebcat("GBIF occurrences Successfully acquired.", color = "funSuccess")
       
     },
-    error = function(e) { # 3
+    error = function(e) {
       vebcat("An error has occurred: ", e$message, color = "nonFatalError")
       
       message("Taking you to the online site... ")

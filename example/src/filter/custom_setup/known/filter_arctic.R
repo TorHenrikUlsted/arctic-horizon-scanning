@@ -18,7 +18,7 @@ filter_arctic <- function(dts, column, verbose = FALSE) {
   arctic_present <- union_dts(aba_present, ambio_present, verbose = T)
 
   write_filter_fun(
-    file.out = "./outputs/filter/arctic/arctic-present-final.csv",
+    file.out = "./outputs/filter/arctic/present-final.csv",
     spec.in = arctic_present
   )
 
@@ -27,7 +27,7 @@ filter_arctic <- function(dts, column, verbose = FALSE) {
   arctic_absent <- union_dts(aba_absent, ambio_absent, verbose = T)
 
   arctic_absent <- write_filter_fun(
-    file.out = "./outputs/filter/arctic/arctic-absent-final.csv",
+    file.out = "./outputs/filter/arctic/absent-final.csv",
     spec.in = arctic_absent,
     fun = function() {
       # Also remove all arctic_present from absent in case some standard names have changed

@@ -20,7 +20,7 @@ filter_glonaf <- function(known.filtered, dts, column, verbose = FALSE) {
   ##############
 
   glonaf_present <- write_filter_fun(
-    file.out = paste0(glonaf_dir, "/glonaf-present-final.csv"),
+    file.out = paste0(glonaf_dir, "/present-final.csv"),
     spec.in = glonaf_absent,
     fun = function() {
       # First merge to only get species from both dts
@@ -34,7 +34,7 @@ filter_glonaf <- function(known.filtered, dts, column, verbose = FALSE) {
   # -------------------------------------------------------------------------- #
 
   glonaf_absent <- write_filter_fun(
-    file.out = paste0(glonaf_dir, "/glonaf-absent-final.csv"),
+    file.out = paste0(glonaf_dir, "/absent-final.csv"),
     spec.in = glonaf_species,
     fun = function() {
       # Remove arctic present species from the glonaf_absnt list
@@ -47,10 +47,7 @@ filter_glonaf <- function(known.filtered, dts, column, verbose = FALSE) {
     }
   )
 
-  return(list(
-    spec = glonaf_absent,
-    dir = glonaf_dir
-  ))
+  return(glonaf_absent)
 }
 
 
