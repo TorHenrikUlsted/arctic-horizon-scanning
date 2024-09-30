@@ -20,6 +20,119 @@ calc_abs_by_col <- function(data, column = "decimalLatitude", method = "median",
   return(res)
 }
 
+# Find the occurrence points inside the region
+occ_region_overlap <- function(spec.occ, region, region.name = "region", spec = "species", long = "decimalLongitude", lat = "decimalLatitude", verbose = FALSE) {
+  if (is.data.table(spec.occ)) {
+    spec_dt <- spec.occ
+  } else if (is.character(spec.occ)) {
+    catn("Reading data")
+    spec_dt <- fread(spec.occ)
+  }
+  
+  if (is.character(region)) {
+    region <- load_region(region)
+  }
+  
+  region <- check_crs(region, "longlat")
+  
+  # Get the species name
+  spec_name <- unique(spec_dt[[spec]])
+  
+  # Subset
+  cols_to_keep <- c(spec, "scientificName", "taxonRank", "speciesKey", long, lat)
+  spec_dt <- spec_dt[, .SD, .SDcols = cols_to_keep]
+  
+  # Find the statuses of the species and merge it with the occurrence data 
+  status <- name_backbone_checklist(unique(spec_dt$scientificName))
+  status <- as.data.table(status)
+  
+  status <- status[, .(scientificName, usageKey, status, synonym)]
+  
+  spec_dt <- spec_dt[status, on = "scientificName"]
+  
+  # Get nrows for unique scientificName
+  spec_dt <- spec_dt[, totalNobs := .N, by = scientificName]
+  
+  # Initialize regionObservations column
+  spec_dt[, regionNobs := 0]
+  
+  # Make into points
+  catn("Converting to points")
+  config_crs <- get_crs_config("longlat")
+  points <- terra::vect(spec_dt, geom = c(long, lat), crs = config_crs)
+  
+  # Check if overlap with region
+  catn("Estimating overlap")
+  overlap <- terra::intersect(points, region)
+  overlap <- as.data.table(overlap)
+  
+  overlap <- overlap[, .(regionNobs = .N), by = "scientificName"]
+  
+  # Merge overlap values with spec data
+  spec_dt[overlap, regionNobs := i.regionNobs, on = "scientificName"]
+  
+  # Calculate proportional observations
+  spec_dt[, propNobs := regionNobs / totalNobs, by = "scientificName"]
+  
+  vebcat(highcat(nrow(overlap)), "/", highcat(nrow(spec_dt)), "occurrences found within the region")
+  
+  return(spec_dt)
+}
+
+loop_occ_overlap <- function(spec.occ.dir, region, region.name = "Arctic", file.out,  verbose = FALSE) {
+  
+  spec_occ <- list.files(spec.occ.dir, full.names = TRUE)
+  
+  spec_dt_out <- data.table()
+  
+  time <- start_timer("Region overlap")
+  for (i in 1:length(spec_occ)) {  #113:113
+    spec <- spec_occ[i]
+    spec_name <- gsub(config$species$file_separator, " ", basename(spec))
+    
+    cat("\rRunning for species", highcat(i), "/", highcat(length(spec_occ)))
+    flush.console()
+    
+    invisible(capture.output({
+      spec_dt <- occ_region_overlap(
+        spec.occ = spec, 
+        region = region, 
+        region.name = spec.name, 
+        spec = "species", 
+        long = "decimalLongitude", 
+        lat = "decimalLatitude", 
+        verbose = verbose
+      )
+    }, file = nullfile()))
+    
+    cols_to_keep <- c("species", "scientificName", "taxonRank", "speciesKey", "usageKey", "status", "synonym", "totalNobs", "regionNobs", "propNobs")
+    
+    unique_counts <- unique(spec_dt, by = "scientificName")
+    unique_counts <- unique_counts[, .SD, .SDcols = cols_to_keep]
+    unique_counts[, (paste0("in", region.name)) := fifelse(regionNobs > 0, TRUE, FALSE)]
+    
+    spec_dt_out <- rbind(spec_dt_out, unique_counts)
+  }
+  
+  setorder(spec_dt_out, -propNobs)
+  
+  catn("Writing file to:", colcat(file.out, color = "output"))
+  
+  spec_in_region <- spec_dt_out[regionNobs > 0]
+  fwrite(spec_dt_out, file.out)
+  
+  end_timer(time)
+  
+  return(spec_dt_out)
+}
+
+loop_occ_overlap(
+  spec.occ.dir = "outputs/filter/glonaf/chunk/species",
+  region = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
+  region.name = "Arctic",
+  file.out = "./test.csv"
+)
+
 
 count_observations <- function(spec.list, dimensions, method = "median", verbose = FALSE) {
   catn("Counting species observations.")
