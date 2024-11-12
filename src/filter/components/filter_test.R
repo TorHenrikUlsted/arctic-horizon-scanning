@@ -24,7 +24,7 @@ filter_test_small <- function(known.filtered, dts, column, verbose = FALSE) {
   
   setnames(test_small, old = colnames(test_small), new = column)
   
-  vebprint(test_small, text = "test_small dt:")
+  vebprint(test_small, verbose, text = "test_small dt:")
   
   # Remove known tests from the test lists
   test_small <- write_filter_fun(
@@ -50,7 +50,7 @@ filter_test_big <- function(known.filtered, dts, column, verbose = FALSE) {
   
   setnames(test_big, old = colnames(test_big), new = column)
   
-  vebprint(test_big, text = "test_big dt:")
+  vebprint(test_big, verbose, text = "test_big dt:")
   
   # Remove known tests from the test lists
   test_big <- write_filter_fun(

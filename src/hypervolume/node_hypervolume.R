@@ -12,8 +12,6 @@ node_hypervolume <- function(
     hv.accuracy,
     hv.dims) {
   
-  node_timer <- start_timer(paste0("node", iteration))
-  
   tryCatch({
     node <- setup_node(
       pro.dir = process.dir,
@@ -45,6 +43,12 @@ node_hypervolume <- function(
         warn = node$warn.file,
         err = node$err.file,
         fun = function(spec, spec.name) {
+          on.exit({
+            # Clean up any resources created within this function
+            rm(list = ls(environment()))
+            gc(full = TRUE)
+          })
+          
           skip_to_end <- FALSE
           proj_dir <- paste0(process.dir, "/projections")
           pro_locks_dir <- paste0(dirname(node$locks), "/hypervolume")
@@ -153,10 +157,14 @@ node_hypervolume <- function(
     error = function(e) {
       err(e, err.file = node$err.file, err.txt = "Error in node_hypervolume", iteration = iteration)
       stop(e)
+    }, finally = function() {
+      catn("Cleaning up node environment")
+      closeAllConnections()
+      invisible(gc(full = TRUE))
     }
   )
   
-  end_timer(node_timer)
+  
   
   return(catn("Node returning."))
 }

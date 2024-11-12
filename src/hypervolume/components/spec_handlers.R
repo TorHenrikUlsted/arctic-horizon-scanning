@@ -20,123 +20,10 @@ calc_abs_by_col <- function(data, column = "decimalLatitude", method = "median",
   return(res)
 }
 
-# Find the occurrence points inside the region
-occ_region_overlap <- function(spec.occ, region, region.name = "region", spec = "species", long = "decimalLongitude", lat = "decimalLatitude", verbose = FALSE) {
-  if (is.data.table(spec.occ)) {
-    spec_dt <- spec.occ
-  } else if (is.character(spec.occ)) {
-    catn("Reading data")
-    spec_dt <- fread(spec.occ)
-  }
-  
-  if (is.character(region)) {
-    region <- load_region(region)
-  }
-  
-  region <- check_crs(region, "longlat")
-  
-  # Get the species name
-  spec_name <- unique(spec_dt[[spec]])
-  
-  # Subset
-  cols_to_keep <- c(spec, "scientificName", "taxonRank", "speciesKey", long, lat)
-  spec_dt <- spec_dt[, .SD, .SDcols = cols_to_keep]
-  
-  # Find the statuses of the species and merge it with the occurrence data 
-  status <- name_backbone_checklist(unique(spec_dt$scientificName))
-  status <- as.data.table(status)
-  
-  status <- status[, .(scientificName, usageKey, status, synonym)]
-  
-  spec_dt <- spec_dt[status, on = "scientificName"]
-  
-  # Get nrows for unique scientificName
-  spec_dt <- spec_dt[, totalNobs := .N, by = scientificName]
-  
-  # Initialize regionObservations column
-  spec_dt[, regionNobs := 0]
-  
-  # Make into points
-  catn("Converting to points")
-  config_crs <- get_crs_config("longlat")
-  points <- terra::vect(spec_dt, geom = c(long, lat), crs = config_crs)
-  
-  # Check if overlap with region
-  catn("Estimating overlap")
-  overlap <- terra::intersect(points, region)
-  overlap <- as.data.table(overlap)
-  
-  overlap <- overlap[, .(regionNobs = .N), by = "scientificName"]
-  
-  # Merge overlap values with spec data
-  spec_dt[overlap, regionNobs := i.regionNobs, on = "scientificName"]
-  
-  # Calculate proportional observations
-  spec_dt[, propNobs := regionNobs / totalNobs, by = "scientificName"]
-  
-  vebcat(highcat(nrow(overlap)), "/", highcat(nrow(spec_dt)), "occurrences found within the region")
-  
-  return(spec_dt)
-}
-
-loop_occ_overlap <- function(spec.occ.dir, region, region.name = "Arctic", file.out,  verbose = FALSE) {
-  
-  spec_occ <- list.files(spec.occ.dir, full.names = TRUE)
-  
-  spec_dt_out <- data.table()
-  
-  time <- start_timer("Region overlap")
-  for (i in 1:length(spec_occ)) {  #113:113
-    spec <- spec_occ[i]
-    spec_name <- gsub(config$species$file_separator, " ", basename(spec))
-    
-    cat("\rRunning for species", highcat(i), "/", highcat(length(spec_occ)))
-    flush.console()
-    
-    invisible(capture.output({
-      spec_dt <- occ_region_overlap(
-        spec.occ = spec, 
-        region = region, 
-        region.name = spec.name, 
-        spec = "species", 
-        long = "decimalLongitude", 
-        lat = "decimalLatitude", 
-        verbose = verbose
-      )
-    }, file = nullfile()))
-    
-    cols_to_keep <- c("species", "scientificName", "taxonRank", "speciesKey", "usageKey", "status", "synonym", "totalNobs", "regionNobs", "propNobs")
-    
-    unique_counts <- unique(spec_dt, by = "scientificName")
-    unique_counts <- unique_counts[, .SD, .SDcols = cols_to_keep]
-    unique_counts[, (paste0("in", region.name)) := fifelse(regionNobs > 0, TRUE, FALSE)]
-    
-    spec_dt_out <- rbind(spec_dt_out, unique_counts)
-  }
-  
-  setorder(spec_dt_out, -propNobs)
-  
-  catn("Writing file to:", colcat(file.out, color = "output"))
-  
-  spec_in_region <- spec_dt_out[regionNobs > 0]
-  fwrite(spec_dt_out, file.out)
-  
-  end_timer(time)
-  
-  return(spec_dt_out)
-}
-
-loop_occ_overlap(
-  spec.occ.dir = "outputs/filter/glonaf/chunk/species",
-  region = "./outputs/setup/region/cavm-noice/cavm-noice.shp",
-  region.name = "Arctic",
-  file.out = "./test.csv"
-)
-
 
 count_observations <- function(spec.list, dimensions, method = "median", verbose = FALSE) {
   catn("Counting species observations.")
-
+  
   counted_species <- data.table(
     species = character(0),
     observations = integer(0),
@@ -146,23 +33,23 @@ count_observations <- function(spec.list, dimensions, method = "median", verbose
     lat = numeric(0),
     filename = character(0)
   )
-
+  
   for (i in 1:length(spec.list)) {
     cat("\rChecking file", i, "/", length(spec.list))
     spec <- spec.list[[i]]
     spec_name <- basename(gsub(".csv", "", spec))
     spec_dt <- fread(spec, select = "decimalLatitude")
-
+    
     nobs <- nrow(spec_dt)
-
+    
     removed <- FALSE
-
+    
     if (log(nobs) <= length(dimensions)) {
       removed <- TRUE
     }
-
+    
     lat <- calc_abs_by_col(spec_dt)
-
+    
     counted_species <- rbind(counted_species, data.table(
       species = gsub(config$species$file_separator, " ", spec_name),
       observations = nobs,
@@ -174,10 +61,191 @@ count_observations <- function(spec.list, dimensions, method = "median", verbose
     ))
   }
   catn()
-
+  
   setnames(counted_species, "lat", paste0(method, "Lat"))
-
+  
   return(counted_species)
+}
+
+gbif_retry <- function(spec, fun = "name_backbone_checklist", retry.max = 3, timeout = 30, verbose = FALSE) {
+  result <- NULL
+  if (is.character(fun)) fun <- get(fun)
+  for (attempt in 1:retry.max) {
+    tryCatch({
+      if (attempt == retry.max) {
+        closeAllConnections()
+        gc()
+        timeout <- timeout * 2
+      }
+      
+      # Check if the function accepts a timeout_ms argument
+      if ("timeout_ms" %in% names(formals(fun))) {
+        result <- do.call(fun, list(spec, timeout_ms = timeout * 1000))
+      } else {
+        result <- fun(spec)
+      }
+      
+      break
+    }, error = function(e) {
+      if (attempt == retry.max) {
+        vebcat("Failed to fetch data after", retry.max, "attempts. Error:", conditionMessage(e), veb = verbose, color = "warning")
+      } else {
+        vebcat("Attempt", attempt, "failed. Retrying in", 2^attempt, "seconds.", veb = verbose, color = "nonFatalError")
+        Sys.sleep(2^attempt)  # Exponential backoff
+      }
+    })
+  }
+  
+  if (is.null(result)) {
+    stop("Failed to fetch data after all retry attempts.")
+  }
+  
+  return(result)
+}
+
+# Find the occurrence points inside the region
+occ_region_overlap <- function(spec.occ, region, region.name = "region", spec = "species", long = "decimalLongitude", lat = "decimalLatitude", verbose = FALSE) {
+  cols_to_keep <- c(spec, "scientificName", "taxonRank", "speciesKey", long, lat)
+  
+  if (is.data.table(spec.occ)) {
+    spec_dt <- spec.occ[, ..cols_to_keep]
+  } else if (is.character(spec.occ)) {
+    catn("Reading data")
+    spec_dt <- fread(spec.occ, select = cols_to_keep)
+  }
+  
+  # Filter out rows with invalid coordinates
+  spec_dt <- spec_dt[!is.na(get(long)) & !is.na(get(lat))]
+  
+  if (is.character(region)) {
+    region <- load_region(region)
+  }
+  
+  region <- check_crs(region, "longlat")
+  
+  # Calculate totalNobs and initialize regionNobs
+  spec_dt[, `:=`(
+    totalNobs = .N,
+    regionNobs = 0L
+  ), by = scientificName]
+  
+  # Make into points
+  catn("Converting to points")
+  config_crs <- get_crs_config("longlat")
+  points <- terra::vect(spec_dt, geom = c(long, lat), crs = config_crs)
+  
+  # Check if overlap with region
+  catn("Estimating overlap")
+  overlap <- as.data.table(terra::intersect(points, region))
+  
+  overlap <- overlap[, .(regionNobs = .N), by = "scientificName"]
+  
+  # Merge overlap values with spec data
+  spec_dt[overlap, regionNobs := i.regionNobs, on = "scientificName"]
+  
+  # Calculate proportional observations
+  spec_dt[, propNobs := formatC(regionNobs / totalNobs, format = "e", digits = 3), by = "scientificName"]
+  
+  vebcat(highcat(nrow(overlap)), "/", highcat(nrow(spec_dt)), "occurrences found within the region")
+  
+  return(spec_dt)
+}
+
+loop_occ_overlap <- function(spec.occ.dir, region, region.name = "Arctic", file.out,  verbose = FALSE) {
+  
+  if (file.exists(file.out)) return(fread(file.out))
+  
+  time <- start_timer("Region overlap")
+  
+  cols <- c("cleanName", "species", "scientificName", "taxonRank", "speciesKey", "decimalLongitude", "decimalLatitude")
+  
+  if (file.info(spec.occ.dir[[1]])$isdir) {
+    spec_occ <- list.files(spec.occ.dir, full.names = TRUE)
+  } else {
+    spec_occ <- spec.occ.dir
+  }
+  
+  # Store unique scientific names for all files
+  name_storage <- unique(unlist(lapply(seq_along(spec_occ), function(i) {
+    cat("\rStoring species in file:", i, "/", length(spec_occ))
+    flush.console()
+    unique(fread(spec_occ[i], select = "scientificName"))$scientificName
+  })));catn()
+  
+  # Get name backbone checklist results for all scientificNames
+  checklist <- gbif_retry(name_storage, "name_backbone_checklist")
+  checklist <- as.data.table(checklist)[, .(species, scientificName, usageKey, status, synonym)]
+  
+  print(object.size(name_storage), units = "Mb")
+  print(object.size(checklist), units = "Mb")
+  
+  rm(name_storage)
+  invisible(gc())
+  
+  spec_dt_out <- data.table()
+  
+  for (i in 1:length(spec_occ)) {
+    spec <- spec_occ[i]
+    spec_name <- gsub(config$species$file_separator, " ", basename(spec))
+    
+    spec_dt <- fread(spec, select = cols)
+    
+    cat("\rRunning for species", highcat(i), "/", highcat(length(spec_occ)))
+    flush.console()
+    
+    # thinned_dt <- clean_spec_occ(
+    #   dt = spec_dt, 
+    #   column = "cleanName", 
+    #   projection = config_crs <- get_crs_config("longlat"), 
+    #   resolution = config$projection$raster_scale_m, 
+    #   seed = config$simulation$seed, 
+    #   long = "decimalLongitude", 
+    #   lat = "decimalLatitude",  
+    #   verbose
+    # )
+    
+    invisible(capture.output({
+      spec_dt <- occ_region_overlap(
+        spec.occ = spec_dt, 
+        region = region, 
+        region.name = spec.name, 
+        spec = "species", 
+        long = "decimalLongitude", 
+        lat = "decimalLatitude", 
+        verbose = verbose
+      )
+    }, file = nullfile()))
+    
+    cols_to_keep <- c("species", "scientificName", "taxonRank", "speciesKey", "totalNobs", "regionNobs", "propNobs")
+    
+    unique_counts <- unique(spec_dt, by = "scientificName")
+    unique_counts <- unique_counts[, ..cols_to_keep]
+    unique_counts[, (paste0("in", region.name)) := fifelse(regionNobs > 0, TRUE, FALSE)]
+    
+    spec_dt_out <- rbindlist(list(spec_dt_out, unique_counts), fill = TRUE)
+    
+    rm(spec_dt, unique_counts)
+    invisible(gc())
+  }
+  
+  # merge with checklist
+  spec_dt_out <- spec_dt_out[checklist, on = c("species", "scientificName")]
+  
+  rm(checklist)
+  invisible(gc())
+  
+  setorder(spec_dt_out, -propNobs)
+  
+  catn("Writing file to:", colcat(file.out, color = "output"))
+  
+  spec_in_region <- spec_dt_out[regionNobs > 0]
+  fwrite(spec_in_region, paste0(dirname(file.out), "/occ-in-region.csv"), bom = TRUE)
+  
+  fwrite(spec_dt_out, file.out, bom = TRUE)
+  
+  end_timer(time)
+  
+  return(spec_dt_out)
 }
 
 most_used_name <- function(x, max.number = 1, verbose = FALSE) {
@@ -352,7 +420,84 @@ find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "dec
   return(wgsrpd_region_dt)
 }
 
-prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T) {
+clean_spec_occ <- function(dt, column = "cleanName", projection, resolution, seed, long = "decimalLongitude", lat = "decimalLatitude",  verbose = FALSE) {
+  vebcat("Getting Long/Lat values.", veb = verbose)
+  
+  dt <- dt[!duplicated(dt, by = c(long, lat, column))]
+  
+  vebcat("Getting species without any coordinates.", veb = verbose)
+  
+  no_coords_sp <- dt[, .N, by = column][N == 0]
+  
+  # Check if any coordinates are left for each species
+  if (nrow(no_coords_sp) > 0) {
+    catn("No coordinates left for the species. Removing it form the data table.")
+    return(NULL)
+  }
+  
+  vebcat("Cleaning species using coordinateCleaner.", veb = verbose)
+  # "flag" sets adds true/false to the corresponding tests
+  tryCatch(
+    {
+      dt <- suppressWarnings(
+        clean_coordinates(
+          dt, 
+          species = column, 
+          value = "clean"
+        ))
+    },
+    error = function(e) {
+      vebcat("Error when cleaning Coordinates:", e$message, color = "nonFatalError")
+      stop(e)
+    }
+  )
+  
+  if (nrow(dt) == 0) {
+    catn("All species were removed in the Coordinate cleaning process.")
+    return(NULL)
+  }
+  
+  vebcat("Thinning data.", veb = verbose)
+  
+  tryCatch(
+    {
+      thinned_dt <- thin_occ_data(
+        dt,
+        long = long,
+        lat = lat,
+        projection = projection,
+        res = resolution,
+        seed = seed,
+        verbose = verbose
+      )
+    },
+    error = function(e) {
+      vebcat("Error when thinning data:", e$message, color = "fatalError")
+      stop(e)
+    }
+  )
+  
+  vebcat("Calculating median latitude.", veb = verbose)
+  
+  tryCatch(
+    {
+      thinned_dt[, medianLat := calc_abs_by_col(
+        data = thinned_dt, 
+        column = "decimalLatitude", 
+        method = "median", 
+        verbose = verbose
+      ), by = "cleanName"]
+    },
+    error = function(e) {
+      vebcat("Error when Calculating median latitude:", e$message, color = "fatalError")
+      stop(e)
+    }
+  )
+  
+  return(thinned_dt)
+}
+
+prepare_species <- function(dt, process.dir, projection = "longlat", verbose = FALSE) {
   if (!is.data.table(dt)) {
     stop("Input must be a data.table")
   }
@@ -360,75 +505,28 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = T
   
   projection = get_crs_config(projection)
 
-  vebprint(head(dt, 3), verbose, text = "Data frame sample:")
+  vebprint(head(dt, 3), verbose, text = "Data sample:")
 
-  vebcat("Getting Long/Lat values.", veb = verbose)
-
-  dt <- dt[!duplicated(dt, by = c("decimalLongitude", "decimalLatitude", "cleanName"))]
-
-  vebcat("Getting species without any coordinates.", veb = verbose)
-
-  no_coords_sp <- dt[, .N, by = cleanName][N == 0]
-
-  # Check if any coordinates are left for each species
-  if (nrow(no_coords_sp) > 0) {
-    catn("No coordinates left for the species. Removing it form the data table.")
-    return(NULL)
-  }
-
-  vebcat("Cleaning species using coordinateCleaner.", veb = verbose)
-  # "flag" sets adds true/false to the corresponding tests
-  tryCatch(
-    {
-      dt <- suppressWarnings(clean_coordinates(dt, species = "cleanName", value = "clean"))
-    },
-    error = function(e) {
-      vebcat("Error when cleaning Coordinates:", e$message, color = "nonFatalError")
-      stop(e)
-    }
-  )
-
-  if (nrow(dt) == 0) {
-    catn("All species were removed in the Coordinate cleaning process.")
-    return(NULL)
-  }
-
-  vebcat("Converting species to points.", veb = verbose)
-
-  tryCatch(
-    {
-      thinned_dt <- thin_occ_data(
-        dt,
-        long = "decimalLongitude",
-        lat = "decimalLatitude",
-        projection = projection,
-        res = config$projection$raster_scale_m,
-        seed = config$simulation$seed,
-        verbose = verbose
-      )
-      print(thinned_dt)
-      
-    },
-    error = function(e) {
-      vebcat("Error when thinning data:", e$message, color = "nonFatalError")
-      stop(e)
-    }
+  thinned_dt <- clean_spec_occ(
+    dt, 
+    column = "cleanName", 
+    projection, 
+    resolution = config$projection$raster_scale_m, 
+    seed = config$simulation$seed, 
+    long = "decimalLongitude", 
+    lat = "decimalLatitude",  
+    verbose
   )
   
+  if (is.null(thinned_dt)) return(NULL)
+  
   sp_points <- vect(thinned_dt, geom = c("decimalLongitude", "decimalLatitude"), crs = projection)
-
-  if (verbose == T) {
-    if (!any(is.na(sp_points))) {
-      vebcat("No values are NA.", color = "proSuccess")
-    } else {
-      vebcat("Some values are NA.", color = "nonFatalError")
-    }
-  }
+  
 
   return(sp_points)
 }
 
-prepare_environment <- function(sp_points, biovars, verbose = T) {
+prepare_environment <- function(sp_points, biovars, verbose = FALSE) {
   # Create an empty matrix to store environmental values
   env_values <- matrix(nrow = nrow(sp_points), ncol = terra::nlyr(biovars))
   colnames(env_values) <- names(biovars)

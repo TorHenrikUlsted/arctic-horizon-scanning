@@ -170,73 +170,95 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
         out.dir = out_dir_child,
         verbose = verbose
       )
+      
+      sp_checked$mismatch <- unique(rbind(
+        unique(sp_checked$mismatch, by = column),
+        unique(sp_synonyms$mismatch, by = column),
+        fill = TRUE
+      ))
 
+      one_raw <- nrow(sp_checked$raw)
+      one_clean <- nrow(sp_checked$clean)
+      one_mismatch <- nrow(sp_checked$mismatch)
+
+      sp_checked$raw <- NULL
+      
+      mdwrite(
+        config$files$post_seq_md,
+        text = paste0("2;", name)
+      )
+      
+      sp_checked$clean <- gbif_standardize(
+        dt = sp_checked$clean,
+        out.file = paste0(out_dir_child, "/wfo-one-gbif.csv"),
+        verbose
+      )
+      
+      clean_na <- one_clean - nrow(sp_checked$clean)
+
+      sp_checked$mismatch <- gbif_standardize(
+        dt = sp_checked$mismatch,
+        out.file = paste0(out_dir_child, "/wfo-one-gbif-mismatch.csv"),
+        verbose
+      )
+      
+      mismatch_na <- one_mismatch - nrow(sp_checked$mismatch)
+      
+      na_n <- mismatch_na + clean_na
+      
       manual_checks <- sum(
-        nrow(sp_synonyms$mismatch),
+        nrow(sp_checked$mismatch),
         nrow(sp_checked$nomatch),
         nrow(sp_checked$na),
         na.rm = TRUE
       )
-
+      
       lost_diff <- (
         nrow(wrangled_dfs[[name]]) - (
-          nrow(sp_checked$clean) + manual_checks + nrow(sp_checked$duplicate)
+          nrow(sp_checked$clean) + manual_checks + nrow(sp_checked$duplicate) + na_n
         )
       )
       
       if (lost_diff < 0) lost_diff <- 0
-
+      
       md_dt <- data.table(
         wrangle = nrow(wrangled_dfs[[name]]),
         match = nrow(sp_synonyms$clean) + nrow(sp_synonyms$mismatch),
-        one = nrow(sp_checked$raw),
+        one = one_raw,
         result = nrow(sp_checked$clean),
         lost = lost_diff,
         manual = manual_checks,
-        mismatch = nrow(sp_synonyms$mismatch),
+        mismatch = nrow(sp_checked$mismatch),
         nomatch = nrow(sp_checked$nomatch),
         na = nrow(sp_checked$na),
+        missingKey = na_n,
         duplicate = nrow(sp_checked$duplicate)
       )
-
+      
       mdwrite(
         config$files$post_seq_md,
         text = paste0("3;Standardization results ", name, " :"),
         data = md_dt
       )
 
-      sp_checked$raw <- NULL
-      
-      sp_checked$mismatch <- rbind(
-        unique(sp_checked$mismatch, by = column),
-        unique(sp_synonyms$mismatch, by = column),
-        fill = TRUE
-      )
-      
-      # Choose approach
-      if (config$simulation$approach == "precautionary") {
-        wfo_data <- WFO.minimal(WFO_file)
-        
-        sp_checked$clean <- filter_approach(
-          dt = sp_checked$clean,
-          WFO.data = wfo_data,
-          out.file = paste0(out_dir_child, "/wfo-one-approach.csv"),
-          verbose
-        )
-
-        sp_checked$mismatch <- filter_approach(
-          dt = sp_checked$mismatch,
-          WFO.data = wfo_data,
-          out.file = paste0(out_dir_child, "/wfo-one-approach-mismatch.csv"),
-          verbose
-        )
-      }
-
       create_file_if(check_file)
 
       return(setNames(list(sp_checked), name))
     } else {
       vebcat(highcat(name), "already synonym checked.", veb = verbose)
+      if(!grepl("test", name)) {
+        mis_file <- file.path(out_dir_child, "wfo-one-gbif-mismatch.csv")
+        no_file <- file.path(out_dir_child, "wfo-one-nomatch.csv")
+        na_file <- file.path(out_dir_child, "wfo-one-na.csv")
+        
+        sp_checked <- list(
+          mismatch = if (file.exists(mis_file)) fread(mis_file) else NULL,
+          nomatch = if (file.exists(no_file)) fread(no_file) else NULL,
+          na = if (file.exists(na_file)) fread(na_file) else NULL
+        )
+        
+        return(setNames(list(sp_checked), name))
+      }
     }
   })
 
@@ -270,6 +292,11 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
     if (all(sapply(checked_dts, is.null))) {
       catn("All data frames already exist.")
     } else {
+      
+      if (file.exists(file.path(files_dir, "manual-check-file.csv")) & !any(grepl("test", names(checked_dts)))) {
+        return(catn("Manual check file already exists."))
+      } 
+      
       vebcat("Combining no-matches.", color = "proInit")
       
       test_files_dir <- paste0(files_dir, "/test")
@@ -280,6 +307,10 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
       # Loop over each list in checked_dfs
       for (dt_name in names(checked_dts)) {
         wfo_one <- checked_dts[[dt_name]]
+        
+        is_test <- grepl("test", dt_name)
+        
+        if (is_test) dt_name <- sub("_(absent|present)$", "", dt_name)
         
         if (!is.null(wfo_one$clean)) wfo_one$clean <- NULL
         if (!is.null(wfo_one$duplicate)) wfo_one$duplicate <- NULL
@@ -299,7 +330,6 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
         total_rows <- sum(sapply(processed, function(x) if (!is.null(x)) nrow(x) else 0))
         
         if (total_rows > 0) {
-          is_test <- grepl("test", dt_name)
           current_dt <- if (is_test) combined_dt_test else combined_dt
           
           current_dt <- rbindlist(c(list(current_dt), processed), fill = TRUE)
@@ -334,18 +364,19 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
           
           man_dt <- data.table(
             verbatimName = dt$verbatimName,
+            verbatimNameAuthorship = if("verbatimNameAuthorship" %in% names(dt)) dt[["verbatimNameAuthorship"]],
             interimName = dt[[column]],
             interimNameAuthorship = if(paste0(column, "Authorship") %in% names(dt)) dt[[paste0(column, "Authorship")]],
-            wfoName = dt$scientificName.ORIG,
-            wfoSpecies = dt$scientificName,
+            wfoScientificName = dt$verbatimName.GBIF,
             Old.status = dt$Old.status,
             Old.name = dt$Old.name,
             name.clean = dt$name.clean,
             mismatch.old = dt$mismatch.old,
             mismatch.scientific = dt$mismatch.scientific,
             status = dt$status,
+            gbifSpecies = dt$species,
+            gbifScientificName = dt$scientificName,
             acceptedName = NA_character_,
-            acceptedNameAuthorship = NA_character_,
             source = NA_character_,
             comment = NA_character_,
             listOrigin = dt$listOrigin
@@ -365,8 +396,8 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
       if (nrow(combined_dt_test) > 0) {
         process_manual_check(combined_dt_test, column, test_files_dir, TRUE)
       }
-      process_manual_check(combined_dt, column, files_dir, FALSE)
       
+      process_manual_check(combined_dt, column, files_dir, FALSE)
     }
   }
 

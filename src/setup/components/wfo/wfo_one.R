@@ -1,34 +1,47 @@
 check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir = "./", verbose = FALSE) {
-  vebcat("Initiating the WFO.one synonym check", color = "funInit")
+  wfo_one_timer <- start_timer("wfo-one")
   
-  if (!is.data.table(wfo.match.dt)) {
-    vebcat("Input data not a data.table", color = "fatalError")
-    vebprint(wfo.match.dt, text = "found:")
-    stop("Check WFO.one input data")
-  }
-  
-  wfo_one_checklist <- WFO.one(
-    WFO.result = wfo.match.dt, 
-    priority = "Accepted",
-    spec.name = "scientificName",
-    verbose = FALSE, 
-    counter = 10000
-  )
-  
-  fwrite(wfo_one_checklist, paste0(out.dir, "/wfo-one.csv"), bom = T)
+  raw_file <- paste0(out.dir, "/wfo-one.csv")
+  mismatch_file <- paste0(out.dir, "/wfo-one-mismatch.csv")
+  nomatch_file <- paste0(out.dir, "/wfo-one-nomatch.csv")
+  na_file <- paste0(out.dir, "/wfo-one-na.csv")
+  dup_file <- paste0(out.dir, "/wfo-one-duplicates.csv")
   out_file <- paste0(out.dir, "/wfo-one-clean.csv")
+  
+  if (!file.exists(raw_file)) {
+    vebcat("Initiating the WFO.one synonym check", color = "funInit")
+    
+    if (!is.data.table(wfo.match.dt)) {
+      vebcat("Input data not a data.table", color = "fatalError")
+      vebprint(wfo.match.dt, text = "found:")
+      stop("Check WFO.one input data")
+    }
+    
+    wfo_one_checklist <- WFO.one(
+      WFO.result = wfo.match.dt, 
+      priority = "Accepted",
+      spec.name = "scientificName",
+      verbose = FALSE, 
+      counter = 10000
+    )
+    
+    fwrite(wfo_one_checklist, raw_file, bom = T)
+  } else {
+    catn("Reading existing WFO.match file from:", colcat(out_file, color = "output"))
+    wfo_one_checklist = fread(raw_file)
+  }
   
   wfo_one_mis <- wfo_mismatch_check(
     wfo.result = wfo_one_checklist, 
     col.origin = column,
-    out.file = paste0(out.dir, "/wfo-one-mismatch.csv"),
+    out.file = mismatch_file,
     unchecked = FALSE,
     verbose = verbose
   ) # returns list of clean and mismatched info
   
   wfo_one_nomatch <- wfo_nomatch_check(
     wfo.result = wfo_one_mis$clean, 
-    out.file = paste0(out.dir, "/wfo-one-nomatch.csv"),
+    out.file = nomatch_file,
     verbose = verbose
   ) # removes nomatches
   
@@ -36,7 +49,7 @@ check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir =
   
   wfo_one_na <- wfo_na_check(
     wfo.result = wfo_one_nomatch$clean, 
-    out.file = paste0(out.dir, "/wfo-one-na.csv"),
+    out.file = na_file,
     verbose = verbose
   ) # removes NA scientificNames
   
@@ -44,7 +57,7 @@ check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir =
   
   wfo_one_dups <- wfo_duplication_check(
     wfo.result = wfo_one_na$clean, 
-    out.file = paste0(out.dir, "/wfo-one-duplicates.csv"), 
+    out.file = dup_file, 
     verbose = verbose
   ) # removes duplicate scientificNames
   
@@ -57,6 +70,8 @@ check_syn_wfo_one <- function(wfo.match.dt, column = "scientificName", out.dir =
   fwrite(wfo_one_res, out_file, bom = T)
   
   vebcat("WFO.one results recieved", color = "funSuccess")
+  
+  end_timer(wfo_one_timer)
 
   return(
     list(

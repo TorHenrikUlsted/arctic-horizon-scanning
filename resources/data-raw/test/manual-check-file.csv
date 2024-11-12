@@ -1,4 +1,2 @@
-rawName,acceptedName,acceptedNameAuthorship,listOrigin,source
-Listera cordata var. cordata,Neottia cordata,(L.) Rich.,test_big,NBIF
-Circaea alpina alpina,Circaea alpina,,test_big,PWO
-Musa paradisiaca,Musa ×paradisiaca,L.,test_big,WFO
+verbatimName,verbatimNameAuthorship,interimName,interimNameAuthorship,wfoScientificName,Old.status,Old.name,name.clean,mismatch.old,mismatch.scientific,status,gbifSpecies,gbifScientificName,acceptedName,source,comment,listOrigin
+Listera cordata var. cordata,,Listera cordata var. cordata,,Viguiera cordata var. cordata,,,Listera cordata var. cordata,FALSE,TRUE,mismatch,Hymenostephium cordatum,Viguiera cordata var. cordata,Neottia cordata subsp. cordata (L.) Rich.,GBIF,synonym,test_big

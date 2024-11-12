@@ -59,6 +59,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     br_out <- paste0(save_dir, "/biovars-region-subset.tif")
 
     sp_dir <- filter_sequence(
+      spec.known = "test_present",
       spec.unknown = "test_small",
       approach = approach,
       cores.max = cores.max,

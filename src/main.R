@@ -1,7 +1,6 @@
 main <- function(
     spec.known = NULL,
     spec.unknown = NULL,
-    coord.uncertainty = NULL,
     gbif.occ.region = NULL,
     download.key = NULL,
     download.doi = NULL,
@@ -50,7 +49,7 @@ main <- function(
   sp_dir <- filter_sequence(
     spec.known = spec.known, 
     spec.unknown = spec.unknown,
-    coord.uncertainty = coord.uncertainty,
+    coord.uncertainty = config$projection$raster_scale_m,
     cores.max = max_cores,
     region = gbif.occ.region,
     download.key = download.key,

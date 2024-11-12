@@ -1,4 +1,4 @@
-get_sp_keys <- function(sp_names, out.dir, verbose = FALSE) {
+get_gbif_keys <- function(spec, out.dir, verbose = FALSE) {
   if (file.exists(paste0(out.dir, "/sp-w-keys.csv"))) {
     catn("File with keys found, loading file...")
     sp_w_keys <- fread(paste0(out.dir, "/sp-w-keys.csv"), sep = ",")
@@ -9,26 +9,22 @@ get_sp_keys <- function(sp_names, out.dir, verbose = FALSE) {
   
   create_dir_if(out.dir)
   
-  if (!is.data.table(sp_names) && !is.vector(sp_names))  {
+  if (!is.data.table(spec) && !is.vector(spec))  {
     vebcat("Error input is not a data frame or vector.", color = "fatalError")
-    vebprint(str(sp_names), text = "Found class:")
+    vebprint(str(spec), text = "Found class:")
     stop("Check class of input object.")
   }
   
-  if (is.data.table(sp_names)) sp_names <- sp_names[[1]]
+  if (is.data.table(spec)) spec <- spec[[1]]
   
-  l_names <- length(sp_names)
+  l_names <- length(spec)
   
   catn("Collecting", highcat(l_names), "species keys...")
-
-  taxon_info <- rgbif::name_backbone_checklist(sp_names)
   
-  sp_w_keys <- data.table(
-    scientificName = taxon_info$scientificName, 
-    speciesKey = taxon_info$speciesKey
-  )
+  sp_w_keys <- gbif_retry(spec, "name_backbone_checklist")
+  sp_w_keys <- as.data.table(sp_w_keys)[, .(species, scientificName, rank, speciesKey, usageKey, status, synonym)]
   
-  # Get NA keys and remove them
+  # Remove anything NA or names above species taxon level
   na_sp_keys <- sp_w_keys[is.na(scientificName) | scientificName == "" | is.na(speciesKey) | speciesKey == ""]
   
   sp_w_keys <- sp_w_keys[!is.na(scientificName) & scientificName != "" & !is.na(speciesKey) & speciesKey != ""]

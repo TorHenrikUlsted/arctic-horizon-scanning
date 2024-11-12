@@ -153,7 +153,6 @@ clean_string <- function(x, verbose = FALSE) {
   x <- gsub("([A-Z]),", "\\1.", x) # If one capital letter then ",", change to ".", then remove double "."
   x <- gsub('"', "", x) # Remove " in a string
   x <- gsub("\\.\\.", ".", x) # remove double "." with only one
-  x <- gsub("\\.", ". ", x) # Add space after every "."
   # Remove standalone "x" where the next word is longer than 1 character and ends with a period
   x <- gsub("\\s+x\\s+(?=\\S{2,}\\.)\\s*", " ", x, perl = TRUE)
   
@@ -224,6 +223,8 @@ create_designation_pattern <- function(designation, verbose = FALSE) {
 }
 
 clean_designations <- function(x, designations, verbose = FALSE) {
+  x <- gsub("\\.", ". ", x) # Add space after every "."
+  
   for (designation in names(designations)) {
     # Create patterns for different cases
     patterns <- create_designation_pattern(designation, verbose)
@@ -233,7 +234,7 @@ clean_designations <- function(x, designations, verbose = FALSE) {
       x <- gsub(pattern, designations[[designation]], x, perl = TRUE)
     }
   }
-  
+  x <- gsub("\\. ", ".", x) # Remove space after every "."
   
   # Remove any double periods that might have been introduced
   x <- gsub("\\.\\.", ".", x)
@@ -654,39 +655,6 @@ combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = N
   return(combined_dt)
 }
 
-
-select_species_approach <- function(dt, approach = "precautionary", col.name = "cleanName", custom.list = ".aff", verbose = FALSE) {
-  vebcat("Selecting species using the", highcat(approach), "approach.", veb = verbose)
-  
-  spec_dt <- copy(dt)
-  spec_dt[species != ""]
-  
-  if (approach == "precautionary") {
-    spec_dt[, (col.name) := species]
-  } else if (approach == "conservative") { 
-    spec_dt <- combine_columns_dt(
-      "species", "taxonRank", "infraspecificEpithet",
-      dt = spec_dt,
-      column.name = col.name,
-      custom.col = "taxonRank",
-      custom.list = custom.list,
-      sep = " ",
-      verbose = verbose
-    )
-    
-    spec_dt[, (col.name) := { # Clean symbols & designations
-      tmp <- clean_string(get(col.name), verbose)
-      tmp <- clean_designations(tmp, config$species$standard_infraEpithets, verbose)
-      clean_symbols(tmp, config$species$filename_symbols, verbose)
-    }]
-  } else {
-    vebcat("Approach can only be 'conservative' or 'precautionary'.", color = "fatalError")
-    stop("Change the approach.")
-  }
-  
-  return(spec_dt)
-}
-
 clean_spec_filename <- function(x) {
   
   base <- basename(x)
@@ -795,13 +763,11 @@ get_order_group <- function(dt, spec.col = NULL, verbose = FALSE) {
   vebprint(valid_orders, verbose, "Valid Orders:")
   
   # Set the levels of the order factor
-  #dt_res$order <- factor(dt_res$order, levels = valid_orders)
+  dt_res[, order := factor(order, levels = valid_orders)]
   
-  dt_res[, orderFactor := factor(order, levels = valid_orders)]
+  setorder(dt_res, order)
   
   vebprint(dt_res, verbose, "factor:")
-  
-  setorder(dt_res, orderFactor)
   
   return(dt_res)
 }
@@ -1220,7 +1186,20 @@ save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir,
   ggsave(fig_out, device = save.device, unit = save.unit, width = save.width, height = save.height, plot = save.plot)
 }
 
-ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits = NULL, breaks = NULL, labels = NULL, begin = NULL, end = NULL, trans = NULL, guide, na.value = "transparent") {
+dynamic_guide_legend <- function(guide_config) {
+  args <- list()
+  
+  for (param_name in names(guide_config)) {
+    
+    # Add the parameter to the args list
+    args[[param_name]] <- guide_config[[param_name]]
+  }
+  
+  # Create and return the guide_legend call
+  do.call(guide_legend, args)
+}
+
+ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits = NULL, breaks = NULL, labels = NULL, begin = NULL, end = NULL, trans = NULL, guide = NULL, na.value = "transparent") {
   tryCatch(
     {
       # Syntax is: "gradient-option"
@@ -1233,9 +1212,21 @@ ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits 
       scale_type <- split_str[[1]]
       scale_var <- tolower(split_str[[2]])
       
+      # Process the guide
+    if (!is.null(guide)) {
+      if (is.list(guide)) {
+        guide_obj <- dynamic_guide_legend(guide)
+      } else if (is.character(guide) || is.logical(guide)) {
+        guide_obj <- guide
+      } else {
+        warning("Invalid guide specification. Using default guide.")
+        guide_obj <- "legend"
+      }
+    }
+      
       args <- list(
         option = option,
-        guide = guide,
+        guide = if (!is.null(guide)) guide_obj else NULL,
         na.value = na.value
       )
       
@@ -1277,6 +1268,42 @@ ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits 
       vebcat("Error when trying to use custom ggplot.filler function.", color = "fatalError")
       stop(e)
     }
+  )
+}
+
+ggplot.theme <- function() {
+  return(
+    ggplot2::theme(
+      text = element_text(family = config$ggplot$theme$text$family),
+      
+      plot.title = element_text(
+        color = config$ggplot$theme$plot.title$color,
+        vjust = config$ggplot$theme$plot.title$vjust,
+        hjust = config$ggplot$theme$plot.title$hjust,
+        size = config$ggplot$theme$plot.title$size,
+        face = config$ggplot$theme$plot.title$face,
+        margin = margin(b = config$ggplot$theme$plot.title$margin$b),
+        lineheight = config$ggplot$theme$plot.title$lineheight
+      ),
+      
+      plot.title.position = config$ggplot$theme$plot.title.position,
+      plot.margin = do.call(margin, c(config$ggplot$theme$plot.margin[c("t", "r", "b", "l")], unit = config$ggplot$theme$plot.margin$unit)),
+      
+      axis.text = element_text(size = config$ggplot$theme$axis.text$size),
+      axis.title.x = element_text(
+        size = config$ggplot$theme$axis.title.x$size,
+        hjust = config$ggplot$theme$axis.title.x$hjust
+      ),
+      
+      axis.title.y = element_text(size = config$ggplot$theme$axis.title.y$size),
+      legend.text = element_text(size = config$ggplot$theme$legend.text$size),
+      legend.title = element_text(
+        size = config$ggplot$theme$legend.title$size,
+        hjust = config$ggplot$theme$legend.title$hjust
+      ),
+      
+      legend.position = config$ggplot$theme$legend.position
+    )
   )
 }
 
@@ -1439,45 +1466,93 @@ system_calc_uniq_and_rows <- function(file.path, column = NULL, sep = "\t") {
 }
 
 model_to_md <- function(model) {
-  # Get the summary of the model
-  summary <- summary(model)
+  output <- cli::cli_format({
+    # Turn off CLI colors temporarily
+    old <- options(cli.num_colors = 1)
+    on.exit(options(old))
+    
+    # Execute the function
+    output <- capture.output(summary(model), type = "output")
+  })
   
-  # Convert the coefficients to a data.table
-  coefficients <- as.data.table(summary$coefficients)
-  setnames(coefficients, "Pr(>|t|)", "p value")
+  # Initialize empty string for markdown text
+  md_text <- ""
   
-  coefficients[, "Significance" := ifelse(`p value` < .001, "\\*\\*\\*",
-                                          ifelse(`p value` < .01, "\\*\\*",
-                                                 ifelse(`p value` < .05, "\\*",
-                                                        ifelse(`p value` < .1, ".", " ")
-                                                 )
-                                          )
-  )]
+  # Process the output line by line
+  in_coefficients <- FALSE
+  current_section <- NULL
   
-  coefficients <- knitr::kable(coefficients, format = "markdown")
-  
-  # Create the Markdown text
-  md_text <- paste0(
-    "**Call:**  \n",
-    "`", deparse(summary$call), "`\n\n",
-    "**Residuals:**  \n",
-    "- Min: ", round(stats::quantile(summary$residuals, probs = 0), 4), "  \n",
-    "- 1Q: ", round(stats::quantile(summary$residuals, probs = 0.25), 4), "  \n",
-    "- Median: ", round(stats::quantile(summary$residuals, probs = 0.50), 4), "  \n",
-    "- 3Q: ", round(stats::quantile(summary$residuals, probs = 0.75), 4), "  \n",
-    "- Max: ", round(stats::quantile(summary$residuals, probs = 1), 4), "  \n\n",
-    "**Coefficients:**  \n\n",
-    paste(coefficients, collapse = "  \n"), "  \n\n",
-    "Signif. codes:  0 ‘\\*\\*\\*’ 0.001 ‘\\*\\*’ 0.01 ‘\\*’ 0.05 ‘.’ 0.1 ‘ ’ 1  \n\n",
-    "**Residual standard error:** ", round(summary$sigma, 4), " on",
-    round(summary$fstatistic[[3]], 0), " degrees of freedom  \n",
-    "**Multiple R-squared:** ", round(summary$r.squared, 4), ", ",
-    "**Adjusted R-squared:** ", round(summary$adj.r.squared, 4), "  \n",
-    "**F-statistic:** ", round(summary$fstatistic[1], 2), " on ",
-    round(summary$fstatistic[2], 0), " and ",
-    round(summary$fstatistic[3], 0), " DF, ",
-    "**p-value:** ", pf(summary$fstatistic[1], summary$fstatistic[2], summary$fstatistic[3], lower.tail = FALSE)
-  )
+  for (line in output) {
+    # Remove quotes and leading/trailing whitespace
+    line <- gsub('"', "", trimws(line))
+    
+    # Skip empty lines and divider lines
+    if (grepl("^\\s*$", line) || grepl("^[-*]{10,}", line)) next
+    
+    if (grepl("link function:", line)) {
+      # Start new section
+      section_name <- sub(" link function:.*", "", line)
+      md_text <- paste0(md_text, "\n## ", section_name, " Parameters\n\n")
+      # Add coefficient table header
+      md_text <- paste0(
+        md_text,
+        "| Parameter | Estimate | Std. Error | t value | p-value |\n",
+        "|-----------|-----------|------------|----------|----------|\n"
+      )
+      in_coefficients <- TRUE
+    }
+    # Handle coefficient lines
+    else if (in_coefficients && grepl("^\\(Intercept\\)|^median|^[a-zA-Z]", line)) {
+      # Check if this is actually a statistics line
+      if (grepl("^No\\. of observations|^Degrees of Freedom|^Global Deviance|^AIC|^SBC", line)) {
+        in_coefficients <- FALSE
+        if (!grepl("Model Statistics", md_text)) {
+          md_text <- paste0(md_text, "\n## Model Statistics\n\n")
+        }
+        clean_line <- gsub("\\s+", " ", line)
+        md_text <- paste0(md_text, "- ", clean_line, "\n")
+        next
+      }
+      
+      # Skip significance code lines
+      if (grepl("^Signif\\.", line)) next
+      
+      parts <- strsplit(trimws(line), "\\s+")[[1]]
+      if (length(parts) >= 5) {
+        param <- parts[1]
+        est <- parts[2]
+        se <- parts[3]
+        t_val <- parts[4]
+        
+        # Handle p-value and stars
+        p_val <- parts[5]
+        if (length(parts) > 5) {
+          if (grepl("\\*", p_val)) {
+            p_val <- gsub("\\*", "\\\\*", p_val)
+          } else {
+            stars <- gsub("\\*", "\\\\*", parts[6])
+            p_val <- paste0(p_val, " ", stars)
+          }
+        }
+        
+        md_text <- paste0(
+          md_text,
+          "| ", param, " | ",
+          est, " | ",
+          se, " | ",
+          t_val, " | ",
+          p_val, " |\n"
+        )
+      }
+    } else if (grepl("^No\\. of observations|^Degrees of Freedom|^Global Deviance|^AIC|^SBC|^Residual Deg\\.|^at cycle:", line)) {
+      if (!grepl("Model Statistics", md_text)) {
+        md_text <- paste0(md_text, "\n## Model Statistics\n\n")
+      }
+      # Clean up the statistics line formatting
+      clean_line <- gsub("\\s+", " ", line) # Replace multiple spaces with single space
+      md_text <- paste0(md_text, "- ", clean_line, "\n")
+    }
+  }
   
   return(md_text)
 }
@@ -1530,7 +1605,7 @@ mdwrite <- function(source, text = NULL, data = NULL, image = NULL, image.out = 
     if (!grepl(";", text)) catn(text)
   }
   if (!is.null(data)) print(data)
-  if (!is.null(image)) catn(paste0("![", h_text, "]", "(", "images/", basename(image.out), ")"))
+  if (!is.null(image)) catn(paste0("![", h_text, "]", "(", "../images/", basename(image.out), ")"))
   catn("  ")
   
   sink(type = "output")

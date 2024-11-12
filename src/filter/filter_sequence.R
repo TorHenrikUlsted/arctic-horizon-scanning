@@ -19,7 +19,10 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
   filter_dir <- "./outputs/filter"
   wrangle_dir <- "./outputs/setup/wrangle"
   unknown_dir <- file.path(filter_dir, gsub("_", "-", spec.unknown))
-  filtered_final <- file.path(unknown_dir, "absent-final.csv")
+  known_dir <- ifelse(!is.null(spec.known), file.path(filter_dir, gsub("_", "-", spec.known)), filter_dir)
+  
+  absent_final <- file.path(unknown_dir, "absent-final.csv")
+  present_final <- file.path(known_dir, "present-final.csv")
 
   coord_un_file <- file.path(build_climate_path(), "coordinateUncertainty-m.txt")
   if (is.null(coord.uncertainty)) coord.uncertainty <- as.integer(readLines(coord_un_file))
@@ -44,24 +47,24 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
     manual_edited <- "./resources/data-raw/test/manual-check-file.csv"
   } else {
     manual_out <- "./outputs/setup/wrangle/manual-check-file.csv"
-    manual_edited <- list.files("./resources/manual-edit", pattern = ".csv", full.names = TRUE)
+    manual_edited <- "./resources/manual-edit/manual-check-file.csv"
   }
   
-  man_l <- nrow(fread(manual_out))
-  
-  if (length(manual_edited) == 0 && (!file.exists(manual_out) || man_l > 0)) {
-    vebcat("Need manually handled file to continue", color = "fatalError")
-    if (file.exists(manual_out)) {
+  if (file.exists(manual_out)) {
+    man_l <- nrow(fread(manual_out))
+    if (man_l > 0 & !file.exists(manual_edited)) {
       catn("Found", highcat(man_l), "species in need of manual handling.")
       catn("Find the file in:", colcat(manual_out, color = "output"))
+      stop("Modify manually handled file and save as ", manual_edited)
     } else {
-      catn("Could not find manually handled output file, check setup process and input data.")
+      catn("Manual edits found in:", colcat(manual_edited, color = "output"))
     }
-    stop("Modify manually handled file")
+  } else {
+    catn("No manual handling file found. Continuing with the process.")
   }
   
   # Skip if the end file exists
-  if (!file.exists(filtered_final)) {
+  if (!file.exists(absent_final) & !file.exists(present_final)) {
 
     mdwrite(
       config$files$post_seq_md,
@@ -72,7 +75,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
 
     dts <- select_wfo_column(
       dir.path = "./outputs/setup/wrangle", # change this to outputs path also edit in wfo
-      pattern = "wfo-one-approach.csv",
+      pattern = "wfo-one-gbif.csv",
       col.unique = column,
       col.select = NULL,
       verbose = verbose
@@ -86,9 +89,9 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
         verbose = verbose
       )
     }
-
+    
     vebprint(dts, verbose, "all data tables:")
-
+    
     #------------------------#
     ####   Filter lists   ####
     #------------------------#
@@ -99,12 +102,8 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
 
       if (grepl("small", spec.unknown)) {
         un <- nrow(dts[["test_small"]])
-        download.key <- "0180552-240321170329656"
-        download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
       } else if (grepl("big", spec.unknown)) {
         un <- nrow(dts[["test_big"]])
-        download.key <- "0180885-240321170329656"
-        download.doi <- "https://doi.org/10.15468/dl.sgf54g"
       } else {
         vebcat("Test has to be either 'test_small' or 'test_big'.", color = "fatalError")
         stop("Change the spec.unknown parameter.")
@@ -170,7 +169,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
         kfan <- nrow(known$absent)
       )
     }
-    ufn <- nrow(unknown$spec)
+    ufn <- nrow(unknown)
 
     md_dt <- data.table(
       present.in = kpn,
@@ -188,18 +187,42 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
     )
   
   } else {
-    unknown <- fread(filtered_final, sep = "\t")
+    known <- list(present = fread(present_final, sep = "\t"))
+    unknown <- fread(absent_final, sep = "\t")
   }
+  
+  #------------------------#
+  #### Filter gbif keys ####
+  #------------------------#
+  
+  unknown <- filter_gbif_keys(
+    spec.dts = list(known = known$present, unknown = unknown),
+    out.dirs = list(known = known_dir, unknown = unknown_dir),
+    verbose = verbose
+  )
   
   #------------------------#
   ####    Occurrence    ####
   #------------------------#
   
+if (grepl("test", spec.unknown)) {
+  if (grepl("small", spec.unknown)) {
+    download.key <- "0180552-240321170329656"
+    download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
+  } else if (grepl("big", spec.unknown)) {
+    download.key <- "0038456-240906103802322"
+    download.doi <- "https://doi.org/10.15468/dl.85f3bs"
+  } else {
+    vebcat("Test has to be either 'test_small' or 'test_big'.", color = "fatalError")
+    stop("Change the spec.unknown parameter.")
+  }
+}
+  
   occ_name <- file.path(unknown_dir, paste0(gsub("_", "-", spec.unknown), "-occ"))
-
-  unknown_occ <- get_occurrence(
-    spec = unknown,
-    file.out = occ_name,
+  
+  unknown_occ <- get_occ_data(
+    species_w_keys = unknown,
+    file.name = occ_name,
     region = region,
     coord.uncertainty = coord.uncertainty,
     download.key = download.key,
@@ -207,26 +230,19 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
     verbose = verbose
   )
 
-  if (!is.null(unknown_occ$occ)) {
-    sp_occ <- unknown_occ$occ
-  } else {
-    sp_occ <- paste0(occ_name, ".csv")
-  }
-
   #------------------------#
   ####     Chunking     ####
   #------------------------#
 
   chunk_dir <- file.path(unknown_dir, "chunk")
-
+  
   chunk_protocol(
-    spec.occ = unknown_occ$occ,
-    spec.keys = unknown_occ$keys,
+    spec.occ = unknown_occ,
+    spec.keys = unknown,
     chunk.name = "species",
     chunk.col = "cleanName",
     chunk.dir = chunk_dir,
     chunk.size = chunk.size,
-    cores.max = 1,
     iterations = chunk.iterations,
     approach = approach,
     verbose = verbose
@@ -242,7 +258,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
 
   mdwrite(
     config$files$post_seq_md,
-    text = paste0("3;Number of species returned from chunking **", length(list.files(return_dir)), "**")
+    text = paste0("Number of species returned from chunking **", length(list.files(return_dir)), "**")
   )
 
   end_timer(filter_timer)

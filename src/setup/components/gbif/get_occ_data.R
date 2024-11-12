@@ -4,10 +4,10 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
   download_path <- dirname(file.name)
   create_dir_if(download_path)
 
-  species_keys <- species_w_keys$speciesKey
+  usagekeys <- species_w_keys$usageKey
   
-  catn("Number of species keys:", highcat(length(species_keys)))
-  vebprint(head(species_keys, 3), verbose, "Species keys sample:")
+  catn("Number of species keys:", highcat(length(usagekeys)))
+  vebprint(head(str(usagekeys), 3), text = "Species keys sample:")
   
   out <- NULL
 
@@ -34,7 +34,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
       catn("Creating occucrence queue.")
 
       predicates <- list(
-        pred_in("taxonKey", species_keys),
+        pred_in("taxonKey", usagekeys),
         pred_in("basisOfRecord", c("HUMAN_OBSERVATION", "PRESERVED_SPECIMEN")),
         pred("hasCoordinate", TRUE),
         pred("hasGeospatialIssue", FALSE),
@@ -124,7 +124,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
       if (size <= 5) {
         catn("File size smaller than 5 GB, reading file...")
         gbif_occ_df <- fread(csv_file)
-        vebprint(head(gbif_occ_df, 3), text = "Sample of data table:")
+        vebprint(head(gbif_occ_df, 3), verbose, text = "Sample of data table:")
         vebcat("GBIF occurrences Successfully Loaded.", color = "funSuccess")
         return(gbif_occ_df)
       } else {

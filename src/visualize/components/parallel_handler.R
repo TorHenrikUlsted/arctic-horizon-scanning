@@ -6,7 +6,7 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   catn("Setting up parallel function")
 
   ram_log <- paste0(dir, "/ram-usage.txt")
-  peak_log <- paste0(dir, "/ram_peak.txt")
+  peak_log <- paste0(dir, "/ram-peak.txt")
   stop_file <- paste0(dir, "/stop-file.txt")
 
   create_file_if(ram_log, peak_log)
@@ -22,7 +22,11 @@ parallel_spec_dirs <- function(spec.dirs, dir, shape, extra, hv.project.method, 
   # Set up names for the initiation
   sp_dir <- spec.dirs[1]
   sp_dirs <- spec.dirs[-1]
-  sp_filename <- paste0(sp_dir, "/", hv.project.method, ".tif")
+  if (file.info(sp_dir[[1]])$isdir) {
+    sp_filename <- paste0(sp_dir, "/", hv.project.method, ".tif")
+  } else {
+    sp_filename <- sp_dir
+  }
 
   catn("Processing init function.")
   init_timer <- start_timer("Inititation process")
@@ -78,10 +82,12 @@ tryCatch({
     
     global_config <- config
     source("./src/utils/utils.R")
+    load_utils(parallel = TRUE)
     
     config <- global_config
     
     source("./src/setup/setup_sequence.R")
+    source("./src/hypervolume/components/spec_handlers.R")
     
     source_all("./src/visualize/components")
     
@@ -118,7 +124,7 @@ tryCatch({
 
   catn("Running parallel with", highcat(end), "iteration(s).")
   execute_timer <- start_timer("Execute process")
-  calculate_etc(timer_res + (1.45 * max_cores), max_cores, length(spec.dirs))
+  calculate_etc(timer_res + (1.45 * max_cores), max_cores, length(sp_dirs))
 
   tryCatch(
     {
@@ -153,7 +159,11 @@ tryCatch({
 
         sp_dir <- sp_dirs[[i]]
         sp_name <- basename(sp_dir)
-        sp_filename <- paste0(sp_dir, "/", hv.project.method, ".tif")
+        if (file.info(sp_dir[[1]])$isdir) {
+          sp_filename <- paste0(sp_dir, "/", hv.project.method, ".tif")
+        } else {
+          sp_filename <- sp_dir
+        }
 
         catn("Running node for:")
 
@@ -311,6 +321,8 @@ parallel_spec_handler <- function(spec.dirs, dir, shape = NULL, extra = NULL, hv
     }
 
     vebprint(head(process_res, 3), verbose, "Processed data:")
+    
+    create_dir_if(dirname(out_file))
 
     fwrite(process_res, out_file, bom = TRUE)
   }
@@ -346,8 +358,8 @@ parallel_init <- function(spec.filename, shape, extra, hv.project.method, fun.in
   tryCatch(
     {
       # Initiate memory control
-      ram_control <- start_mem_tracking(file.out = file.log, file.stop = file.stop)
-
+      ram_control <- start_mem_tracking(file.log, file.stop)
+      
       if (!is.null(shape)) {
         region <- load_region(shape)
         region <- handle_region(region)
@@ -363,16 +375,17 @@ parallel_init <- function(spec.filename, shape, extra, hv.project.method, fun.in
       init_res <- fun.init(
         spec.filename = spec.filename,
         region = region,
+        extra = extra,
         verbose = verbose
       )
 
       # Stop the memory tracker
-      stop_mem_tracking(ram_control, file.stop = file.stop)
+      peak_mem_usage <- stop_mem_tracking(ram_control)
     },
     error = function(e) {
       vebcat("Error occurred:\n", e$message, color = "nonFatalError")
       vebcat("Stopping RAM check process.", color = "nonFatalError")
-      stop_mem_tracking(ram_control, file.stop = file.stop)
+      stop_mem_tracking(ram_control)
     }
   )
 
