@@ -1642,7 +1642,7 @@ create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
   sp_occ_out <- "./outputs/post-process/derived-data/datasetKey-count.csv"
   derived_data_zip_out <- "./outputs/post-process/derived-data/derived-dataset.zip"
   
-  create_dir_if(sp_occ_out)
+  create_dir_if(dirname(sp_occ_out))
   
   if (file.exists(sp_occ_out)) {
     catn("DatasetKey with occurrence count already exists.")
@@ -1737,72 +1737,177 @@ progressive_dirname <- function(path, begin = 1, end = NULL) {
   return(res)
 }
 
-get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, include.files = NULL, step = 0) {
+remove_parent_paths <- function(paths, verbose = FALSE) {
+  # Sort paths by length to optimize comparisons
+  # (longer paths might be nested under shorter ones)
+  paths <- sort(paths, decreasing = FALSE)
+  
+  vebprint(paths, verbose, "Input paths (sorted):")
+  
+  # For each path, check if it's a prefix of any other path
+  is_parent <- sapply(paths, function(potential_parent) {
+    # Add trailing separator to ensure we match complete path components
+    parent_with_sep <- paste0(potential_parent, .Platform$file.sep)
+    # Check if this path is a prefix of any other path
+    any(startsWith(paths, parent_with_sep))
+  })
+  
+  # Keep only paths that aren't parents of other paths
+  result <- paths[!is_parent]
+  
+  if(verbose) {
+    cat("\nRemoved parent paths:\n")
+    print(paths[is_parent])
+    cat("\nFinal paths:\n")
+    print(result)
+  }
+  
+  return(result)
+}
+
+truncate_vector <- function(x, length.max = 20, verbose = FALSE) {
+  if (is.null(x)) return(invisible())
+  if (length(x) <= length.max) return(invisible(x))
+  
+    if (is.character(x) && any(!is.na(file.info(x)$isdir))) {
+      if (!all(file.info(x)$is.dir)) { # some are files
+        x <- head(x, length.max)
+        vebcat("Truncated with head for exceeding length of", length.max, veb = verbose)
+      } else {
+        x <- unique(dirname(x))
+        vebcat("Truncated by dirname for exceeding length of", length.max, veb = verbose)
+      }
+      
+    } else {
+      stop("Wrong class: ", class(x))
+    }
+  
+  return(x)
+}
+
+get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, include.files = NULL, step = 0, verbose = FALSE) {
   if (step > 6) {
     vebcat("Step cannot be higher than 6", color = "fatalError")
     stop("Change step to a different integer value.")
   }
-  d <- list.dirs(input.dir, recursive = TRUE)
-  if (length(d) > 1) {
-    d <- d[-1]
+  max_length <- 20
+  # Get all directories
+  d_orig <- list.dirs(input.dir, recursive = TRUE)
+  if (length(d_orig) > 1) {
+    d_orig <- d_orig[-1]
+  } else {
+    stop("Could not find any directories.")
   }
-  vebprint(d, veb = (step == 1), paste0(highcat("Step 1"), " | ", highcat("initial directories:")))
-  if (!is.null(exclude.dirs)) {
-    exclude <- sapply(d, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
-    d <- d[!exclude]
-  }
-  vebprint(d, veb = (step == 2), paste0(highcat("Step 2"), " | ", highcat("exclude directories:")))
+  d_orig_u <- truncate_vector(d_orig, max_length, step == 1)
+    vebprint(
+      remove_parent_paths(d_orig_u), veb = (step == 1 || verbose), 
+      paste0(
+        highcat("Step 1"), " | ",
+        highcat("initial directories [", length(d_orig), "] :")
+      )
+    )
+  if (step == 1) return(invisible())
   
+  # Remove exclude.dirs
+  if (!is.null(exclude.dirs)) {
+    exclude <- sapply(d_orig, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
+    d <- d_orig[!exclude]
+    d <- remove_parent_paths(d)
+  }
+  d_u <- truncate_vector(d, max_length, step == 2)
+  vebprint(
+    d_u, veb = (step == 2 || verbose), 
+    paste0(
+      highcat("Step 2"), " | ", 
+      highcat("After removing exclude.dirs [", length(d),"] :")
+    )
+  )
+  if (step == 2) return(invisible())
+  
+  # List all files and find the include.files
+  if (!is.null(include.files)) {
+    f_inc <- list.files(d_orig, recursive = FALSE, full.names = TRUE)
+    include <- sapply(f_inc, function(file) any(sapply(include.files, function(inc_f) grepl(inc_f, file, fixed = TRUE))))
+    f_inc <- f_inc[include]
+    f_inc <- remove_parent_paths(f_inc)
+  } else {
+    f_inc <- NULL
+  }
+  f_inc_u <- truncate_vector(f_inc, max_length, step == 3)
+  vebprint(
+    f_inc_u, veb = (step == 3 || verbose), 
+    paste0(
+      highcat("Step 3"), " | ", 
+      highcat("Files included in include.files [", length(f_inc), "] :")
+    )
+  )
+  if (step == 3) return(invisible())
+  
+  # Get the files in the included directories
   f <- list.files(d, recursive = FALSE, full.names = TRUE)
-  vebprint(f, veb = (step == 3), paste0(highcat("Step 3"), " | ", highcat("list files:")))
+  f <- f[!file.info(f)$isdir]
+  f_u <- truncate_vector(f, max_length, step == 4)
+  vebprint(
+    f_u, veb = (step == 4 || verbose), 
+    paste0(
+      highcat("Step 4"), " | ", 
+      highcat("Files in the included directories [", length(f), "] :")
+    )
+  )
+  if (step == 4) return(invisible())
+  
+  # Remove the exclude.files
   if (!is.null(exclude.files)) {
     exclude <- sapply(f, function(x) any(sapply(exclude.files, function(ex_f) grepl(ex_f, x))))
     f <- f[!exclude]
+    f <- remove_parent_paths(f)
+    f <- c(f, f_inc)
   }
-  vebprint(f, veb = (step == 4), paste0(highcat("Step 4"), " | ", highcat("exclude files:")))
+  f_u <- truncate_vector(f, max_length, step == 5)
+  vebprint(
+    f_u, veb = (step == 5 || verbose), 
+    paste0(
+      highcat("Step 5"), " | ", 
+      highcat("After removing exclude.files [", length(f), "] :")
+    )
+  )
+  if (step == 5) return(invisible())
   
-  if (!is.null(include.files)) {
-    include <- sapply(f, function(x) any(sapply(include.files, function(in_f) grepl(in_f, x, fixed = TRUE))))
-    f <- f[include]
-  }
-  vebprint(f, veb = (step == 5), paste0(highcat("Step 5"), " | ", highcat("include files:")))
-  
-  f <- f[!file.info(f)$isdir]
-  
-  vebprint(f, veb = (step == 6), paste0(highcat("Step 6"), " | ", highcat("remove directories:")))
   return(f)
 }
 
-get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL) {
+get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL, verbose = FALSE) {
   vebcat("Collecting repository files", color = "funInit")
   
   dirs <- list(
     setup = list(
       dir = "./outputs/setup",
-      exclude_dirs = c("wfo-match-nodes", "test", "logs", "system", "locks", "projections"),
-      exclude_files = c("stop-file.txt", ".zip", "wfo-match-nodes", ".rds", ".tif", "stats.csv"),
+      exclude_dirs = c("wfo-match-nodes", "test", "logs", "system", "locks", "projections", "region", "old"),
+      exclude_files = c("stop-file.txt", ".zip", "wfo-match-nodes", ".rds", ".tif", "stats.csv", "wfo-completed"),
+      include_files = c("coordinateUncertainty"),
       step = step
     ),
     filter = list(
       dir = "./outputs/filter",
-      exclude_dirs = c("chunk", "test", "logs"),
-      exclude_files = c("occ.csv", ".zip", "logs", "chunk"),
+      exclude_dirs = c("chunk", "test", "old"),
+      exclude_files = c("occ.csv", ".zip", "logs", "completed.txt"),
       step = step
     ),
     hypervolume = list(
       dir = "./outputs/hypervolume",
-      exclude_dirs = c("test", "prep", "locks", "species-prep"),
+      exclude_dirs = c("test", "prep", "locks", "old"),
       exclude_files = c("init-log.txt", "node-iterations.txt"),
       step = step
     ),
     visualize = list(
       dir = "./outputs/visualize",
-      exclude_dirs = c("stack", "logs"),
+      exclude_dirs = c("stack", "test"),
       exclude_files = c("warning", "error"),
       step = step
     ),
     post_process = list(
       dir = "./outputs/post-process",
+      exclude_dirs = c("old"),
       step = step
     ),
     utils = list(
@@ -1817,12 +1922,20 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
   for (sequence in names(dirs)) {
     if (which.sequence == "all" || which.sequence == sequence) {
       catn("Collecting", sequence, "files")
-      files <- get_files(
-        dirs[[sequence]]$dir,
-        dirs[[sequence]]$exclude_dirs,
-        dirs[[sequence]]$exclude_files,
-        dirs[[sequence]]$step
-      )
+      if (verbose) print_function_args()
+      
+      tryCatch({
+        files <- get_files(
+          input.dir = dirs[[sequence]]$dir,
+          exclude.dirs = dirs[[sequence]]$exclude_dirs,
+          exclude.files = dirs[[sequence]]$exclude_files,
+          include.files = dirs[[sequence]]$include_files,
+          step = dirs[[sequence]]$step,
+          verbose = verbose
+        )
+      }, error = function(e) {
+        stop(e)
+      })
       
       if (!is.null(subset)) {
         subset_dir <- paste0(dirs[[sequence]]$dir, "/", subset)
@@ -1839,7 +1952,7 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
   
   vebcat("Repository files collected succesfully", color = "funSuccess")
   
-  return(repo_files)
+  if (step == 0) return(repo_files) else return(invisible(repo_files))
 }
 
 pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequence = "all") {
@@ -1855,6 +1968,7 @@ pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequ
   
   repo_files <- get_repository_files(which.sequence = which.sequence)
   
+  catn("Compressing files with .zip")
   zip(zipfile = out_file, files = repo_files)
   
   catn("Zip file saved in", colcat(out_file, color = "output"))
