@@ -1715,7 +1715,11 @@ create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
     
     catn("Zipping", highcat(length(files)), "dervied species files.")
     
-    zip(derived_data_zip_out, files)
+    zip(
+      zipfile = derived_data_zip_out, 
+      files = files,
+      flags = "-j" # remove directories and only keep files
+    )
   }
 }
 
@@ -1812,7 +1816,6 @@ get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, incl
   if (!is.null(exclude.dirs)) {
     exclude <- sapply(d_orig, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
     d <- d_orig[!exclude]
-    d <- remove_parent_paths(d)
   }
   d_u <- truncate_vector(d, max_length, step == 2)
   vebprint(
