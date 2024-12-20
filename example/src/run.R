@@ -30,14 +30,14 @@ main(
   vis.region.name = "the Arctic", # The name that will be displayed on plot titles
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order", 
-  vis.save.device = "svg",
+  vis.save.device = "jpeg",
   vis.save.unit = "px",
   plot.show = FALSE,
   verbose = FALSE,
   force.seq = NULL
 )
 
-create_derived_dataset(
+ create_derived_dataset(
   occurrences.dir = paste0(
     "./outputs/filter/", 
     "glonaf",

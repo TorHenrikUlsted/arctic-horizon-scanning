@@ -432,7 +432,7 @@ convert_template_raster <- function(input.values, template.filename, projection,
   return(template)
 }
 
-get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pole = NULL) {
+get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pole = NULL, verbose = FALSE) {
   vebcat("Setting up world Map.", color = "funInit")
   
   accepted_maps <- c("wgsrpd", "rnaturalearth")
@@ -472,7 +472,9 @@ get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pol
     world_map <- crop(world_map, equator_extent)
   }
   
-  world_map <- suppressWarnings(check_crs(world_map, projection))
+  print(projection)
+  
+  world_map <- suppressWarnings(check_crs(world_map, projection, verbose))
   
   vebcat("World Map setup completed successfully", color = "funSuccess")
   
@@ -806,7 +808,7 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
   ))
 }
 
-calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
+calculate_taxon_richness <- function(dt, taxon, country = NULL, verbose = FALSE) {
   catn("Calculating richness for", highcat(taxon))
   
   dt_copy <- copy(dt)
@@ -824,15 +826,21 @@ calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
   dt_copy[, relativeRichness := taxonRichness / totalRichness, by = c(taxon, "subRegionName")]
   
   # Remove duplicates to get one row per taxon-subregion combination
-  dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName"))
+  if (is.null(country)) {
+    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName"))
+  } else {
+    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", country))
+  }
   
   vebprint(dt_copy, verbose, text = "Taxon Richness after sum:")
   
   return(dt_copy)
 }
 
-get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
+get_taxon_richness <- function(paoo.file, stats, taxon, country = FALSE, verbose = FALSE) {
   vebcat("Getting region richness", color = "funInit")
+  
+  if (taxon == "species") taxon = "cleanName"
   
   if (is.character(paoo.file)) {
     paoo.file <- fread(paoo.file)
@@ -846,7 +854,7 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   old_names <- c("level3Name", "level3Code", "level3Long", "level3Lat")
   new_names <- c("originCountry", "originCountryCode", "originLong", "originLat")
   setnames(sp_stats, old_names, new_names)
-  sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originLong, originLat)]
+  sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originLong, originLat, level2Code, level1Code)]
   
   merged_dt <- paoo_dt[sp_stats, on = "cleanName", allow.cartesian = TRUE]
   
@@ -865,6 +873,7 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   richness_dt <- calculate_taxon_richness(
     merged_dt,
     taxon = taxon,
+    country = if (country) "originCountry" else NULL,
     verbose = verbose
   )
   
@@ -872,7 +881,11 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
     richness_dt
   )
   
-  richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName"))
+  if (!country) {
+    richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName"))
+  } else {
+    richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName", "originCountry"))
+  }
   
   richness_dt <- richness_dt[, groupRelativeRichness := sum(relativeRichness), by = .(group, subRegionName)]
   
@@ -883,14 +896,14 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   return(richness_dt)
 }
 
-get_connections <- function(dt, taxon, verbose = FALSE) {
+get_connections <- function(dt, verbose = FALSE) {
   dt_copy <- copy(dt)
   
   dt_copy <- dt_copy[!is.na(subRegionName) & subRegionName != "" & !is.na(originCountry) & originCountry != ""]
   
-  dt_copy <- dt_copy[, connections := .N, by = c(taxon, "subRegionName", "originCountry")]
+  dt_copy <- dt_copy[, connections := data.table::uniqueN(cleanName), by = c("cleanName", "subRegionName", "originCountry")]
   
-  dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", "originCountry"))
+  dt_copy <- unique(dt_copy, by = c("cleanName", "subRegionName", "originCountry"))
   
   return(dt_copy)
 }
@@ -907,6 +920,163 @@ get_con_points <- function(dt, projection, longitude, latitude, verbose = FALSE)
   vebprint(points, verbose, "Reprojected points:")
   
   return(points)
+}
+
+convert_con_points <- function(dt, taxon, projection, centroid = FALSE, verbose = FALSE) {
+  sub_dt <- copy(dt)
+  
+  if (taxon == "cleanName") {
+    origin_subset <- sub_dt[, .(cleanName, originLong, originLat, connections, originCountry, level2Code)]
+  } else {
+    origin_subset <- sub_dt[, .(cleanName, get(taxon), originLong, originLat, connections, originCountry, level2Code)]
+    setnames(origin_subset, "V2", taxon)
+  }
+  origin_subset <- unique(origin_subset, by = c("cleanName", "originCountry"))
+  
+  if (centroid) {
+    origin_subset[, level3Name := originCountry]
+    wgsrpd_centroids <- get_wgsrpd_polygon_centroid(origin_subset)
+    origin_subset <- origin_subset[wgsrpd_centroids, on = "level3Name"]
+    data.table::setnames(origin_subset, c("originLong", "originLat"), c("level3Long", "level3Lat"))
+    data.table::setnames(origin_subset, c("centroidLong", "centroidLat"), c("originLong", "originLat"))
+  }
+  
+  origin_points <- get_con_points(origin_subset, projection, "originLong", "originLat", verbose = verbose)
+  
+  if (taxon == "cleanName") {
+    dest_subset <- sub_dt[, .(cleanName, subRegionLong, subRegionLat, subRegionName)]
+  } else {
+    dest_subset <- sub_dt[, .(cleanName, get(taxon), subRegionLong, subRegionLat, subRegionName)]
+    setnames(dest_subset, "V2", taxon)
+  }
+  dest_subset <- unique(dest_subset, by = c("cleanName", "subRegionName"))
+  dest_points <- get_con_points(dest_subset, projection, "subRegionLong", "subRegionLat", verbose = verbose)
+  
+  # Remove NA
+  origin_points <- origin_points[!is.na(origin_points)]
+  dest_points <- dest_points[!is.na(dest_points)]
+  
+  catn("Converting points back to data tables.")
+  origin <- terra::as.data.frame(origin_points, geom = "xy")
+  origin <- as.data.table(origin)
+  setnames(origin, "x", "originX")
+  setnames(origin, "y", "originY")
+  origin <- unique(origin, by = c("cleanName", "originX", "originY"))
+  
+  dest <- terra::as.data.frame(dest_points, geom = "xy")
+  dest <- as.data.table(dest)
+  setnames(dest, "x", "destX")
+  setnames(dest, "y", "destY")
+  dest <- unique(dest, by = c("cleanName", "destX", "destY"))
+  
+  origin <- unique(origin, by = c("originX", "originY"))
+  dest <- unique(dest, by = c("destX", "destY"))
+  
+  return(list(
+    origin = origin,
+    dest = dest
+  ))
+}
+
+create_zoom_annotation <- function(basemap, region, points, verbose = FALSE) {
+  # Get the bounding box of the subregion for the zoom
+  bbox <- terra::ext(region)
+  # Add some padding around the bbox
+  padding <- c(
+    (bbox[2] - bbox[1]) * 0.1,  # 10% padding
+    (bbox[4] - bbox[3]) * 0.1
+  )
+  
+  bbox <- c(
+    bbox[1] - padding[1],
+    bbox[2] + padding[1],
+    bbox[3] - padding[2],
+    bbox[4] + padding[2]
+  )
+  
+  zoom_plot <- ggplot() +
+    geom_spatvector(data = basemap) +
+    geom_spatvector(
+      data = region,
+      fill = "#0013ff",
+      color = "black",
+      linewidth = 0.1
+    ) +
+    geom_point(
+      data = points, 
+      aes(x = originX, y = originY), 
+      color = "darkgreen",
+      size = 1, 
+      stroke = 0, 
+      shape = 16
+    ) +
+    coord_sf(
+      xlim = c(bbox[1], bbox[2]),
+      ylim = c(bbox[3], bbox[4])
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      panel.grid = element_blank(),
+      plot.background = element_rect(fill = "white", color = "black"),
+      plot.margin = unit(c(0, 0, 0, 0), "cm")
+    )
+  
+  # Convert zoom plot to grob
+  return(list(
+    grob = ggplotGrob(zoom_plot),
+    extents = bbox
+  ))
+}
+
+position_zoom_annotation <- function(top, right, plot.ext, region.ext, width = NULL, height = NULL, verbose = FALSE) {
+  # Calculate aspect ratio from the zoom region's extents
+  zoom_x_range <- unname(region.ext[2]) - unname(region.ext[1])
+  zoom_y_range <- unname(region.ext[4]) - unname(region.ext[3])
+  aspect_ratio <- zoom_x_range / zoom_y_range
+  
+  # Get the plot ranges for positioning
+  plot_x_range <- unname(plot.ext[2]) - unname(plot.ext[1])
+  plot_y_range <- unname(plot.ext[4]) - unname(plot.ext[3])
+  
+  if (is.null(width)) width <- 0.25
+  if (is.null(height)) height <- 0.25
+  
+  # Adjust dimensions to maintain aspect ratio while keeping the larger dimension fixed
+  if (aspect_ratio > 1) {  # wider than tall
+    base_width <- plot_x_range * width
+    base_height <- plot_y_range * height
+    actual_width <- base_width
+    actual_height <- base_width / aspect_ratio
+  } else {  # taller than wide
+    base_width <- plot_x_range * (width + 0.1)
+    base_height <- plot_y_range * (height + 0.1)
+    
+    actual_width <- base_height * aspect_ratio
+    actual_height <- base_height
+  }
+  
+  # Position consistently from top edge
+  inset_ymax <- unname(plot.ext[4]) - (top * actual_height)
+  inset_ymin <- inset_ymax - base_height  # Use base_height for consistent top spacing
+  
+  # Adjust ymin to maintain aspect ratio
+  if (aspect_ratio > 1) {
+    inset_ymin <- inset_ymax - actual_height
+  }
+  
+  # Position from right edge
+  inset_xmax <- unname(plot.ext[2]) - (right * plot_x_range)
+  inset_xmin <- inset_xmax - actual_width
+  
+  list(
+    xmin = inset_xmin,
+    xmax = inset_xmax,
+    ymin = inset_ymin,
+    ymax = inset_ymax,
+    aspect_ratio = aspect_ratio
+  )
 }
 
 calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
@@ -942,8 +1112,6 @@ calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
       veb = write.md
     )
   }
-  
-  
   
   return(invisible())
 }

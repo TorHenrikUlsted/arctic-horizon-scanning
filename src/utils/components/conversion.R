@@ -20,7 +20,6 @@ to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
 }
 
 check_crs <- function(x, projection, projection.method = NULL, res = NULL, verbose = FALSE) {
-  
   projection <- get_crs_config(projection)
   
   if (is.null(projection.method)) {

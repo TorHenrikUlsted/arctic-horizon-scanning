@@ -9,6 +9,7 @@ projection:
   raster_scale_m: 1000
   crs:
     laea: "+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84"
+    aeqd: "+proj=aeqd +lon_0=0 +lat_0=90 +datum=WGS84"
     longlat: "+proj=longlat +datum=WGS84 +ellps=WGS84"
     mollweide: "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
     stere_north: "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"

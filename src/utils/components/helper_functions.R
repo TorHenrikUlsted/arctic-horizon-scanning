@@ -856,7 +856,7 @@ get_crs_config <- function(projection.name, vebose = FALSE) {
   }
   
   if (inherits(crs(config$projection$crs$longlat, proj=T), "Error")) {
-    cat("inehirts")
+    cat("crs inherit failed")
   }
   
   projection <- input_args[[projection.name]]
@@ -1139,7 +1139,7 @@ get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.pe
     
     vebprint(sub_region, verbose, "Sub Region:")
     
-    all_centroids <- centroids(sub_region, inside = inside)
+    all_centroids <- terra::centroids(sub_region, inside = inside)
     
     vebprint(all_centroids, verbose, "All centroids:")
     

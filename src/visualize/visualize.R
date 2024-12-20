@@ -507,68 +507,6 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     invisible(gc())
   }
   
-  #-------------------------#
-  #### Suitability units ####
-  #-------------------------#
-  
-  fig_name <- paste0("figure-3C", ".", vis.save.device)
-  if (fig_name %in% existing_plots) {
-    vebcat("Skipping Suitability Units Figure.", color = "indicator")
-  } else {
-    prob_stacks <- c("totalMean", "totalMedian", "totalMax")
-    prob_list <- list(length(prob_stacks))
-    
-    for (i in 1:length(prob_stacks)) {
-      stack_val <- prob_stacks[i]
-      
-      prob_vals <- parallel_spec_handler(
-        spec.dirs = sp_dirs,
-        shape = shape,
-        dir = log_dir_suitability,
-        hv.project.method = "probability",
-        col.n = "species-9",
-        out.order = paste0("-", stack_val),
-        fun = get_prob_stats,
-        verbose = verbose
-      )
-      
-      vals_stack <- stack_projections(
-        filenames = group$filename,
-        projection = config$simulation$projection,
-        projection.method = "bilinear",
-        out.dir = paste0(log_stacks_suitability, "/", stack_val, "/all"),
-        verbose = verbose
-      )
-      
-      prob_list[[i]] <- vals_stack
-    }
-    
-    world_map <- get_world_map(projection = config$simulation$projection)
-    
-    visualize_suit_units(
-      stack.mean = prob_list[[1]],
-      stack.median = prob_list[[2]],
-      stack.max = prob_list[[3]],
-      region = world_map,
-      region.name = vis.region.name,
-      extent = region_ext,
-      projection = config$simulation$projection,
-      vis.row = 3,
-      vis.col = 3,
-      vis.title = vis.title,
-      save.dir = plot_dir,
-      save.name = "figure-3C",
-      save.device = vis.save.device,
-      save.unit = vis.save.unit,
-      return = TRUE,
-      plot.show = plot.show,
-      verbose = verbose
-    )
-    
-    rm(prob_list, world_map)
-    invisible(gc())
-  }
-  
   #------------------------#
   ####   Suit + paoo    ####
   #------------------------#
@@ -750,8 +688,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   ####   Connections    ####
   #------------------------#
   
-  fig_name <- "figure-5"
-  if (sum(grepl(fig_name, existing_plots)) == 3) {
+  fig_name <- "connections"
+  if (dir.exists(file.path(plot_dir, "connections"))) {
     vebcat("Skipping Connections figure.", color = "indicator")
   } else {
     paoo_files <- list()
@@ -778,43 +716,36 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       paoo.file = paoo_file,
       stats = sp_stats,
       taxon = "species",
+      country = TRUE,
       verbose = verbose
     )
     
     richness_dt <- richness_dt[PAoO > 0]
     
-    taxon_names <- c("species", "family", "order")
-    figure_names <- c("A", "B", "C")
-    connections_md <- data.table()
+    connections_dt <- get_connections(
+      dt = richness_dt,
+      verbose = verbose
+    )
     
-    for (i in 1:length(taxon_names)) {
-      taxon <- taxon_names[i]
-      figure <- figure_names[i]
-      
-      connections_dt <- get_connections(
-        dt = richness_dt,
-        taxon = taxon,
-        verbose = verbose
-      )
-      
-      if (taxon == "species") connections_md <- connections_dt
-      
-      # Figure 5: connections map
-      visualize_connections(
-        dt = connections_dt,
-        taxon = taxon,
-        region.name = vis.region.name,
-        subregion.name = vis.subregion.name,
-        projection = "laea",
-        vis.title = vis.title,
-        save.dir = plot_dir,
-        save.device = vis.save.device,
-        save.unit = vis.save.unit,
-        save.name = paste0("figure-5", figure),
-        plot.show = plot.show,
-        verbose = TRUE
-      )
-    }
+    connections_md <- connections_dt
+    
+    visualize_spec_ranges_by_subregion(
+      dt = connections_dt,
+      taxon = "species",
+      centroid = FALSE,
+      multiple = TRUE,
+      region = shape,
+      region.name = vis.region.name,
+      subregion.name = vis.subregion.name,
+      projection = "aeqd",
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
+      save.name = "figure-5",
+      plot.show = plot.show,
+      verbose = FALSE
+    )
     
     subsets <- c("subRegionName", "country", "originCountry", "originCountryCode", "connections")
     
@@ -884,8 +815,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   ####   Distribution   ####
   #------------------------#
   
-  fig_name <- paste0("figure-6", ".", vis.save.device)
-  if (any(grepl(fig_name, existing_plots))) {
+  fig_name <- "figure-6"
+  if (sum(grepl(fig_name, existing_plots)) == 2) {
     vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
   } else {
     

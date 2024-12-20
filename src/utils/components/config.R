@@ -27,6 +27,10 @@ rm(projection)
 config$projection$crs$laea <- edit_crs(config$projection$crs$laea, "PROJCRS", "Lambert Azimuthal Equal Area")
 config$projection$crs$laea <- edit_crs(config$projection$crs$laea, "BASEGEOGCRS", "WGS 84")
 
+# Aeqd
+config$projection$crs$aeqd <- edit_crs(config$projection$crs$aeqd, "PROJCRS", "Azimuthal Equidistant projection")
+config$projection$crs$aeqd <- edit_crs(config$projection$crs$aeqd, "BASEGEOGCRS", "WGS 84")
+
 # longlat
 config$projection$crs$longlat <- edit_crs(config$projection$crs$longlat, "GEOGCRS", "WGS 84")
 
