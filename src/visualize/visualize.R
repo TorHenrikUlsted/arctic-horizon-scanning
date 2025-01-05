@@ -544,47 +544,72 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     fig_name <- paste0("1-", rows)
   
-      prob_batch <- prob_paoo_files[1:rows]
-      paoo_batch <- paoo_files_subset[1:rows]
+    prob_batch <- prob_paoo_files[1:rows]
+    paoo_batch <- paoo_files_subset[1:rows]
       
-      paoo_files <- stack_projections(
-        filenames = paoo_batch,
-        projection = config$simulation$projection,
-        projection.method = "near",
-        out.dir = paste0(log_stacks_aoo, "/top-", fig_name),
-        binary = TRUE,
-        verbose = verbose
-      )
-      
-      prob_files <- stack_projections(
-        filenames = prob_batch,
-        projection = config$simulation$projection,
-        projection.method = "bilinear",
-        out.dir = paste0(log_stacks_suitability, "/totalMean/top-", fig_name),
-        binary = FALSE,
-        verbose = verbose
-      )
-      
-      world_map <- get_world_map(projection = config$simulation$projection)
-      
-      visualize_dist_suit(
-        stack.paoo = paoo_files,
-        stack.suitability = prob_files,
-        region = world_map,
-        region.name = vis.region.name,
-        extent = region_ext,
-        projection = config$simulation$projection,
-        vis.row = rows,
-        vis.col = 1,
-        vis.title = vis.title,
-        save.dir = plot_dir,
-        save.name = paste0("figure-3D-", fig_name),
-        save.device = vis.save.device,
-        save.unit = vis.save.unit,
-        verbose = verbose
-      )
+    paoo_files <- stack_projections(
+      filenames = paoo_batch,
+      projection = config$simulation$projection,
+      projection.method = "near",
+      out.dir = paste0(log_stacks_aoo, "/top-", fig_name),
+      binary = TRUE,
+      verbose = verbose
+    )
     
-    rm(paoo_files, prob_files, world_map)
+    prob_files <- stack_projections(
+      filenames = prob_batch,
+      projection = config$simulation$projection,
+      projection.method = "bilinear",
+      out.dir = paste0(log_stacks_suitability, "/totalMean/top-", fig_name),
+      binary = FALSE,
+      verbose = verbose
+    )
+    
+    world_map <- get_world_map(projection = config$simulation$projection)
+    
+    visualize_dist_suit(
+      stack.paoo = paoo_files,
+      stack.suitability = prob_files,
+      region = world_map,
+      region.name = vis.region.name,
+      extent = region_ext,
+      projection = config$simulation$projection,
+      vis.row = rows,
+      vis.col = 1,
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      save.name = paste0("figure-3D-", fig_name),
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
+      verbose = verbose
+    )
+    
+    prob_mean <- parallel_spec_handler(
+      spec.dirs = prob_batch,
+      shape = shape,
+      dir = log_dir_suitability,
+      hv.project.method = "probability",
+      col.n = paste0("species-", rows),
+      out.order = "-totalMean",
+      fun = get_prob_stats,
+      verbose = verbose
+    )
+    
+    prob_vals_md <- copy(prob_mean)
+    prob_vals_md <- prob_vals_md[, filename := NULL]
+    
+    prob_vals_md <- prob_vals_md[, 1:rows]
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = paste0(
+        "2;Highest Potential Climatic Suitability\n\n",
+        "See figure 3D for comparison between **potential area of occupancy** and **potential climatic suitability**"
+      ),
+      data = prob_vals_md
+    )
+    
+    rm(paoo_files, prob_files, prob_vals_md, world_map)
     invisible(gc())
   }
   

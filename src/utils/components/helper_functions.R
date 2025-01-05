@@ -2270,3 +2270,108 @@ replace_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL,
   
   invisible(replaced_data)
 }
+
+count_project_lines <- function(directory_path) {
+  # Validate input directory path
+  if (!dir.exists(directory_path)) {
+    cli::cli_alert_error("Directory does not exist: {.path {directory_path}}")
+    stop()
+  }
+  
+  cli::cli_alert_info("Analyzing R files in {.path {directory_path}}")
+  
+  # List all R files recursively
+  r_files <- list.files(
+    path = directory_path,
+    pattern = "\\.R$|\\.r$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+  
+  if (length(r_files) == 0) {
+    cli::cli_alert_warning("No R files found in directory")
+    return(0)
+  }
+  
+  cli::cli_alert_success("Found {length(r_files)} R {cli::qty(length(r_files))} file{?s}")
+  
+  # Initialize counter and progress bar
+  total_lines <- 0
+  file_counts <- data.frame(
+    filename = character(),
+    lines = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Create progress bar
+  cli::cli_progress_bar(
+    total = length(r_files),
+    format = "Processing files {cli::pb_bar} {cli::pb_percent}",
+    clear = FALSE
+  )
+  
+  # Process each file
+  for (i in seq_along(r_files)) {
+    file <- r_files[i]
+    
+    # Update progress bar
+    cli::cli_progress_update()
+    
+    tryCatch({
+      # Read file content
+      lines <- readLines(file, warn = FALSE)
+      
+      # Remove empty lines and comments
+      lines <- lines[nzchar(trimws(lines))]
+      lines <- lines[!grepl("^\\s*#", lines)]
+      
+      # Update counters
+      line_count <- length(lines)
+      total_lines <- total_lines + line_count
+      
+      # Store individual file statistics
+      file_counts <- rbind(file_counts, 
+                           data.frame(
+                             filename = basename(file),
+                             lines = line_count
+                           ))
+    }, error = function(e) {
+      cli::cli_alert_danger("Error processing {.file {basename(file)}}: {e$message}")
+    })
+  }
+  
+  # Clear progress bar
+  cli::cli_progress_done()
+  
+  # Create return object with detailed information
+  result <- list(
+    total_lines = total_lines,
+    file_count = length(r_files),
+    file_details = file_counts,
+    directory = directory_path
+  )
+  
+  class(result) <- "code_count"
+  
+  return(result)
+}
+
+print.code_count <- function(x, ...) {
+  cli::cli_h1("Code Analysis Results")
+  
+  cli::cli_alert_info("Directory: {.path {x$directory}}")
+  cli::cli_alert_info("Total R files: {x$file_count}")
+  cli::cli_alert_success("Total lines of code: {x$total_lines}")
+  
+  if (x$file_count > 0) {
+    cli::cli_h2("Files breakdown")
+    
+    # Sort files by line count
+    x$file_details <- x$file_details[order(-x$file_details$lines), ]
+    
+    # Print formatted table using cli_text
+    for (i in seq_len(nrow(x$file_details))) {
+      cli::cli_text("{.file {x$file_details$filename[i]}} - {x$file_details$lines[i]} lines")
+    }
+  }
+}

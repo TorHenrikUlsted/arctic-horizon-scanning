@@ -30,7 +30,7 @@ main(
   vis.region.name = "the Arctic", # The name that will be displayed on plot titles
   vis.subregion.name = "Floristic Province", 
   vis.composition.taxon = "order", 
-  vis.save.device = "jpeg",
+  vis.save.device = "svg",
   vis.save.unit = "px",
   plot.show = FALSE,
   verbose = FALSE,
@@ -50,3 +50,6 @@ pack_repository(
   filename = "Horizon-Scanning-Repository",
   which.sequence = "all"
 )
+
+project_lines <- count_project_lines("./")
+print(project_lines)
