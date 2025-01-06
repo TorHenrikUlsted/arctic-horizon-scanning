@@ -11,19 +11,16 @@ union_dts <- function(dt1, dt2, na.rm = TRUE, verbose = FALSE) {
 
   ## combine present lists and remove duplicates
   merged_dt <- unique(rbind(dt1, dt2))
-
+  
+  ## Calculate duplicates using row counts
+  duplicate_count <- (nrow(dt1) + nrow(dt2)) - nrow(merged_dt)
+  
   ## Run NA and distinct check
   na_count <- sum(is.na(merged_dt))
   
   if (any(is.na(merged_dt)) == T) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     if (na.rm) merged_dt <- na.omit(merged_dt)
-  }
-
-  duplicate_count <- sum(duplicated(merged_dt))
-  
-  if (any(duplicated(merged_dt)) == T) {
-    merged_dt <- unique(merged_dt)
   }
 
   md_dt <- data.table(
