@@ -17,37 +17,87 @@ format_mem_unit <- function(value, unit.in = "b", unit.out = "b") {
   return(value_formatted)
 }
 
-get_mem_usage <- function(type = "free", format = "b") {
-  tryCatch({
-    # Call free command and get the output
-    mem_info <- system("free -m", intern = TRUE)
-    
-    # Check if we got the expected output
-    if (length(mem_info) < 2) {
-      stop("Unexpected output from 'free' command")
+get_disk_space <- function(directory = "/", units = "B") {
+  os <- Sys.info()["sysname"]
+  
+  if (os == "Windows") {
+    # For Windows, convert Unix-style path to Windows drive letter
+    if (directory == "/") {
+      directory <- "C:"  # Default to C drive
     }
-    
-    # Parse the memory information
-    mem_values <- as.numeric(strsplit(mem_info[2], "\\s+")[[1]][-1])
-    
-    # Check if we parsed the expected number of values
-    if (length(mem_values) < 3) {
-      stop("Failed to parse memory information")
+    # Use PowerShell to get disk space in bytes
+    disk_space <- system2("powershell", 
+                          args = c("-command", 
+                                   sprintf("(Get-PSDrive %s).Free",
+                                           substr(directory, 1, 1))), 
+                          stdout = TRUE)
+    disk_space <- as.numeric(disk_space)
+  } else if (os %in% c("Linux", "Darwin")) {
+    disk_space <- system(paste0("df --output=avail -B1 ", directory, " | tail -n 1"), intern = TRUE)
+    disk_space <- as.numeric(trimws(disk_space))
+  } else {
+    stop("Unsupported operating system.")
+  }
+  
+  # Convert to requested units
+  conversion_factors <- c(B = 1, KB = 1024, MB = 1024^2, GB = 1024^3, TB = 1024^4)
+  disk_space <- disk_space / conversion_factors[units]
+  
+  return(disk_space)
+}
+
+get_mem_usage <- function(type = "free", format = "b") {
+  os <- Sys.info()["sysname"]
+  
+  tryCatch({
+    if (os == "Windows") {
+      # Windows method using wmic
+      mem_info <- system('wmic OS get FreePhysicalMemory,TotalVisibleMemorySize /Value', intern = TRUE)
+      mem_info <- mem_info[mem_info != ""]
+      total <- as.numeric(sub("TotalVisibleMemorySize=", "", mem_info[grep("TotalVisibleMemorySize", mem_info)]))
+      free <- as.numeric(sub("FreePhysicalMemory=", "", mem_info[grep("FreePhysicalMemory", mem_info)]))
+      used <- total - free
+      
+      # Convert from KB to requested format
+      mem_values <- c(free = free, total = total, used = used)
+      
+    } else if (os %in% c("Linux", "Darwin")) {
+      # Unix-like systems using free command
+      mem_info <- system("free -b", intern = TRUE)
+      if (length(mem_info) < 2) {
+        # Try vmstat if free isn't available (e.g., on macOS)
+        mem_info <- system("vm_stat", intern = TRUE)
+        # Parse vm_stat output for macOS
+        page_size <- 4096  # Default page size on macOS
+        free <- as.numeric(gsub("[^0-9]", "", mem_info[grep("Pages free", mem_info)])) * page_size
+        total <- as.numeric(gsub("[^0-9]", "", mem_info[grep("Pages active", mem_info)])) * page_size
+        used <- total - free
+      } else {
+        # Parse free command output
+        mem_values <- as.numeric(strsplit(mem_info[2], "\\s+")[[1]][-1])
+        free <- mem_values[3]
+        total <- mem_values[1]
+        used <- mem_values[2]
+      }
+      mem_values <- c(free = free, total = total, used = used)
+    } else {
+      stop("Unsupported operating system")
     }
     
     # Get the requested memory type
     mem_usage <- switch(type,
-                        "free" = mem_values[3],
-                        "total" = mem_values[1],
-                        "used" = mem_values[2],
+                        "free" = mem_values["free"],
+                        "total" = mem_values["total"],
+                        "used" = mem_values["used"],
                         stop("Invalid type. Choose 'free', 'total', or 'used'."))
     
     # Format the memory value
-    mem_usage <- format_mem_unit(mem_usage, unit.in = "mb", unit.out = format)
+    mem_usage <- format_mem_unit(mem_usage, unit.in = "b", unit.out = format)
     
     return(unname(mem_usage))
   }, error = function(e) {
-    warning(paste("Error in get_mem_usage:", e$message))
+    warning("Error getting memory usage: ", e$message, 
+            "\nReturning NA - some features may be limited.")
     return(NA)
   })
 }
@@ -173,9 +223,8 @@ track_memory <- function(fun, tracking = config$memory$tracking, identifier = NU
       mem_diff <- mem_end - mem_start
       time_diff <- difftime(time_end, time_start, units = "mins")
       
-      catn(fun_name, "Memory:", 
-           highcat(round(mem_diff, 2)), "GB, Time:", 
-           highcat(round(time_diff, 2)), "minutes")
+      cat(sprintf("%s Memory: %0.2f GB, Time: %0.2f minutes\n", 
+                  fun_name, mem_diff, as.numeric(time_diff)))
     })
     
     return(result)
@@ -261,31 +310,3 @@ calc_num_cores <- function(ram.high, ram.low = 0, cores.total = detectCores(), v
     low = max_cores_low
   ))
 }
-
-get_disk_space <- function(directory = "/", units = "B") {
-  os <- Sys.info()["sysname"]
-  
-  if (os == "Windows") {
-    disk_space <- system2("cmd", args = "/c fsutil volume diskfree C:", stdout = TRUE)
-    disk_space <- as.numeric(strsplit(disk_space[3], ": ")[[1]][2])
-  } else if (os %in% c("Linux", "Darwin")) {
-    disk_space <- system(paste0("df --output=avail -h ", directory, " | tail -n 1"), intern = TRUE)
-    disk_space <- trimws(disk_space)  # Remove whitespace
-    unit <- substr(disk_space, nchar(disk_space), nchar(disk_space))
-    disk_space <- as.numeric(gsub(unit, "", disk_space))
-    if (unit == "T") {
-      disk_space <- disk_space * 1024  # Convert from terabytes to gigabytes
-    }
-  } else {
-    stop("Unsupported operating system.")
-  }
-  
-  conversion_factors <- c(B = 1, KB = 1024, MB = 1024^2, GB = 1024^3, TB = 1024^4)
-  disk_space <- disk_space * 1e9 / conversion_factors[units]
-  
-  return(disk_space)
-}
-
-
-
-

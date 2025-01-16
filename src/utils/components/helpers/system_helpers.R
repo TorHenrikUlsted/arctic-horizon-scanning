@@ -13,9 +13,17 @@ source_all <- function(dir) {
 }
 
 system_calc_rows <- function(file.path) {
-  if (Sys.info()["sysname"] == "Windows") {
-    total_rows <- as.numeric(system2("findstr", args = c("/R", "/N", "^", file.path), stdout = TRUE, stderr = NULL))
-  } else { # for Unix-based systems like Linux and macOS
+  os <- Sys.info()["sysname"]
+  
+  if (os == "Windows") {
+    # Use PowerShell to count lines
+    total_rows <- as.numeric(system2("powershell", 
+                                     args = c("-command", 
+                                              sprintf("(Get-Content '%s' | Measure-Object -Line).Lines", 
+                                                      file.path)), 
+                                     stdout = TRUE))
+  } else {
+    # Unix-based systems
     total_rows <- as.numeric(system(paste("awk 'END {print NR}' ", file.path), intern = TRUE))
   }
   # -1 for header
@@ -23,6 +31,7 @@ system_calc_rows <- function(file.path) {
 }
 
 system_calc_unique <- function(file.path, column, sep = "\t") {
+  os <- Sys.info()["sysname"]
   
   if (is.character(column)) {
     tmp <- fread(file.path, nrows = 0)
@@ -34,10 +43,11 @@ system_calc_unique <- function(file.path, column, sep = "\t") {
     stop("Column must be either a name (character) or a number")
   }
   
-  if (Sys.info()["sysname"] == "Windows") {
+  if (os == "Windows") {
     # Windows approach using R
     unique_values <- new.env(hash = TRUE)
     con <- file(file.path, "r")
+    header <- readLines(con, n = 1)  # Skip header
     while (length(line <- readLines(con, n = 1)) > 0) {
       fields <- strsplit(line, sep, fixed = TRUE)[[1]]
       if (column_number <= length(fields)) {
@@ -46,10 +56,11 @@ system_calc_unique <- function(file.path, column, sep = "\t") {
     }
     close(con)
     unique_count <- length(unique_values)
-  } else { # for Unix-based systems like Linux and macOS
-    # Escape the separator for use in awk
+  } else {
+    # Unix-based systems
     awk_sep <- gsub("\\", "\\\\", sep, fixed = TRUE)
-    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | sort -u | wc -l", awk_sep, column_number, file.path)
+    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | sort -u | wc -l", 
+                   awk_sep, column_number, file.path)
     unique_count <- as.numeric(system(cmd, intern = TRUE))
   }
   # -1 for header
@@ -71,32 +82,36 @@ system_calc_uniq_and_rows <- function(file.path, column = NULL, sep = "\t") {
     stop("Column must be either a name (character) or a number")
   }
   
-  # Escape the separator for use in awk
-  awk_sep <- gsub("\\", "\\\\", sep, fixed = TRUE)
+  os <- Sys.info()["sysname"]
   
-  if (Sys.info()["sysname"] == "Windows") {
+  if (os == "Windows") {
     # Windows approach using PowerShell
-    ps_command <- sprintf("Get-Content '%s' | ForEach-Object { $_.Split('%s')[%d] } | Group-Object | Measure-Object -Property Count, Name", 
-                          file.path, sep, column_number - 1)
-    result <- shell(sprintf("powershell -Command \"%s\"", ps_command), intern = TRUE)
+    ps_script <- sprintf(
+      "Get-Content '%s' | Select-Object -Skip 1 | ForEach-Object {
+         $_.Split('%s')[%d]
+       } | Group-Object | Measure-Object Count,Name",
+      file.path, sep, column_number - 1
+    )
+    result <- shell(sprintf("powershell -Command \"%s\"", ps_script), intern = TRUE)
     
-    # Parse the result -1 for header
-    total_rows <- as.numeric(strsplit(result[1], "\\s+")[[1]][2])
-    unique_count <- as.numeric(strsplit(result[2], "\\s+")[[1]][2])
+    # Parse PowerShell output (-1 for header)
+    total_rows <- as.numeric(strsplit(result[1], "\\s+")[[1]][2]) - 1
+    unique_count <- as.numeric(strsplit(result[2], "\\s+")[[1]][2]) - 1
   } else {
-    # Unix-based systems (Linux and macOS)
-    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | awk '{count++; unique[$0]++} END {print count, length(unique)}'", 
+    # Unix-based systems
+    awk_sep <- gsub("\\", "\\\\", sep, fixed = TRUE)
+    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | awk '{count++; unique[$0]++} END {print count, length(unique)}'",
                    awk_sep, column_number, file.path)
     result <- system(cmd, intern = TRUE)
-    
-    # Parse the result
     values <- as.numeric(strsplit(result, " ")[[1]])
-    total_rows <- values[1]
-    unique_count <- values[2]
+    total_rows <- values[1] - 1  # -1 for header
+    unique_count <- values[2] - 1  # -1 for header
   }
   
-  # -1 for header
-  return(list(total_rows = total_rows - 1, unique_count = unique_count - 1))
+  return(list(
+    total_rows = total_rows,
+    unique_count = unique_count
+  ))
 }
 
 model_to_md <- function(model) {

@@ -118,7 +118,7 @@ load_utils <- function(parallel = FALSE) {
   
   if (!parallel) {
     cat("Creating reference list. \n")
-    sys.source("./src/utils/components/cite_packages.R", envir = globalenv())
+    sys.source("./src/utils/components/handlers/cite_handlers.R", envir = globalenv())
     format <- "bibtex"
     cited_packages <- cite_packages(pkgs, formats = format)
     
