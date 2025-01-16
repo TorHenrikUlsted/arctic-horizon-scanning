@@ -41,7 +41,7 @@ download_if <- function(out.file, download.file.ext, download.direct = NULL, dow
   vebprint(name, verbose, "Name of file:")
   vebprint(file_ext, verbose, "Extension of file:")
   
-  file_save <- gsub(file_ext, download.file.ext, out.file)
+  file_save <- paste0(dirname(out.file), "/", name, ".", download.file.ext)
   save_ext <- tail(strsplit(basename(file_save), split = "\\.")[[1]], 1)
   
   vebprint(file_save, verbose, "Name of file to be downloaded:")
@@ -51,29 +51,40 @@ download_if <- function(out.file, download.file.ext, download.direct = NULL, dow
     if(!is.null(download.direct)) {
       catn("Installation not found, Downloading...")
       
-      download_status <- try(download.file(download.direct, destfile = file_save, silent = TRUE))
+      download_status <- try(download.file(download.direct, destfile = file_save, mode = "wb", quiet = TRUE))
       
       if (save_ext == "zip") {
         catn("File downloaded, unzipping...")
         unzip(file_save, exdir = dirname(out.file))
-        file.remove(file_save)
         
-        new_dir <- paste0(dirname(out.file), "/", list.files(dirname(out.file)))
+        # Only remove zip file AFTER confirming the extracted files exist
+        if (file.exists(out.file)) {
+          file.remove(file_save)
+        } else {
+          stop("Failed to extract files from zip archive")
+        }
         
-        # check for new dir creation
-        if (!identical(dirname(out.file), new_dir)) {
-          vebprint(new_dir, verbose, "Renaming files from new dir:")
-          vebprint(dirname(out.file), verbose, "To out dir:")
+        # Handle nested directory structure
+        new_dir <- list.files(dirname(out.file), full.names = TRUE, include.dirs = TRUE)
+        new_dir <- new_dir[file.info(new_dir)$isdir]  # Get only directories
+        
+        # Check for new directory creation
+        if (length(new_dir) > 0) {
+          vebprint(new_dir, verbose, text = "Renaming files from new dir:")
+          vebprint(dirname(out.file), verbose, text = "To out dir:")
           catn("Files unzipped, renaming...")
           
-          for (file in list.files(new_dir, full.names = TRUE)) {
-            filename <- basename(file)
-            out_file <- paste0(dirname(out.file), "/", filename)
-            file.rename(from = file, to = out_file)
+          # Move all files from subdirectories
+          for (dir in new_dir) {
+            files <- list.files(dir, full.names = TRUE, recursive = TRUE)
+            for (file in files) {
+              filename <- basename(file)
+              out_file <- file.path(dirname(out.file), filename)
+              file.copy(from = file, to = out_file, overwrite = TRUE)
+            }
           }
           
-          catn("Removing extra directory.")
-          
+          catn("Removing extra directories.")
           unlink(new_dir, recursive = TRUE)
         }
         
@@ -82,45 +93,61 @@ download_if <- function(out.file, download.file.ext, download.direct = NULL, dow
       
       if (inherits(download_status, "try-error")) {
         vebcat("Opening download page for manual download.", color = "indicator")
-        
         Sys.sleep(1)
-        
         catn("Upload the file(s) to:", colcat(dirname(out.file), color = "indicator"))
-        
         Sys.sleep(2)
-        
         utils::browseURL(download.page)
-        
         stop()
       }
     } else {
       vebcat("Opening download page for manual download.", color = "indicator")
-      
       Sys.sleep(1)
-      
       catn("Upload the file(s) to:", colcat(dirname(out.file), color = "indicator"))
-      
       Sys.sleep(2)
-      
       utils::browseURL(download.page)
-      
       stop("Could not automatically download file. Stopping...")
     }
-    
   } else {
     vebcat(name, "Already installed at", out.file, color = "funSuccess")
   }
 }
 
 import_font_if <- function(font, paths, pattern) {
-  if (font %in% fonts()) {
-    catn(font, "already imported")
-  } else {
+  tryCatch({
+    # Check if font already exists
+    if (font %in% fonts()) {
+      catn(font, "already imported")
+      return(invisible())
+    }
+    
+    # Create directory if it doesn't exist
+    if (!dir.exists(paths)) {
+      dir.create(paths, recursive = TRUE)
+    }
+    
+    # List font files
+    font_files <- list.files(paths, pattern = pattern, full.names = TRUE)
+    
+    # If no font files found, report error
+    if (length(font_files) == 0) {
+      stop("No font files found in ", paths, " matching pattern ", pattern)
+    }
+    
+    # Import fonts
+    catn("Importing font:", font)
     font_import(
       paths = paths,
-      pattern = pattern
+      pattern = pattern,
+      prompt = FALSE  # Don't prompt for confirmation
     )
-  }
+    
+    # Reload font database
+    loadfonts(device = "all", quiet = TRUE)
+    
+  }, error = function(e) {
+    warning("Font import failed: ", e$message, "\n",
+            "Continuing without custom font.")
+  })
 }
 
 download_github_dir_if <- function(repo.owner, repo.name, branch = "main", dir.path, dir.out, file.exclude = NULL, verbose = FALSE) {

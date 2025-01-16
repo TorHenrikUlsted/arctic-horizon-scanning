@@ -86,12 +86,17 @@ load_utils <- function(parallel = FALSE) {
   
   component_files <- c(
     
-    "./src/utils/components/condition_handlers.R",
-    "./src/utils/components/memory_handlers.R",
-    "./src/utils/components/helper_functions.R",
-    "./src/utils/components/time_tracker.R",
-    "./src/utils/components/file_managers.R",
-    "./src/utils/components/lock_handlers.R",
+    "./src/utils/components/handlers/condition_handlers.R",
+    "./src/utils/components/handlers/memory_handlers.R",
+    "./src/utils/components/helpers/citation_helpers.R",
+    "./src/utils/components/helpers/data_table_helpers.R",
+    "./src/utils/components/helpers/ggplot_helpers.R",
+    "./src/utils/components/helpers/object_helpers.R",
+    "./src/utils/components/helpers/spatial_helpers.R",
+    "./src/utils/components/helpers/system_helpers.R",
+    "./src/utils/components/handlers/time_handlers.R",
+    "./src/utils/components/handlers/file_handlers.R",
+    "./src/utils/components/handlers/lock_handlers.R",
     "./src/utils/components/conversion.R",
     "./src/utils/components/loader.R",
     "./src/utils/components/config.R"
@@ -113,7 +118,7 @@ load_utils <- function(parallel = FALSE) {
   
   if (!parallel) {
     cat("Creating reference list. \n")
-    sys.source("./src/utils/components/cite_packages.R", envir = globalenv())
+    sys.source("./src/utils/components/handlers/cite_handlers.R", envir = globalenv())
     format <- "bibtex"
     cited_packages <- cite_packages(pkgs, formats = format)
     
