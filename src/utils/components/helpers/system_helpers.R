@@ -287,88 +287,115 @@ write_wrangled_md <- function(dt.list, name, column = "scientificName") {
   )
 }
 
-create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
-  sp_occ_out <- "./outputs/post-process/derived-data/datasetKey-count.csv"
-  derived_data_zip_out <- "./outputs/post-process/derived-data/derived-dataset.zip"
-  
-  create_dir_if(dirname(sp_occ_out))
-  
-  if (file.exists(sp_occ_out)) {
-    catn("DatasetKey with occurrence count already exists.")
-    
-    sp_occ_dt <- fread(sp_occ_out)
-    
-    catn(highcat(nrow(sp_occ_dt)), "datasetKeys added to csv file with corresponding total count.")
-    
-    catn(highcat(sum(sp_occ_dt$count)), "Total occurrences.")
-    
-    rm(sp_occ_dt)
-    invisible(gc())
-  } else {
-    vebcat("Collecting datasetKeys and corresponding occurrence counts", color = "funInit")
-    
-    sp_occ_files <- list.files(occurrences.dir, full.names = TRUE)
-    
-    vebprint(head(sp_occ_files, 5), verbose, "occurence files:")
-    
-    sp_occ_dt <- data.table(datasetKey = character(), count = integer())
-    
-    catn("Reading data.")
-    for (i in 1:length(sp_occ_files)) {
-      sp_occ <- sp_occ_files[i]
-      
-      vebprint(sp_occ, verbose, "sp_occ:")
-      
-      cat("\rCounting datasetKey occurrences for", i, "/", length(sp_occ_files))
-      
-      sp_dt <- fread(sp_occ, select = "datasetKey")
-      
-      vebprint(sp_dt, verbose, "sp_dt:")
-      
-      sp_count <- sp_dt[, .(count = .N), by = datasetKey]
-      
-      vebprint(sp_count, verbose, "sp_count:")
-      
-      sp_occ_dt <- rbind(sp_occ_dt, sp_count)
-    }
-    catn()
-    
-    sp_occ_dt <- sp_occ_dt[, .(count = sum(count)), by = datasetKey]
-    
-    if (any(duplicated(sp_occ_dt$datasetKey))) {
-      vebcat("Some datasetKeys are duplicated.", color = "nonFatalError")
-    } else {
-      vebcat("All datasetKeys are unique.", color = "proSuccess")
-    }
-    
-    catn(highcat(nrow(sp_occ_dt)), "datasetKeys added to csv file with corresponding total count.")
-    
-    catn(highcat(sum(sp_occ_dt$count)), "Total occurrences.")
-    
-    vebprint(sp_occ_dt, text = "Sample output:")
-    
-    catn("Writing out to file:", colcat(sp_occ_out, color = "output"))
-    fwrite(sp_occ_dt, sp_occ_out)
-    
-    vebcat("Successfully collected datasetKeys and counts", color = "funSuccess")
+create_derived_dataset <- function(data.name, verbose = FALSE) {
+  if (data.name$spec.unknown == "" || is.na(data.name$spec.unknown)) {
+    stop("Need to include a name for at least spec.unknown")
   }
   
-  if (file.exists(derived_data_zip_out)) {
-    catn("Derived dataset already exists, skipping process.")
-    files <- list.files(occurrences.dir, full.names = FALSE)
-    vebcat("Found", highcat(length(files)), "species in the directory.")
-    rm(files)
-    invisible(gc())
-  } else {
-    files <- list.files(occurrences.dir, full.names = TRUE)
+  run <- 1
+  
+  filter_dir <- "./outputs/filter/"
+  chunk_dir <- "/chunk/species"
+  post_process_dir <- "./outputs/post-process"
+  
+  repeat {
+    if (config$simulation$validation && run == 2 && data.name$spec.known != "" || is.na(data.name$spec.known)) {
+      derived_data <- paste0("derived-data-", data.name$spec.known)
+      occ_dir <- paste0(filter_dir, data.name$spec.known, chunk_dir)
+      sp_occ_out <- file.path(post_process_dir, derived_data, "datasetKey-count.csv")
+      derived_data_zip_out <- file.path(post_process_dir, derived_data, "derived-dataset.zip")
+    } else {
+      derived_data <- paste0("derived-data-", data.name$spec.unknown)
+      occ_dir <- paste0(filter_dir, data.name$spec.unknown, chunk_dir)
+      sp_occ_out <- file.path(post_process_dir, derived_data, "datasetKey-count.csv")
+      derived_data_zip_out <- file.path(post_process_dir, derived_data, "derived-dataset.zip")
+    }
     
-    catn("Zipping", highcat(length(files)), "dervied species files.")
+    create_dir_if(dirname(sp_occ_out))
     
-    zip(
-      zipfile = derived_data_zip_out, 
-      files = files,
-      flags = "-j" # remove directories and only keep files
-    )
+    if (file.exists(sp_occ_out)) {
+      catn("DatasetKey with occurrence count already exists.")
+      
+      sp_occ_dt <- fread(sp_occ_out)
+      
+      catn(highcat(nrow(sp_occ_dt)), "datasetKeys added to csv file with corresponding total count.")
+      
+      catn(highcat(sum(sp_occ_dt$count)), "Total occurrences.")
+      
+      rm(sp_occ_dt)
+      invisible(gc())
+      
+      if (!config$simulation$validation || run >= 2) break
+      run <- run + 1
+    } else {
+      vebcat("Collecting datasetKeys and corresponding occurrence counts", color = "funInit")
+      
+      sp_occ_files <- list.files(occ_dir, full.names = TRUE)
+      
+      vebprint(head(sp_occ_files, 5), verbose, "occurence files:")
+      
+      sp_occ_dt <- data.table(datasetKey = character(), count = integer())
+      
+      catn("Reading data.")
+      for (i in 1:length(sp_occ_files)) {
+        sp_occ <- sp_occ_files[i]
+        
+        vebprint(sp_occ, verbose, "sp_occ:")
+        
+        cat("\rCounting datasetKey occurrences for", i, "/", length(sp_occ_files))
+        
+        sp_dt <- fread(sp_occ, select = "datasetKey")
+        
+        vebprint(sp_dt, verbose, "sp_dt:")
+        
+        sp_count <- sp_dt[, .(count = .N), by = datasetKey]
+        
+        vebprint(sp_count, verbose, "sp_count:")
+        
+        sp_occ_dt <- rbind(sp_occ_dt, sp_count)
+      }
+      catn()
+      
+      sp_occ_dt <- sp_occ_dt[, .(count = sum(count)), by = datasetKey]
+      
+      if (any(duplicated(sp_occ_dt$datasetKey))) {
+        vebcat("Some datasetKeys are duplicated.", color = "nonFatalError")
+      } else {
+        vebcat("All datasetKeys are unique.", color = "proSuccess")
+      }
+      
+      catn(highcat(nrow(sp_occ_dt)), "datasetKeys added to csv file with corresponding total count.")
+      
+      catn(highcat(sum(sp_occ_dt$count)), "Total occurrences.")
+      
+      vebprint(sp_occ_dt, text = "Sample output:")
+      
+      catn("Writing out to file:", colcat(sp_occ_out, color = "output"))
+      fwrite(sp_occ_dt, sp_occ_out)
+      
+      vebcat("Successfully collected datasetKeys and counts", color = "funSuccess")
+    }
+    
+    if (file.exists(derived_data_zip_out)) {
+      catn("Derived dataset already exists, skipping process.")
+      files <- list.files(occ_dir, full.names = FALSE)
+      vebcat("Found", highcat(length(files)), "species in the directory.")
+      rm(files)
+      invisible(gc())
+    } else {
+      files <- list.files(occ_dir, full.names = TRUE)
+      
+      catn("Zipping", highcat(length(files)), "dervied species files.")
+      
+      zip(
+        zipfile = derived_data_zip_out, 
+        files = files,
+        flags = "-j" # remove directories and only keep files
+      )
+    }
+    
+    if (!config$simulation$validation || run >= 2) break
+    run <- run + 1
   }
 }
 

@@ -201,6 +201,8 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
     verbose = verbose
   )
   
+  keys_dts
+  
   #------------------------#
   ####    Occurrence    ####
   #------------------------#
@@ -218,10 +220,22 @@ if (grepl("test", spec.unknown)) {
   }
 }
   
-  occ_name <- file.path(unknown_dir, paste0(gsub("_", "-", spec.unknown), "-occ"))
+  if (!validation) {
+    occ_name <- file.path(unknown_dir, paste0(gsub("_", "-", spec.unknown), "-occ"))
+    spec_w_keys <- keys_dts$unknown
+    download.key <- config$gbif$unknown$download.key
+    download.doi <- config$gbif$unknown$download.doi
+    chunk_dir <- file.path(unknown_dir, "chunk")
+  } else {
+    occ_name <- file.path(known_dir, paste0(gsub("_", "-", spec.known), "-occ"))
+    spec_w_keys <- keys_dts$known
+    download.key <- config$gbif$known$download.key
+    download.doi <- config$gbif$known$download.doi
+    chunk_dir <- file.path(known_dir, "chunk")
+  }
   
-  unknown_occ <- get_occ_data(
-    species_w_keys = unknown,
+  occ_data <- get_occ_data(
+    species_w_keys = spec_w_keys,
     file.name = occ_name,
     region = region,
     coord.uncertainty = coord.uncertainty,
@@ -233,12 +247,10 @@ if (grepl("test", spec.unknown)) {
   #------------------------#
   ####     Chunking     ####
   #------------------------#
-
-  chunk_dir <- file.path(unknown_dir, "chunk")
   
   chunk_protocol(
-    spec.occ = unknown_occ,
-    spec.keys = unknown,
+    spec.occ = occ_data,
+    spec.keys = spec_w_keys,
     chunk.name = "species",
     chunk.col = "cleanName",
     chunk.dir = chunk_dir,
@@ -258,7 +270,7 @@ if (grepl("test", spec.unknown)) {
 
   mdwrite(
     config$files$post_seq_md,
-    text = paste0("Number of species returned from chunking **", length(list.files(return_dir)), "**")
+    text = paste0("Number of species in ", basename(dirname(chunk_dir)), " returned from chunking **", length(list.files(return_dir)), "**")
   )
 
   end_timer(filter_timer)

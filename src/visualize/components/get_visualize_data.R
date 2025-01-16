@@ -1552,3 +1552,73 @@ print_gamlss_summary <- function(models, results) {
     cli_text("Note: BIC tends to favor simpler models, especially with larger sample sizes")
   }
 }
+
+compare_gam_models <- function(data, predictor = "centroid_latitude", response = "overlapRegion") {
+  # Create model formulas with smooth terms
+  full_formula <- as.formula(paste(response, "~ s(", predictor, ")"))
+  null_formula <- as.formula(paste(response, "~ 1"))
+  
+  # Start CLI output
+  cli_h1("GAM Model Comparison")
+  cli_alert_info("Fitting models...")
+  
+  # List to store models
+  models <- list()
+  
+  # Progress bar
+  cli_progress_bar("Fitting models", total = 2)
+  
+  # 1. Full model with smooth term
+  cli_progress_update()
+  models$full <- gam(
+    formula = full_formula,
+    family = betar(link = "logit"),
+    data = data,
+    method = "REML"  # Restricted Maximum Likelihood for smooth parameter estimation
+  )
+  
+  # 2. Null model
+  cli_progress_update()
+  models$null <- gam(
+    formula = null_formula,
+    family = betar(link = "logit"),
+    data = data,
+    method = "REML"
+  )
+  
+  cli_progress_done()
+  
+  # Calculate AIC and BIC
+  aic_values <- sapply(models, AIC)
+  bic_values <- sapply(models, BIC)
+  delta_aic <- aic_values - min(aic_values)
+  delta_bic <- bic_values - min(bic_values)
+  
+  # Create results data.table
+  results <- data.table(
+    Model = names(models),
+    AIC = aic_values,
+    Delta_AIC = delta_aic,
+    BIC = bic_values,
+    Delta_BIC = delta_bic,
+    row.names = NULL
+  )
+  
+  # Sort by AIC
+  results <- results[order(results$AIC), ]
+  
+  # Add model descriptions
+  model_descriptions <- c(
+    full = "Full model (smooth term for latitude)",
+    null = "Null model (intercept only)"
+  )
+  
+  results$Description <- model_descriptions[results$Model]
+  
+  cli::cli_alert_success("Model fitting finished successfully")
+  
+  return(list(
+    summary = results,
+    models = models
+  ))
+}

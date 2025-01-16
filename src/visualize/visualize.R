@@ -845,9 +845,9 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     invisible(gc())
   }
   
-  #------------------------#
-  ####   Distribution   ####
-  #------------------------#
+  #--------------------------------#
+  ####   Distribution - GAMLSS  ####
+  #--------------------------------#
   
   fig_name <- "figure-6"
   if (sum(grepl(fig_name, existing_plots)) == 2) {
@@ -868,7 +868,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     print_gamlss_summary(model$models, model$summary)
     
-    visualize_distribution(
+    visualize_gamlss(
       dt = lat_dt,
       model = model,
       region.name = vis.region.name,
@@ -912,11 +912,17 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     invisible(gc())
   }
   
+  #-----------------------------#
+  ####   Distribution - GAM  ####
+  #-----------------------------#
+  
+  
+  
   #------------------------#
   ####      Sankey      ####
   #------------------------#
   
-  fig_name <- paste0("figure-7",".", vis.save.device)
+  fig_name <- paste0("figure-8",".", vis.save.device)
   if (fig_name %in% existing_plots) {
     vebcat("Skipping Species Sankey figure.", color = "indicator")
   } else {
@@ -975,7 +981,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       save.dir = plot_dir,
       save.device = vis.save.device,
       save.unit = vis.save.unit,
-      save.name = "figure-7",
+      save.name = "figure-8",
       plot.show = plot.show,
       verbose = TRUE
     )

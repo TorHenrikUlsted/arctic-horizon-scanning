@@ -15,11 +15,7 @@ source("./src/main.R")
 main(
   spec.known = NULL,
   spec.unknown = NULL,
-  approach = "precautionary",
-  coord.uncertainty = NULL,
-  region = NULL,
-  download.key = NULL,
-  download.doi = NULL,
+  gbif.occ.region = NULL, # If wanting to download files within a shapefile -- converted to WKT
   hv.iterations = NULL,
   hv.method = "box",
   hv.accuracy = "accurate",
@@ -38,10 +34,9 @@ main(
 )
 
 create_derived_dataset(
-  occurrences.dir = paste0(
-    "./outputs/filter/", 
-    spec.unknown, # This should be the same as spec.unknown
-    "/chunk/species"
+  data.name = list(
+    spec.known = "",
+    spec.unknown = ""
   ),
   verbose = FALSE
 )

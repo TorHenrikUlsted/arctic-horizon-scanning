@@ -148,11 +148,42 @@ gbif_standardize <- function(dt, out.file, verbose = FALSE) {
   
   mdwrite(
     config$files$post_seq_md,
-    text = "3;GBIF accepted name conversion",
+    text = paste0("3;GBIF accepted name conversion for ", basename(dirname(out.file))),
     data <- md_dt
   )
   
   fwrite(res_dt, out.file, bom = TRUE)
   
   return(res_dt)
+}
+
+filter_keys <- function(keys.dt, out.dir, verbose = FALSE) {
+  name <- basename(dirname(out.dir))
+  
+  data.table::setnames(keys.dt, "usageKey.GBIF", "usageKey")
+  # Filter out usageKeys that will be included in speciesKey
+  species_keys <- keys.dt[tolower(rank.GBIF) == "species", unique(speciesKey.GBIF)]
+  # Filter out lower-level taxa if their species is already present
+  removed_keys <- keys.dt[speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species"]
+  
+  if (nrow(removed_keys) > 0) {
+    catn("Found", highcat(nrow(removed_keys)), "taxons below species where the species is already included")
+    fwrite(removed_keys, paste0(out.dir, "/dup_sp_keys.csv"))
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = paste0("**", nrow(removed_keys), "** taxons below an already included species were removed for ", name, " species")
+    )
+  }
+  
+  keys_dt <- keys.dt[!(speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species")]
+  
+  fwrite(keys_dt, paste0(out.dir, "/standardized-sp-keys.csv"))
+  
+  keys_dt <- keys_dt[, .(usageKey)]
+  
+  rm(keys.dt, name, species_keys, removed_keys)
+  invisible(gc())
+  
+  return(keys_dt)
 }

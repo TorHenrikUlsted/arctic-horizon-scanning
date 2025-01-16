@@ -1084,11 +1084,11 @@ visualize_spec_ranges_by_subregion <- function(dt, taxon, centroid = FALSE, mult
   }
 }
 
-#------------------------#
-####  Distribution    ####
-#------------------------#
+#------------------------------------------#
+####   Distribution - beta Regression   ####
+#------------------------------------------#
 
-visualize_distribution <- function(dt, model, region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-6", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-6", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Absolute Median Latitude plot", color = "funInit")
   data <- copy(dt)
 
@@ -1222,6 +1222,91 @@ visualize_distribution <- function(dt, model, region.name, vis.gradient = "virid
 
   vebcat("Absolute Median Latitude plot Visualized Successfully", color = "funSuccess")
 }
+
+#------------------------------#
+####   Distribution - GAM   ####
+#------------------------------#
+visualize_distribution <- function(dt, model, region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-6", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+  vebcat("Visualizing Latitude GAM plot", color = "funInit")
+  data <- copy(dt)
+  
+  # Create prediction data frame
+  lat_seq <- seq(min(data$centroid_latitude), max(data$centroid_latitude), length.out = 100)
+  pred_df <- data.frame(centroid_latitude = lat_seq)
+  
+  # Get predictions with standard errors
+  predictions <- predict(model$models$full, newdata = pred_df, se.fit = TRUE, type = "response")
+  
+  # Create prediction data table with confidence intervals
+  pred_dt <- data.table(
+    latitude = lat_seq,
+    fit = predictions$fit,
+    se = predictions$se.fit
+  )
+  
+  # Add confidence intervals
+  pred_dt[, `:=`(
+    lower = fit - (1.96 * se),
+    upper = fit + (1.96 * se)
+  )]
+  
+  # Create the plot
+  fig6 <- ggplot() +
+    # Add confidence interval ribbon
+    geom_ribbon(
+      data = pred_dt,
+      aes(x = latitude, ymin = lower, ymax = upper),
+      alpha = 0.2,
+      fill = "#ff7300"
+    ) +
+    # Add raw data points
+    geom_point(
+      data = data,
+      aes(x = centroid_latitude, y = overlapRegion),
+      alpha = 0.2,
+      color = "grey50",
+      size = 1
+    ) +
+    # Add fitted line
+    geom_line(
+      data = pred_dt,
+      aes(x = latitude, y = fit),
+      color = "#ff7300",
+      linewidth = 1
+    ) +
+    # Add reference line at equator
+    geom_vline(
+      xintercept = 0,
+      linetype = "dashed",
+      color = "grey50",
+      alpha = 0.5
+    ) +
+    theme_bw() +
+    labs(
+      x = "Species Centroid Latitude (°)",
+      y = paste0("Proportional Niche Overlap of ", region.name),
+      title = if(vis.title) "Niche Overlap vs Latitude" else NULL,
+      subtitle = if(vis.title) "GAM with beta regression" else NULL
+    )
+  
+  if (plot.show) print(fig6)
+  
+  save_ggplot(
+    save.plot = fig6,
+    save.name = save.name,
+    save.width = 3200,
+    save.height = 2000,
+    save.dir = save.dir,
+    save.device = save.device,
+    save.unit = save.unit,
+    vis.title = vis.title,
+    plot.show = plot.show,
+    verbose = verbose
+  )
+  
+  vebcat("Latitude GAM plot Visualized Successfully", color = "funSuccess")
+}
+
 
 #------------------------#
 ####      Sankey      ####

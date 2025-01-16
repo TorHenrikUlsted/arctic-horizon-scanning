@@ -296,8 +296,16 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
     verbose = verbose
   )
   
-  data.table::setnames(known_keys, "usageKey.GBIF", "usageKey")
-  known_keys <- known_keys[, .(usageKey)]
+  filtered_known_keys <- filter_keys(
+    keys.dt = known_keys,
+    out.dir = out.dirs$known,
+    verbose = verbose
+  )
+  
+  mdwrite(
+    config$files$post_seq_md,
+    text = paste0("Number of species keys for download in known dataset: **", nrow(filtered_known_keys), "**")
+  )
   
   unknown_keys <- gbif_standardize(
     dt = spec.dts$unknown,
@@ -305,31 +313,15 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
     verbose = verbose
   )
   
-  data.table::setnames(unknown_keys, "usageKey.GBIF", "usageKey")
-  # Filter out usageKeys that will be included in speciesKey
-  species_keys <- unknown_keys[tolower(rank.GBIF) == "species", unique(speciesKey.GBIF)]
-  # Filter out lower-level taxa if their species is already present
-  removed_keys <- unknown_keys[speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species"]
-  
-  if (nrow(removed_keys) > 0) {
-    catn("Found", highcat(nrow(removed_keys)), "taxons below species where the species is already included")
-    fwrite(removed_keys, paste0(out.dirs$unknown, "/dup_sp_keys.csv"))
-    
-    mdwrite(
-      config$files$post_seq_md,
-      text = paste0("**", nrow(removed_keys), "** taxons below an already included species were removed")
-    )
-  }
-  
-  unknown_keys <- unknown_keys[!(speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species")]
-  
-  fwrite(unknown_keys, paste0(out.dirs$unknown, "/standardized-sp-keys.csv"))
-  
-  unknown_keys <- unknown_keys[, .(usageKey)]
+  filtered_unknown_keys <- filter_keys(
+    keys = unknown_keys,
+    out.dir = out.dirs$unknown,
+    verbose = verbose
+  ) 
   
   unknown_present <- write_filter_fun(
     file.out = present_out,
-    spec.in = unknown_keys,
+    spec.in = filtered_unknown_keys,
     fun = function() {
       # First merge to only get species from both dts
       unknown_present <- inner_union(unknown_keys, known_keys, by = "usageKey")
@@ -340,7 +332,7 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
   
   unknown_absent <- write_filter_fun(
     file.out = absent_out,
-    spec.in = unknown_keys,
+    spec.in = filtered_unknown_keys,
     fun = function() {
       # Remove known present species from the unknown-absent species
       unknown_absent <- anti_union(unknown_keys, known_keys, "usageKey")
@@ -351,10 +343,13 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
   
   mdwrite(
     config$files$post_seq_md,
-    text = paste0("Number of species keys for download: **", nrow(unknown_absent), "**")
+    text = paste0("Number of species keys for download in unknown dataset: **", nrow(unknown_absent), "**")
   )
   
-  return(unknown_absent)
+  return(list(
+    known = filtered_known_keys,
+    unknown = unknown_absent
+  ))
 }
 
 get_prefix <- function(taxonRank) {

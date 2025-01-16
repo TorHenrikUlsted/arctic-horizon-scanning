@@ -3,7 +3,16 @@ simulation:
   climate: "worldclim"
   approach: "precautionary"
   projection: "laea"
+  validation: TRUE
   example: FALSE
+
+gbif:
+  known:
+    download.key: null
+    download.doi: null
+  unknown:
+    download.key: null
+    download.doi: null
 
 projection:
   raster_scale_m: 1000
