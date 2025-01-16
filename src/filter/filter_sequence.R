@@ -7,26 +7,26 @@ if (config$simulation$example) {
   src_dir <- "./src"
 }
 
-filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
+filter_sequence <- function(spec.known = NULL, spec.unknown, validation = TRUE, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
   #------------------------#
   ####       Setup      ####
   #------------------------#
 
-  if (is.null(spec.unknown)) stop("spec.unknown cannot be NULL")
+  if (is.null(spec.unknown$name)) stop("spec.unknown cannot be NULL")
 
   filter_timer <- start_timer("filter_timer")
   
   filter_dir <- "./outputs/filter"
   wrangle_dir <- "./outputs/setup/wrangle"
-  unknown_dir <- file.path(filter_dir, gsub("_", "-", spec.unknown))
-  known_dir <- ifelse(!is.null(spec.known), file.path(filter_dir, gsub("_", "-", spec.known)), filter_dir)
+  unknown_dir <- file.path(filter_dir, gsub("_", "-", spec.unknown$name))
+  known_dir <- ifelse(!is.null(spec.known$name), file.path(filter_dir, gsub("_", "-", spec.known$name)), filter_dir)
   
   absent_final <- file.path(unknown_dir, "absent-final.csv")
   present_final <- file.path(known_dir, "present-final.csv")
 
   coord_un_file <- file.path(build_climate_path(), "coordinateUncertainty-m.txt")
   if (is.null(coord.uncertainty)) coord.uncertainty <- as.integer(readLines(coord_un_file))
-  seq_fin_file <- file.path(filter_dir, gsub("_", "-", spec.unknown), "filter-sequence-completed.txt")
+  seq_fin_file <- file.path(filter_dir, gsub("_", "-", spec.unknown$name), "filter-sequence-completed.txt")
   
 
   if (!is.null(force.seq) && ("all" %in% force.seq | "filter" %in% force.seq)) {
@@ -42,7 +42,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
   
   vebcat("Initiating filtering sequence", color = "seqInit")
   
-  if (grepl("test", spec.unknown)) {
+  if (grepl("test", spec.unknown$name)) {
     manual_out <- file.path(wrangle_dir, "test/manual-check-file.csv")
     manual_edited <- "./resources/data-raw/test/manual-check-file.csv"
   } else {
@@ -96,13 +96,13 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
     ####   Filter lists   ####
     #------------------------#
     # get original number of species
-    if (grepl("test", spec.unknown)) {
+    if (grepl("test", spec.unknown$name)) {
       kpn <- nrow(dts[["test_known"]])
       kan <- 0
 
-      if (grepl("small", spec.unknown)) {
+      if (grepl("small", spec.unknown$name)) {
         un <- nrow(dts[["test_small"]])
-      } else if (grepl("big", spec.unknown)) {
+      } else if (grepl("big", spec.unknown$name)) {
         un <- nrow(dts[["test_big"]])
       } else {
         vebcat("Test has to be either 'test_small' or 'test_big'.", color = "fatalError")
@@ -126,11 +126,11 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
       }
       kpn <- sum(unlist(kn$present))
       kan <- sum(unlist(kn$absent))
-      un <- nrow(dts[[paste0(spec.unknown, "_absent")]])
+      un <- nrow(dts[[paste0(spec.unknown$name, "_absent")]])
     }
     
-    spec_known <- get(paste0("filter_", spec.known))
-    spec_unknown <- get(paste0("filter_", spec.unknown))
+    spec_known <- get(paste0("filter_", spec.known$name))
+    spec_unknown <- get(paste0("filter_", spec.unknown$name))
 
     if (!is.null(spec_known)) {
       known <- spec_known(
@@ -207,11 +207,11 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, approach = "precaut
   ####    Occurrence    ####
   #------------------------#
   
-if (grepl("test", spec.unknown)) {
-  if (grepl("small", spec.unknown)) {
+if (grepl("test", spec.unknown$name)) {
+  if (grepl("small", spec.unknown$name)) {
     download.key <- "0180552-240321170329656"
     download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
-  } else if (grepl("big", spec.unknown)) {
+  } else if (grepl("big", spec.unknown$name)) {
     download.key <- "0038456-240906103802322"
     download.doi <- "https://doi.org/10.15468/dl.85f3bs"
   } else {
@@ -220,18 +220,23 @@ if (grepl("test", spec.unknown)) {
   }
 }
   
-  if (!validation) {
-    occ_name <- file.path(unknown_dir, paste0(gsub("_", "-", spec.unknown), "-occ"))
+  if (!validation && force.seq != "validation") {
+    occ_name <- file.path(unknown_dir, paste0(gsub("_", "-", spec.unknown$name), "-occ"))
     spec_w_keys <- keys_dts$unknown
-    download.key <- config$gbif$unknown$download.key
-    download.doi <- config$gbif$unknown$download.doi
+    download.key <- spec.unknown$download.key
+    download.doi <- spec.unknown$download.doi
     chunk_dir <- file.path(unknown_dir, "chunk")
-  } else {
-    occ_name <- file.path(known_dir, paste0(gsub("_", "-", spec.known), "-occ"))
+  } else if (validation || force.seq == "validation") {
+    occ_name <- file.path(known_dir, paste0(gsub("_", "-", spec.known$name), "-occ"))
     spec_w_keys <- keys_dts$known
-    download.key <- config$gbif$known$download.key
-    download.doi <- config$gbif$known$download.doi
+    download.key <- spec.known$download.key
+    download.doi <- spec.known$download.doi
     chunk_dir <- file.path(known_dir, "chunk")
+  } else {
+    vebcat("ERROR: something went wrong when preparing before occurence download.")
+    vebprint(validation, text = "validation:")
+    vebprint(force.seq, text = "force.seq:")
+    stop("Something went")
   }
   
   occ_data <- get_occ_data(

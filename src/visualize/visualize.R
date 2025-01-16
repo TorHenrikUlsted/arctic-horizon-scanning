@@ -915,8 +915,27 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   #-----------------------------#
   ####   Distribution - GAM  ####
   #-----------------------------#
-  
-  
+  fig_name <- paste0("figure-7",".", vis.save.device)
+  if (fig_name %in% existing_plots) {
+    vebcat("Skipping Species Sankey figure.", color = "indicator")
+  } else {
+    # Prepare GAM
+    
+    visualize_gam(
+      dt, 
+      model, 
+      region.name, 
+      vis.gradient = "viridis-b", 
+      vis.title = FALSE, 
+      save.dir, 
+      save.name = "figure-7",
+      save.device = "jpeg", 
+      save.unit = "px", 
+      plot.save = TRUE, 
+      plot.show = FALSE, 
+      verbose = FALSE
+    )
+  }
   
   #------------------------#
   ####      Sankey      ####
@@ -971,7 +990,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     catn("Saving sankey file to:", colcat(save_file, color = "output"))
     fwrite(dt_sank, save_file, bom = TRUE)
     
-    # Figure 7: Sankey map
+    # Figure 8: Sankey map
     visualize_sankey(
       dt = dt_sank,
       taxon = "species",

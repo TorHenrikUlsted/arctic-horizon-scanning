@@ -205,3 +205,20 @@ download_github_dir_if <- function(repo.owner, repo.name, branch = "main", dir.p
   catn("All GitHub files have been downloaded to:", colcat(dir.out, color = "output"))
   vebcat("Successfully installed", repo.name, color = "funSuccess")
 }
+
+if_file <- function(filepath, parameter = "exists", threshold = NULL) {
+  if (!file.exists(filepath)) return(FALSE)
+
+  file_info <- file.info(filepath)
+  
+  switch (parameter,
+    "exists" = return(TRUE),
+    "today" = if (as.Date(file_info$mtime) == Sys.Date()) return(TRUE),
+    "size" = if (!is.null(threshold) && file_info$size >= threshold) return(TRUE),
+    "isdir" = if (file_info$isdir) return(TRUE),
+    {
+      warning("Invalid parameter value. Returning FALSE by default.") 
+      return(FALSE)
+    }
+  )
+}

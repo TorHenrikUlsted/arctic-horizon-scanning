@@ -1,13 +1,19 @@
 main <- function(
     spec.known = NULL,
+    spec.known.key = NULL,
+    spec.known.doi = NULL,
     spec.unknown = NULL,
+    spec.unknown.key = NULL,
+    spec.unknown.doi = NULL,
     gbif.occ.region = NULL,
+    coord.uncertainty = NULL,
     hv.iterations = NULL,
     hv.method = "box",
     hv.accuracy = "accurate",
     hv.dims = NULL,
     hv.incl.threshold = 0.5,
     vis.shape = NULL,
+    vis.projection = "laea",
     vis.title = TRUE,
     vis.region.name = "Region", 
     vis.subregion.name = "Sub Region", 
@@ -15,6 +21,8 @@ main <- function(
     vis.save.device = "jpeg",
     vis.save.unit = "px",
     plot.show = FALSE,
+    validation = TRUE,
+    total.cores = 1,
     verbose = FALSE,
     force.seq = NULL
   ) {
@@ -22,43 +30,30 @@ main <- function(
   run <- 1
   
   repeat {
-    if (run == 1) {
+    if (force.seq != "validation" && run == 1) {
+      validation_run <- FALSE
+    } else if (force.seq == "validation" || run == 2) {
+      validation_run <- TRUE
+    } else {
+      vebcat("Error when trying to set validation parameter in main, stopping...", color = "fatalError")
+      vebprint(run, text = "run:")
+      vebprint(force.seq, text = "force.seq:")
+      stop("Run more than two, stopping indefinte loop.")
+    }
+    
+    if (!validation_run) {
       hv_dir <- paste0("./outputs/hypervolume/", spec.unknown)
       vis_dir <- paste0("./outputs/visualize/", spec.unknown)
-    } else if (run == 2) {
+    } else {
       hv_dir <- paste0("./outputs/hypervolume/", paste0(spec.unknown, "_validation"))
       vis_dir <- paste0("./outputs/visualize/", paste0(spec.unknown, "_validation"))
-    } else {
-      vebcat("Error: run is more than 2, stopping...", color = "fatalError")
-      stop("Run more than two, stopping indefinte loop.")
     }
-    
-    if (!config$simulation$validation || config$simulation$validation && run == 1) {
-      validation = FALSE
-    } else if (config$simulation$validation && run == 2) {
-      validation = TRUE
-    } else {
-      vebcat("Error in validation logic", color = "fatalError")
-      vebprint(config$simulation$validation, text = "config:")
-      vebprint(run, text = "run")
-      stop("Run more than two, stopping indefinte loop.")
-    }
-    
-    validation <- if (!config$simulation$validation || config$simulation$validation && run == 1) {
-    FALSE 
-  } else if (config$simulation$validation && run == 2) {
-    TRUE 
-  } else { 
-    vebcat("Error in validation logic", color = "fatalError")
-    vebprint(config$simulation$validation, text = "config:")
-    vebprint(run, text = "run") stop("Run more than two, stopping indefinite loop.")
-  }
       
     vis.shape = paste0("./outputs/setup/region/", vis.shape, "/", vis.shape, ".shp")
     
     max_cores <- calc_num_cores(
-      ram.high = config$memory$total_cores,
-      cores.total = config$memory$total_cores,
+      ram.high = total.cores,
+      cores.total = total.cores,
       verbose = verbose
     )
     
@@ -78,10 +73,18 @@ main <- function(
     }
     
     sp_dir <- filter_sequence(
-      spec.known = spec.known, 
-      spec.unknown = spec.unknown,
-      validation = validation,
-      coord.uncertainty = config$projection$raster_scale_m,
+      spec.known = list(
+        name = spec.known,
+        download.key = spec.known.key,
+        download.doi = spec.known.doi
+      ),
+      spec.known = list(
+        name = spec.unknown,
+        download.key = spec.unknown.key,
+        download.doi = spec.unknown.doi
+      ),
+      validation = validation_run,
+      coord.uncertainty = coord.uncertainty,
       cores.max = max_cores,
       region = gbif.occ.region,
       force.seq = force.seq,
@@ -110,7 +113,7 @@ main <- function(
     max_cores <- calc_num_cores(
       ram.high = peak_ram$high, 
       ram.low = peak_ram$low, 
-      cores.total = config$memory$total_cores,
+      cores.total = total.cores,
       verbose =  verbose
     )
     
@@ -143,7 +146,7 @@ main <- function(
       shape = vis.shape,
       hv.dir = hv_dir, 
       hv.method = hv.method,
-      vis.projection = config$simulation$projection,
+      vis.projection = vis.projection,
       vis.title = vis.title,
       vis.region.name = vis.region.name,
       vis.subregion.name = vis.subregion.name,
@@ -157,12 +160,14 @@ main <- function(
     rm(list = ls(all.names = TRUE))
     invisible(gc())
     
-    if (config$simulation$validation) {
+    if (run == 2 || force.seq == "validation") {
+      catn("Validation analysis has finished, closing main loop.\n")
+      break
+    }
+    
+    if (validation) {
       run <- 2
       catn("Setting run to 2\n")
-      if (run == 2) {
-        catn("Validation analysis has finished, closing main loop.\n")
-      }
     } else {
       catn("Validation analysis is set to FALSE, closing main loop.\n")
       break

@@ -23,6 +23,7 @@ load_utils <- function(parallel = FALSE) {
       "ggplot2",
       "patchwork",
       "gamlss",
+      "mgcv",
       "ggnewscale",
       "ggrepel",
       "ggpubr",
@@ -110,24 +111,27 @@ load_utils <- function(parallel = FALSE) {
   # Initialize variables in global environment
   assign("WFO_file", load_wfo(), envir = globalenv())
   
-
-
   cat("Loading WGSRPD. \n")
   download_github_dir_if("tdwg", "wgsrpd", "master", "level2", "resources/region/wgsrpd/level2")
   download_github_dir_if("tdwg", "wgsrpd", "master", "level3", "resources/region/wgsrpd/level3")
   
   if (!parallel) {
-    cat("Creating reference list. \n")
     sys.source("./src/utils/components/handlers/cite_handlers.R", envir = globalenv())
     format <- "bibtex"
-    cited_packages <- cite_packages(pkgs, formats = format)
     
-    cat("Citing loaders. \n")
-    cited_packages[[format]] <- c(cited_packages[[format]], load_apg(cite = TRUE))
-    cited_packages[[format]] <- c(cited_packages[[format]], load_ppg(cite = TRUE))
-    cited_packages[[format]] <- c(cited_packages[[format]], load_gpg(cite = TRUE))
-    
-    # Functions relying on packages
-    write_citations(cited_packages, "./outputs/utils/citations")
+    if(!if_file(paste0("./outputs/utils/citations/citations.", format), "today")) {
+      cat("Creating reference list. \n")
+      cited_packages <- cite_packages(pkgs, formats = format)
+      
+      cat("Citing loaders. \n")
+      cited_packages[[format]] <- c(cited_packages[[format]], load_apg(cite = TRUE))
+      cited_packages[[format]] <- c(cited_packages[[format]], load_ppg(cite = TRUE))
+      cited_packages[[format]] <- c(cited_packages[[format]], load_gpg(cite = TRUE))
+      
+      # Functions relying on packages
+      write_citations(cited_packages, "./outputs/utils/citations")
+    } else {
+      cat("Reference list already created today. \n")
+    }
   }
 }

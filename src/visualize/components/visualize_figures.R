@@ -1226,7 +1226,7 @@ visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b",
 #------------------------------#
 ####   Distribution - GAM   ####
 #------------------------------#
-visualize_distribution <- function(dt, model, region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-6", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-7", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Latitude GAM plot", color = "funInit")
   data <- copy(dt)
   
@@ -1251,7 +1251,7 @@ visualize_distribution <- function(dt, model, region.name, vis.gradient = "virid
   )]
   
   # Create the plot
-  fig6 <- ggplot() +
+  fig7 <- ggplot() +
     # Add confidence interval ribbon
     geom_ribbon(
       data = pred_dt,
@@ -1289,10 +1289,10 @@ visualize_distribution <- function(dt, model, region.name, vis.gradient = "virid
       subtitle = if(vis.title) "GAM with beta regression" else NULL
     )
   
-  if (plot.show) print(fig6)
+  if (plot.show) print(fig7)
   
   save_ggplot(
-    save.plot = fig6,
+    save.plot = fig7,
     save.name = save.name,
     save.width = 3200,
     save.height = 2000,
@@ -1312,7 +1312,7 @@ visualize_distribution <- function(dt, model, region.name, vis.gradient = "virid
 ####      Sankey      ####
 #------------------------#
 
-visualize_sankey <- function(dt, taxon, vis.gradient = "viridis-b", vis.title = FALSE, region.name = "Region", subregion.name = "Sub Region", save.dir, save.name = "figure-7", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+visualize_sankey <- function(dt, taxon, vis.gradient = "viridis-b", vis.title = FALSE, region.name = "Region", subregion.name = "Sub Region", save.dir, save.name = "figure-8", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing data in a sankey plot", color = "funInit")
 
   dt_sank <- copy(dt)
@@ -1339,7 +1339,7 @@ visualize_sankey <- function(dt, taxon, vis.gradient = "viridis-b", vis.title = 
 
   catn("Creating sankey plot.")
 
-  fig7 <- ggplot(
+  fig8 <- ggplot(
     data = dt_sank,
     aes(
       axis1 = origin_wrapped,
@@ -1411,10 +1411,10 @@ visualize_sankey <- function(dt, taxon, vis.gradient = "viridis-b", vis.title = 
 
   config$ggplot$gradient$guide <- saved_config
 
-  if (plot.show) print(fig7)
+  if (plot.show) print(fig8)
 
   save_ggplot(
-    save.plot = fig7,
+    save.plot = fig8,
     save.name = save.name,
     save.width = 3840,
     save.height = 3500,

@@ -14,8 +14,8 @@ simulation:
   force.sequence: null
   
 dataset:
-  known: null
-  unknown: null
+  known: "arctic"
+  unknown: "glonaf"
   
 gbif:
   region: null
@@ -23,21 +23,25 @@ gbif:
     download.key: null
     download.doi: null
   unknown:
-    download.key: null
-    download.doi: null
+    download.key: "0040021-240906103802322"
+    download.doi: "https://doi.org/10.15468/dl.z6bgn2"
 
 hypervolume:
   method: "box"
   accuracy: "accurate"
-  dimensions: null
+  dimensions: 
+    - 18
+    - 10
+    - 3
+    - 4
   iterations: null
   inclusion.threshold: 0.5
   
 visualization:
-  shape.name: "shapefile-name"
+  shape.name: "cavm-noice"
   title: FALSE
-  region.name: "Region"
-  subregion.name: "Sub-Region"
+  region.name: "the Arctic"
+  subregion.name: "Floristic Province"
   composition.taxon: "order"
   save.device: "jpeg"
   save.unit: "px"
@@ -53,7 +57,7 @@ projection:
     stere_north: "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
     
 memory:
-  tracking: FALSE
+  tracking: TRUE
   limit: 0.75
   core_limit: 0.4
 
