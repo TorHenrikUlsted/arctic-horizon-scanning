@@ -47,13 +47,18 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
 
   withCallingHandlers(
     {
-      coord_uncertainty <- calc_coord_uncertainty(
-        region = biovars_region,
-        projection = config$simulation$projection,
-        unit.out = "m",
-        dir.out = build_climate_path(),
-        verbose = verbose
-      )
+      if (!is.null(config$projection$raster_scale_m)) {
+        coord_uncertainty <- config$projection$raster_scale_m
+      } else {
+        coord_uncertainty <- calc_coord_uncertainty(
+          region = biovars_region,
+          projection = config$simulation$projection,
+          unit.out = "m",
+          dir.out = build_climate_path(),
+          verbose = verbose
+        )
+      }
+      
       invisible(gc())
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when calculating coordinate uncertainty", iteration = iteration),
@@ -69,6 +74,11 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
 }
 
 setup_hv_region <- function(biovars_region, out.dir, method) {
+  on.exit({
+    rm(list = ls(environment()))
+    gc(full = TRUE)
+  })
+  
   vebcat("Setting up region Hypervolume", color = "funInit")
 
   region_out <- paste0(paste0(out.dir), "/hypervolume-", method, ".rds")

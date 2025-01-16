@@ -17,9 +17,32 @@ wrangle_ambio <- function(name, column, verbose = FALSE) {
   colnames(formatted) <- as.character(unlist(formatted[1, ]))
   formatted <- formatted[-1, ]
   ## give the first column a name
-  colnames(formatted)[1] <- "scientificName"
-  formatted <- unique(formatted, by = "scientificName")
-
+  colnames(formatted)[1] <- "verbatimName"
+  formatted <- unique(formatted, by = "verbatimName")
+  formatted[, interimName := verbatimName]
+  
+  formatted[, interimName := { # Clean symbols & designations
+    tmp <- clean_string(interimName, verbose)
+    tmp <- clean_designations(tmp, config$species$standard_infraEpithets, verbose)
+    clean_symbols(tmp, config$species$standard_symbols, verbose)
+  }]
+  
+  formatted[, c("genus", "specificEpithet", "cleanName", "interimAuthorship", "fullName", "structure") := {
+    res <- lapply(seq_along(interimName), function(i) {
+      cat("\rProcessing species:", i, "of", .N)
+      flush.console()
+      clean_spec_name(interimName[i], config$species$standard_symbols, config$species$standard_infraEpithets, verbose)
+    });catn()
+    list(
+      vapply(res, function(x) x$genus, character(1)),
+      vapply(res, function(x) x$specificEpithet, character(1)),
+      vapply(res, function(x) x$cleanName, character(1)),
+      vapply(res, function(x) x$other, character(1)),
+      vapply(res, function(x) x$fullName, character(1)),
+      vapply(res, function(x) x$structure, character(1))
+    )
+  }]
+  
   vebcat("Creating present df.", veb = verbose)
   # Create present and absent lists
   ## create conditions
@@ -27,29 +50,26 @@ wrangle_ambio <- function(name, column, verbose = FALSE) {
   condition1 <- apply(formatted[, 2:24], 1, function(x) any(x %in% c("●", "IR", "IT")))
   ## Use the condition to create present and absent lists
   present <- subset(formatted, subset = condition1)
-  present <- select(present, scientificName)
-  present$scientificName <- trimws(present$scientificName)
+  present <- present[, .(verbatimName, cleanName, interimAuthorship)]
 
-  setnames(present, old = "scientificName", new = column)
+  setnames(present, old = "cleanName", new = column)
+  setnames(present, old = "interimAuthorship", new = paste0(column,"Authorship"))
 
   vebcat("Creating absent df.", veb = verbose)
   ## Only outputs unquie species names
   absent <- subset(formatted, subset = !condition1)
-  absent <- select(absent, scientificName)
-  absent$scientificName <- trimws(absent$scientificName)
+  absent <- absent[, .(verbatimName, cleanName, interimAuthorship)]
 
-  setnames(absent, old = "scientificName", new = column)
-
+  setnames(absent, old = "cleanName", new = column)
+  setnames(absent, old = "interimAuthorship", new = paste0(column,"Authorship"))
+  
   catn("Writing out files to:", colcat(dir, color = "output"))
 
-  formatted <- set_df_utf8(formatted)
-  fwrite(formatted, formatted_out, row.names = F, bom = T)
+  fwrite(formatted, formatted_out, bom = T)
 
-  present <- set_df_utf8(present)
-  fwrite(present, present_out, row.names = F, bom = T)
+  fwrite(present, present_out, bom = T)
 
-  absent <- set_df_utf8(absent)
-  fwrite(absent, absent_out, row.names = F, bom = T)
+  fwrite(absent, absent_out, bom = T)
   
   fl <- nrow(formatted)
   pl <- nrow(present)

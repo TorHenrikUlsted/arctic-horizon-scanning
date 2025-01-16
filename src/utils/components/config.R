@@ -6,8 +6,8 @@ config <- read_yaml("./config.yaml")
 
 config$memory <- list(
   mem_total = get_mem_usage("total"),
-  mem_limit = get_mem_usage("total") * 0.75,
-  total_cores = detectCores() * 0.4
+  mem_limit = get_mem_usage("total") * config$memory$limit,
+  total_cores = detectCores() * config$memory$core_limit
 )
 
 config$species$angiosperms <- load_apg(rank = config$species$clade_rank)
@@ -21,10 +21,15 @@ config$species$gymnosperms <- load_gpg(rank = config$species$clade_rank)
 for (projection in names(config$projection$crs)) {
   config$projection$crs[[projection]] <- crs(config$projection$crs[[projection]])
 }
+rm(projection)
 
 # laea
 config$projection$crs$laea <- edit_crs(config$projection$crs$laea, "PROJCRS", "Lambert Azimuthal Equal Area")
 config$projection$crs$laea <- edit_crs(config$projection$crs$laea, "BASEGEOGCRS", "WGS 84")
+
+# Aeqd
+config$projection$crs$aeqd <- edit_crs(config$projection$crs$aeqd, "PROJCRS", "Azimuthal Equidistant projection")
+config$projection$crs$aeqd <- edit_crs(config$projection$crs$aeqd, "BASEGEOGCRS", "WGS 84")
 
 # longlat
 config$projection$crs$longlat <- edit_crs(config$projection$crs$longlat, "GEOGCRS", "WGS 84")
@@ -36,6 +41,19 @@ config$projection$crs$mollweide <- edit_crs(config$projection$crs$mollweide, "BA
 # stere north
 config$projection$crs$stere_north <- edit_crs(config$projection$crs$stere_north, "PROJCRS", "stere north")
 config$projection$crs$stere_north <- edit_crs(config$projection$crs$stere_north, "BASEGEOGCRS", "WGS 84")
+
+#------------------------#
+####     Species      ####
+#------------------------#
+
+# Automatically add entries without periods
+no_period_infraEpithet <- setdiff(
+  sub("\\.$", "", unlist(config$species$standard_infraEpithets)),
+  names(config$species$standard_infraEpithets)
+)
+
+for (des in no_period_infraEpithet) config$species$standard_infraEpithets[[des]] <- paste0(des, ".")
+rm(no_period_infraEpithet, des)
 
 #------------------------#
 ####      Files       ####

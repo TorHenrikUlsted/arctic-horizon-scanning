@@ -2,9 +2,9 @@ check_output_species <- function(out.dir, dt.result, dt.expected, hv.removed, cl
   cleaned_file <- paste0(out.dir, "/cleaned-results.csv")
   unexpected_file <- paste0(out.dir, "/gbif-changed-results.csv")
 
-  if (file.exists(cleaned_file) && file.exists(unexpected_file)) {
+  if (file.exists(unexpected_file)) {
     catn("Reading cleaned file.")
-    cleaned_results <- fread(cleaned_file)
+    result_dt <- fread(dt.result)
   } else {
     vebcat("Cleaning results.", color = "funInit")
 
@@ -27,6 +27,18 @@ check_output_species <- function(out.dir, dt.result, dt.expected, hv.removed, cl
     
     catn("Writing GBIF changed names to:", colcat(unexpected_file, color = "output"))
     fwrite(unmatched, unexpected_file, bom = TRUE)
+    
+    # Check if included but no overlap
+    failed_sp_ret <- unique(result_dt[excluded == FALSE & overlapRegion == 0]$cleanName)
+    no_data_return <- length(failed_sp_ret)
+    
+    if (no_data_return > 0) {
+      vebcat(highcat(no_data_return), "Species returned with no overlap, setting to excluded", color = "warning")
+      
+      vebprint(failed_sp_ret, text = "Species with no data that generated projections:")
+      
+      stop("Need to solve above mentioned issues. Remove projections and set excluded to be: stats_dt[excluded := fifelse(overlapRegion == 0, TRUE, FALSE)]")
+    }
 
     vebcat("Results successfully checked", color = "funSuccess")
     return(result_dt)
@@ -248,7 +260,7 @@ split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, is.
   
   vebprint(spec_taxons, verbose, "Species data table with order:")
   
-  spec_group <- get_spec_group_dt(spec_taxons)
+  spec_group <- get_spec_group_dt(spec_taxons, "species")
   
   setcolorder(spec_group, setdiff(names(spec_group), "filename"))
   
@@ -256,7 +268,11 @@ split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, is.
   
   spec_group <- split(spec_group, by = "group")
   
-  res_length <- nrow(spec_group$angiosperms) + nrow(spec_group$gymnosperms) + nrow(spec_group$pteridophytes)
+  a_n <- if ("angiosperms" %in% names(spec_group)) nrow(spec_group$angiosperms) else 0
+  g_n <- if ("gymnosperms" %in% names(spec_group)) nrow(spec_group$gymnosperms) else 0
+  p_n <- if ("pteridophytes" %in% names(spec_group)) nrow(spec_group$pteridophytes) else 0
+  
+  res_length <- a_n + g_n + p_n
   
   if (init_length < res_length) {
     vebcat("Initial number of species", highcat(init_length), "is less than resulting length", highcat(res_length), color = "nonFatalError")
@@ -265,7 +281,7 @@ split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, is.
   return(spec_group)
 }
 
-combine_top_groups <- function(x, out.order) {
+combine_groups <- function(x, out.order, out.n = NULL) {
   
   group <- rbindlist(x)
   
@@ -278,7 +294,7 @@ combine_top_groups <- function(x, out.order) {
     group <- group[indecies, ]
   }
   
-  group <- group[1:9]
+  if (!is.null(out.n)) group <- group[1:out.n]
   
   return(group)
 }
@@ -350,7 +366,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbo
     vebcat("Number of rows:", highcat(nrow(dt_summed)))
     vebcat("Number of unique cells:", highcat(length(unique(dt_summed$cell))))
     
-    vebprint(dt_init, veb = verbose, "Init data table:")
+    vebprint(dt_summed, veb = verbose, "Init data table:")
     vebprint(dt_list, veb = verbose, "dt list:")
     
     for (i in 1:length(dt_list)) {
@@ -416,7 +432,7 @@ convert_template_raster <- function(input.values, template.filename, projection,
   return(template)
 }
 
-get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pole = NULL) {
+get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pole = NULL, verbose = FALSE) {
   vebcat("Setting up world Map.", color = "funInit")
   
   accepted_maps <- c("wgsrpd", "rnaturalearth")
@@ -456,7 +472,9 @@ get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pol
     world_map <- crop(world_map, equator_extent)
   }
   
-  world_map <- suppressWarnings(check_crs(world_map, projection))
+  print(projection)
+  
+  world_map <- suppressWarnings(check_crs(world_map, projection, verbose))
   
   vebcat("World Map setup completed successfully", color = "funSuccess")
   
@@ -471,7 +489,9 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
     sp_rast <- terra::rast(spec.filename)
     
     catn("Converting region to data table.")
-    region_dt <- as.data.table(as.data.frame(region))[, ID := .I]
+    region_dt <- as.data.frame(region)
+    region_dt <- as.data.table(region_dt)
+    region_dt[, ID := .I]
     region_dt <- handle_region_dt(region_dt)
     
     catn("Extracting raster cells.")
@@ -479,7 +499,8 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
     tot_cells <- sp_dt[!is.na(cell), uniqueN(cell)]
     
     catn("Merging raster_dt and region_dt.")
-    sp_regions_dt <- merge(sp_dt, region_dt, by = "ID")
+    sp_regions_dt <- sp_dt[region_dt, on = "ID", nomatch = 0]
+    #sp_regions_dt <- merge(sp_dt, region_dt, by = "ID")
     setnames(sp_regions_dt, "ID", "regionId")
     
     sp_regions_dt[, `:=`(
@@ -544,8 +565,10 @@ get_paoo <- function(spec.filename, region, extra = NULL, verbose = FALSE) {
 stack_projections <- function(filenames, projection, projection.method, out.dir, binary = FALSE, verbose = FALSE) {
   vebcat("Stacking rasters", color = "funInit")
   
-  nodes_dir <- paste0(out.dir, "/nodes")
-  rasters_dir <- paste0(out.dir, "/", gsub(".tif", "", basename(filenames)[1]))
+  method_dir <- file.path(out.dir, gsub(".tif", "", basename(filenames)[1]))
+  
+  nodes_dir <- file.path(method_dir, "nodes")
+  rasters_dir <- file.path(method_dir, "rasters")
   
   create_dir_if(nodes_dir, rasters_dir)
   
@@ -578,6 +601,7 @@ stack_projections <- function(filenames, projection, projection.method, out.dir,
       
       clusterEvalQ(cl, {
         source("./src/utils/utils.R")
+        load_utils(parallel = TRUE)
       })
       
       filenames_dt <- data.table(
@@ -784,28 +808,39 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
   ))
 }
 
-calculate_taxon_richness <- function(dt, taxon, verbose = FALSE) {
+calculate_taxon_richness <- function(dt, taxon, country = NULL, verbose = FALSE) {
   catn("Calculating richness for", highcat(taxon))
   
   dt_copy <- copy(dt)
-  
-  dt_copy[, taxonRichness := uniqueN(cleanName, na.rm = TRUE), by = c(taxon, "subRegionName")]
+  # Calculate richness per taxon and subregion (number of unique species in each combination)
+  dt_copy[, taxonRichness := length(unique(cleanName[PAoO > 0])), 
+          by = c(taxon, "subRegionName")]
   
   vebprint(dt_copy, verbose, text = "Taxon Richness before sum:")
   
-  # Calculate total taxon richness
-  dt_copy[, totalRichness := uniqueN(cleanName, na.rm = TRUE), by = subRegionName]
+  # Calculate total richness per subregion (across all taxa)
+  dt_copy[, totalRichness := length(unique(cleanName[PAoO > 0])), 
+          by = subRegionName]
   
   # Calculate relative richness
-  dt_copy[, relativeRichness := taxonRichness / totalRichness]
+  dt_copy[, relativeRichness := taxonRichness / totalRichness, by = c(taxon, "subRegionName")]
+  
+  # Remove duplicates to get one row per taxon-subregion combination
+  if (is.null(country)) {
+    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName"))
+  } else {
+    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", country))
+  }
   
   vebprint(dt_copy, verbose, text = "Taxon Richness after sum:")
   
   return(dt_copy)
 }
 
-get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
+get_taxon_richness <- function(paoo.file, stats, taxon, country = FALSE, verbose = FALSE) {
   vebcat("Getting region richness", color = "funInit")
+  
+  if (taxon == "species") taxon = "cleanName"
   
   if (is.character(paoo.file)) {
     paoo.file <- fread(paoo.file)
@@ -816,12 +851,12 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   
   setnames(paoo_dt, "species", "cleanName")
   
-  old_names <- c("country", "countryCode", "meanLong", "meanLat") # Later changed to median
-  new_names <- c("originCountry", "originCountryCode", "originMeanLong", "originMeanLat")
+  old_names <- c("level3Name", "level3Code", "level3Long", "level3Lat")
+  new_names <- c("originCountry", "originCountryCode", "originLong", "originLat")
   setnames(sp_stats, old_names, new_names)
-  sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originMeanLong, originMeanLat)]
+  sp_stats <- sp_stats[, .(cleanName, kingdom, phylum, class, order, family, genus, species, infraspecificEpithet, originCountryCode, originCountry, originLong, originLat, level2Code, level1Code)]
   
-  merged_dt <- merge(paoo_dt, sp_stats, by = "cleanName", allow.cartesian = TRUE)
+  merged_dt <- paoo_dt[sp_stats, on = "cleanName", allow.cartesian = TRUE]
   
   merged_dt <- merged_dt[subRegionName == "", subRegionName := NA]
   
@@ -838,16 +873,21 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   richness_dt <- calculate_taxon_richness(
     merged_dt,
     taxon = taxon,
+    country = if (country) "originCountry" else NULL,
+    verbose = verbose
   )
   
   richness_dt <- get_order_group(
     richness_dt
   )
   
-  richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName"))
+  if (!country) {
+    richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName"))
+  } else {
+    richness_dt <- unique(richness_dt, by = c(taxon, "subRegionName", "originCountry"))
+  }
   
   richness_dt <- richness_dt[, groupRelativeRichness := sum(relativeRichness), by = .(group, subRegionName)]
-  
   
   vebprint(richness_dt[, .(sumofRR = sum(relativeRichness)), by = "subRegionName"], verbose, text = "final sum of RelativeRichness per region:")
   
@@ -856,14 +896,14 @@ get_taxon_richness <- function(paoo.file, stats, taxon, verbose = FALSE) {
   return(richness_dt)
 }
 
-get_connections <- function(dt, taxon, verbose = FALSE) {
+get_connections <- function(dt, verbose = FALSE) {
   dt_copy <- copy(dt)
   
   dt_copy <- dt_copy[!is.na(subRegionName) & subRegionName != "" & !is.na(originCountry) & originCountry != ""]
   
-  dt_copy <- dt_copy[, connections := .N, by = c(taxon, "subRegionName", "originCountry")]
+  dt_copy <- dt_copy[, connections := data.table::uniqueN(cleanName), by = c("cleanName", "subRegionName", "originCountry")]
   
-  dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", "originCountry"))
+  dt_copy <- unique(dt_copy, by = c("cleanName", "subRegionName", "originCountry"))
   
   return(dt_copy)
 }
@@ -875,11 +915,168 @@ get_con_points <- function(dt, projection, longitude, latitude, verbose = FALSE)
   
   vebprint(points, verbose, "Points data:")
   
-  points <- reproject_region(points, projection, verbose = verbose)
+  points <- check_crs(points, projection, verbose = verbose)
   
   vebprint(points, verbose, "Reprojected points:")
   
   return(points)
+}
+
+convert_con_points <- function(dt, taxon, projection, centroid = FALSE, verbose = FALSE) {
+  sub_dt <- copy(dt)
+  
+  if (taxon == "cleanName") {
+    origin_subset <- sub_dt[, .(cleanName, originLong, originLat, connections, originCountry, level2Code)]
+  } else {
+    origin_subset <- sub_dt[, .(cleanName, get(taxon), originLong, originLat, connections, originCountry, level2Code)]
+    setnames(origin_subset, "V2", taxon)
+  }
+  origin_subset <- unique(origin_subset, by = c("cleanName", "originCountry"))
+  
+  if (centroid) {
+    origin_subset[, level3Name := originCountry]
+    wgsrpd_centroids <- get_wgsrpd_polygon_centroid(origin_subset)
+    origin_subset <- origin_subset[wgsrpd_centroids, on = "level3Name"]
+    data.table::setnames(origin_subset, c("originLong", "originLat"), c("level3Long", "level3Lat"))
+    data.table::setnames(origin_subset, c("centroidLong", "centroidLat"), c("originLong", "originLat"))
+  }
+  
+  origin_points <- get_con_points(origin_subset, projection, "originLong", "originLat", verbose = verbose)
+  
+  if (taxon == "cleanName") {
+    dest_subset <- sub_dt[, .(cleanName, subRegionLong, subRegionLat, subRegionName)]
+  } else {
+    dest_subset <- sub_dt[, .(cleanName, get(taxon), subRegionLong, subRegionLat, subRegionName)]
+    setnames(dest_subset, "V2", taxon)
+  }
+  dest_subset <- unique(dest_subset, by = c("cleanName", "subRegionName"))
+  dest_points <- get_con_points(dest_subset, projection, "subRegionLong", "subRegionLat", verbose = verbose)
+  
+  # Remove NA
+  origin_points <- origin_points[!is.na(origin_points)]
+  dest_points <- dest_points[!is.na(dest_points)]
+  
+  catn("Converting points back to data tables.")
+  origin <- terra::as.data.frame(origin_points, geom = "xy")
+  origin <- as.data.table(origin)
+  setnames(origin, "x", "originX")
+  setnames(origin, "y", "originY")
+  origin <- unique(origin, by = c("cleanName", "originX", "originY"))
+  
+  dest <- terra::as.data.frame(dest_points, geom = "xy")
+  dest <- as.data.table(dest)
+  setnames(dest, "x", "destX")
+  setnames(dest, "y", "destY")
+  dest <- unique(dest, by = c("cleanName", "destX", "destY"))
+  
+  origin <- unique(origin, by = c("originX", "originY"))
+  dest <- unique(dest, by = c("destX", "destY"))
+  
+  return(list(
+    origin = origin,
+    dest = dest
+  ))
+}
+
+create_zoom_annotation <- function(basemap, region, points, verbose = FALSE) {
+  # Get the bounding box of the subregion for the zoom
+  bbox <- terra::ext(region)
+  # Add some padding around the bbox
+  padding <- c(
+    (bbox[2] - bbox[1]) * 0.1,  # 10% padding
+    (bbox[4] - bbox[3]) * 0.1
+  )
+  
+  bbox <- c(
+    bbox[1] - padding[1],
+    bbox[2] + padding[1],
+    bbox[3] - padding[2],
+    bbox[4] + padding[2]
+  )
+  
+  zoom_plot <- ggplot() +
+    geom_spatvector(data = basemap) +
+    geom_spatvector(
+      data = region,
+      fill = "#0013ff",
+      color = "black",
+      linewidth = 0.1
+    ) +
+    geom_point(
+      data = points, 
+      aes(x = originX, y = originY), 
+      color = "darkgreen",
+      size = 1, 
+      stroke = 0, 
+      shape = 16
+    ) +
+    coord_sf(
+      xlim = c(bbox[1], bbox[2]),
+      ylim = c(bbox[3], bbox[4])
+    ) +
+    theme_minimal() +
+    theme(
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      panel.grid = element_blank(),
+      plot.background = element_rect(fill = "white", color = "black"),
+      plot.margin = unit(c(0, 0, 0, 0), "cm")
+    )
+  
+  # Convert zoom plot to grob
+  return(list(
+    grob = ggplotGrob(zoom_plot),
+    extents = bbox
+  ))
+}
+
+position_zoom_annotation <- function(top, right, plot.ext, region.ext, width = NULL, height = NULL, verbose = FALSE) {
+  # Calculate aspect ratio from the zoom region's extents
+  zoom_x_range <- unname(region.ext[2]) - unname(region.ext[1])
+  zoom_y_range <- unname(region.ext[4]) - unname(region.ext[3])
+  aspect_ratio <- zoom_x_range / zoom_y_range
+  
+  # Get the plot ranges for positioning
+  plot_x_range <- unname(plot.ext[2]) - unname(plot.ext[1])
+  plot_y_range <- unname(plot.ext[4]) - unname(plot.ext[3])
+  
+  if (is.null(width)) width <- 0.25
+  if (is.null(height)) height <- 0.25
+  
+  # Adjust dimensions to maintain aspect ratio while keeping the larger dimension fixed
+  if (aspect_ratio > 1) {  # wider than tall
+    base_width <- plot_x_range * width
+    base_height <- plot_y_range * height
+    actual_width <- base_width
+    actual_height <- base_width / aspect_ratio
+  } else {  # taller than wide
+    base_width <- plot_x_range * (width + 0.1)
+    base_height <- plot_y_range * (height + 0.1)
+    
+    actual_width <- base_height * aspect_ratio
+    actual_height <- base_height
+  }
+  
+  # Position consistently from top edge
+  inset_ymax <- unname(plot.ext[4]) - (top * actual_height)
+  inset_ymin <- inset_ymax - base_height  # Use base_height for consistent top spacing
+  
+  # Adjust ymin to maintain aspect ratio
+  if (aspect_ratio > 1) {
+    inset_ymin <- inset_ymax - actual_height
+  }
+  
+  # Position from right edge
+  inset_xmax <- unname(plot.ext[2]) - (right * plot_x_range)
+  inset_xmin <- inset_xmax - actual_width
+  
+  list(
+    xmin = inset_xmin,
+    xmax = inset_xmax,
+    ymin = inset_ymin,
+    ymax = inset_ymax,
+    aspect_ratio = aspect_ratio
+  )
 }
 
 calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
@@ -916,7 +1113,442 @@ calc_list_rows <- function(dt.filenames, begin, end, write.md = FALSE) {
     )
   }
   
-  
-  
   return(invisible())
+}
+
+get_region_cells <- function(shape, template.filename, out.dir, verbose = FALSE) {
+  vebcat("Converting region to data table with raster extents.", color = "funInit")
+  
+  out_file <- paste0(out.dir, "/region-cell.csv")
+  
+  if (file.exists(out_file)) {
+    cell_regions_dt <- fread(out_file)
+  } else {
+    region <- load_region(shape)
+    
+    sp_rast <- load_sp_rast(template.filename) # Use as template
+    
+    if (!identical(ext(sp_rast), ext(region))) {
+      catn("Cropping region extent to match species")
+      region <- crop(region, ext(sp_rast))
+    }
+    
+    catn("Extracting raster from region.")
+    sp_cell_dt <- extract_raster_to_dt(sp_rast, region, value = "toRemove", cells = TRUE)
+    sp_cell_dt[, toRemove := NULL]
+    sp_cell_dt <- unique(sp_cell_dt, by = "cell")
+    
+    vebprint(sp_cell_dt, verbose)
+    catn("Difference between nrows and unique cells:", highcat(nrow(sp_cell_dt) - length(unique(sp_cell_dt$cell))))
+    
+    catn("Converting region to data table.")
+    region_dt <- as.data.frame(region)
+    region_dt <- as.data.table(region_dt)
+    region_dt[, ID := .I]
+    region_dt <- handle_region_dt(region_dt)
+    
+    vebprint(region_dt, verbose)
+    
+    catn("Merging raster_dt and region_dt.")
+    sp_regions_dt <- merge(sp_cell_dt, region_dt, by = "ID")
+    setnames(sp_regions_dt, "ID", "regionId")
+    
+    sp_regions_dt <- unique(sp_regions_dt, by = "cell")
+    
+    catn("Difference between nrows and unique cells:", highcat(nrow(sp_regions_dt) - length(unique(sp_regions_dt$cell))))
+    
+    vebprint(sp_regions_dt, verbose)
+    
+    # Merge cell regions with the raster cells
+    catn("Extracting raster cells.")
+    sp_dt <- extract_raster_to_dt(sp_rast, value = "toRemove", cells = TRUE)
+    sp_dt[, toRemove := NULL]
+    
+    vebprint(sp_dt, verbose)
+    
+    catn("Merging raster cells with region by cells.")
+    cell_regions_dt <- merge(sp_dt, sp_regions_dt, by = "cell", all = FALSE)
+    
+    cell_regions_dt[country == "", country := NA]
+    cell_regions_dt[subRegionName == "", subRegionName := NA]
+    
+    catn("Difference between nrows and unique cells:", highcat(nrow(cell_regions_dt) - length(unique(cell_regions_dt$cell))))
+    
+    vebprint(unique(cell_regions_dt$subRegionName), verbose, text = "SubRegions:")
+    
+    fwrite(cell_regions_dt, out_file, bom = TRUE)
+  }
+  
+  vebcat("Final Number of subRegions:", highcat(length(unique(cell_regions_dt$subRegionName))))
+  catn("Final Number of rows:", highcat(nrow(cell_regions_dt)))
+  
+  vebcat("Successfully converted region to data table with raster extents.", color = "funSuccess")
+  
+  return(cell_regions_dt)
+}
+
+split_spec_by_group <- function(spec, match.dt = NULL, match.colname = NULL, is.file = FALSE, verbose = FALSE) {
+  
+  if (!is.null(match.dt) && is.null(match.colname) || is.null(match.dt) && !is.null(match.colname)) {
+    vebcat("match.dt and match.colname cannot have one as NULL when being used.", color = "fatalError")
+    stop("Edit split_spec_by_group(match.dt, match.colname)")
+  }
+  
+  if (is.character(spec)) {
+    if (is.file) {
+      spec <- data.table(filename = spec)
+    } else {
+      spec <- data.table(species = spec)
+    }
+  }
+  
+  match.dt <- unique(match.dt[, .(get(match.colname), order)], by = "V1")
+  setnames(match.dt, "V1", "species")
+  
+  if (is.data.table(spec)) {
+    init_length <- nrow(spec)
+    if (is.file) spec[, species := clean_spec_filename(filename)]
+    spec_taxons <- spec[match.dt, on = "species"]
+  }
+  
+  vebprint(spec_taxons, verbose, "Species data table with order:")
+  
+  spec_group <- get_spec_group_dt(spec_taxons, "species")
+  
+  setcolorder(spec_group, setdiff(names(spec_group), "filename"))
+  
+  vebprint(spec_group, verbose, "Species data table with groups:")
+  
+  spec_group <- split(spec_group, by = "group")
+  
+  a_n <- if ("angiosperms" %in% names(spec_group)) nrow(spec_group$angiosperms) else 0
+  g_n <- if ("gymnosperms" %in% names(spec_group)) nrow(spec_group$gymnosperms) else 0
+  p_n <- if ("pteridophytes" %in% names(spec_group)) nrow(spec_group$pteridophytes) else 0
+  
+  res_length <- a_n + g_n + p_n
+  
+  if (init_length < res_length) {
+    vebcat("Initial number of species", highcat(init_length), "is less than resulting length", highcat(res_length), color = "nonFatalError")
+  }
+  
+  return(spec_group)
+}
+
+combine_groups <- function(x, out.order, out.n = NULL) {
+  
+  group <- rbindlist(x)
+  
+  if (grepl("-", out.order)) {
+    out.order <- gsub("-", "", out.order)
+    indecies <- order(-group[[out.order]])
+    group <- group[indecies, ]
+  } else {
+    indecies <- order(group[[out.order]])
+    group <- group[indecies, ]
+  }
+  
+  if (!is.null(out.n)) group <- group[1:out.n]
+  
+  return(group)
+}
+
+latitude_analysis <- function(spec.filename, region = NULL, extra = NULL, verbose = FALSE) {
+  
+  execute <- function(spec.filename, region = NULL, extra = NULL, verbose = NULL) {
+    sp_name <- clean_spec_filename(spec.filename)
+    vebcat("Species:", sp_name)
+    
+    cols_to_sel <- c("cleanName", "decimalLongitude", "decimalLatitude", "coordinateUncertaintyInMeters", "countryCode", "stateProvince", "year")
+    spec_dt <- fread(spec.filename, select = cols_to_sel)
+    
+    cleaned_data <- clean_spec_occ(
+      dt = spec_dt,
+      column = "cleanName", 
+      projection = extra$projection, 
+      resolution = config$projection$raster_scale_m, 
+      seed = config$simulation$seed, 
+      long = "decimalLongitude", 
+      lat = "decimalLatitude",  
+      verbose = verbose
+    )
+    
+    if (is.null(cleaned_data)) {
+      cleaned_data <- data.table(
+        cleanName = sp_name,
+        medianLat = NA_real_,
+        nobs = 0,
+        origNobs = nrow(spec_dt)
+      )
+      
+      return(cleaned_data)
+    }
+    
+    nobs <- nrow(cleaned_data)
+    
+    cleaned_data <- unique(cleaned_data, by = "cleanName")
+    
+    cleaned_data <- cleaned_data[, .(cleanName, medianLat)]
+    
+    cleaned_data[, `:=` (
+      nobs = nobs, 
+      origNobs = nrow(spec_dt)
+    )]
+    
+    return(cleaned_data)
+  }
+  
+  return(list(
+    execute = execute
+  ))
+}
+
+analyze_latitudinal_pattern <- function(stats, spec.file, out.dir, verbose = FALSE) {
+  vebcat("Analyzing latitudinal patterns", color = "funInit")
+  
+  log_dir <- file.path(out.dir, "logs")
+  out_file <- file.path(out.dir, "results/calculated-median-latitude.csv")
+  lat_stats <- fread(stats)
+  
+  if (file.exists(out_file)) {
+    catn("File found, reading file..")
+    calced_dt <- fread(out_file)
+  } else {
+    catn("Getting species filenames")
+    spec_name_stats <- unique(lat_stats$cleanName)
+    
+    spec_list <- readLines(spec.file)
+    
+    spec_names <- gsub(config$species$file_separator, " ", gsub(".csv", "", basename(spec_list)))
+    
+    spec_list <- spec_list[spec_names %in% spec_name_stats]
+    
+    projection <- get_crs_config("longlat")
+    
+    calced_dt <- parallel_spec_handler(
+      spec.dirs = spec_list,
+      dir = file.path(log_dir, "distribution"),
+      hv.project.method = "longlat",
+      out.order = "-medianLat",
+      extra = list(projection = projection),
+      fun = latitude_analysis,
+      verbose = verbose
+    )
+  }
+  
+  lat_stats <- lat_stats[, .(cleanName, order, realizedNiche, overlapRegion, observations, dimensions, excluded)]
+  
+  lat_stats <- unique(lat_stats, by = "cleanName")
+ 
+  catn("Species min absolute median latitude:", highcat(min(calced_dt$medianLat, na.rm = TRUE)))
+  
+  catn("Species max absolute median latitude:", highcat(max(calced_dt$medianLat, na.rm = TRUE)))
+  
+  merged_dt <- lat_stats[calced_dt, on = "cleanName", nomatch = 0L]
+  
+  merged_dt <- unique(merged_dt, by = "cleanName")
+  
+  merged_dt <- merged_dt[!is.na(medianLat)]
+  
+  return(merged_dt)
+}
+
+compare_gamlss_models <- function(data, predictor = "medianLat", response = "overlapRegion") {
+  # Create formula strings
+  full_formula <- as.formula(paste(response, "~", predictor))
+  null_formula <- as.formula(paste(response, "~ 1"))
+  
+  # Start CLI output
+  cli_h1("GAMLSS Model Comparison")
+  cli_alert_info("Fitting models...")
+  
+  # List to store all models
+  models <- list()
+  
+  # Progress bar
+  cli_progress_bar("Fitting models", total = 5)
+  
+  # 1. Full model (latitude coefficient for mu, sigma, and nu)
+  cli_progress_update()
+  models$full <- gamlss(
+    formula = full_formula,
+    sigma.formula = as.formula(paste("~", predictor)),
+    nu.formula = as.formula(paste("~", predictor)),
+    family = BEZI,
+    data = data,
+    trace = FALSE
+  )
+  
+  # 2. Latitude-zero only (latitude coefficient for nu, intercept for mu)
+  cli_progress_update()
+  models$zero_only <- gamlss(
+    formula = null_formula,
+    sigma.formula = as.formula(paste("~", predictor)),
+    nu.formula = as.formula(paste("~", predictor)),
+    family = BEZI,
+    data = data,
+    trace = FALSE
+  )
+  
+  # 3. Latitude-magnitude only (latitude coefficient for mu, intercept for nu)
+  cli_progress_update()
+  models$magnitude_only <- gamlss(
+    formula = full_formula,
+    sigma.formula = as.formula(paste("~", predictor)),
+    nu.formula = ~ 1,
+    family = BEZI,
+    data = data,
+    trace = FALSE
+  )
+  
+  # 4. Intercept only model (intercepts for both nu and mu)
+  cli_progress_update()
+  models$intercept_only <- gamlss(
+    formula = null_formula,
+    sigma.formula = as.formula(paste("~", predictor)),
+    nu.formula = ~ 1,
+    family = BEZI,
+    data = data,
+    trace = FALSE
+  )
+  
+  # 5. Complete null model (intercepts for mu, sigma, and nu)
+  cli_progress_update()
+  models$complete_null <- gamlss(
+    formula = null_formula,
+    sigma.formula = ~ 1,
+    nu.formula = ~ 1,
+    family = BEZI,
+    data = data,
+    trace = FALSE
+  )
+  
+  cli_progress_done()
+  
+  # Calculate AIC, BIC and deltas
+  aic_values <- sapply(models, AIC)
+  bic_values <- sapply(models, function(m) BIC(m))
+  delta_aic <- aic_values - min(aic_values)
+  delta_bic <- bic_values - min(bic_values)
+  
+  
+  # Create results data.frame
+  results <- data.table(
+    Model = names(models),
+    AIC = aic_values,
+    Delta_AIC = delta_aic,
+    BIC = bic_values,
+    Delta_BIC = delta_bic,
+    row.names = NULL
+  )
+  
+  # Sort by AIC
+  results <- results[order(results$AIC), ]
+  
+  # Add model descriptions
+  model_descriptions <- c(
+    full = "Full model (latitude for mu, sigma, and nu)",
+    zero_only = "Zero-inflation only (latitude for nu, intercept for mu)",
+    magnitude_only = "Magnitude only (latitude for mu, intercept for nu)",
+    intercept_only = "Partial null (latitude for sigma, intercepts for mu and nu)",
+    complete_null = "Complete null (intercepts only)"
+  )
+  
+  results$Description <- model_descriptions[results$Model]
+  
+  cli::cli_alert_success("Model fitting finished successfully")
+  
+  # Return both the results table and the list of models
+  return(list(
+    summary = results,
+    models = models
+  ))
+}
+
+print_gamlss_summary <- function(models, results) {
+  # Print results with cli
+  cli_h2("Model Comparison Results")
+  cli_text("")
+  
+  # Create a rule for the table header
+  cli_rule(left = col_br_blue("Model Comparison Table"))
+  
+  # Function to get colored delta value
+  get_colored_delta <- function(delta) {
+    if (delta < 2) {
+      return(cli::col_green(sprintf("%.2f", delta)))
+    } else if (delta < 4) {
+      return(cli::col_yellow(sprintf("%.2f", delta)))
+    } else {
+      return(cli::col_red(sprintf("%.2f", delta)))
+    }
+  }
+  
+  # Print each model result
+  for (i in 1:nrow(results)) {
+    model_name <- results$Model[i]
+    aic_value <- results$AIC[i]
+    bic_value <- results$BIC[i]
+    delta_aic <- results$Delta_AIC[i]
+    delta_bic <- results$Delta_BIC[i]
+    description <- results$Description[i]
+    
+    # Color coding based on delta AIC
+    if (delta_aic < 2 && delta_bic < 2) {
+      status_symbol <- col_green(cli::symbol$tick)
+    } else if (delta_aic < 4 || delta_bic < 4) {
+      status_symbol <- make_ansi_style("#FFA500")(cli::symbol$warning)
+    } else {
+      status_symbol <- col_red(cli::symbol$cross)
+    }
+    
+    # Get model formulas
+    model <- models[[model_name]]
+    mu_formula <- deparse(model$mu.formula)
+    sigma_formula <- deparse(model$sigma.formula)
+    nu_formula <- deparse(model$nu.formula)
+    
+    # Get fit statistics
+    df_fit <- model$df.fit
+    df_residual <- model$df.residual
+    global_dev <- model$G.deviance
+    
+    # Print model information
+    cli_alert(paste(status_symbol,
+                    "{.field {model_name}} ",
+                    "{.emph {description}}", collapse = " "))
+    
+    # Print formulas with proper formatting
+    cli_bullets(c(
+      " " = cli::col_cyan(paste0("μ: ", mu_formula)),
+      " " = cli::col_cyan(paste0("σ: ", sigma_formula)),
+      " " = cli::col_cyan(paste0("ν: ", nu_formula))
+    ))
+    
+    
+    # Print detailed fit statistics
+    cli_bullets(c(
+      " " = paste0("Fit Statistics:"),
+      " " = paste0("Parameters (df): ", df_fit),
+      " " = paste0("Residual df: ", df_residual),
+      " " = paste0("Global Deviance: ", round(global_dev, 2)),
+      " " = paste0("AIC: ", round(aic_value, 2), "  (ΔAIC: ", get_colored_delta(delta_aic), ")"),
+      " " = paste0("BIC/SBC: ", round(bic_value, 2), "  (ΔBIC: ", get_colored_delta(delta_bic), ")")
+    ))
+    
+    cli_text("")
+    cli_text("")
+  }
+  
+  # Print interpretation
+  cli_h2("Interpretation")
+  best_aic_model <- results$Model[which.min(results$AIC)]
+  best_bic_model <- results$Model[which.min(results$BIC)]
+  
+  if (best_aic_model == best_bic_model) {
+    cli_alert_success("Both AIC and BIC support the {.strong {best_aic_model}} model")
+  } else {
+    cli_alert_warning("AIC supports {.strong {best_aic_model}} while BIC supports {.strong {best_bic_model}}")
+    cli_text("")
+    cli_text("Note: BIC tends to favor simpler models, especially with larger sample sizes")
+  }
 }

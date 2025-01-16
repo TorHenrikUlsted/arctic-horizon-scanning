@@ -103,7 +103,6 @@ remove_designations <- function(spec, verbose = FALSE) {
 
 remove_infraEpithet <- function(spec, verbose = FALSE) {
   # Remove ignored designations
-  
   spec <- remove_designations(spec = spec, verbose = verbose)
   
   for (d in config$species$infraEpithet_designations) {
@@ -148,38 +147,463 @@ reverse_list <- function(list) {
   return(reversed)
 }
 
-fix_symbols <- function(text, symbol.list, reverse = FALSE, verbose = FALSE) {
-  if (!is.character(text)) {
-    warning("Input is not character. Coercing to character.")
-    text <- as.character(text)
-  }
+clean_string <- function(x, verbose = FALSE) {
+  x <- gsub("–", "-", x) # dashes to hyphens
+  x <- gsub("\u00A0", " ", x) # Replace non-breaking spaces with regular spaces
+  x <- gsub("([A-Z]),", "\\1.", x) # If one capital letter then ",", change to ".", then remove double "."
+  x <- gsub('"', "", x) # Remove " in a string
+  x <- gsub("\\.\\.", ".", x) # remove double "." with only one
+  # Remove standalone "x" where the next word is longer than 1 character and ends with a period
+  x <- gsub("\\s+x\\s+(?=\\S{2,}\\.)\\s*", " ", x, perl = TRUE)
   
-  if (!is.list(symbol.list)) {
-    stop("symbol.list must be a list")
-  }
+  x <- gsub("\\s+", " ", x) # Remove double spaces
+  x <- trimws(x) # trim trailing spaces
   
-  working_list <- if (reverse) reverse_list(symbol.list) else symbol.list
+  # vebcat("Cleaned string:", x, veb = verbose)
+  # vebcat("ASCII values:", paste(sapply(strsplit(x, "")[[1]], function(ch) as.integer(charToRaw(ch))), collapse = " "), veb = verbose)
   
-  for (old_symbol in names(working_list)) {
-    new_symbol <- working_list[[old_symbol]]
-    vebcat("Replacing", old_symbol, "with", new_symbol, veb = verbose)
-    text <- gsub(old_symbol, new_symbol, text, fixed = TRUE)
-  }
-  return(text)
+  return(x)
 }
 
-apply_symbol_fix <- function(dts, column, symbol.list, reverse = FALSE, verbose = FALSE) {
-  if (!is.list(dts)) stop("Input must be a list of data.tables")
+create_symbol_pattern <- function(symbol, verbose = FALSE) {
+  escaped_symbol <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", symbol)
   
-  lapply(dts, function(dt) {
-    if (!column %in% names(dt)) {
-      warning(paste("Column", column, "not found in data table. Skipping."))
-      return(dt)
+  patterns <- if (tolower(symbol) == "x") {
+    c(
+      paste0("(?<=\\s|^)[", escaped_symbol, toupper(escaped_symbol), "](?=\\s|$)"), # standalone
+      paste0("(?<=\\s)[", escaped_symbol, toupper(escaped_symbol), "](?=\\s)") # surrounded by spaces
+    )
+  } else if (symbol == "×") {
+    escaped_symbol # anywhere in the string
+  } else {
+    c(
+      paste0("(?<=\\s|^)", escaped_symbol, "(?=\\s|$)"), # standalone
+      paste0("(?<=\\s)", escaped_symbol, "(?=\\s)") # surrounded by spaces
+    )
+  }
+  
+  if (is.character(patterns) && length(patterns) == 1) {
+    patterns <- list(patterns) # Ensure patterns is always a list
+  }
+  
+  return(patterns)
+}
+
+clean_symbols <- function(x, symbols, verbose = FALSE) {
+  for (symbol in names(symbols)) {
+    replacement <- symbols[[symbol]]
+    
+    patterns <- create_symbol_pattern(symbol, verbose)
+    
+    for (pattern in patterns) {
+      x <- gsub(pattern, paste0(" ", replacement, " "), x, perl = TRUE)
+      # vebcat(paste("Replaced", pattern, "with", replacement), veb = verbose)
+    }
+  }
+  
+  x <- trimws(gsub("\\s+", " ", x)) # Clean up any extra spaces
+  return(x)
+}
+
+create_designation_pattern <- function(designation, verbose = FALSE) {
+  # Remove trailing period if present
+  base_designation <- sub("\\.$", "", designation)
+  
+  # Escape special characters in the designation
+  escaped_designation <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", base_designation)
+  
+  patterns <- c(
+    paste0("(?<=\\s|^)", escaped_designation, "(?=\\s|$)"), # without period
+    paste0("(?<=\\s|^)", escaped_designation, "\\.?(?=\\s|$)"), # with optional period
+    paste0("(?<=\\s|^)", tolower(escaped_designation), "(?=\\s|$)"), # lowercase without period
+    paste0("(?<=\\s|^)", tolower(escaped_designation), "\\.?(?=\\s|$)") # lowercase with optional period
+  )
+  
+  return(patterns)
+}
+
+clean_designations <- function(x, designations, verbose = FALSE) {
+  x <- gsub("\\.", ". ", x) # Add space after every "."
+  
+  for (designation in names(designations)) {
+    # Create patterns for different cases
+    patterns <- create_designation_pattern(designation, verbose)
+    
+    for (pattern in patterns) {
+      # Apply the pattern and replacement
+      x <- gsub(pattern, designations[[designation]], x, perl = TRUE)
+    }
+  }
+  x <- gsub("\\. ", ".", x) # Remove space after every "."
+  
+  # Remove any double periods that might have been introduced
+  x <- gsub("\\.\\.", ".", x)
+  
+  return(x)
+}
+
+uniq_list_pattern <- function(list, verbose = FALSE) {
+  # Get unique standardized designations and symbols
+  unique_items <- unique(unlist(list))
+  # Escape designations and make pattern
+  escaped_items <- gsub("([.|()\\^{}+$*?])", "\\\\\\1", unique_items)
+  pattern <- paste(escaped_items, collapse = "|")
+  
+  return(pattern)
+}
+
+identify_structure <- function(x, symbol.pattern, designation.pattern, verbose = FALSE) {
+  # Split the name, keeping parentheses together
+  x <- gsub("\\(\\s", "(", x) # Remove space immediately after opening parenthesis
+  x <- gsub("\\s\\)", ")", x) # Remove space immediately before closing parenthesis
+  
+  # Split the name, keeping parentheses together
+  parts <- str_match_all(x, "<<[^>]+>>|\\([^()]*\\)|\\S+")[[1]]
+  parts <- parts[parts != ""] # Remove any empty parts
+  
+  # Find the index of the designation, if it exists
+  designation_indices <- which(sapply(parts, function(part) grepl(paste0("^(", designation.pattern, ")$"), part, perl = TRUE)))
+  # Find the indices of the symbols, if they exist
+  symbol_indices <- which(sapply(parts, function(part) grepl(paste0("^(", symbol.pattern, ")$"), part, perl = TRUE)))
+  
+  # vebprint(parts, verbose, text = "Parts:")
+  # vebcat("symbol_indices:", symbol_indices, veb = verbose)
+  # vebcat("symbol count:", length(symbol_indices), veb = verbose)
+  # vebcat("designation_indices:", designation_indices, veb = verbose)
+  # vebcat("designation_count:", length(designation_indices), veb = verbose)
+  
+  # Check if the designation is followed by "NA" at the end
+  if (length(designation_indices) > 0) {
+    to_remove <- c()
+    for (i in 1:length(designation_indices)) {
+      d <- designation_indices[i]
+      
+      # Check if this is the last part or if the next part is NA
+      if (length(parts) == d || is.na(parts[d + 1])) {
+        to_remove <- c(to_remove, i)
+      }
+      
+      # Check if the word before the designation ends on a "." and is "f."
+      if ((grepl("\\.$", parts[(d - 1)]) | grepl("Baker", parts[(d - 1)])) &
+          grepl("^f\\.$", parts[d])) {
+        to_remove <- c(to_remove, i)
+      }
+      
+      # Check if the next index is also a designation
+      if (i < length(designation_indices) && designation_indices[(i + 1)] == d + 1) {
+        to_remove <- c(to_remove, i)
+      }
+      
+      # Check if the word after the "f." is a single letter and not identical to genus
+      if (grepl("^f\\.$", parts[d]) && grepl("^[A-Za-z]$", parts[(d + 1)]) && parts[(d + 1)] != substr(parts[1], 1, 1)) {
+        to_remove <- c(to_remove, i)
+      }
     }
     
-    dt[, (column) := fix_symbols(get(column), symbol.list, reverse, verbose)]
-    return(dt)
-  })
+    # Remove the flagged indices
+    if (length(to_remove) > 0) {
+      if (length(designation_indices) > 1) {
+        designation_indices <- designation_indices[-to_remove]
+      } else {
+        # If there's only one designation and it's flagged for removal
+        designation_indices <- NULL
+      }
+    }
+    
+    # If all designations were removed, set to NULL
+    if (length(designation_indices) == 0) {
+      designation_indices <- NULL
+    }
+  }
+  
+  # Remove symbols right before or after a designation
+  if ((length(designation_indices) > 0 & length(symbol_indices) > 0) &
+      (any(symbol_indices + 1 == designation_indices) || any(symbol_indices - 1 == designation_indices))
+  ) {
+    symbols_to_remove <- c()
+    for (i in seq_along(designation_indices)) {
+      for (j in seq_along(symbol_indices)) {
+        if (symbol_indices[j] + 1 == designation_indices[i] || symbol_indices[j] - 1 == designation_indices[i]) {
+          symbols_to_remove <- c(symbols_to_remove, symbol_indices[j])
+        }
+      }
+    }
+    
+    if (length(symbols_to_remove) > 0) {
+      parts <- parts[-symbols_to_remove]
+      symbol_indices <- symbol_indices[!symbol_indices %in% symbols_to_remove]
+    }
+  }
+  
+  # CASES
+  if (any(grepl("'([A-Z][^']+)'", parts)) & length(designation_indices) == 0) {
+    structure <- fcase(
+      length(symbol_indices) == 0 & length(designation_indices) == 0, "cultivar",
+      length(symbol_indices) > 0 & length(designation_indices) == 0, "hybridCultivar",
+      default = "unknownCultivar"
+    )
+  } else if (length(designation_indices) > 0 & length(symbol_indices) == 0) {
+    structure <- fcase(
+      length(designation_indices) == 1, "infraspecificTaxon",
+      length(designation_indices) > 1, "MultiInfraspecificTaxon",
+      default = "unknownInfraspecific"
+    )
+  } else if (length(designation_indices) == 0 & length(symbol_indices) > 0) {
+    structure <- fcase(
+      symbol_indices[1] == 1 || symbol_indices[1] > 1 &&
+        symbol_indices[1] < length(parts) &&
+        substr(parts[1], 1, 1) == toupper(substr(parts[1], 1, 1)) &&
+        substr(parts[symbol_indices[1] + 1], 1, 1) == toupper(substr(parts[symbol_indices[1] + 1], 1, 1)) &&
+        !grepl("^[A-Z]\\.$", parts[symbol_indices[1] + 1]) && # Not an abbreviated genus
+        parts[1] != parts[symbol_indices[1] + 1], "interGenericHybrid",
+      symbol_indices[1] == 2, "intraGenericHybrid",
+      length(parts) >= 4 &&
+        length(symbol_indices) == 1 &&
+        symbol_indices[1] > 2 &&
+        (parts[symbol_indices[1] + 1] == parts[1] ||
+           grepl("^[A-Z]\\.$", parts[symbol_indices[1] + 1]) ||
+           substr(parts[symbol_indices[1] + 1], 1, 1) == tolower(substr(parts[symbol_indices[1] + 1], 1, 1)) ||
+           parts[symbol_indices[1] + 1] == tolower(parts[symbol_indices[1] + 1])), "interSpecificHybrid",
+      length(parts) >= 4 && length(symbol_indices) > 1 && (symbol_indices[1] == 3 || symbol_indices[1] > 3), "MultiIntraSpecificHybrid",
+      default = "unknownHybrid"
+    )
+  } else if (length(designation_indices) == 0 & length(symbol_indices) == 0) {
+    structure <- "species"
+  } else if (length(designation_indices) > 0 & length(symbol_indices) > 0) {
+    structure <- fcase(
+      any(grepl(symbol.pattern, parts[1])), "interGenericHybridTaxon",
+      any(grepl(symbol.pattern, parts[2])) | any(grepl(symbol.pattern, parts[3])), "interSpecificHybridTaxon",
+      default = "unknownInfraHybrid"
+    )
+  } else {
+    structure <- "unknown"
+  }
+  
+  # Initialize all fields with NA
+  part_id <- list(
+    genus = NA_character_,
+    specificEpithet = NA_character_,
+    infraspecificRank = NA_character_,
+    hybrid = NA_character_,
+    infraspecificEpithet = NA_character_,
+    cleanName = NA_character_,
+    other = NA_character_,
+    fullName = NA_character_,
+    extra = NA_character_,
+    structure = structure
+  )
+  
+  # Assign names based on the structure
+  used_parts <- 0
+  switch(structure,
+         "species" = {
+           part_id$genus <- parts[1]
+           if (length(parts) >= 2 && grepl("\\.$", parts[2])) {
+             part_id$other <- parts[2]
+             parts <- parts[-2]
+           }
+           part_id$specificEpithet <- parts[2]
+           part_id$cleanName <- paste(parts[1:2], collapse = " ")
+           used_parts <- 2
+         },
+         "infraspecificTaxon" = {
+           if (grepl("^[A-Za-z]\\.$", parts[(designation_indices + 1)])) {
+             parts <- parts[-(designation_indices + 1)] # Remove the part after designation
+           }
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- parts[2]
+           part_id$infraspecificRank <- parts[designation_indices]
+           infra_index <- 1
+           if (designation_indices < (length(parts) - 1) &&
+               grepl("^cv\\.|cvgr\\.$", parts[designation_indices]) &&
+               grepl("^'", parts[designation_indices + 1]) &&
+               !grepl("'$", parts[designation_indices + 1])) {
+             infra_index <- 2
+           }
+           part_id$infraspecificEpithet <- parts[designation_indices + infra_index]
+           part_id$cleanName <- paste(parts[c(1:2, designation_indices:(designation_indices + infra_index))], collapse = " ")
+           used_parts <- designation_indices + infra_index
+         },
+         "MultiInfraspecificTaxon" = {
+           part_id$extra <- paste(parts[c(1:2, designation_indices[2]:length(parts))], collapse = " ")
+           parts <- parts[-(designation_indices[2]:length(parts))]
+           
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- parts[2]
+           part_id$infraspecificRank <- parts[designation_indices[1]]
+           part_id$infraspecificEpithet <- parts[designation_indices[1] + 1]
+           part_id$cleanName <- paste(parts[c(1:2, designation_indices[1]:(designation_indices[1] + 1))], collapse = " ")
+           
+           used_parts <- designation_indices[1] + 1
+         },
+         "interGenericHybrid" = {
+           if (grepl("^[A-Z]", parts[1]) & substr(parts[1], 1, 1) != substr(parts[symbol_indices[1] + 1], 1, 1)) {
+             if (symbol_indices != 3) {
+               parts <- parts[-(3:(symbol_indices - 1))] # remove up to symbol
+               symbol_indices <- symbol_indices - length(3:(symbol_indices - 1)) # set symbol to new position
+             }
+             part_id$genus <- parts[1]
+             part_id$specificEpithet <- paste(parts[2:5], collapse = " ")
+             part_id$hybrid <- parts[3]
+             part_id$cleanName <- paste(parts[1:5], collapse = " ")
+             used_parts <- 5
+           } else {
+             part_id$hybrid <- parts[1]
+             part_id$genus <- paste(parts[1:2], collapse = " ")
+             part_id$specificEpithet <- parts[3]
+             part_id$cleanName <- paste(parts[1:3], collapse = " ")
+             used_parts <- 3
+           }
+         },
+         "intraGenericHybrid" = {
+           part_id$genus <- parts[1]
+           part_id$hybrid <- parts[2]
+           part_id$specificEpithet <- paste(parts[2:3], collapse = " ")
+           part_id$cleanName <- paste(parts[1:3], collapse = " ")
+           used_parts <- 3
+         },
+         "interSpecificHybrid" = {
+           if (symbol_indices != 3) {
+             parts <- parts[-(3:(symbol_indices - 1))] # remove up to symbol
+             symbol_indices <- symbol_indices - length(3:(symbol_indices - 1)) # set symbol to new position
+           }
+           if ((grepl("^[A-Z]\\.$", parts[symbol_indices[1] + 1]) || parts[symbol_indices[1] + 1] == parts[1]) && substr(parts[symbol_indices[1] + 1], 1, 1) == substr(parts[1], 1, 1)) {
+             parts <- parts[-(symbol_indices[1] + 1)]
+           } # Remove uppercase letter with "." after if identical to first uppercase letter of genus
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- paste(parts[2:4], collapse = " ")
+           part_id$hybrid <- parts[3]
+           part_id$cleanName <- paste(parts[1:4], collapse = " ")
+           used_parts <- 4
+         },
+         "MultiIntraSpecificHybrid" = {
+           part_id$genus <- parts[1]
+           part_id$specificEpithet <- paste(parts[2:6], collapse = " ")
+           part_id$hybrid <- parts[3]
+           part_id$cleanName <- paste(parts[1:6], collapse = " ")
+           used_parts <- 6
+         },
+         "interGenericHybridTaxon" = {
+           part_id$hybrid <- parts[1]
+           part_id$genus <- paste(parts[1:2], collapse = " ")
+           part_id$specificEpithet <- parts[3]
+           part_id$infraspecificRank <- parts[4]
+           part_id$infraspecificEpithet <- parts[5]
+           part_id$cleanName <- paste(parts[1:5], collapse = " ")
+           used_parts <- 5
+         },
+         "interSpecificHybridTaxon" = {
+           if (symbol_indices == 2) {
+             part_id$genus <- parts[1]
+             part_id$hybrid <- parts[2]
+             part_id$specificEpithet <- paste(parts[2:3], collapse = " ")
+             if (designation_indices != 4) {
+               parts <- parts[-(4:(designation_indices - 1))]
+               designation_indices <- designation_indices - length(4:(designation_indices - 1))
+             }
+             part_id$infraspecificRank <- parts[4]
+             part_id$infraspecificEpithet <- parts[5]
+             part_id$cleanName <- paste(parts[1:5], collapse = " ")
+             used_parts <- 5
+           } else {
+             part_id$genus <- parts[1]
+             part_id$specificEpithet <- paste(parts[2:4], collapse = " ")
+             part_id$hybrid <- parts[3]
+             if (designation_indices != 5) {
+               parts <- parts[-(5:(designation_indices - 1))]
+               designation_indices <- designation_indices - length(5:(designation_indices - 1))
+             }
+             part_id$infraspecificRank <- parts[5]
+             part_id$infraspecificEpithet <- parts[6]
+             part_id$cleanName <- paste(parts[1:6], collapse = " ")
+             used_parts <- 6
+           }
+         },
+         "cultivar" = {
+           if (grepl("\\(.*\\)", parts[2])) parts <- parts[-2]
+           cultivar_index <- which(grepl("'", parts[1:length(parts)]))
+           if (cultivar_index > 3) {
+             parts <- parts[-(3:(cultivar_index - 1))]
+             cultivar_index <- cultivar_index - length(3:(cultivar_index - 1))
+           }
+           part_id$genus <- parts[1]
+           if (cultivar_index == 2) {
+             part_id$specificEpithet <- parts[2]
+             part_id$cleanName <- paste(parts[1:2], collapse = " ")
+             used_parts <- 2
+           } else {
+             part_id$specificEpithet <- paste(parts[2:3], collapse = " ")
+             part_id$cleanName <- paste(parts[1:3], collapse = " ")
+             used_parts <- 3
+           }
+         },
+         "hybridCultivar" = {
+           part_id$genus <- parts[1]
+           part_id$hybrid <- parts[2]
+           part_id$specificEpithet <- parts[3]
+           part_id$cleanName <- paste(parts[1:3], collapse = " ")
+           used_parts <- 3
+         },
+         {
+           # For complex cases, assign parts to named fields as much as possible
+           part_id$genus <- parts[1]
+           if (length(parts) > 1) part_id$specificEpithet <- parts[2]
+           if (length(parts) > 2) part_id$hybrid <- parts[3]
+           if (length(parts) > 3) part_id$infraspecificEpithet <- parts[4]
+           part_id$cleanName <- paste(parts[1:min(4, length(parts))], collapse = " ")
+           used_parts <- min(4, length(parts))
+         }
+  )
+  
+  # Add other parts
+  if (used_parts < length(parts)) {
+    other_parts <- parts[(used_parts + 1):length(parts)]
+    part_id$other <- paste(other_parts, collapse = " ")
+  } else if (!is.na(part_id$other) && part_id$other == "") {
+    part_id$other <- NA_character_
+  }
+  
+  # Clean parentheses with "=" inside them and remove "hybrid complex"
+  part_id$other <- gsub("\\s*\\([^()]*=.*?\\)|\\s*hybrid complex", "", part_id$other)
+  
+  # Convert empty strings to NA and ensure character type
+  part_id$other <- as.character(part_id$other) # Ensure character type
+  part_id$other[trimws(part_id$other) == ""] <- NA_character_
+  
+  # Remove any NA values from cleanName
+  part_id$cleanName <- gsub("\\s+", " ", gsub("NA", "", part_id$cleanName))
+  part_id$cleanName <- trimws(part_id$cleanName)
+  
+  if (is.null(part_id$infraspecificRank) || length(part_id$infraspecificRank) == 0) {
+    part_id$infraspecificRank <- NA_character_
+  }
+  
+  part_id$fullName <- ifelse(!is.na(part_id$other),
+                             paste(part_id$cleanName, part_id$other),
+                             part_id$cleanName
+  )
+  
+  return(part_id)
+}
+
+clean_spec_name <- function(x, symbols, designations, verbose = FALSE) {
+  symbol_pattern <- uniq_list_pattern(symbols, verbose)
+  designation_pattern <- uniq_list_pattern(designations, verbose)
+  
+  
+  # Split designations into separate parts
+  for (designation in designation_pattern) {
+    x <- gsub(paste0("(\\s|^)(", designation, ")(\\s|$)"), "\\1\\2 ", x, perl = TRUE)
+  }
+  
+  parts_id <- identify_structure(
+    x = x,
+    symbol_pattern,
+    designation_pattern,
+    verbose = verbose
+  )
+  
+  return(parts_id)
 }
 
 # Combine the a row for all specified columns as strings. If custom.col and custom.list are used, the custom.col will be swapped out with the data from the custom.list.
@@ -229,31 +653,6 @@ combine_columns_dt <- function(..., dt, column.name = "combined", custom.col = N
   vebprint(unique(combined_dt[[column.name]]), verbose, "Unique combinations:")
   
   return(combined_dt)
-}
-
-select_species_approach <- function(dt, approach = "precautionary", col.name = "cleanName", custom.list = ".aff", verbose = FALSE) {
-  catn("Selecting species using the", highcat(approach), "approach.")
-  
-  spec_dt <- copy(dt)
-  
-  if (approach == "precautionary") {
-    spec_dt <- spec_dt[, (col.name) := species]
-  } else if (approach == "conservative") { # the conservative approach also needs to handle cases where scientificNames are actually not just the species name.... use remove_authorship()
-    spec_dt <- combine_columns_dt(
-      "species", "taxonRank", "infraspecificEpithet",
-      dt = spec_dt,
-      column.name = col.name,
-      custom.col = "taxonRank",
-      custom.list = custom.list,
-      sep = " ",
-      verbose = verbose
-    )
-  } else {
-    vebcat("Approach can only be 'conservative' or 'precautionary'.", color = "fatalError")
-    stop("Change the apporach.")
-  }
-  
-  return(spec_dt)
 }
 
 clean_spec_filename <- function(x) {
@@ -364,13 +763,11 @@ get_order_group <- function(dt, spec.col = NULL, verbose = FALSE) {
   vebprint(valid_orders, verbose, "Valid Orders:")
   
   # Set the levels of the order factor
-  #dt_res$order <- factor(dt_res$order, levels = valid_orders)
+  dt_res[, order := factor(order, levels = valid_orders)]
   
-  dt_res[, orderFactor := factor(order, levels = valid_orders)]
+  setorder(dt_res, order)
   
   vebprint(dt_res, verbose, "factor:")
-  
-  setorder(dt_res, orderFactor)
   
   return(dt_res)
 }
@@ -459,7 +856,7 @@ get_crs_config <- function(projection.name, vebose = FALSE) {
   }
   
   if (inherits(crs(config$projection$crs$longlat, proj=T), "Error")) {
-    cat("inehirts")
+    cat("crs inherit failed")
   }
   
   projection <- input_args[[projection.name]]
@@ -718,95 +1115,6 @@ edit_crs <- function(crs.string, string.key, string.new, verbose = FALSE) {
   return(new_crs)
 }
 
-check_orig_occ <- function(spec.occ, region, verbose = FALSE) {
-  if (is.data.table(spec.occ)) {
-    spec <- spec.occ
-  } else if (is.character(spec.occ)) {
-    spec <- fread(spec.occ)
-  }
-  
-  if (is.character(region)) {
-    region <- load_region(region)
-  }
-  
-  spec_name <- unique(spec$cleanName)
-  
-  # Subset
-  spec <- spec[, .(cleanName, decimalLongitude, decimalLatitude)]
-  # Make into points
-  points <- terra::vect(spec, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$crs$longlat)
-  
-  # Check if overlap with region
-  overlap <- terra::extract(region, points)
-  overlap <- as.data.table(overlap)
-  
-  n_overlap <- nrow(overlap)
-  
-  overlap <- overlap[complete.cases(overlap)]
-  
-  vebcat(highcat(nrow(overlap)), "/", highcat(n_overlap), "occurrences found within the region")
-  
-  if (nrow(overlap) == 0) {
-    overlap_points <- data.table(species = spec_name, decimalLongitude = NA, decimalLatitude = NA, regionOcc = 0, totalOcc = n_overlap, propOcc = 0 / n_overlap)
-    return(overlap_points)
-  } else {
-    vebcat("Making the overlapping occurences into a data.table", veb = verbose)
-    
-    # Get the original longlat
-    overlap_points <- spec[overlap$id.y, .(decimalLongitude, decimalLatitude)]
-    overlap_points <- overlap_points[, species := spec_name]
-    overlap_points <- overlap_points[, .(species, decimalLongitude, decimalLatitude)]
-    overlap_points <- overlap_points[, regionOcc := nrow(overlap)]
-    overlap_points <- overlap_points[, totalOcc := n_overlap]
-    overlap_points <- overlap_points[, propOcc := nrow(overlap) / n_overlap]
-    
-    if (verbose) {
-      # convert to points again
-      points <- terra::vect(overlap_points, geom = c("decimalLongitude", "decimalLatitude"), crs = config$projection$crs$longlat)
-      
-      region_ext <- round(ext(region), 3)
-      points_ext <- round(ext(points), 3)
-      
-      
-      catn("Extents of region and points within region")
-      vebprint(region_ext, text = highcat("Region extent:"))
-      vebprint(points_ext, text = highcat("Points extent:"))
-      
-      plot(region)
-      plot(points, add = TRUE, col = "red")
-    }
-    
-    return(overlap_points)
-  }
-}
-
-loop_orig_occ <- function(spec.occ.vect, region, file.out, with.coords = TRUE, verbose = FALSE) {
-  spec_dt_out <- data.table(species = character(), decimalLongitude = numeric(), decimalLatitude = numeric(), regionOcc = integer(), totalOcc = integer(), propOcc = numeric())
-  
-  if (is.character(region)) {
-    region <- load_region(region)
-  }
-  
-  for (i in 1:length(spec.occ.vect)) {
-    spec <- spec.occ.vect[i]
-    
-    spec_dt <- check_orig_occ(spec, region)
-    
-    spec_dt_out <- rbind(spec_dt_out, spec_dt)
-  }
-  
-  if (!with.coords) {
-    spec_dt_out <- spec_dt_out[, .(species, regionOcc, totalOcc, propOcc)]
-    spec_dt_out <- unique(spec_dt_out, by = "species")
-    file.out <- paste0(dirname(file.out), "/", gsub(".csv", "", basename(file.out)), "-no-coords.csv")
-  }
-  
-  setorder(spec_dt_out, -propOcc)
-  
-  catn("Writing file to:", colcat(file.out, color = "output"))
-  fwrite(spec_dt_out, file.out)
-}
-
 get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.per.subregion = FALSE, inside = TRUE, verbose = FALSE) {
   uniq_subregions <- unique(region[[region.sub]])
   
@@ -831,7 +1139,7 @@ get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.pe
     
     vebprint(sub_region, verbose, "Sub Region:")
     
-    all_centroids <- centroids(sub_region, inside = inside)
+    all_centroids <- terra::centroids(sub_region, inside = inside)
     
     vebprint(all_centroids, verbose, "All centroids:")
     
@@ -878,7 +1186,20 @@ save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir,
   ggsave(fig_out, device = save.device, unit = save.unit, width = save.width, height = save.height, plot = save.plot)
 }
 
-ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits = NULL, breaks = NULL, labels = NULL, begin = NULL, end = NULL, trans = NULL, guide, na.value = "transparent") {
+dynamic_guide_legend <- function(guide_config) {
+  args <- list()
+  
+  for (param_name in names(guide_config)) {
+    
+    # Add the parameter to the args list
+    args[[param_name]] <- guide_config[[param_name]]
+  }
+  
+  # Create and return the guide_legend call
+  do.call(guide_legend, args)
+}
+
+ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits = NULL, breaks = NULL, labels = NULL, begin = NULL, end = NULL, trans = NULL, guide = NULL, na.value = "transparent") {
   tryCatch(
     {
       # Syntax is: "gradient-option"
@@ -891,9 +1212,21 @@ ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits 
       scale_type <- split_str[[1]]
       scale_var <- tolower(split_str[[2]])
       
+      # Process the guide
+    if (!is.null(guide)) {
+      if (is.list(guide)) {
+        guide_obj <- dynamic_guide_legend(guide)
+      } else if (is.character(guide) || is.logical(guide)) {
+        guide_obj <- guide
+      } else {
+        warning("Invalid guide specification. Using default guide.")
+        guide_obj <- "legend"
+      }
+    }
+      
       args <- list(
         option = option,
-        guide = guide,
+        guide = if (!is.null(guide)) guide_obj else NULL,
         na.value = na.value
       )
       
@@ -935,6 +1268,42 @@ ggplot.filler <- function(gradient = "viridis-B", scale.type = "fill-c", limits 
       vebcat("Error when trying to use custom ggplot.filler function.", color = "fatalError")
       stop(e)
     }
+  )
+}
+
+ggplot.theme <- function() {
+  return(
+    ggplot2::theme(
+      text = element_text(family = config$ggplot$theme$text$family),
+      
+      plot.title = element_text(
+        color = config$ggplot$theme$plot.title$color,
+        vjust = config$ggplot$theme$plot.title$vjust,
+        hjust = config$ggplot$theme$plot.title$hjust,
+        size = config$ggplot$theme$plot.title$size,
+        face = config$ggplot$theme$plot.title$face,
+        margin = margin(b = config$ggplot$theme$plot.title$margin$b),
+        lineheight = config$ggplot$theme$plot.title$lineheight
+      ),
+      
+      plot.title.position = config$ggplot$theme$plot.title.position,
+      plot.margin = do.call(margin, c(config$ggplot$theme$plot.margin[c("t", "r", "b", "l")], unit = config$ggplot$theme$plot.margin$unit)),
+      
+      axis.text = element_text(size = config$ggplot$theme$axis.text$size),
+      axis.title.x = element_text(
+        size = config$ggplot$theme$axis.title.x$size,
+        hjust = config$ggplot$theme$axis.title.x$hjust
+      ),
+      
+      axis.title.y = element_text(size = config$ggplot$theme$axis.title.y$size),
+      legend.text = element_text(size = config$ggplot$theme$legend.text$size),
+      legend.title = element_text(
+        size = config$ggplot$theme$legend.title$size,
+        hjust = config$ggplot$theme$legend.title$hjust
+      ),
+      
+      legend.position = config$ggplot$theme$legend.position
+    )
   )
 }
 
@@ -1015,50 +1384,175 @@ system_calc_rows <- function(file.path) {
   } else { # for Unix-based systems like Linux and macOS
     total_rows <- as.numeric(system(paste("awk 'END {print NR}' ", file.path), intern = TRUE))
   }
+  # -1 for header
+  return(total_rows - 1)
+}
+
+system_calc_unique <- function(file.path, column, sep = "\t") {
   
-  return(total_rows)
+  if (is.character(column)) {
+    tmp <- fread(file.path, nrows = 0)
+    column_number <- which(names(tmp) == column)
+    if (length(column_number) == 0) stop("Column name not found")
+  } else if (is.numeric(column)) {
+    column_number <- as.integer(column)
+  } else {
+    stop("Column must be either a name (character) or a number")
+  }
+  
+  if (Sys.info()["sysname"] == "Windows") {
+    # Windows approach using R
+    unique_values <- new.env(hash = TRUE)
+    con <- file(file.path, "r")
+    while (length(line <- readLines(con, n = 1)) > 0) {
+      fields <- strsplit(line, sep, fixed = TRUE)[[1]]
+      if (column_number <= length(fields)) {
+        unique_values[[fields[column_number]]] <- TRUE
+      }
+    }
+    close(con)
+    unique_count <- length(unique_values)
+  } else { # for Unix-based systems like Linux and macOS
+    # Escape the separator for use in awk
+    awk_sep <- gsub("\\", "\\\\", sep, fixed = TRUE)
+    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | sort -u | wc -l", awk_sep, column_number, file.path)
+    unique_count <- as.numeric(system(cmd, intern = TRUE))
+  }
+  # -1 for header
+  return(unique_count - 1)
+}
+
+system_calc_uniq_and_rows <- function(file.path, column = NULL, sep = "\t") {
+  if (is.null(column)) {
+    stop("Column must be specified")
+  }
+  
+  if (is.character(column)) {
+    tmp <- fread(file.path, nrows = 0)
+    column_number <- which(names(tmp) == column)
+    if (length(column_number) == 0) stop("Column name not found")
+  } else if (is.numeric(column)) {
+    column_number <- as.integer(column)
+  } else {
+    stop("Column must be either a name (character) or a number")
+  }
+  
+  # Escape the separator for use in awk
+  awk_sep <- gsub("\\", "\\\\", sep, fixed = TRUE)
+  
+  if (Sys.info()["sysname"] == "Windows") {
+    # Windows approach using PowerShell
+    ps_command <- sprintf("Get-Content '%s' | ForEach-Object { $_.Split('%s')[%d] } | Group-Object | Measure-Object -Property Count, Name", 
+                          file.path, sep, column_number - 1)
+    result <- shell(sprintf("powershell -Command \"%s\"", ps_command), intern = TRUE)
+    
+    # Parse the result -1 for header
+    total_rows <- as.numeric(strsplit(result[1], "\\s+")[[1]][2])
+    unique_count <- as.numeric(strsplit(result[2], "\\s+")[[1]][2])
+  } else {
+    # Unix-based systems (Linux and macOS)
+    cmd <- sprintf("awk -F'%s' '{print $%d}' '%s' | awk '{count++; unique[$0]++} END {print count, length(unique)}'", 
+                   awk_sep, column_number, file.path)
+    result <- system(cmd, intern = TRUE)
+    
+    # Parse the result
+    values <- as.numeric(strsplit(result, " ")[[1]])
+    total_rows <- values[1]
+    unique_count <- values[2]
+  }
+  
+  # -1 for header
+  return(list(total_rows = total_rows - 1, unique_count = unique_count - 1))
 }
 
 model_to_md <- function(model) {
-  # Get the summary of the model
-  summary <- summary(model)
+  output <- cli::cli_format({
+    # Turn off CLI colors temporarily
+    old <- options(cli.num_colors = 1)
+    on.exit(options(old))
+    
+    # Execute the function
+    output <- capture.output(summary(model), type = "output")
+  })
   
-  # Convert the coefficients to a data.table
-  coefficients <- as.data.table(summary$coefficients)
-  setnames(coefficients, "Pr(>|t|)", "p value")
+  # Initialize empty string for markdown text
+  md_text <- ""
   
-  coefficients[, "Significance" := ifelse(`p value` < .001, "\\*\\*\\*",
-                                          ifelse(`p value` < .01, "\\*\\*",
-                                                 ifelse(`p value` < .05, "\\*",
-                                                        ifelse(`p value` < .1, ".", " ")
-                                                 )
-                                          )
-  )]
+  # Process the output line by line
+  in_coefficients <- FALSE
+  current_section <- NULL
   
-  coefficients <- knitr::kable(coefficients, format = "markdown")
-  
-  # Create the Markdown text
-  md_text <- paste0(
-    "**Call:**  \n",
-    "`", deparse(summary$call), "`\n\n",
-    "**Residuals:**  \n",
-    "- Min: ", round(stats::quantile(summary$residuals, probs = 0), 4), "  \n",
-    "- 1Q: ", round(stats::quantile(summary$residuals, probs = 0.25), 4), "  \n",
-    "- Median: ", round(stats::quantile(summary$residuals, probs = 0.50), 4), "  \n",
-    "- 3Q: ", round(stats::quantile(summary$residuals, probs = 0.75), 4), "  \n",
-    "- Max: ", round(stats::quantile(summary$residuals, probs = 1), 4), "  \n\n",
-    "**Coefficients:**  \n\n",
-    paste(coefficients, collapse = "  \n"), "  \n\n",
-    "Signif. codes:  0 ‘\\*\\*\\*’ 0.001 ‘\\*\\*’ 0.01 ‘\\*’ 0.05 ‘.’ 0.1 ‘ ’ 1  \n\n",
-    "**Residual standard error:** ", round(summary$sigma, 4), " on",
-    round(summary$fstatistic[[3]], 0), " degrees of freedom  \n",
-    "**Multiple R-squared:** ", round(summary$r.squared, 4), ", ",
-    "**Adjusted R-squared:** ", round(summary$adj.r.squared, 4), "  \n",
-    "**F-statistic:** ", round(summary$fstatistic[1], 2), " on ",
-    round(summary$fstatistic[2], 0), " and ",
-    round(summary$fstatistic[3], 0), " DF, ",
-    "**p-value:** ", pf(summary$fstatistic[1], summary$fstatistic[2], summary$fstatistic[3], lower.tail = FALSE)
-  )
+  for (line in output) {
+    # Remove quotes and leading/trailing whitespace
+    line <- gsub('"', "", trimws(line))
+    
+    # Skip empty lines and divider lines
+    if (grepl("^\\s*$", line) || grepl("^[-*]{10,}", line)) next
+    
+    if (grepl("link function:", line)) {
+      # Start new section
+      section_name <- sub(" link function:.*", "", line)
+      md_text <- paste0(md_text, "\n## ", section_name, " Parameters\n\n")
+      # Add coefficient table header
+      md_text <- paste0(
+        md_text,
+        "| Parameter | Estimate | Std. Error | t value | p-value |\n",
+        "|-----------|-----------|------------|----------|----------|\n"
+      )
+      in_coefficients <- TRUE
+    }
+    # Handle coefficient lines
+    else if (in_coefficients && grepl("^\\(Intercept\\)|^median|^[a-zA-Z]", line)) {
+      # Check if this is actually a statistics line
+      if (grepl("^No\\. of observations|^Degrees of Freedom|^Global Deviance|^AIC|^SBC", line)) {
+        in_coefficients <- FALSE
+        if (!grepl("Model Statistics", md_text)) {
+          md_text <- paste0(md_text, "\n## Model Statistics\n\n")
+        }
+        clean_line <- gsub("\\s+", " ", line)
+        md_text <- paste0(md_text, "- ", clean_line, "\n")
+        next
+      }
+      
+      # Skip significance code lines
+      if (grepl("^Signif\\.", line)) next
+      
+      parts <- strsplit(trimws(line), "\\s+")[[1]]
+      if (length(parts) >= 5) {
+        param <- parts[1]
+        est <- parts[2]
+        se <- parts[3]
+        t_val <- parts[4]
+        
+        # Handle p-value and stars
+        p_val <- parts[5]
+        if (length(parts) > 5) {
+          if (grepl("\\*", p_val)) {
+            p_val <- gsub("\\*", "\\\\*", p_val)
+          } else {
+            stars <- gsub("\\*", "\\\\*", parts[6])
+            p_val <- paste0(p_val, " ", stars)
+          }
+        }
+        
+        md_text <- paste0(
+          md_text,
+          "| ", param, " | ",
+          est, " | ",
+          se, " | ",
+          t_val, " | ",
+          p_val, " |\n"
+        )
+      }
+    } else if (grepl("^No\\. of observations|^Degrees of Freedom|^Global Deviance|^AIC|^SBC|^Residual Deg\\.|^at cycle:", line)) {
+      if (!grepl("Model Statistics", md_text)) {
+        md_text <- paste0(md_text, "\n## Model Statistics\n\n")
+      }
+      # Clean up the statistics line formatting
+      clean_line <- gsub("\\s+", " ", line) # Replace multiple spaces with single space
+      md_text <- paste0(md_text, "- ", clean_line, "\n")
+    }
+  }
   
   return(md_text)
 }
@@ -1111,7 +1605,7 @@ mdwrite <- function(source, text = NULL, data = NULL, image = NULL, image.out = 
     if (!grepl(";", text)) catn(text)
   }
   if (!is.null(data)) print(data)
-  if (!is.null(image)) catn(paste0("![", h_text, "]", "(", "images/", basename(image.out), ")"))
+  if (!is.null(image)) catn(paste0("![", h_text, "]", "(", "../images/", basename(image.out), ")"))
   catn("  ")
   
   sink(type = "output")
@@ -1148,7 +1642,7 @@ create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
   sp_occ_out <- "./outputs/post-process/derived-data/datasetKey-count.csv"
   derived_data_zip_out <- "./outputs/post-process/derived-data/derived-dataset.zip"
   
-  create_dir_if(sp_occ_out)
+  create_dir_if(dirname(sp_occ_out))
   
   if (file.exists(sp_occ_out)) {
     catn("DatasetKey with occurrence count already exists.")
@@ -1221,7 +1715,11 @@ create_derived_dataset <- function(occurrences.dir, verbose = FALSE) {
     
     catn("Zipping", highcat(length(files)), "dervied species files.")
     
-    zip(derived_data_zip_out, files)
+    zip(
+      zipfile = derived_data_zip_out, 
+      files = files,
+      flags = "-j" # remove directories and only keep files
+    )
   }
 }
 
@@ -1243,72 +1741,176 @@ progressive_dirname <- function(path, begin = 1, end = NULL) {
   return(res)
 }
 
-get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, include.files = NULL, step = 0) {
+remove_parent_paths <- function(paths, verbose = FALSE) {
+  # Sort paths by length to optimize comparisons
+  # (longer paths might be nested under shorter ones)
+  paths <- sort(paths, decreasing = FALSE)
+  
+  vebprint(paths, verbose, "Input paths (sorted):")
+  
+  # For each path, check if it's a prefix of any other path
+  is_parent <- sapply(paths, function(potential_parent) {
+    # Add trailing separator to ensure we match complete path components
+    parent_with_sep <- paste0(potential_parent, .Platform$file.sep)
+    # Check if this path is a prefix of any other path
+    any(startsWith(paths, parent_with_sep))
+  })
+  
+  # Keep only paths that aren't parents of other paths
+  result <- paths[!is_parent]
+  
+  if(verbose) {
+    cat("\nRemoved parent paths:\n")
+    print(paths[is_parent])
+    cat("\nFinal paths:\n")
+    print(result)
+  }
+  
+  return(result)
+}
+
+truncate_vector <- function(x, length.max = 20, verbose = FALSE) {
+  if (is.null(x)) return(invisible())
+  if (length(x) <= length.max) return(invisible(x))
+  
+    if (is.character(x) && any(!is.na(file.info(x)$isdir))) {
+      if (!all(file.info(x)$is.dir)) { # some are files
+        x <- head(x, length.max)
+        vebcat("Truncated with head for exceeding length of", length.max, veb = verbose)
+      } else {
+        x <- unique(dirname(x))
+        vebcat("Truncated by dirname for exceeding length of", length.max, veb = verbose)
+      }
+      
+    } else {
+      stop("Wrong class: ", class(x))
+    }
+  
+  return(x)
+}
+
+get_files <- function(input.dir, exclude.dirs = NULL, exclude.files = NULL, include.files = NULL, step = 0, verbose = FALSE) {
   if (step > 6) {
     vebcat("Step cannot be higher than 6", color = "fatalError")
     stop("Change step to a different integer value.")
   }
-  d <- list.dirs(input.dir, recursive = TRUE)
-  if (length(d) > 1) {
-    d <- d[-1]
+  max_length <- 20
+  # Get all directories
+  d_orig <- list.dirs(input.dir, recursive = TRUE)
+  if (length(d_orig) > 1) {
+    d_orig <- d_orig[-1]
+  } else {
+    stop("Could not find any directories.")
   }
-  vebprint(d, veb = (step == 1), paste0(highcat("Step 1"), " | ", highcat("initial directories:")))
-  if (!is.null(exclude.dirs)) {
-    exclude <- sapply(d, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
-    d <- d[!exclude]
-  }
-  vebprint(d, veb = (step == 2), paste0(highcat("Step 2"), " | ", highcat("exclude directories:")))
+  d_orig_u <- truncate_vector(d_orig, max_length, step == 1)
+    vebprint(
+      remove_parent_paths(d_orig_u), veb = (step == 1 || verbose), 
+      paste0(
+        highcat("Step 1"), " | ",
+        highcat("initial directories [", length(d_orig), "] :")
+      )
+    )
+  if (step == 1) return(invisible())
   
+  # Remove exclude.dirs
+  if (!is.null(exclude.dirs)) {
+    exclude <- sapply(d_orig, function(dir) any(sapply(exclude.dirs, function(ex_d) grepl(ex_d, dir))))
+    d <- d_orig[!exclude]
+  }
+  d_u <- truncate_vector(d, max_length, step == 2)
+  vebprint(
+    d_u, veb = (step == 2 || verbose), 
+    paste0(
+      highcat("Step 2"), " | ", 
+      highcat("After removing exclude.dirs [", length(d),"] :")
+    )
+  )
+  if (step == 2) return(invisible())
+  
+  # List all files and find the include.files
+  if (!is.null(include.files)) {
+    f_inc <- list.files(d_orig, recursive = FALSE, full.names = TRUE)
+    include <- sapply(f_inc, function(file) any(sapply(include.files, function(inc_f) grepl(inc_f, file, fixed = TRUE))))
+    f_inc <- f_inc[include]
+    f_inc <- remove_parent_paths(f_inc)
+  } else {
+    f_inc <- NULL
+  }
+  f_inc_u <- truncate_vector(f_inc, max_length, step == 3)
+  vebprint(
+    f_inc_u, veb = (step == 3 || verbose), 
+    paste0(
+      highcat("Step 3"), " | ", 
+      highcat("Files included in include.files [", length(f_inc), "] :")
+    )
+  )
+  if (step == 3) return(invisible())
+  
+  # Get the files in the included directories
   f <- list.files(d, recursive = FALSE, full.names = TRUE)
-  vebprint(f, veb = (step == 3), paste0(highcat("Step 3"), " | ", highcat("list files:")))
+  f <- f[!file.info(f)$isdir]
+  f_u <- truncate_vector(f, max_length, step == 4)
+  vebprint(
+    f_u, veb = (step == 4 || verbose), 
+    paste0(
+      highcat("Step 4"), " | ", 
+      highcat("Files in the included directories [", length(f), "] :")
+    )
+  )
+  if (step == 4) return(invisible())
+  
+  # Remove the exclude.files
   if (!is.null(exclude.files)) {
     exclude <- sapply(f, function(x) any(sapply(exclude.files, function(ex_f) grepl(ex_f, x))))
     f <- f[!exclude]
+    f <- remove_parent_paths(f)
+    f <- c(f, f_inc)
   }
-  vebprint(f, veb = (step == 4), paste0(highcat("Step 4"), " | ", highcat("exclude files:")))
+  f_u <- truncate_vector(f, max_length, step == 5)
+  vebprint(
+    f_u, veb = (step == 5 || verbose), 
+    paste0(
+      highcat("Step 5"), " | ", 
+      highcat("After removing exclude.files [", length(f), "] :")
+    )
+  )
+  if (step == 5) return(invisible())
   
-  if (!is.null(include.files)) {
-    include <- sapply(f, function(x) any(sapply(include.files, function(in_f) grepl(in_f, x, fixed = TRUE))))
-    f <- f[include]
-  }
-  vebprint(f, veb = (step == 5), paste0(highcat("Step 5"), " | ", highcat("include files:")))
-  
-  f <- f[!file.info(f)$isdir]
-  
-  vebprint(f, veb = (step == 6), paste0(highcat("Step 6"), " | ", highcat("remove directories:")))
   return(f)
 }
 
-get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL) {
+get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL, verbose = FALSE) {
   vebcat("Collecting repository files", color = "funInit")
   
   dirs <- list(
     setup = list(
       dir = "./outputs/setup",
-      exclude_dirs = c("wfo-match-nodes", "test", "logs", "system", "locks", "projections"),
-      exclude_files = c("stop-file.txt", ".zip", "wfo-match-nodes", ".rds", ".tif", "stats.csv"),
+      exclude_dirs = c("wfo-match-nodes", "test", "logs", "system", "locks", "projections", "region", "old"),
+      exclude_files = c("stop-file.txt", ".zip", "wfo-match-nodes", ".rds", ".tif", "stats.csv", "wfo-completed"),
+      include_files = c("coordinateUncertainty"),
       step = step
     ),
     filter = list(
       dir = "./outputs/filter",
-      exclude_dirs = c("chunk", "test", "logs"),
-      exclude_files = c("occ.csv", ".zip", "logs", "chunk"),
+      exclude_dirs = c("chunk", "test", "old"),
+      exclude_files = c("occ.csv", ".zip", "logs", "completed.txt"),
       step = step
     ),
     hypervolume = list(
       dir = "./outputs/hypervolume",
-      exclude_dirs = c("test", "prep", "locks", "species-prep"),
+      exclude_dirs = c("test", "prep", "locks", "old"),
       exclude_files = c("init-log.txt", "node-iterations.txt"),
       step = step
     ),
     visualize = list(
       dir = "./outputs/visualize",
-      exclude_dirs = c("stack", "logs"),
+      exclude_dirs = c("stack", "test"),
       exclude_files = c("warning", "error"),
       step = step
     ),
     post_process = list(
       dir = "./outputs/post-process",
+      exclude_dirs = c("old"),
       step = step
     ),
     utils = list(
@@ -1323,12 +1925,20 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
   for (sequence in names(dirs)) {
     if (which.sequence == "all" || which.sequence == sequence) {
       catn("Collecting", sequence, "files")
-      files <- get_files(
-        dirs[[sequence]]$dir,
-        dirs[[sequence]]$exclude_dirs,
-        dirs[[sequence]]$exclude_files,
-        dirs[[sequence]]$step
-      )
+      if (verbose) print_function_args()
+      
+      tryCatch({
+        files <- get_files(
+          input.dir = dirs[[sequence]]$dir,
+          exclude.dirs = dirs[[sequence]]$exclude_dirs,
+          exclude.files = dirs[[sequence]]$exclude_files,
+          include.files = dirs[[sequence]]$include_files,
+          step = dirs[[sequence]]$step,
+          verbose = verbose
+        )
+      }, error = function(e) {
+        stop(e)
+      })
       
       if (!is.null(subset)) {
         subset_dir <- paste0(dirs[[sequence]]$dir, "/", subset)
@@ -1345,7 +1955,7 @@ get_repository_files <- function(which.sequence = "all", step = 0, subset = NULL
   
   vebcat("Repository files collected succesfully", color = "funSuccess")
   
-  return(repo_files)
+  if (step == 0) return(repo_files) else return(invisible(repo_files))
 }
 
 pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequence = "all") {
@@ -1361,6 +1971,7 @@ pack_repository <- function(filename = "Horizon-Scanning-Repository", which.sequ
   
   repo_files <- get_repository_files(which.sequence = which.sequence)
   
+  catn("Compressing files with .zip")
   zip(zipfile = out_file, files = repo_files)
   
   catn("Zip file saved in", colcat(out_file, color = "output"))
@@ -1658,4 +2269,109 @@ replace_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL,
   }
   
   invisible(replaced_data)
+}
+
+count_project_lines <- function(directory_path) {
+  # Validate input directory path
+  if (!dir.exists(directory_path)) {
+    cli::cli_alert_error("Directory does not exist: {.path {directory_path}}")
+    stop()
+  }
+  
+  cli::cli_alert_info("Analyzing R files in {.path {directory_path}}")
+  
+  # List all R files recursively
+  r_files <- list.files(
+    path = directory_path,
+    pattern = "\\.R$|\\.r$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
+  
+  if (length(r_files) == 0) {
+    cli::cli_alert_warning("No R files found in directory")
+    return(0)
+  }
+  
+  cli::cli_alert_success("Found {length(r_files)} R {cli::qty(length(r_files))} file{?s}")
+  
+  # Initialize counter and progress bar
+  total_lines <- 0
+  file_counts <- data.frame(
+    filename = character(),
+    lines = numeric(),
+    stringsAsFactors = FALSE
+  )
+  
+  # Create progress bar
+  cli::cli_progress_bar(
+    total = length(r_files),
+    format = "Processing files {cli::pb_bar} {cli::pb_percent}",
+    clear = FALSE
+  )
+  
+  # Process each file
+  for (i in seq_along(r_files)) {
+    file <- r_files[i]
+    
+    # Update progress bar
+    cli::cli_progress_update()
+    
+    tryCatch({
+      # Read file content
+      lines <- readLines(file, warn = FALSE)
+      
+      # Remove empty lines and comments
+      lines <- lines[nzchar(trimws(lines))]
+      lines <- lines[!grepl("^\\s*#", lines)]
+      
+      # Update counters
+      line_count <- length(lines)
+      total_lines <- total_lines + line_count
+      
+      # Store individual file statistics
+      file_counts <- rbind(file_counts, 
+                           data.frame(
+                             filename = basename(file),
+                             lines = line_count
+                           ))
+    }, error = function(e) {
+      cli::cli_alert_danger("Error processing {.file {basename(file)}}: {e$message}")
+    })
+  }
+  
+  # Clear progress bar
+  cli::cli_progress_done()
+  
+  # Create return object with detailed information
+  result <- list(
+    total_lines = total_lines,
+    file_count = length(r_files),
+    file_details = file_counts,
+    directory = directory_path
+  )
+  
+  class(result) <- "code_count"
+  
+  return(result)
+}
+
+print.code_count <- function(x, ...) {
+  cli::cli_h1("Code Analysis Results")
+  
+  cli::cli_alert_info("Directory: {.path {x$directory}}")
+  cli::cli_alert_info("Total R files: {x$file_count}")
+  cli::cli_alert_success("Total lines of code: {x$total_lines}")
+  
+  if (x$file_count > 0) {
+    cli::cli_h2("Files breakdown")
+    
+    # Sort files by line count
+    x$file_details <- x$file_details[order(-x$file_details$lines), ]
+    
+    # Print formatted table using cli_text
+    for (i in seq_len(nrow(x$file_details))) {
+      cli::cli_text("{.file {x$file_details$filename[i]}} - {x$file_details$lines[i]} lines")
+    }
+  }
 }

@@ -21,6 +21,8 @@ load_utils <- function(parallel = FALSE) {
       "sf",
       "sp",
       "ggplot2",
+      "patchwork",
+      "gamlss",
       "ggnewscale",
       "ggrepel",
       "ggpubr",

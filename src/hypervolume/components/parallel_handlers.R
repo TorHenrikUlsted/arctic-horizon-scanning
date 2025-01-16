@@ -11,8 +11,8 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
   warn_file <- paste0(logs_dir, "/warning.txt")
   err_file <- paste0(logs_dir, "/error.txt")
 
-  create_file_if(node_it_file, highest_it_file, keep = TRUE)
-  create_file_if(ram_usage, warn_file, err_file)
+  create_file_if(node_it_file, highest_it_file, warn_file, err_file, keep = TRUE)
+  create_file_if(ram_usage,  keep = FALSE)
   finished <- FALSE
 
   if (!is.null(iterations)) {
@@ -26,23 +26,34 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
     vebcat("Highest completed iteration:", highest_it, veb = verbose)
     
     if (length(node_its) == 0 || is.na(node_its[1])) {
-      start_iteration <- if (is.na(highest_it)) 1 else highest_it + 1
+      start_iteration <- if (length(highest_it) == 0) 1 else highest_it + 1
     } else {
       start_iteration <- max(highest_it, max(node_its)) + 1
     }
     
-    if (start_iteration > length(spec.list)) {
+    if (start_iteration > length(spec.list) & length(node_its) == 0) {
       catn("All iterations completed. No more processing needed.")
       return(list(finished = TRUE))
     }
     
     end <- length(spec.list)
-    batch_iterations <- unique(c(node_its, start_iteration:end))
-    catn("Processing iterations:", highcat(paste(batch_iterations, collapse = ", ")))
+    
+    batch_iterations <- c(
+      if(length(node_its) > 0) unique(node_its), 
+      if (start_iteration <= end) start_iteration:end
+    )
+    
+    if (start_iteration > length(spec.list)) {
+      catn("Iterations finished")
+    } else {
+      catn("Processing from iteration:", highcat(start_iteration), "/", highcat(end))
+    }
+    
+    if (length(node_its) != 0) catn("Including node iterations:", highcat(paste(node_its, collapse = ", ")))
   } 
 
   cores_max <- min(length(batch_iterations), cores.max)
-
+  
   catn("Creating cluster of", highcat(cores_max), "core(s).")
   
   cl <- makeCluster(cores_max)

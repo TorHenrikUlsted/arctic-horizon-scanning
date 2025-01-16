@@ -1,6 +1,12 @@
 source_all("./src/hypervolume/components")
 
 process_species <- function(spec.dt, spec.name, process.dir, method, points.projection = "longlat", verbose = F, iteration, warn.file, err.file) {
+  on.exit({
+    # Cleanup function that runs when exiting the function
+    rm(list = ls(environment()))
+    gc(full = TRUE)
+  })
+  
   vebcat("Initiating data processing protocol.", color = "funInit")
 
   biovars_world <- rast(paste0(build_climate_path(), "/biovars-world-subset.tif"))
@@ -50,11 +56,19 @@ process_species <- function(spec.dt, spec.name, process.dir, method, points.proj
   vebprint(head(sp_mat, 3), verbose, "Processed environment data sample:")
 
   vebcat("Data processing protocol completed successfully.", color = "funSuccess")
+  
+  rm(sp_points, biovars_world)
+  invisible(gc())
 
   return(sp_mat)
 }
 
 hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, iteration, hv.dir, lock.dir, proj.dir, cores.max.high, verbose, warn.file, err.file) {
+  on.exit({
+    rm(list = ls(environment()))
+    gc(full = TRUE) 
+  })
+  
   vebcat("Initiating hypervolume sequence", color = "funInit")
 
   proj_dir <- paste0(proj.dir, "/", spec.name)
@@ -309,7 +323,10 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       err(e, err.file = err.file, err.txt = "Error when projecting hypervolume", iteration = iteration)
     }
   )
-
+  
+  rm(biovars_region)
+  invisible(gc())
+  
   vebcat("Unlocking analysis lock.", veb = verbose)
   unlock(lock_analysis)
 

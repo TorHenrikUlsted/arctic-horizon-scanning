@@ -1,6 +1,7 @@
 ## Example script
 source("./src/utils/utils.R")
 load_utils()
+config$simulation$example = TRUE
 source("./src/setup/setup_sequence.R")
 source("./src/filter/filter_sequence.R")
 source("./src/hypervolume/parallel_hypervolume.R")
@@ -14,30 +15,29 @@ source("./src/main.R")
 # spec.unknown = "test_small" OR "test_big"
 
 main(
-  spec.known = "test_known",
-  spec.unknown = "test_big",
-  coord.uncertainty = NULL,
+  spec.known = "arctic", # Name of combined present data 
+  spec.unknown = "glonaf", # Name of combined absent data
   gbif.occ.region = NULL, # If wanting to download files within a shapefile -- converted to WKT
-  download.key = "0186013-240321170329656",
-  download.doi = "https://doi.org/10.15468/dl.awqjxw",
+  download.key = "0040021-240906103802322",
+  download.doi = "https://doi.org/10.15468/dl.z6bgn2",
   hv.iterations = NULL,
   hv.method = "box",
   hv.accuracy = "accurate",
   hv.dims = c(18, 10, 3, 4),
   hv.incl.threshold = 0.5,
-  vis.shape = "./outputs/setup/region/cavm-noice/cavm-noice.shp", # change to simply name
-  vis.title = TRUE,
-  vis.region.name = "the Arctic", 
+  vis.shape = "cavm-noice",
+  vis.title = FALSE,
+  vis.region.name = "the Arctic", # The name that will be displayed on plot titles
   vis.subregion.name = "Floristic Province", 
-  vis.composition.taxon = "order",
+  vis.composition.taxon = "order", 
   vis.save.device = "svg",
   vis.save.unit = "px",
   plot.show = FALSE,
-  verbose = TRUE,
+  verbose = FALSE,
   force.seq = NULL
 )
 
-create_derived_dataset(
+ create_derived_dataset(
   occurrences.dir = paste0(
     "./outputs/filter/", 
     "glonaf",
@@ -50,3 +50,6 @@ pack_repository(
   filename = "Horizon-Scanning-Repository",
   which.sequence = "all"
 )
+
+project_lines <- count_project_lines("./")
+print(project_lines)

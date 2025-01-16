@@ -4,9 +4,10 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
   # Make dir objects
   log_dir <- paste0(pro.dir, "/logs")
   init_log <- paste0(log_dir, "/init-log.txt")
-  create_file_if(init_log)
 
   if (verbose) {
+    create_file_if(init_log)
+    
     try(init_log <- file(init_log, open = "at")) # for error handling before the process even starts
     sink(init_log, type = "output")
     sink(init_log, type = "message")
@@ -77,6 +78,8 @@ setup_node <- function(pro.dir, iteration, min.disk.space, verbose = FALSE) {
 
 process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, node.init.log, identifier, iteration, spec.list, columns.to.read, init.dt, hv.incl.threshold = 0.5, verbose, warn.file, err.file, fun) {
   catn("Processing node opened")
+  node_timer <- start_timer(paste0("node", iteration))
+  
   log_dir <- paste0(pro.dir, "/logs")
   log_nodes <- paste0(log_dir, "/nodes")
 
@@ -105,7 +108,7 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, node.init.l
   try(sp_log <- file(sp_node_log, open = "at"))
   sink(sp_log, type = "output")
   sink(sp_log, type = "message")
-
+  
   spec <- fread(spec_filename, select = columns.to.read)
 
   vebcat("Unlocking file.", veb = verbose)
@@ -127,13 +130,14 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, node.init.l
   catn("Species observations:", nobs)
   catn("Log observations:", log(nobs))
   catn()
+  
+  mem <- gc(full = TRUE)
+  catn(paste("Start memory usage:", sum(mem[,2]), "MB"))
 
   tryCatch(
     {
       # Condense data
       spec_condensed <- condense_taxons(spec.dt = spec, verbose)
-
-      # cntry_condensed <- condense_country(spec.dt = spec)
 
       cntry_condensed <- find_wgsrpd_region(
         spec.dt = spec,
@@ -152,6 +156,8 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, node.init.l
     },
     warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when condensing data", iteration = iteration),
     error = function(e) {
+      sink(type = "output")
+      sink(type = "message")
       close(sp_log)
       err(e, err.file = err.file, err.txt = "Error when condensing data", iteration = iteration)
     }
@@ -267,7 +273,11 @@ process_node <- function(pro.dir, lock.dir, lock.setup, node.it.log, node.init.l
 
   unlock(lock_node_it)
 
+  end_timer(node_timer)
   catn("Node finished successfully.")
+  
+  mem <- gc(full = TRUE)
+  catn(paste("End memory usage:", sum(mem[,2]), "MB"))
   
   sink(type = "message")
   sink(type = "output")

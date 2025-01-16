@@ -11,20 +11,17 @@ union_dts <- function(dt1, dt2, na.rm = TRUE, verbose = FALSE) {
 
   ## combine present lists and remove duplicates
   merged_dt <- unique(rbind(dt1, dt2))
-
+  
+  ## Calculate duplicates using row counts
+  duplicate_count <- (nrow(dt1) + nrow(dt2)) - nrow(merged_dt)
+  
   ## Run NA and distinct check
+  na_count <- sum(is.na(merged_dt))
+  
   if (any(is.na(merged_dt)) == T) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     if (na.rm) merged_dt <- na.omit(merged_dt)
   }
-
-  if (any(duplicated(merged_dt)) == T) {
-    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
-    merged_dt <- unique(merged_dt)
-  }
-
-  duplicate_count <- sum(duplicated(merged_dt))
-  na_count <- sum(is.na(merged_dt))
 
   md_dt <- data.table(
     dt1 = nrow(dt1),
@@ -38,7 +35,7 @@ union_dts <- function(dt1, dt2, na.rm = TRUE, verbose = FALSE) {
 
   md_dt <- kable(md_dt)
 
-  vebprint(md_dt, text = "Anti-join summary:")
+  vebprint(md_dt, text = "Union summary:")
 
   mdwrite(
     config$files$post_seq_md,
@@ -65,18 +62,19 @@ anti_union <- function(remove.from, remove.with, remove.by = NULL, na.rm = TRUE,
   }
   
   ## Run NA and duplicate check
+  na_count <- sum(is.na(merged_dt))
+  
   if (any(is.na(merged_dt)) == TRUE) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     if (na.rm) merged_dt <- na.omit(merged_dt)
   }
   
+  duplicate_count <- sum(duplicated(merged_dt))
+  
   if (any(duplicated(merged_dt)) == TRUE) {
-    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
     merged_dt <- unique(merged_dt)
   }
   
-  duplicate_count <- sum(duplicated(merged_dt))
-  na_count <- sum(is.na(merged_dt))
   
   md_dt <- data.table(
     dt1 = nrow(remove.from),
@@ -90,7 +88,7 @@ anti_union <- function(remove.from, remove.with, remove.by = NULL, na.rm = TRUE,
   
   md_dt <- kable(md_dt)
   
-  vebprint(md_dt, text = "Anti-join summary:")
+  vebprint(md_dt, text = "Anti-union summary:")
   
   mdwrite(
     config$files$post_seq_md,
@@ -116,26 +114,25 @@ inner_union <- function(dt1, dt2, by, na.rm = TRUE, verbose = FALSE) {
   merged_dt <- dt1[dt2, nomatch = 0, on = by]
   
   ## Run NA and duplicate check
+  na_count <- sum(is.na(merged_dt))
+  
   if (any(is.na(merged_dt)) == TRUE) {
     vebcat("Some merged data table species are NA.", color = "nonFatalError")
     if (na.rm) merged_dt <- na.omit(merged_dt)
   }
   
+  duplicate_count <- sum(duplicated(merged_dt))
+  
   if (any(duplicated(merged_dt)) == TRUE) {
-    vebcat("Some merged_dt species are duplicated.", color = "nonFatalError")
     merged_dt <- unique(merged_dt)
   }
-  
-  duplicate_count <- sum(duplicated(merged_dt))
-  na_count <- sum(is.na(merged_dt))
   
   md_dt <- data.table(
     dt1 = nrow(dt1),
     dt2 = nrow(dt2),
     merged_dt = nrow(merged_dt),
     duplicates = na_count,
-    nas = duplicate_count,
-    removed = (nrow(dt1) + nrow(dt2)) - nrow(merged_dt)
+    nas = duplicate_count
   )
   setnames(md_dt, c("dt1", "dt2"), c(dt1_name, dt2_name))
   
@@ -157,7 +154,6 @@ select_wfo_column <- function(dir.path, col.unique, col.select = NULL, col.combi
   
   csv_files <- get_files(dir.path, include.files = pattern)
   
-  # make a list of data frames based on the different CSV files and also check for any "no matches" then add those to their own data frame.
   dt_list <- list()
   
   for (file in csv_files) {
@@ -167,6 +163,7 @@ select_wfo_column <- function(dir.path, col.unique, col.select = NULL, col.combi
     parent_name <- split_str[length(split_str) - 2]
     child_name <- split_str[length(split_str) - 1]
     name <- paste0(parent_name, "_", child_name)
+    
     vebcat("Selecting columns for", highcat(name), veb = verbose)
     
     # Remove only genus names
@@ -201,8 +198,6 @@ select_wfo_column <- function(dir.path, col.unique, col.select = NULL, col.combi
 fix_manual <- function(dts, manual.edited, column, verbose = FALSE) {
   catn("Fixing manual edits.")
   
-  if (manual.edited == 0) return(dts)
-  
   if (!file.exists(manual.edited)) {
     vebcat("Could not detect manually edited file", color = "fatalError")
     catn("File can be found at:", colcat("./outputs/setup/wrangle/manual-check-file.csv", color = "output"))
@@ -212,19 +207,33 @@ fix_manual <- function(dts, manual.edited, column, verbose = FALSE) {
   }
   
   # Combine no-matches
-  edited <- fread(manual.edited, encoding = "UTF-8")
+  edited <- fread(manual.edited, select = c("acceptedName", "listOrigin"), encoding = "UTF-8")
   
   # Remove NAs and blank values in the newName df
-  formatted <- edited[!is.na(acceptedName) & acceptedName != "", .(acceptedName, listOrigin)]
+  formatted <- edited[!is.na(acceptedName) & acceptedName != "" & acceptedName != "removed"]
+  
+  formatted[, acceptedName.ORIG := acceptedName]
+  
+  formatted[, acceptedName := { # Clean symbols & designations
+    tmp <- clean_string(acceptedName, verbose)
+    tmp <- clean_designations(tmp, config$species$standard_infraEpithets, verbose)
+    tmp <- clean_symbols(tmp, config$species$standard_symbols, verbose)
+    acceptedName = gsub("× ", "×", tmp)
+  }]
+  
+  data.table::setnames(formatted, old = "acceptedName", new = "scientificName")
   
   vebprint(formatted, verbose, "Manually formatted data:")
   
   for (i in 1:nrow(formatted)) {
     # Get the scientificName and listOrigin from the current row
-    scientificName <- formatted[i, acceptedName]
+    scientificName <- formatted[i, scientificName]
     listOrigin <- as.character(formatted[i, listOrigin])
     
-    vebcat("Appending", highcat(as.character(scientificName)), "to", highcat(listOrigin), veb = verbose)
+    vebcat("Appending", 
+           highcat(paste(as.character(scientificName))), 
+           "to", highcat(listOrigin), veb = verbose
+          )
     
     # Check if scientificName or listOrigin is missing
     if (is.na(scientificName) | is.na(listOrigin)) {
@@ -240,6 +249,7 @@ fix_manual <- function(dts, manual.edited, column, verbose = FALSE) {
     
     # Create a new data table with the same columns as dts[[listOrigin]]
     new_row <- data.table(scientificName = scientificName)
+    
     setnames(new_row, names(dts[[listOrigin]]))
     
     # Append the scientificName to the corresponding data table in dts
@@ -267,28 +277,84 @@ write_filter_fun <- function(file.out, spec.in, fun = NULL) {
   return(result)
 }
 
-# For file.out, do not use extension
-get_occurrence <- function(spec, file.out, region = NULL, coord.uncertainty = 4600, download.key = NULL, download.doi = NULL, verbose = FALSE) {
-  spec_keys <- get_sp_keys(
-    sp_names = spec,
-    out.dir = dirname(file.out),
+# filter known and unknown using GBIF keys
+filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
+  
+  present_out <- paste0(out.dirs$unknown, "/present-usage-keys.csv")
+  absent_out <- paste0(out.dirs$unknown, "/absent-usage-keys.csv")
+  
+  if (file.exists(present_out) & file.exists(absent_out)) return(fread(absent_out))
+  
+  mdwrite(
+    config$files$post_seq_md,
+    text = "2;Filtering using GBIF keys"
+  )
+  
+  known_keys <- gbif_standardize(
+    dt = spec.dts$known,
+    out.file = paste0(out.dirs$known, "/standardized-sp-keys.csv"),
     verbose = verbose
   )
   
-  occ_data <- get_occ_data(
-    species_w_keys = spec_keys,
-    file.name = file.out,
-    region = region,
-    coord.uncertainty = coord.uncertainty,
-    download.key = download.key,
-    download.doi = download.doi,
+  data.table::setnames(known_keys, "usageKey.GBIF", "usageKey")
+  known_keys <- known_keys[, .(usageKey)]
+  
+  unknown_keys <- gbif_standardize(
+    dt = spec.dts$unknown,
+    out.file = paste0(out.dirs$unknown, "/standardized-sp-keys.csv"),
     verbose = verbose
   )
   
-  return(list(
-    occ = occ_data,
-    keys = spec_keys
-  ))
+  data.table::setnames(unknown_keys, "usageKey.GBIF", "usageKey")
+  # Filter out usageKeys that will be included in speciesKey
+  species_keys <- unknown_keys[tolower(rank.GBIF) == "species", unique(speciesKey.GBIF)]
+  # Filter out lower-level taxa if their species is already present
+  removed_keys <- unknown_keys[speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species"]
+  
+  if (nrow(removed_keys) > 0) {
+    catn("Found", highcat(nrow(removed_keys)), "taxons below species where the species is already included")
+    fwrite(removed_keys, paste0(out.dirs$unknown, "/dup_sp_keys.csv"))
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = paste0("**", nrow(removed_keys), "** taxons below an already included species were removed")
+    )
+  }
+  
+  unknown_keys <- unknown_keys[!(speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species")]
+  
+  fwrite(unknown_keys, paste0(out.dirs$unknown, "/standardized-sp-keys.csv"))
+  
+  unknown_keys <- unknown_keys[, .(usageKey)]
+  
+  unknown_present <- write_filter_fun(
+    file.out = present_out,
+    spec.in = unknown_keys,
+    fun = function() {
+      # First merge to only get species from both dts
+      unknown_present <- inner_union(unknown_keys, known_keys, by = "usageKey")
+      
+      return(unknown_present)
+    }
+  )
+  
+  unknown_absent <- write_filter_fun(
+    file.out = absent_out,
+    spec.in = unknown_keys,
+    fun = function() {
+      # Remove known present species from the unknown-absent species
+      unknown_absent <- anti_union(unknown_keys, known_keys, "usageKey")
+      
+      return(unknown_absent)
+    }
+  )
+  
+  mdwrite(
+    config$files$post_seq_md,
+    text = paste0("Number of species keys for download: **", nrow(unknown_absent), "**")
+  )
+  
+  return(unknown_absent)
 }
 
 get_prefix <- function(taxonRank) {
@@ -315,78 +381,46 @@ combine_columns <- function(dt, col1, col2, col3, verbose = FALSE) {
   return(dt)
 }
 
-remove_authorship <- function(dt, verbose = FALSE) {
-  vebcat("Removing Authorship from scientificName.", veb = verbose)
-  
-  signs <- c("×")
-  
-  dt[, cleanName := sapply(scientificName, function(x) {
-    components <- strsplit(x, " ")[[1]]
-    result <- c(components[1], components[2])
-    
-    if (components[2] %in% signs) {
-      result <- c(result, components[3])
-    }
-    
-    if (components[3] %in% config$species$infraEpithet_designations) {
-      result <- c(result, components[3], components[4])
-    }
-    
-    if (components[4] %in% config$species$infraEpithet_designations || components[4] %in% signs) {
-      result <- c(result, components[4], components[5])
-    }
-    
-    if (components[5] %in% signs) {
-      result <- c(result, components[5], components[6])
-    }
-    
-    
-    return(paste(result, collapse = " "))
-  })]
-  
-  return(dt)
-}
-
 # spec.occ can be either filepath or data frame
 chunk_protocol <- function(
     spec.occ,
-    spec.keys,
+    spec.keys = NULL,
     chunk.name = "species",
     chunk.col,
     chunk.dir,
     chunk.size = 1e6,
-    cores.max = 1,
     iterations = NULL,
     approach = FALSE,
     verbose = FALSE) {
+  
+  on.exit({
+    # Clean up
+    closeAllConnections()
+    rm(list = ls(environment()))
+    gc(full = TRUE)
+  })
+  
   vebprint(head(spec.occ, 1), text = "spec.occ", veb = verbose)
   
-  if (is.character(spec.occ)) {
-    chunk_file(
-      file.path = spec.occ,
-      approach = approach,
-      chunk.name = chunk.name,
-      chunk.column = chunk.col,
-      chunk.dir = chunk.dir,
-      chunk.size = chunk.size,
-      cores.max = cores.max,
-      iterations = iterations,
-      verbose = verbose
-    )
-  } else if ("data.frame" %in% class(spec.occ) || "data.table" %in% class(spec.occ)) {
-    chunk_loaded_df(
-      dt = spec.occ,
-      approach = approach,
-      chunk.name = chunk.name,
-      chunk.column = chunk.col,
-      chunk.dir = chunk.dir,
-      verbose = verbose
-    )
-  } else {
-    stop("Invalid input, either filepath or data frame/table")
-  }
+ chunk_data(
+   spec.occ = spec.occ, 
+   chunk.name = chunk.name, 
+   chunk.column = chunk.col, 
+   chunk.dir = chunk.dir, 
+   chunk.size = chunk.size, 
+   iterations = iterations, 
+   verbose = verbose
+ )
+ 
+  rename_chunks(
+    spec.dir = file.path(chunk.dir, "species"),
+    symbols = config$species$filename_symbols,
+    designations = config$species$standard_infraEpithets,
+    file.sep = config$species$file_separator,
+    verbose = verbose
+  )
   
-  if (approach == "conservative") { # this has to be fixed specifically for new conservative approach.
+  if (approach == "conservative" & !is.null(spec.keys)) { # this has to be fixed specifically for new conservative approach.
     clean_chunks(
       chunk.name = chunk.name,
       chunk.column = chunk.col,

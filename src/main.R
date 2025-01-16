@@ -1,8 +1,6 @@
 main <- function(
     spec.known = NULL,
     spec.unknown = NULL,
-    column = "scientificName",
-    coord.uncertainty = NULL,
     gbif.occ.region = NULL,
     download.key = NULL,
     download.doi = NULL,
@@ -25,6 +23,7 @@ main <- function(
   
   hv_dir <- paste0("./outputs/hypervolume/", spec.unknown)
   vis_dir <- paste0("./outputs/visualize/", spec.unknown)
+  vis.shape = paste0("./outputs/setup/region/", vis.shape, "/", vis.shape, ".shp")
   
   max_cores <- calc_num_cores(
     ram.high = config$memory$total_cores,
@@ -50,8 +49,7 @@ main <- function(
   sp_dir <- filter_sequence(
     spec.known = spec.known, 
     spec.unknown = spec.unknown,
-    column = column,
-    coord.uncertainty = coord.uncertainty,
+    coord.uncertainty = config$projection$raster_scale_m,
     cores.max = max_cores,
     region = gbif.occ.region,
     download.key = download.key,

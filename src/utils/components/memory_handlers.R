@@ -17,28 +17,39 @@ format_mem_unit <- function(value, unit.in = "b", unit.out = "b") {
   return(value_formatted)
 }
 
-# Function to get current memory usage
 get_mem_usage <- function(type = "free", format = "b") {
-  # Call free command and get the output
-  
-  mem_info <- strsplit(system("free -m", intern = TRUE)[2], "\\s+")[[1]]
-  
-  if (type == "free") {
-    # Get free memory
-    mem_usage <- as.numeric(mem_info[4])
-  } else if (type == "total") {
-    # Get total memory
-    mem_usage <- as.numeric(mem_info[2])
-  } else if (type == "used") {
-    # Get used memory
-    mem_usage <- as.numeric(mem_info[3])
-  } else {
-    stop("Invalid type. Choose 'free', 'total', or 'used'.")
-  }
-  
-  mem_usage <- format_mem_unit(mem_usage, unit.in = "mb", unit.out = format)
-  
-  return(unname(mem_usage))
+  tryCatch({
+    # Call free command and get the output
+    mem_info <- system("free -m", intern = TRUE)
+    
+    # Check if we got the expected output
+    if (length(mem_info) < 2) {
+      stop("Unexpected output from 'free' command")
+    }
+    
+    # Parse the memory information
+    mem_values <- as.numeric(strsplit(mem_info[2], "\\s+")[[1]][-1])
+    
+    # Check if we parsed the expected number of values
+    if (length(mem_values) < 3) {
+      stop("Failed to parse memory information")
+    }
+    
+    # Get the requested memory type
+    mem_usage <- switch(type,
+                        "free" = mem_values[3],
+                        "total" = mem_values[1],
+                        "used" = mem_values[2],
+                        stop("Invalid type. Choose 'free', 'total', or 'used'."))
+    
+    # Format the memory value
+    mem_usage <- format_mem_unit(mem_usage, unit.in = "mb", unit.out = format)
+    
+    return(unname(mem_usage))
+  }, error = function(e) {
+    warning(paste("Error in get_mem_usage:", e$message))
+    return(NA)
+  })
 }
 
 get_process_mem_use <- function(unit = "gb") {
@@ -57,68 +68,147 @@ get_process_mem_use <- function(unit = "gb") {
   return(unname(ram))
 }
 
+log_message <- function(file.out, text, object = NULL) {
+  try(con <- file(file.out, open = "a"))
+  sink(con)
+  if (!is.null(object)) {
+    cat(paste0(Sys.time(), ":\n", text, "\n"))
+    print(object)
+  } else {
+    cat(paste0(Sys.time(), ": ", text, "\n"))
+  }
+  sink()
+  close(con)
+}
+
 start_mem_tracking <- function(file.out, file.stop) {
-  if(file.exists(file.stop)) file.remove(file.stop)
-  create_file_if(file.out)
+tryCatch({
+  log_file <- file.path(dirname(file.out), "mem_tracking_log.txt")
+  
+  log_message(log_file, "Starting memory tracking")
+  
+  if(file.exists(file.stop)) {
+    log_message("Removing existing stop file")
+    file.remove(file.stop)
+  }
   
   init_val <- get_mem_usage(type = "used", format = "gb")
-  # Create a control object
-  control <- new.env()
   
-  # Start the tracking in a separate process
-  control$pid <- parallel::mcparallel({
-    # Initialize a vector to store memory usage over time
-    mem_usage <- c()
-    
-    tryCatch({
-      while(!file.exists(file.stop)) {
-        # Check memory usage every second
-        Sys.sleep(1)
-        
-        new_mem_usage <- get_mem_usage(type = "used", format = "gb")
-        
-        existing_mem_usage <- as.numeric(readLines(file.out))
-        
-        max_mem_usage <- max(c(existing_mem_usage, new_mem_usage), na.rm = TRUE)
-        
-        writeLines(as.character(max_mem_usage), file.out)
+  # Start the tracking in a separate R session
+  system(paste0("Rscript -e \"
+    source('./src/utils/components/memory_handlers.R')
+    repeat {
+      if (file.exists('", file.stop, "')) break
+      new_mem_usage <- get_mem_usage(type = 'used', format = 'gb')
+      if(file.exists('", file.out, "')) {
+        existing_mem_usage <- as.numeric(readLines('", file.out, "'))
+        max_mem_usage <- max(existing_mem_usage, new_mem_usage)
+      } else {
+        max_mem_usage <- new_mem_usage
       }
-    }, error = function(e) {
-      file.create(file.stop)
-    })
-  })
+      writeLines(as.character(max_mem_usage), '", file.out, "')
+      Sys.sleep(1)
+    }
+    \""), wait = FALSE)
+  
+}, error = function(e) {
+  vebcat("Error when trying to start memory tracking", color = "fatalError")
+  file.create(file.stop)
+  stop(e)
+})
   
   return(list(
-    control = control, 
     init.val = init_val,
-    file.out = file.out
+    log = log_file,
+    file.out = file.out,
+    file.stop = file.stop
   ))
 }
 
-# Function to stop tracking memory usage
-stop_mem_tracking <- function(control, file.stop) {
-  # Create the stop file
-  file.create(file.stop)
-  
-  result <- parallel::mccollect(list(control$control$pid), wait = TRUE)
-  
-  # Read the memory usage over time from the file
-  mem_usage <- as.numeric(readLines(control$file.out))
-  
-  file.remove(control$file.out)
-  
-  # Get the peak memory usage
-  max_mem <- max(mem_usage)
-  
-  peak_mem_usage <- max_mem - control$init.val
-  
-  catn("Peak Memory Usage:")
-  print(peak_mem_usage)
-  
-  # Write the peak memory usage to an output file
-  writeLines(as.character(peak_mem_usage), control$file.out)
+stop_mem_tracking <- function(control) {
+  tryCatch({
+    log_message(control$log, "Stopping memory tracking")
+    # Create the stop file
+    file.create(control$file.stop)
+    
+    # Give some time for the tracking process to finish
+    Sys.sleep(2)
+    
+    # Read the final memory usage from the file
+    max_mem_usage <- as.numeric(readLines(control$file.out))
+    
+    # Clean up files
+    file.remove(control$file.out)
+    if(file.exists(control$file.stop)) file.remove(control$file.stop)
+    
+    # Calculate peak memory usage
+    peak_mem_usage <- max_mem_usage - control$init.val
+    
+    cat("Peak Memory Usage:", peak_mem_usage, "GB\n")
+    
+    # Write the peak memory usage to the output file
+    writeLines(as.character(peak_mem_usage), control$file.out)
+  }, error = function(e) {
+    vebcat("Error when trying to stop memory tracking", color = "fatalError")
+    stop(e)
+  })
   
   return(peak_mem_usage)
+}
+
+track_memory <- function(fun, tracking = config$memory$tracking, identifier = NULL) {
+  if (!tracking) return(fun)
+  
+  function(...) {
+    fun_name <- if(!is.null(identifier)) identifier else deparse(substitute(fun))
+    mem_start <- get_mem_usage("used", "gb")
+    time_start <- Sys.time()
+    
+    # Run the function with cleanup
+    result <- tryCatch({
+      fun(...)
+    }, finally = {
+      mem_end <- get_mem_usage("used", "gb")
+      time_end <- Sys.time()
+      mem_diff <- mem_end - mem_start
+      time_diff <- difftime(time_end, time_start, units = "mins")
+      
+      catn(fun_name, "Memory:", 
+           highcat(round(mem_diff, 2)), "GB, Time:", 
+           highcat(round(time_diff, 2)), "minutes")
+    })
+    
+    return(result)
+  }
+}
+
+mem_check <- function(identifier = NULL, ram.use = NULL, interval = 60, verbose = FALSE) {
+  mem_used_gb <- get_mem_usage(type = "used", format = "gb")
+  mem_limit_gb <- config$memory$mem_limit / 1024^3
+  
+  if (mem_used_gb >= mem_limit_gb) {
+    if (!is.null(ram.use)) {
+      ram_con <- file(ram.use, open = "a")
+      writeLines(paste0(
+        "RAM usage ", mem_used_gb, 
+        " is above the maximum ", mem_limit_gb,
+        if(!is.null(identifier)) paste(" Waiting with", identifier)
+      ), ram_con)
+      close(ram_con)
+    }
+    
+    vebcat("Memory usage:", mem_used_gb, "GB exceeds limit:", mem_limit_gb, "GB", veb = verbose)
+    invisible(gc(full = TRUE))
+    
+    if (interval > 0) {
+      Sys.sleep(interval)
+      # Add random delay to prevent synchronization of multiple processes
+      Sys.sleep(runif(1, 0, 1))
+    }
+    
+    return(TRUE)
+  }
+  return(FALSE)
 }
 
 calc_num_cores <- function(ram.high, ram.low = 0, cores.total = detectCores(), verbose = FALSE) {
