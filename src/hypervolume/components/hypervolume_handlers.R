@@ -1,4 +1,9 @@
 analyze_hv_stats <- function(sp_hv, region_hv, spec.name, verbose) {
+  on.exit({
+    rm(list = ls(environment()))
+    gc(full = TRUE)
+  })
+  
   catn("Analyzing hypervolume for", highcat(sp_hv@Name), "\n")
 
   # Check if the hypervolumes have the same number of dimensions
@@ -53,6 +58,9 @@ analyze_hv_stats <- function(sp_hv, region_hv, spec.name, verbose) {
 
   catn("Volume of", spec.name, "potential overlap in the region:", highcat(sp_surviv_region))
   catn("Volume of", spec.name, "Realized potential niche range:", highcat(sp_realized_niche))
+  
+  rm(hv_set)
+  invisible(gc())
 
   return(hv_stats)
 }

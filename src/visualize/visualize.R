@@ -705,6 +705,15 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       data = richness_group_md
     )
     
+    richness_dt <- get_taxon_richness(
+      paoo.file = paoo_file,
+      stats = sp_stats,
+      taxon = "species",
+      verbose = verbose
+    )
+    
+    fwrite(richness_dt, paste0(result_dir, "/species-taxon-composition.csv"), bom = TRUE)
+    
     rm(paoo_file, richness_dt, top_orders_md, richness_group_md)
     invisible(gc())
   }

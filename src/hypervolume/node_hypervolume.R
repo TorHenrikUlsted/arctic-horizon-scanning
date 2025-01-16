@@ -68,7 +68,7 @@ node_hypervolume <- function(
           while (!skip_to_end) {
             catn("Running main sequence.")
 
-            processed_data <- process_species(
+            processed_data <- track_memory(process_species, identifier = paste0("process_species_", spec.name))(
               spec.dt = spec,
               spec.name = spec.name,
               process.dir = process.dir,
@@ -85,7 +85,7 @@ node_hypervolume <- function(
               break
             }
 
-            analyzed_hv <- hv_analysis(
+            analyzed_hv <- track_memory(hv_analysis, identifier = paste0("process_species_", spec.name))(
               spec.mat = processed_data,
               method = hv.method,
               spec.name = spec.name,

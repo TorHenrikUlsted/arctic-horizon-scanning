@@ -1147,7 +1147,7 @@ visualize_distribution <- function(dt, model, region.name, vis.gradient = "virid
     # Customize theme and labels
     theme_bw() +
     labs(
-      x = "Species Absolute Median Latitude",
+      x = "Species Absolute Median Latitude (°)",
       y = paste0("Proportional Niche Overlap of ", region.name),
       if (vis.title) title <- "Niche Overlap vs Absolute Median Latitude",
       if (vis.title) subtitle <- "GAMLSS model components with occurrence data",

@@ -6,8 +6,8 @@ config <- read_yaml("./config.yaml")
 
 config$memory <- list(
   mem_total = get_mem_usage("total"),
-  mem_limit = get_mem_usage("total") * 0.75,
-  total_cores = detectCores() * 0.4
+  mem_limit = get_mem_usage("total") * config$memory$limit,
+  total_cores = detectCores() * config$memory$core_limit
 )
 
 config$species$angiosperms <- load_apg(rank = config$species$clade_rank)

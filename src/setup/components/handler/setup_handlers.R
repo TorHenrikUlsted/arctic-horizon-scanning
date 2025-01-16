@@ -74,6 +74,11 @@ setup_climate <- function(shapefile, iteration, show.plot = FALSE, verbose = FAL
 }
 
 setup_hv_region <- function(biovars_region, out.dir, method) {
+  on.exit({
+    rm(list = ls(environment()))
+    gc(full = TRUE)
+  })
+  
   vebcat("Setting up region Hypervolume", color = "funInit")
 
   region_out <- paste0(paste0(out.dir), "/hypervolume-", method, ".rds")

@@ -145,71 +145,58 @@ hypervolume_sequence <- function(
   tryCatch(
     {
       clusterApplyLB(parallel$cl, parallel$batch, function(j) {
-        
         initial_objects <- ls(envir = .GlobalEnv, all.names = TRUE)
         
-        clean_worker_env <- function() {
+        tryCatch({
+          
+          while(mem_check(
+            identifier = paste("node", j), 
+            ram.use = parallel$ram.use,
+            verbose = verbose
+          ))
+            
+          node_hypervolume(
+            process.dir = par.dir, # par.dir because it comes from inside the parllel setup
+            iteration = j,
+            spec.list = spec_list,
+            columns.to.read = c(
+              "kingdom",
+              "phylum",
+              "class",
+              "order",
+              "family",
+              "genus",
+              "species",
+              "infraspecificEpithet",
+              "taxonRank",
+              "scientificName",
+              "cleanName",
+              "decimalLongitude",
+              "decimalLatitude",
+              "coordinateUncertaintyInMeters",
+              "countryCode",
+              "occurrenceStatus",
+              "stateProvince",
+              "year"
+            ),
+            min.disk.space = min.disk.space,
+            cores.max.high = cores.max.high,
+            init.dt = init_dt,
+            verbose = verbose,
+            hv.incl.threshold = hv.incl.threshold,
+            hv.method = hv.method,
+            hv.accuracy = hv.accuracy,
+            hv.dims = hv.dims
+          )
+          
+        }, finally = {
+          # Clean up worker environment
           current_objects <- ls(envir = .GlobalEnv, all.names = TRUE)
           new_objects <- setdiff(current_objects, initial_objects)
-          print(paste("New objects created:", paste(new_objects, collapse = ", ")))
           rm(list = new_objects, envir = .GlobalEnv)
           gc(full = TRUE)
-        }
+        })
         
-        ram_msg <- FALSE
-        # RAM check
-        mem_used_gb <- get_mem_usage(type = "used", format = "gb")
-        mem_limit_gb <- config$memory$mem_limit / 1024^3
-        
-        while (mem_used_gb >= mem_limit_gb & !file.exists(paste0(par.dir, "/logs/escape.txt"))) {
-          if (!ram_msg) {
-            ram_con <- file(parallel$ram.use, open = "a")
-            writeLines(paste0("RAM usage ", mem_used_gb, " is above the maximum ", mem_limit_gb, " Waiting with node", j), ram_con)
-            close(ram_con)
-            invisible(gc(full = TRUE))
-            ram_msg <- TRUE
-          }
-          
-          Sys.sleep(60) # Wait for 60 seconds before checking again
-          Sys.sleep(runif(1, 0, 1)) # Add random seconds between 0 and 1 to apply difference if multiple nodes are in queue
-          mem_used_gb <- get_mem_usage(type = "used", format = "gb")
-        }
-        
-        node_hypervolume(
-          process.dir = par.dir, # par.dir because it comes from inside the parllel setup
-          iteration = j,
-          spec.list = spec_list,
-          columns.to.read = c(
-            "kingdom",
-            "phylum",
-            "class",
-            "order",
-            "family",
-            "genus",
-            "species",
-            "infraspecificEpithet",
-            "taxonRank",
-            "scientificName",
-            "cleanName",
-            "decimalLongitude",
-            "decimalLatitude",
-            "coordinateUncertaintyInMeters",
-            "countryCode",
-            "occurrenceStatus",
-            "stateProvince",
-            "year"
-          ),
-          min.disk.space = min.disk.space,
-          cores.max.high = cores.max.high,
-          init.dt = init_dt,
-          verbose = verbose,
-          hv.incl.threshold = hv.incl.threshold,
-          hv.method = hv.method,
-          hv.accuracy = hv.accuracy,
-          hv.dims = hv.dims
-        )
-        
-        clean_worker_env()
       })
     },
     error = function(e) {
@@ -219,6 +206,8 @@ hypervolume_sequence <- function(
       catn("Cleaning up parallel process.")
       stopCluster(parallel$cl)
       closeAllConnections()
+      rm(list = ls(environment()))
+      gc(full = TRUE)
     }
   )
   

@@ -393,6 +393,13 @@ chunk_protocol <- function(
     approach = FALSE,
     verbose = FALSE) {
   
+  on.exit({
+    # Clean up
+    closeAllConnections()
+    rm(list = ls(environment()))
+    gc(full = TRUE)
+  })
+  
   vebprint(head(spec.occ, 1), text = "spec.occ", veb = verbose)
   
  chunk_data(
