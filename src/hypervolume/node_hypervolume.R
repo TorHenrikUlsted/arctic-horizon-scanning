@@ -160,6 +160,7 @@ node_hypervolume <- function(
     }, finally = function() {
       catn("Cleaning up node environment")
       closeAllConnections()
+      rm(list = setdiff(ls(), "j"))
       invisible(gc(full = TRUE))
     }
   )

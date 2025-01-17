@@ -98,6 +98,7 @@ load_utils <- function(parallel = FALSE) {
     "./src/utils/components/handlers/time_handlers.R",
     "./src/utils/components/handlers/file_handlers.R",
     "./src/utils/components/handlers/lock_handlers.R",
+    "./src/utils/components/handlers/markdown_handlers.R",
     "./src/utils/components/conversion.R",
     "./src/utils/components/loader.R",
     "./src/utils/components/config.R"

@@ -211,14 +211,18 @@ if_file <- function(filepath, parameter = "exists", threshold = NULL) {
 
   file_info <- file.info(filepath)
   
+  state <- FALSE
+  
   switch (parameter,
-    "exists" = return(TRUE),
-    "today" = if (as.Date(file_info$mtime) == Sys.Date()) return(TRUE),
-    "size" = if (!is.null(threshold) && file_info$size >= threshold) return(TRUE),
-    "isdir" = if (file_info$isdir) return(TRUE),
+    "exists" = state <- TRUE,
+    "today" = if (as.Date(file_info$mtime) == Sys.Date()) state <- TRUE,
+    "size" = if (!is.null(threshold) && file_info$size >= threshold) state <- TRUE,
+    "isdir" = if (file_info$isdir) state <- TRUE,
     {
       warning("Invalid parameter value. Returning FALSE by default.") 
-      return(FALSE)
+      state <- FALSE
     }
   )
+  
+  return(state)
 }

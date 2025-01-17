@@ -351,7 +351,8 @@ find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "dec
   vebprint(nrow(dt), verbose, "Species data table row length:")
 
   prj <- get_crs_config(projection, verbose)
-
+  
+  # First get points in region
   catn("Converting coordinates to points")
   occ_points <- vect(dt, geom = c(longitude, latitude), crs = prj)
 
@@ -363,7 +364,8 @@ find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "dec
   } else {
     wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Code")
   }
-
+  
+  # Get the mean location of all points that fall within each WGSRPD region for that species via terra::centroids
   centroids <- get_centroid_subregion(wgsrpd_region, wgsrpdlvl_name, centroid.per.subregion = TRUE, verbose = verbose)
   
   index <- match(values(wgsrpd_region)[[wgsrpdlvl_name]], names(centroids))

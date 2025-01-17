@@ -4,7 +4,7 @@ source("./src/hypervolume/parallel_hypervolume.R")
 source("./src/hypervolume/node_hypervolume.R")
 source("./src/hypervolume/hypervolume.R")
 source("./src/visualize/visualize.R")
-source("./src/main.R")
+source("./src/initiate/main.R")
 
 # Can run tests with
 # spec.known = "test_known"
@@ -13,10 +13,10 @@ source("./src/main.R")
 main(
   spec.known = config$dataset$known, # Name of combined present data
   spec.known.key = config$gbif$known$download.key,
-  spec.known.key = config$gbif$known$download.doi,
+  spec.known.doi = config$gbif$known$download.doi,
   spec.unknown = config$dataset$unknown, # Name of combined absent data
   spec.unknown.key = config$gbif$unknown$download.key,
-  spec.unknown.key = config$gbif$unknown$download.doi,
+  spec.unknown.doi = config$gbif$unknown$download.doi,
   gbif.occ.region = config$gbif$region, # If wanting to download files within a shapefile -- converted to WKT
   coord.uncertainty = config$projection$raster_scale_m,
   hv.iterations = config$hypervolume$iterations,

@@ -30,9 +30,9 @@ main <- function(
   run <- 1
   
   repeat {
-    if (force.seq != "validation" && run == 1) {
+    if (is.null(force.seq) && run == 1 || force.seq != "validation" && run == 1) {
       validation_run <- FALSE
-    } else if (force.seq == "validation" || run == 2) {
+    } else if (!is.null(force.seq) && force.seq == "validation" || run == 2) {
       validation_run <- TRUE
     } else {
       vebcat("Error when trying to set validation parameter in main, stopping...", color = "fatalError")
@@ -78,7 +78,7 @@ main <- function(
         download.key = spec.known.key,
         download.doi = spec.known.doi
       ),
-      spec.known = list(
+      spec.unknown = list(
         name = spec.unknown,
         download.key = spec.unknown.key,
         download.doi = spec.unknown.doi
@@ -157,10 +157,10 @@ main <- function(
       verbose = verbose
     )
     
-    rm(list = ls(all.names = TRUE))
+    rm(vis.shape, sp_dir, sp_list, min_disk_space, peak_ram, max_cores, cores_max_high, cores_max_total)
     invisible(gc())
     
-    if (run == 2 || force.seq == "validation") {
+    if (run == 2 || !is.null(force.seq) && force.seq == "validation") {
       catn("Validation analysis has finished, closing main loop.\n")
       break
     }

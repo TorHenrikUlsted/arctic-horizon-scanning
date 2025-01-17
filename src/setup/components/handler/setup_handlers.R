@@ -131,6 +131,9 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
   stop_file <- paste0(hv_logs_dir, "/stop-file.txt")
   low_file <- paste0(hv_logs_dir, "/peak-mem-low.txt")
   high_file <- paste0(hv_logs_dir, "/peak-mem-high.txt")
+  time_low_file <- paste0(hv_logs_dir, "/time-low.txt")
+  time_high_file <- paste0(hv_logs_dir, "/time-high.txt")
+  avg_time_file <- paste0(hv_logs_dir, "/avg-time.txt")
 
   min_disk_space <- get_disk_space("/export", units = "GB") * 0.2
 
@@ -142,6 +145,7 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
     tryCatch({
       catn("Starting memory tracker")
       ram_control <- start_mem_tracking(low_file, stop_file)
+      time_low <- start_timer("low_mem_test")
 
       hypervolume_sequence(
         spec.list = sp_list_setup,
@@ -159,6 +163,8 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
       stop(e)
     }, finally = {
       stop_mem_tracking(ram_control, stop_file)
+      time_low_res <- end_timer(time_low)
+      writeLines(as.character(time_low_res), time_low_file)
     })
   }
 
@@ -170,6 +176,7 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
 
     tryCatch({
       ram_control <- start_mem_tracking(high_file, stop_file)
+      time_high <- start_timer("high_mem_test")
 
       # Run a hypervolume sequence of sax. opp.
       hypervolume_sequence(
@@ -188,11 +195,31 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
       stop(e)
     }, finally = {
       stop_mem_tracking(ram_control, stop_file)
+      time_high_res <- end_timer(time_high)
+      writeLines(as.character(time_high_res), time_high_file)
     })
   }
 
   peak_mem_low <- as.numeric(readLines(low_file))
   peak_mem_high <- as.numeric(readLines(high_file))
+  
+  if(file.exists(time_low_file) && file.exists(time_high_file)) {
+    time_low <- as.numeric(readLines(time_low_file))
+    time_high <- as.numeric(readLines(time_high_file))
+    avg_time <- (time_low + time_high) / 2
+    
+    # Convert to minutes for more readable display
+    time_low_min <- time_low / 60
+    time_high_min <- time_high / 60 
+    avg_time_min <- avg_time / 60
+    
+    writeLines(as.character(round(avg_time, 2)), avg_time_file)
+    
+    catn("\nTiming Results:")
+    catn("Low Memory Species Time:", highcat(round(time_low_min, 2)), "minutes")
+    catn("High Memory Species Time:", highcat(round(time_high_min, 2)), "minutes") 
+    catn("Average Processing Time:", highcat(round(avg_time_min, 2)), "minutes")
+  }
 
   rm(sp_list_setup)
   invisible(gc())
@@ -201,6 +228,11 @@ setup_hv_sequence <- function(hv.method, hv.accuracy, hv.dims, hv.incl.threshold
 
   return(list(
     low = peak_mem_low,
-    high = peak_mem_high
+    high = peak_mem_high,
+    time = list(
+      low = if(file.exists(time_low_file)) as.numeric(readLines(time_low_file)) else NULL,
+      high = if(file.exists(time_high_file)) as.numeric(readLines(time_high_file)) else NULL,
+      avg = if(file.exists(avg_time_file)) as.numeric(readLines(avg_time_file)) else NULL
+    )
   ))
 }

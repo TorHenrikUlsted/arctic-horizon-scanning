@@ -142,6 +142,20 @@ hypervolume_sequence <- function(
   
   vebprint(clusterEvalQ(parallel$cl, ls())[[1]], veb = verbose, text = "cluster variables sample:")
   
+  # ETC calculation
+  hv_setup_time <- paste0("./outputs/setup/hypervolume/", hv.method, "-sequence/setup-check/avg-time.txt")
+  if (file.exists(hv_setup_time)) {
+    base_time_iteration <- as.numeric(readLines(hv_setup_time)) * 60
+  } else {
+    base_time_iteration <- 25 * 60
+  }
+  
+  etc <- calculate_etc(
+    timer.res = base_time_iteration,
+    cores = parallel$cores.max.high,
+    data.length = length(parallel$spec.list)
+  )
+  
   tryCatch(
     {
       clusterApplyLB(parallel$cl, parallel$batch, function(j) {
@@ -190,10 +204,8 @@ hypervolume_sequence <- function(
           )
           
         }, finally = {
-          # Clean up worker environment
-          current_objects <- ls(envir = .GlobalEnv, all.names = TRUE)
-          new_objects <- setdiff(current_objects, initial_objects)
-          rm(list = new_objects, envir = .GlobalEnv)
+          # Clean up worker's own environment
+          rm(list = setdiff(ls(all.names = TRUE), initial_objects))
           gc(full = TRUE)
         })
         

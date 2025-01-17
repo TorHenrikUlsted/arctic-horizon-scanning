@@ -1,3 +1,4 @@
+# Example yaml file
 repository:
   name: "Horizon-Scanning-Repository"
   pack.sequence: "all"

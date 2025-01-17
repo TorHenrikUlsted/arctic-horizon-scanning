@@ -10,6 +10,7 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
   highest_it_file <- paste0(logs_dir, "/highest-iteration.txt")
   warn_file <- paste0(logs_dir, "/warning.txt")
   err_file <- paste0(logs_dir, "/error.txt")
+  time_est <- paste0()
 
   create_file_if(node_it_file, highest_it_file, warn_file, err_file, keep = TRUE)
   create_file_if(ram_usage,  keep = FALSE)
@@ -82,11 +83,12 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
       load_utils(parallel = TRUE)
       for (file in custom.evals) {
         tryCatch({
-          source(file, local = TRUE)
+          source(file, local = TRUE)  # Use local=TRUE to avoid polluting global env
         }, error = function(e) {
           stop(paste("Error in file", file, ":", e$message))
         })
       }
+      gc(full = TRUE)
     })
   }, error = function(e) {
     vebcat("Error when sourcing files for each core.", color = "fatalError")

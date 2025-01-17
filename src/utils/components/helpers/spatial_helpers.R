@@ -315,7 +315,7 @@ edit_crs <- function(crs.string, string.key, string.new, verbose = FALSE) {
   
   return(new_crs)
 }
-
+# This function gets the polygon closest to the mean of all polygon centroids
 get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.per.subregion = FALSE, inside = TRUE, verbose = FALSE) {
   uniq_subregions <- unique(region[[region.sub]])
   

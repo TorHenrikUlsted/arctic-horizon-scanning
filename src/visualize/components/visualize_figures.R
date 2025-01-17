@@ -945,7 +945,7 @@ visualize_spec_ranges <- function(dt, taxon, centroid = FALSE, multiple = FALSE,
       fig5 <- fig5 +
         scale_fill_manual(
           values = c(
-            "Subregions" = alpha("#00dcff", 0.3),
+            "Subregions" = "#4682B4",
             "Selected Subregion" = "#0013ff"
           ),
           labels = c(
@@ -958,7 +958,7 @@ visualize_spec_ranges <- function(dt, taxon, centroid = FALSE, multiple = FALSE,
       fig5 <- fig5 +
         scale_fill_manual(
           values = c(
-            "Subregions" = alpha("#00dcff", 0.3)
+            "Subregions" = "#4682B4"
           ),
           labels = c(
             "Circumpolar Arctic"
@@ -1231,11 +1231,11 @@ visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vi
   data <- copy(dt)
   
   # Create prediction data frame
-  lat_seq <- seq(min(data$centroid_latitude), max(data$centroid_latitude), length.out = 100)
-  pred_df <- data.frame(centroid_latitude = lat_seq)
+  lat_seq <- seq(min(dt$centroidLatitude), max(dt$centroidLatitude), length.out = 100)
+  pred_df <- data.table(centroidLatitude = lat_seq)
   
   # Get predictions with standard errors
-  predictions <- predict(model$models$full, newdata = pred_df, se.fit = TRUE, type = "response")
+  predictions <- predict(model$full, newdata = pred_df, se.fit = TRUE, type = "response")
   
   # Create prediction data table with confidence intervals
   pred_dt <- data.table(
@@ -1262,7 +1262,7 @@ visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vi
     # Add raw data points
     geom_point(
       data = data,
-      aes(x = centroid_latitude, y = overlapRegion),
+      aes(x = centroidLatitude, y = overlapRegion),
       alpha = 0.2,
       color = "grey50",
       size = 1
@@ -1284,7 +1284,7 @@ visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vi
     theme_bw() +
     labs(
       x = "Species Centroid Latitude (°)",
-      y = paste0("Proportional Niche Overlap of ", region.name),
+      y = paste0("Species Proportional Niche Overlap with ", region.name),
       title = if(vis.title) "Niche Overlap vs Latitude" else NULL,
       subtitle = if(vis.title) "GAM with beta regression" else NULL
     )

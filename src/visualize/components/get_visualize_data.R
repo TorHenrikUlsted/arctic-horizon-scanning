@@ -1553,7 +1553,12 @@ print_gamlss_summary <- function(models, results) {
   }
 }
 
-compare_gam_models <- function(data, predictor = "centroid_latitude", response = "overlapRegion") {
+compare_gam_models <- function(data, predictor = "centroidLatitude", response = "overlapRegion") {
+  if (any(data[[response]] < 0 | data[[response]] > 1)) {
+    cli::cli_alert_danger("Response variable must be between 0 and 1 exclusively for beta regression")
+    stop("Invalid response variable range")
+  }
+  
   # Create model formulas with smooth terms
   full_formula <- as.formula(paste(response, "~ s(", predictor, ")"))
   null_formula <- as.formula(paste(response, "~ 1"))
@@ -1566,7 +1571,7 @@ compare_gam_models <- function(data, predictor = "centroid_latitude", response =
   models <- list()
   
   # Progress bar
-  cli_progress_bar("Fitting models", total = 2)
+  cli_progress_bar("Fitting models", total = 2, type = "download")
   
   # 1. Full model with smooth term
   cli_progress_update()
@@ -1588,37 +1593,181 @@ compare_gam_models <- function(data, predictor = "centroid_latitude", response =
   
   cli_progress_done()
   
-  # Calculate AIC and BIC
-  aic_values <- sapply(models, AIC)
-  bic_values <- sapply(models, BIC)
-  delta_aic <- aic_values - min(aic_values)
-  delta_bic <- bic_values - min(bic_values)
+  # Get scores
+  reml_scores <- sapply(models, function(x) summary(x)$sp.criterion)
+  delta_reml <- reml_scores - min(reml_scores)
+  precision_scores <- sapply(models, function(x) summary(x)$family$getTheta())
+  r_sq_scores <- sapply(models, function(x) summary(x)$r.sq)
+  deviance_scores <- sapply(models, function(x) summary(x)$dev.expl)
+  edf_scores <- c(sum(summary(models$full)$s.table[, 1]), 0)
+  edf_total_scores <- c(sum(summary(models$full)$s.table[, 2]), 0)
   
-  # Create results data.table
-  results <- data.table(
-    Model = names(models),
-    AIC = aic_values,
-    Delta_AIC = delta_aic,
-    BIC = bic_values,
-    Delta_BIC = delta_bic,
-    row.names = NULL
+  results <- data.table::data.table(
+    model = names(models),
+    reml = reml_scores,
+    delta_reml = delta_reml,
+    precision = precision_scores,
+    edf = edf_scores,
+    edf.total = edf_total_scores,
+    r_sq_adj = r_sq_scores,
+    deviance_explained = deviance_scores,
+    description = c(
+      full = "Full model (smooth term for latitude)",
+      null = "Null model (intercept only)"
+    )
   )
-  
-  # Sort by AIC
-  results <- results[order(results$AIC), ]
-  
-  # Add model descriptions
-  model_descriptions <- c(
-    full = "Full model (smooth term for latitude)",
-    null = "Null model (intercept only)"
-  )
-  
-  results$Description <- model_descriptions[results$Model]
+  # Sort by REML score (lower is better)
+  results <- results[order(results$reml), ]
   
   cli::cli_alert_success("Model fitting finished successfully")
   
-  return(list(
+  result <- list(
     summary = results,
     models = models
+  )
+  
+  print_gam_summary(models = result$models, results = result$summary)
+  
+  return(result)
+}
+
+print_gam_summary <- function(models, results) {
+  # Helper function for consistent number formatting
+  format_num <- function(x, digits = 3) {
+    format(round(as.numeric(x), digits), big.mark = ",", trim = TRUE)
+  }
+  
+  # Color schemes for different elements
+  heading_color <- "cyan"
+  subheading_color <- "magenta" 
+  stat_color <- "green"
+  warning_color <- "yellow"
+  
+  # ---- Model Specifications Section ----
+  cli::cli_h1(cli::col_cyan("GAM Model Analysis"))
+  
+  for (i in 1:length(models)) {
+    model_summary <- summary(models[[i]])
+    model_name <- names(models)[i]
+    
+    # Model header with colored name
+    cli::cli_h2(cli::col_magenta(paste("Model:", model_name)))
+    
+    # Core model statistics with colored values
+    cli::cli_bullets(c(
+      "►" = sprintf("Family: %s {.val %s} (Precision: {.val %.3f})", 
+                    models[[i]]$family$family, 
+                    models[[i]]$family$link,
+                    models[[i]]$family$getTheta()),
+      "►" = sprintf("R-sq.(adj): {.val %.4f}", model_summary$r.sq),
+      "►" = sprintf("Deviance explained: {.val %.2f%%}", model_summary$dev.expl * 100),
+      "►" = sprintf("REML score: {.val %s}", format_num(model_summary$sp.criterion)),
+      "►" = sprintf("Scale est.: {.val %.3f}", model_summary$scale),
+      "►" = sprintf("Sample size: {.val %d}", model_summary$n)
+    ))
+    
+    # ---- Coefficients Tables ----
+    # Parametric coefficients
+    cli::cli_h3(cli::col_cyan("Parametric Coefficients"))
+    if (is.data.table(model_summary$p.table)) {
+      print_formatted_table(model_summary$p.table, "parametric")
+    } else {
+      print(model_summary$p.table)
+    }
+    
+    # Smooth terms
+    cli::cli_h3(cli::col_cyan("Smooth Terms"))
+    if (is.data.table(model_summary$s.table)) {
+      print_formatted_table(model_summary$s.table, "smooth")
+    } else {
+      print(model_summary$s.table)
+    }
+    
+    cli::cli_rule()
+  }
+  
+  # ---- Model Comparison Section ----
+  cli::cli_h2(cli::col_magenta("Model Comparison"))
+  
+  # Format results columns
+  results[, `:=`(
+    REML = format_num(reml, 1),
+    Delta_REML = format_num(delta_reml, 1),
+    Precision = format_num(precision, 3),
+    EDF = format_num(edf, 2),
+    EDF.Total = format_num(edf.total, 2),
+    R_sq_adj = format_num(r_sq_adj, 4),
+    Deviance_Explained = paste0(format_num(deviance_explained * 100, 2), "%")
+  )]
+  
+  # Print comparison statistics with enhanced formatting
+  cli::cli_h3(cli::col_cyan("Model Performance Metrics"))
+  cli::cli_bullets(c(
+    "►" = cli::col_green(sprintf(
+      "REML Difference: {.val %s} (lower is better)",
+      format_num(abs(as.numeric(gsub(",", "", results$REML[1])) - 
+                       as.numeric(gsub(",", "", results$REML[2]))), 1)
+    )),
+    "►" = cli::col_green(sprintf(
+      "Model Complexity (EDF): Full = {.val %s}, Null = {.val %s}",
+      results$EDF[1], results$EDF[2]
+    )),
+    "►" = cli::col_green(sprintf(
+      "Precision Parameters: Full = {.val %s}, Null = {.val %s}",
+      results$Precision[1], results$Precision[2]
+    )),
+    "►" = cli::col_green(sprintf(
+      "R-sq.(adj): Full = {.val %s}, Null = {.val %s}",
+      results$R_sq_adj[1], 
+      ifelse(length(results$R_sq_adj) > 1, results$R_sq_adj[2], "N/A")
+    )),
+    "►" = cli::col_green(sprintf(
+      "Deviance Explained: Full = {.val %s}, Null = {.val %s}",
+      results$Deviance_Explained[1],
+      ifelse(length(results$Deviance_Explained) > 1, results$Deviance_Explained[2], "N/A")
+    ))
   ))
+  
+  # ---- Interpretation Guide ----
+  cli::cli_h3(cli::col_magenta("Interpretation Guide"))
+  cli::cli_bullets(c(
+    "!" = cli::col_yellow("REML scores: Lower values indicate better model fit"),
+    "!" = cli::col_yellow("EDF: Higher values show increased model complexity"),
+    "!" = cli::col_yellow("Precision: Higher values indicate less data dispersion"),
+    "!" = cli::col_yellow("R-sq.(adj): Proportion of variance explained (higher is better)"),
+    "!" = cli::col_yellow("Deviance explained: Percentage improvement over null model")
+  ))
+  
+  invisible(results)
+}
+
+# Enhanced table printing helper function
+print_formatted_table <- function(table_data, table_type) {
+  col_names <- colnames(table_data)
+  
+  # Add significance stars
+  if (any(c("Pr(>|z|)", "p-value") %in% col_names)) {
+    p_col <- ifelse("Pr(>|z|)" %in% col_names, "Pr(>|z|)", "p-value")
+    table_data$Signif. <- sapply(table_data[[p_col]], function(p) {
+      if (p < 0.001) return(cli::col_green("***"))
+      if (p < 0.01) return(cli::col_green("**"))
+      if (p < 0.05) return(cli::col_green("*"))
+      if (p < 0.1) return(cli::col_yellow("."))
+      return("")
+    })
+    col_names <- c(col_names, "Signif.")
+  }
+  
+  # Print formatted table
+  header <- paste(cli::col_cyan(cli::style_bold(col_names)), collapse = "    ")
+  cli::cli_text(header)
+  cli::cli_rule(col = "cyan")
+  
+  for (i in 1:nrow(table_data)) {
+    row_data <- format(table_data[i,], digits = 4, trim = TRUE)
+    row_text <- paste(row_data, collapse = "    ")
+    cli::cli_text(row_text)
+  }
+  
+  cli::cli_rule(col = "cyan")
 }

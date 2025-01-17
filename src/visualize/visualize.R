@@ -921,20 +921,65 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   } else {
     # Prepare GAM
     
-    visualize_gam(
-      dt, 
-      model, 
-      region.name, 
-      vis.gradient = "viridis-b", 
-      vis.title = FALSE, 
-      save.dir, 
-      save.name = "figure-7",
-      save.device = "jpeg", 
-      save.unit = "px", 
-      plot.save = TRUE, 
-      plot.show = FALSE, 
-      verbose = FALSE
+    # Read from hypervolume dir to include excluded species
+    lat_dt <- fread(stats_file, select = c("cleanName", "overlapRegion", "level3Name", "level3Lat", "excluded"))
+    
+    #lat_dt <- sp_stats[, .(cleanName, overlapRegion, level3Name, level3Lat)]
+    lat_dt <- data.table::setnames(lat_dt, "level3Lat", "centroidLatitude")
+    
+    print(lat_dt)
+    
+    model <- compare_gam_models(
+      lat_dt, 
+      predictor = "centroidLatitude", 
+      response = "overlapRegion"
     )
+    
+    visualize_gam(
+      dt = lat_dt, 
+      model = model$models, 
+      region.name = vis.region.name, 
+      vis.gradient = "viridis-b", 
+      vis.title = vis.title, 
+      save.dir = plot_dir, 
+      save.name = "figure-7",
+      save.device = vis.save.device, 
+      save.unit = vis.save.unit, 
+      plot.save = TRUE, 
+      plot.show = plot.show, 
+      verbose = verbose
+    )
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = "2;Species Botanical Centroid Ranges"
+    )
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = "Summary of Selection Criteria for all GAM Models",
+      data = model$summary
+    )
+    
+    post_dir <- "./outputs/post-process/images"
+    create_dir_if(post_dir)
+    
+    model_md <- model_to_md(model$models[[1]]) # Always the best model fit
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = model_md,
+    )
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = "3;Summary Plot",
+      image = model$models[[1]],
+      image.out = paste0(post_dir, "/plot-summary-GAM.jpeg")
+    )
+    
+    rm(lat_dt, model, model_md)
+    invisible(gc())
   }
   
   #------------------------#
@@ -1002,7 +1047,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       save.unit = vis.save.unit,
       save.name = "figure-8",
       plot.show = plot.show,
-      verbose = TRUE
+      verbose = Tverbose
     )
   }
   
