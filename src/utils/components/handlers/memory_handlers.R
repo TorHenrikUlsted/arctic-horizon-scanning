@@ -231,21 +231,36 @@ track_memory <- function(fun, tracking = config$memory$tracking, identifier = NU
   }
 }
 
-mem_check <- function(identifier = NULL, ram.use = NULL, interval = 60, verbose = FALSE) {
+mem_check <- function(identifier = NULL, ram.use = NULL, custom_msg = NULL, interval = 60, verbose = FALSE) {
   tryCatch({
-    mem_used_gb <- get_mem_usage(type = "used", format = "gb")
-    mem_limit_gb <- config$memory$mem_limit / 1024^3
+    mem_used_gb <- round(get_mem_usage(type = "used", format = "gb"), 2)
+    mem_limit_gb <- round(config$memory$mem_limit / 1024^3, 2)
+    
+    # Static variable to track if message has been written for this identifier
+    msg_written <- if (exists(".msg_written", envir = .GlobalEnv)) 
+      get(".msg_written", envir = .GlobalEnv) 
+    else 
+      list()
     
     if (mem_used_gb >= mem_limit_gb) {
-      if (!is.null(ram.use)) {
+      if (!is.null(ram.use) && (!identifier %in% names(msg_written) || !msg_written[[identifier]])) {
         tryCatch({
           ram_con <- file(ram.use, open = "a")
-          writeLines(paste0(
+          msg <- paste0(
             "RAM usage ", mem_used_gb, 
-            " is above the maximum ", mem_limit_gb,
-            if(!is.null(identifier)) paste(" Waiting with", identifier)
-          ), ram_con)
+            " GB is above the maximum ", mem_limit_gb, " GB"
+          )
+          if (!is.null(custom_msg)) {
+            msg <- paste0(msg, ". ", custom_msg)
+          } else if (!is.null(identifier)) {
+            msg <- paste0(msg, ". Waiting with ", identifier)
+          }
+          writeLines(msg, ram_con)
           close(ram_con)
+          
+          # Mark message as written for this identifier
+          msg_written[[identifier]] <- TRUE
+          assign(".msg_written", msg_written, envir = .GlobalEnv)
         }, error = function(e) {
           warning(paste("Failed to write to RAM usage file:", e$message))
         }, finally = {
@@ -263,6 +278,13 @@ mem_check <- function(identifier = NULL, ram.use = NULL, interval = 60, verbose 
       
       return(TRUE)
     }
+    
+    # Reset message written status when memory is OK again
+    if (!is.null(identifier) && identifier %in% names(msg_written)) {
+      msg_written[[identifier]] <- FALSE
+      assign(".msg_written", msg_written, envir = .GlobalEnv)
+    }
+    
     return(FALSE)
   }, error = function(e) {
     warning(paste("Error in memory check:", e$message))

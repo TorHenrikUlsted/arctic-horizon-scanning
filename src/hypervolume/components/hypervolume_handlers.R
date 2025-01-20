@@ -1,8 +1,12 @@
 analyze_hv_stats <- function(sp_hv, region_hv, spec.name, verbose) {
   on.exit({
-    rm(list = ls(environment()))
-    gc(full = TRUE)
-  })
+    tryCatch({
+      rm(list = ls(environment()))
+      gc(full = TRUE)
+    }, error = function(e) {
+      warning("Cleanup failed in analyze_hv_stats: ", e$message)
+    })
+  }, add = TRUE)
   
   catn("Analyzing hypervolume for", highcat(sp_hv@Name), "\n")
 
