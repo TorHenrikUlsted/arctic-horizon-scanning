@@ -40,13 +40,51 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   
   if (vis.title) {
     plot_dir <- file.path(plot_dir, "title", vis.save.device)
-    existing_plots <- basename(list.files(plot_dir))
   } else {
     plot_dir <- file.path(plot_dir, "no-title", vis.save.device)
-    existing_plots <- basename(list.files(plot_dir))
   }
   
   create_file_if(warn_file, err_file)
+  
+  frequency_files <- c("figure-1A-descriptive", "figure-1A", "figure-1B")
+  hotspot_files <- paste0("figure-2-", c("all", "angiosperms", "gymnosperms", "pteridophytes", "combined"))
+  occpancy_files <- paste0("figure-3A-", c("all", "angiosperms", "gymnosperms", "pteridophytes"))
+  suitability_files <- paste0("figure-3B-", c("all", "angiosperms", "gymnosperms", "pteridophytes"))
+  suit_occupancy_files <- "figure-3D-1-5"
+  composition_files  <- c("figure-4A", "figure-4B")
+  connections_files <- "figure-5-all"
+  gamlss_files <- c("figure-6A", "figure-6B")
+  gam_files <- "figure-7"
+  sankey_files <- "figure-8"
+  
+  
+  # Initial full check
+  all_files <- c(
+    frequency_files,
+    hotspot_files,
+    occpancy_files,
+    suitability_files,
+    suit_occupancy_files,
+    composition_files,
+    connections_files,
+    gamlss_files, 
+    gam_files,
+    sankey_files
+  )
+  
+  check_result <- check_visualization_files(all_files, plot_dir, vis.title, vis.save.device)
+  
+  if (check_result$complete) {
+    catn("All visualization files exist in:", colcat(plot_dir, color = "output"))
+    return(invisible())
+  } else {
+    catn("Directory:", colcat(plot_dir, color = "output"))
+    if (length(check_result$existing) > 0) {
+      catn("Existing files:", highcat(paste(basename(check_result$existing), collapse = ", ")))
+    }
+    catn("Missing files:", highcat(paste(basename(check_result$missing), collapse = ", ")))
+    catn("Continuing with visualization sequence for missing files...")
+  }
   
   #------------------------#
   ####  Load variables  ####
@@ -191,13 +229,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   rm(summed_richness, group_richness)
   invisible(gc())
   
-  
   #------------------------#
   ####    Frequency     ####
   #------------------------#
   
-  fig_name <- paste0("figure-1A", ".", vis.save.device)
-  if (fig_name %in% existing_plots) {
+  if (!check_visualization_files(frequency_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Frequency Figures.", color = "indicator")
   } else {
     freq_stack <- copy(all_richness$all)
@@ -234,14 +270,13 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(freq_stack)
     invisible(gc())
   }
-  
+
   #------------------------#
   ####    Hotspots      ####
   #------------------------#
   
   # Figure 2: Stack inclusion tif files and calculate species in each cell to get potential hotspots
-  fig_length <- sum(grepl("figure-2", existing_plots))
-  if (fig_length == 5) {
+  if (!check_visualization_files(hotspot_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Hotspots Figure.", color = "indicator")
   } else {
     # Convert to raster by using a template
@@ -323,13 +358,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(hotspot_raster, world_map, res_hotspots_nums)
     invisible(gc())
   }
-  
+
   #-------------------------#
   #### Area of occupancy ####
   #-------------------------#
   
-  fig_length <- sum(grepl("figure-3A", existing_plots))
-  if (fig_length == 4) {
+  if (!check_visualization_files(occpancy_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Potential Area of Occupancy Figure.", color = "indicator")
   } else {
     paoo_files <- list()
@@ -411,13 +445,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     invisible(gc())
   }
   
-  
   #------------------------#
   ####   Suitability    ####
   #------------------------#
   
-  fig_length <- sum(grepl("figure-3B", existing_plots))
-  if (fig_length == 4) {
+  if (!check_visualization_files(suitability_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Suitability Figure.", color = "indicator")
   } else {
     # Figure 3: Stack probability tif files and use the highest numbers to get a color gradient
@@ -506,13 +538,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(prob_mean, prob_stack, world_map, prob_vals_md)
     invisible(gc())
   }
-  
+
   #------------------------#
   ####   Suit + paoo    ####
   #------------------------#
   
-  fig_name <- "figure-3D"
-  if (any(grepl(fig_name, existing_plots))) {
+  if (!check_visualization_files(suit_occupancy_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Potential Area of Occupancy x Suitability Figure.", color = "indicator")
   } else {
     rows <- 5
@@ -612,13 +643,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(paoo_files, prob_files, prob_vals_md, world_map)
     invisible(gc())
   }
-  
+
   #------------------------#
   ####   Composition    ####
   #------------------------#
   
-  fig_name <- paste0("figure-4A", ".", vis.save.device)
-  if (fig_name %in% existing_plots) {
+  if (!check_visualization_files(composition_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Composition Figure.", color = "indicator")
   } else {
     # Figure 4: stacked barplot wtih taxa per sub region
@@ -717,13 +747,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(paoo_file, richness_dt, top_orders_md, richness_group_md)
     invisible(gc())
   }
-  
+
   #------------------------#
   ####   Connections    ####
   #------------------------#
   
-  fig_name <- "connections"
-  if (dir.exists(file.path(plot_dir, "connections"))) {
+  if (!check_visualization_files(connections_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Connections figure.", color = "indicator")
   } else {
     paoo_files <- list()
@@ -844,13 +873,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(richness_dt, connections_md, con_spec, con_fam, con_order, subsets, con_subregion, con_origin)
     invisible(gc())
   }
-  
+
   #--------------------------------#
   ####   Distribution - GAMLSS  ####
   #--------------------------------#
   
-  fig_name <- "figure-6"
-  if (sum(grepl(fig_name, existing_plots)) == 2) {
+  if (!check_visualization_files(gamlss_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
   } else {
     
@@ -911,12 +939,11 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(lat_dt, model, model_md)
     invisible(gc())
   }
-  
+
   #-----------------------------#
   ####   Distribution - GAM  ####
   #-----------------------------#
-  fig_name <- paste0("figure-7",".", vis.save.device)
-  if (fig_name %in% existing_plots) {
+  if (!check_visualization_files(gam_files, plot_dir, vis.title, vis.save.device))  {
     vebcat("Skipping Species Sankey figure.", color = "indicator")
   } else {
     # Prepare GAM
@@ -981,13 +1008,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(lat_dt, model, model_md)
     invisible(gc())
   }
-  
+   
   #------------------------#
   ####      Sankey      ####
   #------------------------#
   
-  fig_name <- paste0("figure-8",".", vis.save.device)
-  if (fig_name %in% existing_plots) {
+    if (!check_visualization_files(sankey_files, plot_dir, vis.title, vis.save.device)) {
     vebcat("Skipping Species Sankey figure.", color = "indicator")
   } else {
     paoo_files <- list()

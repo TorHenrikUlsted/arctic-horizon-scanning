@@ -282,8 +282,14 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
   
   present_out <- paste0(out.dirs$unknown, "/present-usage-keys.csv")
   absent_out <- paste0(out.dirs$unknown, "/absent-usage-keys.csv")
+  known_out <- paste0(out.dirs$known, "/known-usageKeys.csv")
   
-  if (file.exists(present_out) & file.exists(absent_out)) return(fread(absent_out))
+  if (file.exists(present_out) & file.exists(absent_out) & file.exists(known_out)) {
+    return(list(
+      known = fread(known_out),
+      unknown = fread(absent_out)
+    ))
+  }
   
   mdwrite(
     config$files$post_seq_md,
@@ -296,11 +302,14 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
     verbose = verbose
   )
   
+  
   filtered_known_keys <- filter_keys(
     keys.dt = known_keys,
     out.dir = out.dirs$known,
     verbose = verbose
   )
+  
+  fwrite(filtered_known_keys, known_out, bom = TRUE)
   
   mdwrite(
     config$files$post_seq_md,
@@ -324,7 +333,7 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
     spec.in = filtered_unknown_keys,
     fun = function() {
       # First merge to only get species from both dts
-      unknown_present <- inner_union(unknown_keys, known_keys, by = "usageKey")
+      unknown_present <- inner_union(filtered_unknown_keys, known_keys, by = "usageKey")
       
       return(unknown_present)
     }
@@ -335,7 +344,7 @@ filter_gbif_keys <- function(spec.dts, out.dirs, verbose = FALSE) {
     spec.in = filtered_unknown_keys,
     fun = function() {
       # Remove known present species from the unknown-absent species
-      unknown_absent <- anti_union(unknown_keys, known_keys, "usageKey")
+      unknown_absent <- anti_union(filtered_unknown_keys, known_keys, "usageKey")
       
       return(unknown_absent)
     }

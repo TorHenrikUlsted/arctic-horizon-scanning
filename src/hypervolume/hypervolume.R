@@ -56,9 +56,6 @@ process_species <- function(spec.dt, spec.name, process.dir, method, points.proj
   vebprint(head(sp_mat, 3), verbose, "Processed environment data sample:")
 
   vebcat("Data processing protocol completed successfully.", color = "funSuccess")
-  
-  rm(sp_points, biovars_world)
-  invisible(gc())
 
   return(sp_mat)
 }

@@ -34,6 +34,7 @@ main <- function(
       validation_run <- FALSE
     } else if (!is.null(force.seq) && force.seq == "validation" || run == 2) {
       validation_run <- TRUE
+      vebcat("Initiating Validation Protocol", color = "funInit")
     } else {
       vebcat("Error when trying to set validation parameter in main, stopping...", color = "fatalError")
       vebprint(run, text = "run:")
@@ -157,7 +158,7 @@ main <- function(
       verbose = verbose
     )
     
-    rm(vis.shape, sp_dir, sp_list, min_disk_space, peak_ram, max_cores, cores_max_high, cores_max_total)
+    rm(sp_dir, sp_list, min_disk_space, peak_ram, max_cores, cores_max_high, cores_max_total)
     invisible(gc())
     
     if (run == 2 || !is.null(force.seq) && force.seq == "validation") {
@@ -167,7 +168,7 @@ main <- function(
     
     if (validation) {
       run <- 2
-      catn("Setting run to 2\n")
+      catn("Changing mode to validation")
     } else {
       catn("Validation analysis is set to FALSE, closing main loop.\n")
       break

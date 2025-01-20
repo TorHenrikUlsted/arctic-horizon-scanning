@@ -152,8 +152,8 @@ hypervolume_sequence <- function(
   
   etc <- calculate_etc(
     timer.res = base_time_iteration,
-    cores = parallel$cores.max.high,
-    data.length = length(parallel$spec.list)
+    cores = parallel$cores,
+    data.length = length(parallel$batch)
   )
   
   tryCatch(
@@ -163,11 +163,15 @@ hypervolume_sequence <- function(
         
         tryCatch({
           
-          while(mem_check(
-            identifier = paste("node", j), 
-            ram.use = parallel$ram.use,
-            verbose = verbose
-          ))
+          repeat {
+            if (!mem_check(
+              identifier = paste("node", j), 
+              ram.use = parallel$ram.use,
+              verbose = verbose
+            )) {
+              break  # Exit loop when memory is OK
+            }
+          }
             
           node_hypervolume(
             process.dir = par.dir, # par.dir because it comes from inside the parllel setup
@@ -203,6 +207,9 @@ hypervolume_sequence <- function(
             hv.dims = hv.dims
           )
           
+        }, error = function(e) {
+          err_msg <- paste("Error in node_hypervolume in iteration", j, ":", e$message)
+          warning(err_msg)
         }, finally = {
           # Clean up worker's own environment
           rm(list = setdiff(ls(all.names = TRUE), initial_objects))
@@ -216,10 +223,9 @@ hypervolume_sequence <- function(
       stop(e)
     }, finally = {
       catn("Cleaning up parallel process.")
+      cleanup_files(paste0(hv_dir, "/locks"), recursive = TRUE, verbose = verbose)
       stopCluster(parallel$cl)
       closeAllConnections()
-      rm(list = ls(environment()))
-      gc(full = TRUE)
     }
   )
   
@@ -227,6 +233,11 @@ hypervolume_sequence <- function(
   
   highest_iteration <- as.integer(readLines(parallel$highest.iteration))
   do_not_return <- FALSE
+  
+  print(highest_iteration)
+  print(is.na(highest_iteration))
+  print(is.null(highest_iteration))
+  print(length(spec_list))
   
   if (highest_iteration >= length(spec_list)) {
     vebcat("Parallel process finished all iterations.", color = "funSuccess")
@@ -254,4 +265,7 @@ hypervolume_sequence <- function(
   vebcat("Hypervolume sequence completed succesfully", color = "seqSuccess")
   
   if (do_not_return) stop("Stopping process from going to visualization sequence because of missing data.")
+  
+  rm(list = ls(environment()))
+  gc(full = TRUE)
 }

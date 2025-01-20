@@ -327,10 +327,12 @@ get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.pe
     sub_region_centroids <- vect()
   }
   
+  vebcat("Acquiring centroid for ", length(uniq_subregions), "subregion(s)", veb = verbose)
+  
   for (i in 1:nrow(uniq_subregions)) {
     sub_region_name <- uniq_subregions[i, ]
     
-    vebcat("Acquiring centroid for subregion", sub_region_name)
+    vebcat("Acquiring centroid for subregion", sub_region_name, veb = verbose)
     
     vebprint(sub_region_name, verbose, "Sub-Region Name:")
     

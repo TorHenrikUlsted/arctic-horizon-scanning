@@ -232,32 +232,42 @@ track_memory <- function(fun, tracking = config$memory$tracking, identifier = NU
 }
 
 mem_check <- function(identifier = NULL, ram.use = NULL, interval = 60, verbose = FALSE) {
-  mem_used_gb <- get_mem_usage(type = "used", format = "gb")
-  mem_limit_gb <- config$memory$mem_limit / 1024^3
-  
-  if (mem_used_gb >= mem_limit_gb) {
-    if (!is.null(ram.use)) {
-      ram_con <- file(ram.use, open = "a")
-      writeLines(paste0(
-        "RAM usage ", mem_used_gb, 
-        " is above the maximum ", mem_limit_gb,
-        if(!is.null(identifier)) paste(" Waiting with", identifier)
-      ), ram_con)
-      close(ram_con)
+  tryCatch({
+    mem_used_gb <- get_mem_usage(type = "used", format = "gb")
+    mem_limit_gb <- config$memory$mem_limit / 1024^3
+    
+    if (mem_used_gb >= mem_limit_gb) {
+      if (!is.null(ram.use)) {
+        tryCatch({
+          ram_con <- file(ram.use, open = "a")
+          writeLines(paste0(
+            "RAM usage ", mem_used_gb, 
+            " is above the maximum ", mem_limit_gb,
+            if(!is.null(identifier)) paste(" Waiting with", identifier)
+          ), ram_con)
+          close(ram_con)
+        }, error = function(e) {
+          warning(paste("Failed to write to RAM usage file:", e$message))
+        }, finally = {
+          if(exists("ram_con")) try(close(ram_con))
+        })
+      }
+      
+      vebcat("Memory usage:", mem_used_gb, "GB exceeds limit:", mem_limit_gb, "GB", veb = verbose)
+      invisible(gc(full = TRUE))
+      
+      if (interval > 0) {
+        Sys.sleep(interval)
+        Sys.sleep(runif(1, 0, 1))
+      }
+      
+      return(TRUE)
     }
-    
-    vebcat("Memory usage:", mem_used_gb, "GB exceeds limit:", mem_limit_gb, "GB", veb = verbose)
-    invisible(gc(full = TRUE))
-    
-    if (interval > 0) {
-      Sys.sleep(interval)
-      # Add random delay to prevent synchronization of multiple processes
-      Sys.sleep(runif(1, 0, 1))
-    }
-    
-    return(TRUE)
-  }
-  return(FALSE)
+    return(FALSE)
+  }, error = function(e) {
+    warning(paste("Error in memory check:", e$message))
+    return(FALSE) # Return false on error to avoid infinite loops
+  })
 }
 
 calc_num_cores <- function(ram.high, ram.low = 0, cores.total = detectCores(), verbose = FALSE) {

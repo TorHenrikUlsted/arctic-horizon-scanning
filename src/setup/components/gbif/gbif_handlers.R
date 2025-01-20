@@ -178,7 +178,21 @@ filter_keys <- function(keys.dt, out.dir, verbose = FALSE) {
   
   keys_dt <- keys.dt[!(speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species")]
   
-  fwrite(keys_dt, paste0(out.dir, "/standardized-sp-keys.csv"))
+  na_keys <- keys.dt[(is.na(usageKey))]
+  
+  if (nrow(na_keys) > 0) {
+    catn("Found", highcat(nrow(na_keys)), "NA usageKeys when filtering keys")
+    fwrite(na_keys, paste0(out.dir, "/na_sp_keys.csv"))
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = paste0("**", nrow(na_keys), "** NA usageKeys were removed for ", name, " species")
+    )
+  }
+  
+  na_keys <- keys.dt[!(is.na(usageKey))]
+  
+  fwrite(keys_dt, paste0(out.dir, "/filtered-sp-keys.csv"))
   
   keys_dt <- keys_dt[, .(usageKey)]
   

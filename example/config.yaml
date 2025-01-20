@@ -9,7 +9,7 @@ simulation:
   approach: "precautionary"
   projection: "laea"
   
-  validation: FALSE
+  validation: TRUE
   example: TRUE
   verbose: FALSE
   force.sequence: null
@@ -21,8 +21,8 @@ dataset:
 gbif:
   region: null
   known:
-    download.key: null
-    download.doi: null
+    download.key: "0000473-250117142028555"
+    download.doi: "https://doi.org/10.15468/dl.thhqum"
   unknown:
     download.key: "0040021-240906103802322"
     download.doi: "https://doi.org/10.15468/dl.z6bgn2"

@@ -7,7 +7,7 @@ if (config$simulation$example) {
   src_dir <- "./src"
 }
 
-filter_sequence <- function(spec.known = NULL, spec.unknown, validation = TRUE, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
+filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
   #------------------------#
   ####       Setup      ####
   #------------------------#
@@ -23,13 +23,17 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = TRUE, 
   
   absent_final <- file.path(unknown_dir, "absent-final.csv")
   present_final <- file.path(known_dir, "present-final.csv")
-
   coord_un_file <- file.path(build_climate_path(), "coordinateUncertainty-m.txt")
   if (is.null(coord.uncertainty)) coord.uncertainty <- as.integer(readLines(coord_un_file))
-  seq_fin_file <- file.path(filter_dir, gsub("_", "-", spec.unknown$name), "filter-sequence-completed.txt")
   
-
-  if (!is.null(force.seq) && ("all" %in% force.seq | "filter" %in% force.seq)) {
+  # Look for file in correct folder based on validation run
+  seq_fin_file <- file.path(filter_dir, gsub("_", "-", if (!validation) {
+    spec.unknown$name
+  } else {
+    spec.known$name
+  }), "filter-sequence-completed.txt")
+  
+  if (!is.null(force.seq) && ("all" %in% force.seq | "filter" %in% force.seq | "validation" %in% force.seq)) {
     catn("Forcing filter sequence.")
     if (file.exists(seq_fin_file)) file.remove(seq_fin_file)
   }
@@ -195,13 +199,11 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = TRUE, 
   #### Filter gbif keys ####
   #------------------------#
   
-  unknown <- filter_gbif_keys(
+  keys_dts <- filter_gbif_keys(
     spec.dts = list(known = known$present, unknown = unknown),
     out.dirs = list(known = known_dir, unknown = unknown_dir),
     verbose = verbose
   )
-  
-  keys_dts
   
   #------------------------#
   ####    Occurrence    ####

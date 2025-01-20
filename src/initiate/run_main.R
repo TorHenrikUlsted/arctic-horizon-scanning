@@ -24,7 +24,7 @@ main(
   hv.accuracy = config$hypervolume$accuracy,
   hv.dims = config$hypervolume$dimensions,
   hv.incl.threshold = config$hypervolume$inclusion.threshold,
-  vis.shape = config$visualization$shape,
+  vis.shape = config$visualization$shape.name,
   vis.title = config$visualization$title,
   vis.region.name = config$visualization$region.name, # The name that will be displayed on plot titles
   vis.projection = config$simulation$projection,

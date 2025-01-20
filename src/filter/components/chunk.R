@@ -168,43 +168,132 @@ identify_accepted <- function(dt, verbose = FALSE) {
 process_accepted <- function(occ.data, checklist, accepted.keys, symbols, designations, verbose = FALSE) {
   
   if (length(accepted.keys) == 1) {
-    accepted_name <- checklist[usageKey == accepted.keys, scientificName][1]
-    
-    accepted_name <- clean_spec_name(accepted_name, symbols, designations)$cleanName
-    
-    return(list(accepted_name = accepted_name))
+    tryCatch({
+      # Get all potential names from checklist
+      potential_names <- checklist[usageKey == accepted.keys | acceptedUsageKey == accepted.keys, ]
+      accepted_name <- NULL
+      
+      # Try getting accepted name in order of preference
+      if (nrow(potential_names[status == "ACCEPTED"]) > 0) {
+        accepted_name <- potential_names[status == "ACCEPTED", scientificName][1]
+      } else if (nrow(potential_names) > 0) {
+        accepted_name <- potential_names[1, scientificName]
+      }
+      
+      # Only try API if we couldn't get a name from checklist
+      if (is.null(accepted_name) || is.na(accepted_name) || accepted_name == "") {
+        dt <- tryCatch({
+          gbif_retry(accepted.keys, "name_usage")
+        }, error = function(e) {
+          if (verbose) catn("GBIF API call failed:", e$message)
+          return(NULL)
+        })
+        
+        if (!is.null(dt) && !is.null(dt$data)) {
+          accepted_name <- dt$data$scientificName
+        }
+      }
+      
+      # If we got a valid name, clean and return it
+      if (!is.null(accepted_name) && !is.na(accepted_name) && accepted_name != "") {
+        accepted_name <- clean_spec_name(accepted_name, symbols, designations)$cleanName
+        return(list(accepted_name = accepted_name))
+      }
+      
+      # If we got here, use original name from occurrence data
+      original_name <- occ.data$scientificName[1]
+      if (!is.na(original_name)) {
+        original_name <- clean_spec_name(original_name, symbols, designations)$cleanName
+        return(list(accepted_name = original_name))
+      }
+      
+      if (verbose) catn("Could not resolve name for key", accepted.keys)
+      return(NULL)
+      
+    }, error = function(e) {
+      if (verbose) catn("Error processing key", accepted.keys, ":", e$message)
+      return(NULL)
+    })
   }
   
   result <- list()
   
   for (key in accepted.keys) {
-    # Subset the checklist
-    checklist_subset <- checklist[acceptedUsageKey == key | usageKey == key, ]
-    
-    if (nrow(checklist_subset) > 0) {
-      accepted_name <- checklist_subset[status == "ACCEPTED", scientificName][1]
+    tryCatch({
+      # Get all rows that could be relevant
+      checklist_subset <- checklist[acceptedUsageKey == key | usageKey == key, ]
       
-      if (is.na(accepted_name) | accepted_name == "") {
-        accepted_key <- unique(checklist_subset$acceptedUsageKey)
-        accepted_name <- gbif_retry(accepted_key, "name_usage")$data$scientificName
+      if (nrow(checklist_subset) > 0) {
+        accepted_name <- NULL
+        
+        # Try getting accepted name in order of preference
+        if (nrow(checklist_subset[status == "ACCEPTED"]) > 0) {
+          accepted_name <- checklist_subset[status == "ACCEPTED", scientificName][1]
+        } else {
+          accepted_name <- checklist_subset[1, scientificName]
+        }
+        
+        # Try API only if necessary
+        if (is.null(accepted_name) || is.na(accepted_name) || accepted_name == "") {
+          dt <- tryCatch({
+            gbif_retry(key, "name_usage")
+          }, error = function(e) {
+            if (verbose) catn("GBIF API call failed for key", key, ":", e$message)
+            return(NULL)
+          })
+          
+          if (!is.null(dt) && !is.null(dt$data)) {
+            accepted_name <- dt$data$scientificName
+          }
+        }
+        
+        # If still no valid name, try using original name from data
+        if (is.null(accepted_name) || is.na(accepted_name) || accepted_name == "") {
+          original_rows <- occ.data[taxonKey == key, ]
+          if (nrow(original_rows) > 0) {
+            accepted_name <- original_rows$scientificName[1]
+          }
+        }
+        
+        if (!is.null(accepted_name) && !is.na(accepted_name) && accepted_name != "") {
+          # Get all relevant keys
+          relevant_keys <- unique(c(checklist_subset$usageKey, checklist_subset$acceptedUsageKey))
+          relevant_keys <- relevant_keys[!is.na(relevant_keys)]
+          
+          # Get occurrence data
+          occurrence_subset <- occ.data[taxonKey %in% relevant_keys, ]
+          
+          # Clean name
+          accepted_name <- clean_spec_name(accepted_name, symbols, designations)$cleanName
+          
+          # Only process if we have data
+          if (nrow(occurrence_subset) > 0) {
+            occurrence_subset[, cleanName := accepted_name]
+            result[[accepted_name]] <- occurrence_subset
+            
+            if (verbose) {
+              catn("Processed", accepted_name, "with", 
+                   nrow(checklist_subset), "taxa and", 
+                   nrow(occurrence_subset), "occurrences")
+            }
+          }
+        }
       }
-      
-      # Get all relevant usageKeys (accepted and synonyms)
-      relevant_keys <- unique(c(checklist_subset$usageKey, checklist_subset$acceptedUsageKey))
-      relevant_keys <- relevant_keys[!is.na(relevant_keys)]
-      
-      # Subset the occurrence data
-      occurrence_subset <- occ.data[taxonKey %in% relevant_keys, ]
-      
-      accepted_name <- clean_spec_name(accepted_name, symbols, designations)$cleanName
-      
-      occurrence_subset[, cleanName := accepted_name]
-      
-      result[[accepted_name]] <- occurrence_subset
-      
-      vebcat("Processed", highcat(accepted_name), "with", 
-             highcat(nrow(checklist_subset)), "taxa and", 
-             highcat(nrow(occurrence_subset)), "occurrences", veb = verbose)
+    }, error = function(e) {
+      if (verbose) {
+        catn("Error processing key", key, ":", e$message)
+      }
+    })
+  }
+  
+  # Return original data if we couldn't process anything
+  if (length(result) == 0 && nrow(occ.data) > 0) {
+    original_name <- occ.data$scientificName[1]
+    if (!is.na(original_name)) {
+      original_name <- clean_spec_name(original_name, symbols, designations)$cleanName
+      occ.data[, cleanName := original_name]
+      result[[original_name]] <- occ.data
+      if (verbose) catn("Using original name", original_name, "for unresolved data")
     }
   }
   

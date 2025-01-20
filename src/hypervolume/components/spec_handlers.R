@@ -100,6 +100,7 @@ gbif_retry <- function(spec, fun = "name_backbone_checklist", retry.max = 3, tim
   }
 
   if (is.null(result)) {
+    vebcat(spec, text = "spec:")
     stop("Failed to fetch data after all retry attempts.")
   }
 
@@ -256,40 +257,89 @@ loop_occ_overlap <- function(spec.occ.dir, region, region.name = "Arctic", file.
   return(spec_dt_out)
 }
 
-most_used_name <- function(x, max.number = 1, verbose = FALSE) {
+#' Find the most frequently used name in a vector
+#' 
+#' @param x A vector containing names to analyze
+#' @param max.number Maximum number of unique names allowed before selecting most frequent
+#' @param verbose Boolean to control detailed output printing
+#' @return The most frequently used name (or unique name if only one exists)
+most_used_name <- function(x, col.name, max.number = 1, verbose = FALSE) {
+  # Get unique values including empty strings
   name <- unique(x)
-
-  if (length(name) > max.number) {
-    vebcat("Found too many different names.", color = "nonFatalError")
-
-    freq_table <- table(x)
-    vebprint(freq_table, verbose, "Most used names table:")
-
-    name <- names(which.max(freq_table))
+  n_unique <- length(name)
+  total_records <- length(x)
+  
+  if (n_unique > max.number) {
+    # Print column header for clarity
+    catn(sprintf("\nFound too many different names for: %s (%d)", col.name, n_unique))
+    
+    # Create frequency table including NAs
+    freq_table <- table(x, useNA = "always")
+    freq_counts <- as.numeric(freq_table)
+    names(freq_counts) <- names(freq_table)
+    
+    if (verbose) {
+      catn("\nFrequency table:")
+      freq_df <- data.frame(
+        Name = names(freq_counts),
+        Count = freq_counts,
+        Percentage = sprintf("%.1f%%", 100 * freq_counts / total_records)
+      )
+      freq_df$Name[is.na(freq_df$Name)] <- "<NA>"
+      freq_df <- freq_df[order(-freq_df$Count), ]
+      print(freq_df, row.names = TRUE)
+    }
+    
+    # Get the most frequent value
+    most_freq_idx <- which.max(freq_counts)
+    name <- names(freq_counts)[most_freq_idx]
+    freq_count <- freq_counts[most_freq_idx]
+    
+    # Calculate percentage using total records
+    percentage <- sprintf("%.1f", 100 * freq_count / total_records)
+    
+    catn(sprintf("Selected name: '%s' (%d occurrences, %s%%)", 
+                 ifelse(is.na(name), "", name), 
+                 freq_count,
+                 percentage))
   }
-
-  return(name)
+  
+  return(ifelse(is.na(name), "", name))
 }
 
+#' Condense taxonomic information from multiple columns
+#' 
+#' @param spec.dt Data table containing taxonomic columns
+#' @param verbose Boolean to control detailed output printing
+#' @return Condensed data table with single row of most frequent taxonomic names
 condense_taxons <- function(spec.dt, verbose = FALSE) {
   catn("Condensing taxon columns.")
-
-  cols_to_select <- c("kingdom", "phylum", "class", "order", "family", "genus", "species", "infraspecificEpithet", "taxonRank", "scientificName")
-
+  
+  cols_to_select <- c("kingdom", "phylum", "class", "order", "family", 
+                      "genus", "species", "infraspecificEpithet", 
+                      "taxonRank", "scientificName")
+  
   taxon_cols <- spec.dt[, ..cols_to_select]
-  ct_cols <- data.table(matrix(ncol = length(cols_to_select), nrow = 1)) # condensed taxon cols
+  ct_cols <- data.table(matrix(ncol = length(cols_to_select), nrow = 1))
   setnames(ct_cols, names(taxon_cols))
-
+  
   cols_to_ignore <- c("infraspecificEpithet", "taxonRank", "scientificName")
-
+  
   for (i in 1:length(taxon_cols)) {
     column <- taxon_cols[[i]]
-
-    name <- most_used_name(column, max.number = 1, verbose)
-
+    col_name <- names(taxon_cols)[i]
+    
+    # Only show detailed frequency table for non-ignored columns if verbose
+    should_show_details <- !(col_name %in% cols_to_ignore)
+    
+    name <- most_used_name(column,
+                           col_name,
+                           max.number = 1, 
+                           verbose = verbose && should_show_details)
+    
     ct_cols[[1, i]] <- name
   }
-
+  
   return(ct_cols)
 }
 
@@ -534,6 +584,12 @@ prepare_species <- function(dt, process.dir, projection = "longlat", verbose = F
 
   sp_points <- vect(thinned_dt, geom = c("decimalLongitude", "decimalLatitude"), crs = projection)
 
+  if (is.null(sp_points)) {
+    catn("Excluding", spec.name, "from further processing.")
+    return(list(
+      excluded = TRUE
+    ))
+  }
 
   return(sp_points)
 }
