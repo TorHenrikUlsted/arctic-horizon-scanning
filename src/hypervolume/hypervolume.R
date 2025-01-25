@@ -1,63 +1,83 @@
 source_all("./src/hypervolume/components")
 
 process_species <- function(spec.dt, spec.name, process.dir, method, points.projection = "longlat", verbose = F, iteration, warn.file, err.file) {
-  on.exit({
-    # Cleanup function that runs when exiting the function
-    rm(list = ls(environment()))
-    gc(full = TRUE)
-  })
+  # Create a list to track objects that need cleanup
+  objects_to_clean <- list()
   
-  vebcat("Initiating data processing protocol.", color = "funInit")
-
-  biovars_world <- rast(paste0(build_climate_path(), "/biovars-world-subset.tif"))
-
-  vebcat("Starting species data process.", veb = verbose)
-
-  withCallingHandlers(
-    {
-      sp_points <- prepare_species(
-        dt = spec.dt,
-        process.dir = process.dir,
-        projection = "longlat",
-        verbose = verbose
-      )
-    },
-    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when preparing species", iteration = iteration),
-    error = function(e) err(e, err.file = err.file, err.txt = "Error when preparing species", iteration = iteration)
-  )
-
-  if (is.null(sp_points)) {
-    catn("Excluding", spec.name, "from further processing.")
-    return(list(
-      excluded = TRUE
-    ))
-  }
-
-  vebprint(sp_points, verbose, "Processed species data sample:")
-  vebcat("Using biovars:", names(biovars_world), veb = verbose)
-  vebcat("Starting processing of environment data.", veb = verbose)
-
-  withCallingHandlers(
-    {
-      sp_mat <- prepare_environment(
-        sp_points,
-        biovars_world,
-        verbose = verbose
-      )
-
-      # remove sp_points to save ram
-      rm(sp_points)
-      invisible(gc())
-    },
-    warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when preparing environment", iteration = iteration),
-    error = function(e) err(e, err.file = err.file, err.txt = "Error when preparing environment", iteration = iteration)
-  )
-
-  vebprint(head(sp_mat, 3), verbose, "Processed environment data sample:")
-
-  vebcat("Data processing protocol completed successfully.", color = "funSuccess")
-
-  return(sp_mat)
+  tryCatch({
+    vebcat("Initiating data processing protocol.", color = "funInit")
+    
+    biovars_world <- rast(paste0(build_climate_path(), "/biovars-world-subset.tif"))
+    
+    vebcat("Starting species data process.", veb = verbose)
+    
+    withCallingHandlers(
+      {
+        sp_points <- prepare_species(
+          dt = spec.dt,
+          process.dir = process.dir,
+          projection = "longlat",
+          verbose = verbose
+        )
+      },
+      warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when preparing species", iteration = iteration),
+      error = function(e) err(e, err.file = err.file, err.txt = "Error when preparing species", iteration = iteration)
+    )
+    
+    if (is.null(sp_points)) {
+      catn("Excluding", spec.name, "from further processing.")
+      return(list(
+        excluded = TRUE
+      ))
+    }
+    
+    vebprint(sp_points, verbose, "Processed species data sample:")
+    vebcat("Using biovars:", names(biovars_world), veb = verbose)
+    vebcat("Starting processing of environment data.", veb = verbose)
+    
+    withCallingHandlers(
+      {
+        sp_mat <- prepare_environment(
+          sp_points,
+          biovars_world,
+          verbose = verbose
+        )
+        
+        # remove sp_points to save ram
+        rm(sp_points)
+        invisible(gc())
+      },
+      warning = function(w) warn(w, warn.file = warn.file, warn.txt = "Warning when preparing environment", iteration = iteration),
+      error = function(e) err(e, err.file = err.file, err.txt = "Error when preparing environment", iteration = iteration)
+    )
+    
+    vebprint(head(sp_mat, 3), verbose, "Processed environment data sample:")
+    
+    vebcat("Data processing protocol completed successfully.", color = "funSuccess")
+    
+    return(sp_mat)
+  }, error = function(e) {
+    # Handle any errors that weren't caught by withCallingHandlers
+    err(e, err.file = err.file, err.txt = "Unexpected error in process_species", iteration = iteration)
+  }, finally = function() {
+    # Cleanup code that runs regardless of success or failure
+    tryCatch({
+      # Clean up tracked objects
+      for(obj in objects_to_clean) {
+        if(!is.null(obj)) {
+          if(inherits(obj, "SpatRaster") || inherits(obj, "SpatVector")) {
+            terra::tmpFiles(remove=TRUE)  # Clean terra temporary files
+          }
+          rm(obj)
+        }
+      }
+      # Clean up environment and force garbage collection
+      rm(list = ls(environment()))
+      gc(full = TRUE, reset = TRUE)
+    }, error = function(e) {
+      warning("Error during cleanup of process_species: ", e$message)
+    })
+  })
 }
 
 hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, iteration, hv.dir, lock.dir, proj.dir, cores.max.high, verbose, warn.file, err.file) {
@@ -161,36 +181,6 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
       error = function(e) err(e, err.file = err.file, err.txt = "Error when analyzing hypervolume inclusion", iteration = iteration)
     )
     
-    analysis_msg <- FALSE
-    mm <- FALSE
-    ml <- get_mem_usage("total", "gb") * 0.8
-    # Wait for a spot in the queue system
-    while (TRUE) {
-      mc <- get_mem_usage("used", "gb")
-      
-      if (!analysis_msg) {
-        catn("The node has entered the hypervolume analysis queue...")
-        analysis_msg <- TRUE
-      }
-      if (mc >= ml) {
-        if (!mm) {
-          catn("The node waiting for more available RAM before initiating the hypervolume analysis.")
-          mm <- TRUE
-        }
-        Sys.sleep(10)
-      } else {
-        if (is.locked(lock.dir, lock.n = cores.max.high)) {
-          Sys.sleep(10)
-        } else {
-          Sys.sleep(runif(1, 0, 1)) # Add a random delay between 0 and 1 second
-          lock_analysis <- lock(lock.dir, lock.n = cores.max.high, paste0("Locked by ", iteration, "_", spec.name))
-          if (!is.null(lock_analysis) && file.exists(lock_analysis)) {
-            break
-          }
-        }
-      }
-    }
-    
     # Wait for memory and a spot in the queue system
     repeat {
       # Check memory first
@@ -208,13 +198,8 @@ hv_analysis <- function(spec.mat, method, spec.name, incl_threshold, accuracy, i
           if (!is.null(lock_analysis) && file.exists(lock_analysis)) {
             break  # Exit loop when memory is OK and lock is acquired
           }
-        } else {
-          if (!analysis_msg) {
-            catn("The node has entered the hypervolume analysis queue...")
-            analysis_msg <- TRUE
-          }
-          Sys.sleep(10)
         }
+        Sys.sleep(10)  # Wait before trying again if lock not acquired
       }
     }
     

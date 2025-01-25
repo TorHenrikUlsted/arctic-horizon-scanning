@@ -40,7 +40,8 @@ load_utils <- function(parallel = FALSE) {
       "viridis",
       "stringdist",
       "stringr",
-      "knitr"
+      "knitr",
+      "vegan"
     ),
     non_parallel = c(
       "cli",

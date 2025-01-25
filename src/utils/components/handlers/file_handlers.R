@@ -152,13 +152,13 @@ import_font_if <- function(font, paths, pattern) {
 
 download_github_dir_if <- function(repo.owner, repo.name, branch = "main", dir.path, dir.out, file.exclude = NULL, verbose = FALSE) {
   
-  vebcat("Detecting", repo.name, "installation...", color = "funInit")
+  vebcat("Detecting", repo.name, "installation...", color = "funInit", veb = verbose)
   
   dir_out_len <- length(list.files(dir.out))
   
   if (dir.exists(dir.out) &  dir_out_len > 0) {
-    catn("Location", colcat(dir.out, color = "output"))
-    vebcat("GitHub repository", highcat(repo.name), "already downloaded with", highcat(dir_out_len), "files.", color = "funSuccess")
+    vebcat("Location", colcat(dir.out, color = "output"), veb = verbose)
+    vebcat("GitHub repository", highcat(repo.name), "already downloaded with", highcat(dir_out_len), "files.", color = "funSuccess", veb = verbose)
     return(invisible())
   }
   
@@ -203,7 +203,7 @@ download_github_dir_if <- function(repo.owner, repo.name, branch = "main", dir.p
   }
   
   catn("All GitHub files have been downloaded to:", colcat(dir.out, color = "output"))
-  vebcat("Successfully installed", repo.name, color = "funSuccess")
+  vebcat("Successfully installed", repo.name, color = "funSuccess", veb = verbose)
 }
 
 if_file <- function(filepath, parameter = "exists", threshold = NULL) {

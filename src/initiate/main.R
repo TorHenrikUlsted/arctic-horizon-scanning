@@ -48,9 +48,10 @@ main <- function(
     } else {
       hv_dir <- paste0("./outputs/hypervolume/", paste0(spec.unknown, "_validation"))
       vis_dir <- paste0("./outputs/visualize/", paste0(spec.unknown, "_validation"))
+      validation_dir <- file.path("./outputs/validation", spec.unknown)
     }
-      
-    vis.shape = paste0("./outputs/setup/region/", vis.shape, "/", vis.shape, ".shp")
+    
+    shape <- paste0("./outputs/setup/region/", vis.shape, "/", vis.shape, ".shp")
     
     max_cores <- calc_num_cores(
       ram.high = total.cores,
@@ -144,7 +145,7 @@ main <- function(
       out.dir = vis_dir,
       res.unknown = spec.unknown,
       res.known = spec.known,
-      shape = vis.shape,
+      shape = shape,
       hv.dir = hv_dir, 
       hv.method = hv.method,
       vis.projection = vis.projection,
@@ -154,6 +155,7 @@ main <- function(
       vis.composition.taxon = vis.composition.taxon,
       vis.save.device = vis.save.device,
       vis.save.unit = vis.save.unit,
+      validation = validation_run,
       plot.show = plot.show,
       verbose = verbose
     )
@@ -162,6 +164,24 @@ main <- function(
     invisible(gc())
     
     if (run == 2 || !is.null(force.seq) && force.seq == "validation") {
+      validate_sequence(
+        known.file = file.path(
+          hv_dir, 
+          paste0(hv.method, "-sequence"), 
+          "stats/stats.csv"
+        ),
+        unknown.file = file.path(
+          "./outputs/hypervolume", 
+          spec.unknown, 
+          paste0(hv.method, "-sequence"), 
+          "stats/stats.csv"
+        ),
+        out.dir = validation_dir,
+        vis.save.device = vis.save.device,
+        force.seq = force.seq,
+        verbose = verbose
+      )
+      
       catn("Validation analysis has finished, closing main loop.\n")
       break
     }

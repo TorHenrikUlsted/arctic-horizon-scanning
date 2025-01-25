@@ -300,7 +300,7 @@ combine_groups <- function(x, out.order, out.n = NULL) {
 }
 
 get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbose = FALSE) {
-  init <- function(spec.filename, region, verbose) {
+  init <- function(spec.filename, region, extra, verbose) {
     sp_name <- clean_spec_filename(dirname(spec.filename[1]))
     vebcat("Species:", sp_name)
     
@@ -313,7 +313,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbo
     return(summed_dt)
   }
   
-  execute <- function(spec.filename, region = NULL, extra = NULL, verbose = NULL) {
+  execute <- function(spec.filename, region, extra, verbose) {
     # Do it in batches, that is faster and saves space
     sp_name <- clean_spec_filename(dirname(spec.filename[1]))
     vebcat("Species:", sp_name)
@@ -433,7 +433,7 @@ convert_template_raster <- function(input.values, template.filename, projection,
 }
 
 get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pole = NULL, verbose = FALSE) {
-  vebcat("Setting up world Map.", color = "funInit")
+  vebcat("Setting up world Map.", veb = verbose, color = "funInit")
   
   accepted_maps <- c("wgsrpd", "rnaturalearth")
   
@@ -472,11 +472,9 @@ get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pol
     world_map <- crop(world_map, equator_extent)
   }
   
-  print(projection)
-  
   world_map <- suppressWarnings(check_crs(world_map, projection, verbose))
   
-  vebcat("World Map setup completed successfully", color = "funSuccess")
+  vebcat("World Map setup completed successfully", veb = verbose, color = "funSuccess")
   
   return(world_map)
 }

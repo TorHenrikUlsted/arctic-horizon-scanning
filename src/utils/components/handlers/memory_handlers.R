@@ -104,13 +104,29 @@ get_mem_usage <- function(type = "free", format = "b") {
 
 get_process_mem_use <- function(unit = "gb") {
   pid <- Sys.getpid()
+  os <- Sys.info()["sysname"]
   
-  ram <- system2("ps", args=c("-p", pid, "-o", "rss="), stdout = TRUE)
+  # Get memory usage based on OS
+  if (os == "Windows") {
+    # Use tasklist command for Windows
+    cmd <- sprintf('tasklist /FI "PID eq %d" /FO CSV /NH', pid)
+    output <- system2("cmd", args = c("/c", cmd), stdout = TRUE)
+    # Parse the CSV output - memory is in KB in 5th column
+    values <- strsplit(gsub('"', '', output), ",")[[1]]
+    ram <- as.numeric(gsub(",", "", values[5])) # Remove any commas in numbers
+  } else {
+    # Use ps command for Unix-like systems
+    ram <- system2("ps", args=c("-p", pid, "-o", "rss="), stdout = TRUE)
+    ram <- as.numeric(ram)
+  }
   
-  ram <- as.numeric(ram)
+  if (is.na(ram)) {
+    warning("Could not get process memory usage")
+    return(NA)
+  }
   
+  # Convert to requested unit (input is in KB)
   ram <- format_mem_unit(ram, unit.in = "kb", unit.out = unit)
-  
   ram <- round(ram, 3)
   
   catn("Current process RAM in", unit, highcat(unname(ram)))
@@ -146,7 +162,7 @@ tryCatch({
   
   # Start the tracking in a separate R session
   system(paste0("Rscript -e \"
-    source('./src/utils/components/memory_handlers.R')
+    source('./src/utils/components/handlers/memory_handlers.R')
     repeat {
       if (file.exists('", file.stop, "')) break
       new_mem_usage <- get_mem_usage(type = 'used', format = 'gb')
@@ -211,14 +227,14 @@ track_memory <- function(fun, tracking = config$memory$tracking, identifier = NU
   
   function(...) {
     fun_name <- if(!is.null(identifier)) identifier else deparse(substitute(fun))
-    mem_start <- get_mem_usage("used", "gb")
+    mem_start <- get_process_mem_use("gb")  # Process-specific memory
     time_start <- Sys.time()
     
     # Run the function with cleanup
     result <- tryCatch({
       fun(...)
     }, finally = {
-      mem_end <- get_mem_usage("used", "gb")
+      mem_end <- get_process_mem_use("gb")  # Process-specific memory
       time_end <- Sys.time()
       mem_diff <- mem_end - mem_start
       time_diff <- difftime(time_end, time_start, units = "mins")
@@ -244,6 +260,7 @@ mem_check <- function(identifier = NULL, ram.use = NULL, custom_msg = NULL, inte
     
     if (mem_used_gb >= mem_limit_gb) {
       if (!is.null(ram.use) && (!identifier %in% names(msg_written) || !msg_written[[identifier]])) {
+        ram_con <- NULL
         tryCatch({
           ram_con <- file(ram.use, open = "a")
           msg <- paste0(
@@ -264,7 +281,7 @@ mem_check <- function(identifier = NULL, ram.use = NULL, custom_msg = NULL, inte
         }, error = function(e) {
           warning(paste("Failed to write to RAM usage file:", e$message))
         }, finally = {
-          if(exists("ram_con")) try(close(ram_con))
+          if(!is.null(ram_con)) try(close(ram_con))
         })
       }
       

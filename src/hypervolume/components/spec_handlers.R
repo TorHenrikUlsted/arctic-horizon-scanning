@@ -163,7 +163,7 @@ loop_occ_overlap <- function(spec.occ.dir, region, region.name = "Arctic", file.
   time <- start_timer("Region overlap")
 
   cols <- c("cleanName", "species", "scientificName", "taxonRank", "speciesKey", "decimalLongitude", "decimalLatitude")
-
+  
   if (file.info(spec.occ.dir[[1]])$isdir) {
     spec_occ <- list.files(spec.occ.dir, full.names = TRUE)
   } else {

@@ -20,7 +20,7 @@ to.vector <- function(input, terminate = TRUE, verbose = FALSE) {
 }
 
 check_crs <- function(x, projection, projection.method = NULL, res = NULL, verbose = FALSE) {
-  projection <- get_crs_config(projection)
+  projection <- get_crs_config(projection, verbose)
   
   if (is.null(projection.method)) {
     data_nature <- determine_data_nature(x)
@@ -56,12 +56,12 @@ check_crs <- function(x, projection, projection.method = NULL, res = NULL, verbo
     }
 
     if (identical(crs(x, proj = TRUE), prj_crs)) {
-      vebcat("Reprojection completed successfully", color = "funSuccess")
+      vebcat("Reprojection completed successfully", color = "funSuccess", veb = verbose)
     } else {
       vebcat("Reprojection result does not match target CRS.", color = "nonFatalError")
     }
   } else {
-    vebcat("Input object already in target projection. No reprojection needed.", color = "funSuccess")
+    vebcat("Input object already in target projection. No reprojection needed.", color = "funSuccess", veb = verbose)
   }
   
   return(x)

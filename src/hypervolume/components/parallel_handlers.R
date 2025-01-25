@@ -50,7 +50,7 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
       catn("Processing from iteration:", highcat(start_iteration), "/", highcat(end))
     }
 
-    if (length(node_its) != 0) catn("Including node iterations:", highcat(paste(node_its, collapse = ", ")))
+    if (length(node_its) != 0) catn("Including node iterations:", highcat(paste(unique(node_its), collapse = ", ")))
   }
 
   cores_max <- min(length(batch_iterations), cores.max)
@@ -114,7 +114,7 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
 
   catn("\nMemory allocation (GB)")
   cat(sprintf("%8s | %8s | %8s \n", "Maximum", "Limit", "Current"))
-  cat(sprintf("%8.2f | %8.2f | %8.0f \n", config$memory$mem_total / 1024^3, config$memory$config$memory$mem_limit / 1024^3, get_mem_usage("used", format = "gb")))
+  cat(sprintf("%8.2f | %8.2f | %8.0f \n", config$memory$mem_total / 1024^3, config$memory$mem_limit / 1024^3, get_mem_usage("used", format = "gb")))
 
   catn("Hypervolume sequence has started, progress is being logged to:", colcat(logs_dir, color = "output"))
 

@@ -4,6 +4,7 @@ source("./src/hypervolume/parallel_hypervolume.R")
 source("./src/hypervolume/node_hypervolume.R")
 source("./src/hypervolume/hypervolume.R")
 source("./src/visualize/visualize.R")
+source("./src/validate/validate.R")
 source("./src/initiate/main.R")
 
 # Can run tests with

@@ -234,11 +234,6 @@ hypervolume_sequence <- function(
   highest_iteration <- as.integer(readLines(parallel$highest.iteration))
   do_not_return <- FALSE
   
-  print(highest_iteration)
-  print(is.na(highest_iteration))
-  print(is.null(highest_iteration))
-  print(length(spec_list))
-  
   if (highest_iteration >= length(spec_list)) {
     vebcat("Parallel process finished all iterations.", color = "funSuccess")
   } else {

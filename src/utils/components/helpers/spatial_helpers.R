@@ -38,7 +38,7 @@ determine_data_nature <- function(x) {
   }
 }
 
-get_crs_config <- function(projection.name, vebose = FALSE) {
+get_crs_config <- function(projection.name, verbose = FALSE) {
   
   try({
     projection <- crs(projection.name)
@@ -62,7 +62,7 @@ get_crs_config <- function(projection.name, vebose = FALSE) {
   
   projection <- input_args[[projection.name]]
   
-  catn("Using projection:", projection.name)
+  vebcat("Using projection:", projection.name, veb = verbose)
   
   return(projection)
 }
