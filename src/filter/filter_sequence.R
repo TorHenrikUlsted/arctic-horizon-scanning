@@ -78,7 +78,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
     vebcat("Loading dfs.", veb = verbose)
 
     dts <- select_wfo_column(
-      dir.path = "./outputs/setup/wrangle", # change this to outputs path also edit in wfo
+      dir.path = "./outputs/setup/wrangle",
       pattern = "wfo-one-gbif.csv",
       col.unique = column,
       col.select = NULL,
@@ -95,6 +95,16 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
     }
     
     vebprint(dts, verbose, "all data tables:")
+    
+    # Add sourceDataset
+    dts <- setNames(
+      lapply(seq_along(dts), function(i) {
+        dt <- dts[[i]]
+        dt_name <- names(dts)[i]
+        dt[, sourceDataset := gsub("_.*", "", dt_name)]
+        dt
+      }), names(dts)
+    )
     
     #------------------------#
     ####   Filter lists   ####
@@ -191,8 +201,8 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
     )
   
   } else {
-    known <- list(present = fread(present_final, sep = "\t"))
-    unknown <- fread(absent_final, sep = "\t")
+    known <- list(present = fread(present_final))
+    unknown <- fread(absent_final)
   }
   
   #------------------------#

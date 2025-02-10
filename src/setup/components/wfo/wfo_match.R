@@ -54,9 +54,9 @@ check_syn_wfo <- function(checklist, cols, out.dir, cores.max = 1, verbose = FAL
           "data.table"
         ),
         source = c(
-          "./src/utils/components/condition_handlers.R",
-          "./src/utils/components/time_tracker.R",
-          "./src/utils/components/file_managers.R",
+          "./src/utils/components/handlers/condition_handlers.R",
+          "./src/utils/components/handlers/time_handlers.R",
+          "./src/utils/components/handlers/file_handlers.R",
           "./src/utils/components/loader.R"
         )
       )

@@ -301,9 +301,22 @@ process_accepted <- function(occ.data, checklist, accepted.keys, symbols, design
 }
 
 handle_chunk_files <- function(processed.data, orig.file, file.sep = "_", verbose = FALSE) {
+  filename_backup <- data.table(
+    original = character(),
+    new = character()
+  )
+  
   if ("accepted_name" %in% names(processed.data)) {
     # Single key scenario
     filename <- file.path(dirname(orig.file), paste0(gsub(" ", file.sep, processed.data$accepted_name), ".csv"))
+    
+    filename_backup <- rbind(
+      filename_map, 
+      data.table(
+        original_file = orig.file,
+        new_file = filename
+      )
+    )
     
     file.rename(orig.file, filename)
     
@@ -313,6 +326,14 @@ handle_chunk_files <- function(processed.data, orig.file, file.sep = "_", verbos
     
     for (name in names(processed.data)) {
       filename <- file.path(dirname(orig.file), paste0(gsub(" ", file.sep, name), ".csv"))
+      
+      filename_backup <- rbind(
+        filename_backup,
+        data.table(
+          original = orig.file,
+          new = filename
+        )
+      )
       
       fwrite(processed.data[[name]], filename)
       
@@ -332,6 +353,8 @@ handle_chunk_files <- function(processed.data, orig.file, file.sep = "_", verbos
       vebcat("Not all new files were created successfully. Keeping original file.", veb = verbose)
     }
   }
+  
+  fwrite(filename_backup, file.path(dirname(orig.file), "filename_backup.csv"), bom = TRUE)
 }
 
 rename_chunks <- function(spec.dir, symbols, designations, file.sep = "_", verbose = FALSE) {

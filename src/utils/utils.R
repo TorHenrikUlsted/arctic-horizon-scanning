@@ -7,6 +7,7 @@ load_utils <- function(parallel = FALSE) {
   
   pkgs = list(
     common = c(
+      "tools",
       "data.table",
       "yaml",
       "WorldFlora",

@@ -165,16 +165,16 @@ main <- function(
     
     if (run == 2 || !is.null(force.seq) && force.seq == "validation") {
       validate_sequence(
-        known.file = file.path(
+        known.dir = file.path(
           hv_dir, 
           paste0(hv.method, "-sequence"), 
-          "stats/stats.csv"
+          "stats"
         ),
-        unknown.file = file.path(
+        unknown.dir = file.path(
           "./outputs/hypervolume", 
           spec.unknown, 
           paste0(hv.method, "-sequence"), 
-          "stats/stats.csv"
+          "stats"
         ),
         out.dir = validation_dir,
         vis.save.device = vis.save.device,

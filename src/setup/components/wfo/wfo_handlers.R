@@ -73,7 +73,6 @@ wfo_parallel <- function(checklist, cols, out.dir = "./", cores.max = 1, evals =
        catn("Chunk number", i)
        catn("chunk length", nrow(chunk))
        catn("Is data.table:", is.data.table(chunk))
-       catn("Is data.frame:", is.data.frame(chunk))
        catn("Loading WFO backbone")
        WFO_file <- load_wfo()
        
@@ -141,7 +140,7 @@ wfo_mismatch_check <- function(wfo.result, col.origin = "interimName", out.file 
   setnames(dt, old = col.origin, new = "input")
   
   # Build table subset
-  cols_to_select <- c("verbatimName", "input")
+  cols_to_select <- c("verbatimName", "input", "sourceDataset")
   if (paste0(col.origin, "Authorship") %in% names(dt)) cols_to_select <- c(cols_to_select, paste0(col.origin, "Authorship"))
   cols_to_select <- c(cols_to_select, "scientificName", "genus.clean", "specificEpithet.clean", "other.clean", "fullName.clean", "extra.clean", "structure.clean",  "New.accepted", "Old.status", "Old.name", "name.clean", "Fuzzy.dist", "mismatch.old", "mismatch.scientific", "mismatch.any")
   if (unchecked) cols_to_select <- c(cols_to_select, "taxonomicStatus")

@@ -21,50 +21,81 @@ calc_abs_by_col <- function(data, column = "decimalLatitude", method = "median",
 }
 
 
-count_observations <- function(spec.list, dimensions, method = "median", verbose = FALSE) {
-  catn("Counting species observations.")
-
-  counted_species <- data.table(
-    species = character(0),
-    observations = integer(0),
-    logObservations = integer(0),
-    dimensions = integer(0),
-    removed = logical(0),
-    lat = numeric(0),
-    filename = character(0)
-  )
-
-  for (i in 1:length(spec.list)) {
-    cat("\rChecking file", i, "/", length(spec.list))
-    spec <- spec.list[[i]]
-    spec_name <- basename(gsub(".csv", "", spec))
-    spec_dt <- fread(spec, select = "decimalLatitude")
-
-    nobs <- nrow(spec_dt)
-
-    removed <- FALSE
-
-    if (log(nobs) <= length(dimensions)) {
-      removed <- TRUE
+exclude_observations <- function(spec.list, dimensions, method = "median", dt.construct, cols.select, out.file, suppress = FALSE, verbose = FALSE) {
+  catn("Checking for species to exclude before analysis.")
+  
+  if (file.exists(out.file)) {
+    final_res <- fread(file.out)
+  } else {
+    fwrite(dt.construct, out.file, bom = TRUE)
+    
+    for (i in cli_progress_along(1:length(spec.list), "Downloading")) {
+      #cat("\rChecking file", i, "/", length(spec.list))
+      spec <- spec.list[[i]]
+      spec_name <- basename(gsub(".csv", "", spec))
+      spec_dt <- fread(spec, select = cols.select)
+      
+      nobs <- nrow(spec_dt)
+      
+      excluded <- FALSE
+      
+      if (log(nobs) <= length(dimensions)) {
+        excluded <- TRUE
+      } else {
+        next
+      }
+      
+      vebprint(spec_dt, verbose, "Spec:")
+      
+      spec_condensed <- condense_taxons(spec.dt = spec_dt, suppress = TRUE, verbose)
+      
+      vebprint(spec_condensed, verbose, "Spec:")
+      
+      cntry_condensed <- find_wgsrpd_region(
+        spec.dt = spec_dt,
+        projection = "longlat",
+        longitude = "decimalLongitude",
+        latitude = "decimalLatitude",
+        wgsrpd.dir = "./resources/region/wgsrpd",
+        wgsrpdlvl = "3",
+        wgsrpdlvl.name = TRUE,
+        unique = TRUE,
+        suppress = suppress,
+        verbose = verbose
+      )
+      
+      vebprint(cntry_condensed, verbose, "Spec:")
+      
+      # Add columns that are given by the hv sequence
+      #lat <- calc_abs_by_col(spec_dt, column = "decimalLatitude")
+      
+      res <- data.table(
+        cleanName = gsub(config$species$file_separator, " ", spec_name),
+        iteration = 0,
+        observations = nobs,
+        dimensions = length(dimensions),
+        samplesPerPoint = 0,
+        randomPoints = 0,
+        excluded = excluded,
+        jaccard = 0,
+        sorensen = 0,
+        fracVolumeSpecies = 1,
+        fracVolumeRegion = 1,
+        realizedNiche = 0,
+        overlapRegion = 0,
+        includedOverlap = 0
+      )
+      
+      cbmnd_res <- cbind(res, spec_condensed)
+      # Duplicate the rows to match the length of cntry_condensed
+      rep_cbmnd_res <- cbmnd_res[rep(seq_len(nrow(cbmnd_res)), nrow(cntry_condensed)), ]
+      final_res <- cbind(rep_cbmnd_res, cntry_condensed)
+      
+      fwrite(final_res, out.file, append = TRUE)
     }
-
-    lat <- calc_abs_by_col(spec_dt)
-
-    counted_species <- rbind(counted_species, data.table(
-      species = gsub(config$species$file_separator, " ", spec_name),
-      observations = nobs,
-      logObservations = round(log(nobs), digits = 3),
-      dimensions = length(dimensions),
-      removed = removed,
-      lat = lat,
-      filename = spec
-    ))
   }
-  catn()
-
-  setnames(counted_species, "lat", paste0(method, "Lat"))
-
-  return(counted_species)
+  
+  return(final_res)
 }
 
 gbif_retry <- function(spec, fun = "name_backbone_checklist", retry.max = 3, timeout = 30, verbose = FALSE) {
@@ -263,7 +294,7 @@ loop_occ_overlap <- function(spec.occ.dir, region, region.name = "Arctic", file.
 #' @param max.number Maximum number of unique names allowed before selecting most frequent
 #' @param verbose Boolean to control detailed output printing
 #' @return The most frequently used name (or unique name if only one exists)
-most_used_name <- function(x, col.name, max.number = 1, verbose = FALSE) {
+most_used_name <- function(x, col.name, max.number = 1, suppress = FALSE, verbose = FALSE) {
   # Get unique values including empty strings
   name <- unique(x)
   n_unique <- length(name)
@@ -271,7 +302,7 @@ most_used_name <- function(x, col.name, max.number = 1, verbose = FALSE) {
   
   if (n_unique > max.number) {
     # Print column header for clarity
-    catn(sprintf("\nFound too many different names for: %s (%d)", col.name, n_unique))
+    vebcat(sprintf("\nFound too many different names for: %s (%d)", col.name, n_unique), veb = !suppress)
     
     # Create frequency table including NAs
     freq_table <- table(x, useNA = "always")
@@ -298,10 +329,10 @@ most_used_name <- function(x, col.name, max.number = 1, verbose = FALSE) {
     # Calculate percentage using total records
     percentage <- sprintf("%.1f", 100 * freq_count / total_records)
     
-    catn(sprintf("Selected name: '%s' (%d occurrences, %s%%)", 
+    vebcat(sprintf("Selected name: '%s' (%d occurrences, %s%%)", 
                  ifelse(is.na(name), "", name), 
                  freq_count,
-                 percentage))
+                 percentage), veb = !suppress)
   }
   
   return(ifelse(is.na(name), "", name))
@@ -312,8 +343,8 @@ most_used_name <- function(x, col.name, max.number = 1, verbose = FALSE) {
 #' @param spec.dt Data table containing taxonomic columns
 #' @param verbose Boolean to control detailed output printing
 #' @return Condensed data table with single row of most frequent taxonomic names
-condense_taxons <- function(spec.dt, verbose = FALSE) {
-  catn("Condensing taxon columns.")
+condense_taxons <- function(spec.dt, suppress = FALSE, verbose = FALSE) {
+  vebcat("Condensing taxon columns.", veb = verbose)
   
   cols_to_select <- c("kingdom", "phylum", "class", "order", "family", 
                       "genus", "species", "infraspecificEpithet", 
@@ -335,6 +366,7 @@ condense_taxons <- function(spec.dt, verbose = FALSE) {
     name <- most_used_name(column,
                            col_name,
                            max.number = 1, 
+                           suppress = suppress,
                            verbose = verbose && should_show_details)
     
     ct_cols[[1, i]] <- name
@@ -383,8 +415,8 @@ handle_wgsrpd_names <- function(wgsrpd.dir = "./resources/region/wgsrpd") {
 }
 
 # This function identifies the polygon where the centroid is closest to the species total mean longitude and latitude values. Meaning not the centroid longitude latitude values themselves, but the species total mean coordinates.
-find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "decimalLongitude", latitude = "decimalLatitude", wgsrpd.dir = "./resources/region/wgsrpd", wgsrpdlvl = "3", wgsrpdlvl.name = TRUE, unique = TRUE, verbose = FALSE) {
-  vebcat("Identifying WGSRPD regions", color = "funInit")
+find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "decimalLongitude", latitude = "decimalLatitude", wgsrpd.dir = "./resources/region/wgsrpd", wgsrpdlvl = "3", wgsrpdlvl.name = TRUE, unique = TRUE, suppress = FALSE, verbose = FALSE) {
+  vebcat("Identifying WGSRPD regions", color = "funInit", veb = !suppress)
 
   wgsrpdlvl.shape <- paste0(wgsrpd.dir, "/level", wgsrpdlvl, "/level", wgsrpdlvl, ".shp")
 
@@ -403,42 +435,61 @@ find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "dec
   prj <- get_crs_config(projection, verbose)
   
   # First get points in region
-  catn("Converting coordinates to points")
+  vebcat("Converting coordinates to points", veb = !suppress)
   occ_points <- vect(dt, geom = c(longitude, latitude), crs = prj)
+  
+  vebprint(occ_points, verbose, "Occ points before intersect:")
 
-  catn("Finding the intersecting points and regions")
+  vebcat("Finding the intersecting points and regions", veb = !suppress)
   wgsrpd_region <- terra::intersect(wgsrpd_lvl, occ_points)
   
-  if (wgsrpdlvl.name) {
-    wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Name")
-  } else {
-    wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Code")
+  if (nrow(wgsrpd_region) == 0) {
+    warning("No WGSRPD region intersections found for any points. Returning NA region information for", dt)
+    vebcat("No WGSRPD region intersections found.", veb = !suppress)
+    
+    wgsrpd_region[[paste0("level", wgsrpdlvl, "Long")]] <- dt[[longitude]]
+    wgsrpd_region[[paste0("level", wgsrpdlvl, "Lat")]] <- dt[[latitude]]
+    # Create a data.table with NA values for region columns
+    wgsrpd_region_dt <- as.data.table(wgsrpd_region)
+    
+    wgsrpd_region_dt <- wgsrpd_region_dt[, c(
+      names(wgsrpd_region_dt)[1:wgsrpd_length],
+      paste0("level", wgsrpdlvl, "Long"),
+      paste0("level", wgsrpdlvl, "Lat")
+    ), with = FALSE]
+    
+    print(wgsrpd_region_dt)
+    
+    stop("ME")
+    
+  } else { 
+    if (wgsrpdlvl.name) {
+      wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Name")
+    } else {
+      wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Code")
+    }
+    
+    centroids <- get_centroid_subregion(wgsrpd_region, wgsrpdlvl_name, centroid.per.subregion = TRUE, verbose = verbose)
+    index <- match(values(wgsrpd_region)[[wgsrpdlvl_name]], names(centroids))
+    
+    wgsrpd_region[[paste0("level", wgsrpdlvl, "Long")]] <- sapply(centroids[index], function(x) terra::crds(x)[1])
+    wgsrpd_region[[paste0("level", wgsrpdlvl, "Lat")]] <- sapply(centroids[index], function(x) terra::crds(x)[2])
+    
+    vebcat("Finishing up", veb = !suppress)
+    wgsrpd_region_dt <- as.data.table(wgsrpd_region)
+    
+    wgsrpd_region_dt <- wgsrpd_region_dt[, c(
+      names(wgsrpd_region_dt)[1:wgsrpd_length],
+      paste0("level", wgsrpdlvl, "Long"),
+      paste0("level", wgsrpdlvl, "Lat")
+    ), with = FALSE]
+    
+    if (unique) {
+      wgsrpd_region_dt <- unique(wgsrpd_region_dt, by = wgsrpdlvl_name)
+    }
   }
-  
-  # Get the mean location of all points that fall within each WGSRPD region for that species via terra::centroids
-  centroids <- get_centroid_subregion(wgsrpd_region, wgsrpdlvl_name, centroid.per.subregion = TRUE, verbose = verbose)
-  
-  index <- match(values(wgsrpd_region)[[wgsrpdlvl_name]], names(centroids))
 
-  wgsrpd_region[[paste0("level", wgsrpdlvl, "Long")]] <- sapply(centroids[index], function(x) terra::crds(x)[1])
-
-  wgsrpd_region[[paste0("level", wgsrpdlvl, "Lat")]] <- sapply(centroids[index], function(x) terra::crds(x)[2])
-
-  catn("Finishing up")
-
-  wgsrpd_region_dt <- as.data.table(wgsrpd_region)
-
-  wgsrpd_region_dt <- wgsrpd_region_dt[, c(
-    names(wgsrpd_region_dt)[1:wgsrpd_length],
-    paste0("level", wgsrpdlvl, "Long"),
-    paste0("level", wgsrpdlvl, "Lat")
-  ), with = FALSE]
-
-  if (unique) {
-    wgsrpd_region_dt <- unique(wgsrpd_region_dt, by = wgsrpdlvl_name)
-  }
-
-  vebcat("All WGSRPD regions identified successfully", color = "funSuccess")
+  vebcat("All WGSRPD regions identified successfully", color = "funSuccess", veb = !suppress)
 
   return(wgsrpd_region_dt)
 }

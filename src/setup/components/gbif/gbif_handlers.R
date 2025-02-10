@@ -16,49 +16,57 @@ gbif.match <- function(checklist) {
   old_names <- cols[-(2:3)]
   new_names <- c("verbatimName.GBIF", "rank.GBIF", "speciesKey.GBIF", "usageKey.GBIF", "acceptedUsageKey.GBIF", "status.GBIF", "synonym.GBIF")
   
-  data.table::setnames(sp_w_keys, old_names, new_names) 
+  data.table::setnames(sp_w_keys, old_names, new_names)
   
-  return(sp_w_keys)
+  # add back dataset names
+  sp_w_keys <- sp_w_keys[checklist, on = "verbatimName.GBIF", nomatch=0L]
+  
+  return(list(
+    data = sp_w_keys,
+    names = c("species", "scientificName", new_names)
+  ))
 }
 
 gbif.accepted <- function(match.result) {
-  for (i in 1:nrow(match.result)) {
-    cat("\rChecking scientificName", highcat(i), "/", nrow(match.result))
+  
+  checklist_copy <- copy(match.result$data)
+  spec_list <- match.result$data[, match.result$names, with = FALSE]
+  
+  for (i in cli::cli_progress_along(
+    1:nrow(spec_list),
+    name = "Checking scientificName",
+    type = "iterator",
+    format = "{cli::pb_spin} {cli::pb_current}/{cli::pb_total}"
+  )) {
     
-    spec <- match.result[i]
+    spec <- spec_list[i]
     
     if (spec$synonym.GBIF == FALSE) next
     
     verbatimName <- spec$verbatimName.GBIF
     search_key <- spec$acceptedUsageKey.GBIF
+    dataset <- spec$sourceDataset
     
     dt <- as.data.table(gbif_retry(search_key, "name_usage")$data)
     
-    # vebprint(match.result[i], text = "match.res:")
-    # vebprint(dt, text = "dt:")
-    # 
-    # catn(verbatimName)
-    # catn(dt$species)
-    # catn(dt$scientificName)
-    # catn(dt$rank)
-    # catn(dt$speciesKey)
-    # catn(dt$key)
-    # catn(dt$taxonomicStatus)
-    
-    match.result[i] <- data.table(
+    spec_list[i] <- data.table(
       verbatimName.GBIF = verbatimName,
-      species = if (!is.na(match.result[i]$species)) dt$species else NA,
+      species = if (!is.na(spec_list[i]$species)) dt$species else NA,
       scientificName = dt$scientificName,
       rank.GBIF = dt$rank,
-      speciesKey.GBIF = if (!is.na(match.result[i]$speciesKey.GBIF)) dt$speciesKey else NA,
+      speciesKey.GBIF = if (!is.na(spec_list[i]$speciesKey.GBIF)) dt$speciesKey else NA,
       usageKey.GBIF = dt$key,
       acceptedUsageKey.GBIF = NA,
       status.GBIF = dt$taxonomicStatus,
-      synonym.GBIF = FALSE
+      synonym.GBIF = FALSE,
+      sourceDataset = dataset
     )
   };catn()
   
-  return(match.result)
+  # add back dataset names
+  res <- spec_list[checklist_copy, on = "verbatimName.GBIF", nomatch=0L]
+  
+  return(res)
 }
 
 gbif_standardize <- function(dt, out.file, verbose = FALSE) {
@@ -68,6 +76,7 @@ gbif_standardize <- function(dt, out.file, verbose = FALSE) {
   }
   
   if (file.exists(out.file)) return(fread(out.file))
+  create_dir_if(out.file)
   
   vebcat("Identifying accepted GBIF usageKeys", color = "indicator")
   

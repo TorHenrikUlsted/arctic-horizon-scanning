@@ -57,6 +57,27 @@ hypervolume_sequence <- function(
     level3Lat = numeric(0)
   )
   
+  cols_to_select <- c(
+    "kingdom",
+    "phylum",
+    "class",
+    "order",
+    "family",
+    "genus",
+    "species",
+    "infraspecificEpithet",
+    "taxonRank",
+    "scientificName",
+    "cleanName",
+    "decimalLongitude",
+    "decimalLatitude",
+    "coordinateUncertaintyInMeters",
+    "countryCode",
+    "occurrenceStatus",
+    "stateProvince",
+    "year"
+  )
+  
   if (!file.exists(stats_file)) {
     fwrite(init_dt, stats_file, row.names = F, bom = T)
   }
@@ -66,7 +87,8 @@ hypervolume_sequence <- function(
     hv.method,
     hv.accuracy,
     hv.dims,
-    hv.incl.threshold
+    hv.incl.threshold,
+    cols_to_select
   )
   
   custom_evals <- c(
@@ -76,22 +98,27 @@ hypervolume_sequence <- function(
     "./src/hypervolume/parallel_hypervolume.R"
   )
   
-  if (!file.exists(spec_list_file)) {
-    spec_count_dt <- count_observations(
+  if (!file.exists(removed_file)) {
+    spec_count_dt <- exclude_observations(
       spec.list = spec.list,
       dimensions = hv.dims,
+      dt.construct = init_dt,
+      cols.select = cols_to_select,
+      out.file = removed_file,
       method = "median",
+      suppress = TRUE,
       verbose = verbose
     )
     
-    spec_removed <- spec_count_dt[removed == TRUE, ]
-    spec_removed[, filename := NULL]
-    
-    catn(highcat(nrow(spec_removed)), "Species with too few observations were removed.")
-    fwrite(spec_removed, removed_file, bom = TRUE)
-    
-    spec_count_dt <- spec_count_dt[removed == FALSE, ]
-    
+    # spec_removed <- spec_count_dt[removed == TRUE, ]
+    # spec_removed[, filename := NULL]
+    # 
+    # catn(highcat(nrow(spec_removed)), "Species with too few observations were removed.")
+    # 
+    # spec_count_dt <- spec_count_dt[removed == FALSE, ]
+  }
+  
+  if (!file.exists(spec_list_file)) {
     spec_list <- unlist(optimize_queue(
       spec_count_dt, 
       cores.max, 
@@ -177,26 +204,7 @@ hypervolume_sequence <- function(
             process.dir = par.dir, # par.dir because it comes from inside the parllel setup
             iteration = j,
             spec.list = spec_list,
-            columns.to.read = c(
-              "kingdom",
-              "phylum",
-              "class",
-              "order",
-              "family",
-              "genus",
-              "species",
-              "infraspecificEpithet",
-              "taxonRank",
-              "scientificName",
-              "cleanName",
-              "decimalLongitude",
-              "decimalLatitude",
-              "coordinateUncertaintyInMeters",
-              "countryCode",
-              "occurrenceStatus",
-              "stateProvince",
-              "year"
-            ),
+            columns.to.read = cols_to_select,
             min.disk.space = min.disk.space,
             cores.max.high = cores.max.high,
             init.dt = init_dt,

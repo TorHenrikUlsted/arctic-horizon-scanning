@@ -342,33 +342,47 @@ get_centroid_subregion <- function(region, region.sub = "subRegion", centroid.pe
     
     vebprint(sub_region, verbose, "Sub Region:")
     
-    all_centroids <- terra::centroids(sub_region, inside = inside)
-    
-    vebprint(all_centroids, verbose, "All centroids:")
-    
-    n_centroids <- dim(all_centroids)[1]
-    vebprint(n_centroids, verbose, "Dimensions:")
-    
-    if (n_centroids > 1) {
-      all_x <- terra::crds(all_centroids)[, 1]
-      all_y <- terra::crds(all_centroids)[, 2]
+    # **Check for geometries (number of rows)**
+    if (nrow(sub_region) == 0) {
+      warning(paste0("Subregion '", sub_region_name, "' has no geometries. Centroid calculation skipped."))
+      vebcat("Subregion", sub_region_name, "has no geometries.", veb = verbose)
       
-      mean_x <- mean(all_x)
-      mean_y <- mean(all_y)
       
-      euclidean_distances <- sqrt((all_x - mean_x)^2 + (all_y - mean_y)^2)
       
-      centroid <- all_centroids[which.min(euclidean_distances), ]
-    } else {
-      centroid <- all_centroids
-    }
-    
-    if (!centroid.per.subregion) {
-      sub_region_centroids <- rbind(sub_region_centroids, centroid)
-    } else {
-      sub_region_centroids[[i]] <- centroid
+      if (centroid.per.subregion) {
+        sub_region_centroids[[i]] <- NA # Store NA in the list
+        names(sub_region_centroids)[[i]] <- sub_region_name
+      } # For centroid.per.subregion = FALSE, we don't rbind anything, so sub_region_centroids remains as it is (empty SpatVector)
       
-      names(sub_region_centroids)[[i]] <- sub_region_name
+    } else { # Proceed with centroid calculation if geometries exist
+      
+      all_centroids <- terra::centroids(sub_region, inside = inside)
+      
+      vebprint(all_centroids, verbose, "All centroids:")
+      
+      n_centroids <- dim(all_centroids)[1]
+      vebprint(n_centroids, verbose, "Dimensions:")
+      
+      if (n_centroids > 1) {
+        all_x <- terra::crds(all_centroids)[, 1]
+        all_y <- terra::crds(all_centroids)[, 2]
+        
+        mean_x <- mean(all_x)
+        mean_y <- mean(all_y)
+        
+        euclidean_distances <- sqrt((all_x - mean_x)^2 + (all_y - mean_y)^2)
+        
+        centroid <- all_centroids[which.min(euclidean_distances), ]
+      } else {
+        centroid <- all_centroids
+      }
+      
+      if (!centroid.per.subregion) {
+        sub_region_centroids <- rbind(sub_region_centroids, centroid)
+      } else {
+        sub_region_centroids[[i]] <- centroid
+        names(sub_region_centroids)[[i]] <- sub_region_name
+      }
     }
   }
   

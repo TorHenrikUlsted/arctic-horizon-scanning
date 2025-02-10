@@ -1,14 +1,12 @@
 create_dir_if <- function(..., keep = TRUE) {
-  dirs <- list(...)
-  for (d in dirs) {
-    if (!dir.exists(d)) {
-      dir.create(d, recursive = TRUE)
-    } else {
-      if (keep == FALSE) {
-        unlink(d, recursive = TRUE)
-        
-        dir.create(d, recursive = TRUE)
-      }
+  paths <- list(...)
+  for (p in paths) {
+    dir <- ifelse(tools::file_ext(p) != "", dirname(p), p)
+    if (!dir.exists(dir)) {
+      dir.create(dir, recursive = TRUE)
+    } else if (keep == FALSE) {
+      unlink(dir, recursive = TRUE)
+      dir.create(dir, recursive = TRUE)
     }
   }
 }

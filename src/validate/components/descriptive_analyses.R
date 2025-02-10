@@ -4,8 +4,8 @@ analyze_no_overlap_cases <- function(known.file, unknown.file, plot.dir = ".", v
   unknown_stats <- fread(unknown.file)
   
   # Get unique species
-  known_unique <- unique(known_stats, by = "cleanName")
-  unknown_unique <- unique(unknown_stats, by = "cleanName")
+  known_unique <- unique(known_stats, by = "scientificName")
+  unknown_unique <- unique(unknown_stats, by = "scientificName")
   
   # Function to extract and analyze no-overlap cases
   analyze_dataset <- function(stats_dt, dataset_name) {
@@ -59,25 +59,29 @@ analyze_no_overlap_cases <- function(known.file, unknown.file, plot.dir = ".", v
   
   # Arctic species results
   cli::cli_h3("Arctic Species")
-  cli::cli_bullets(c(
-    "*" = "Number of species: {.field {known_analysis$summary$n_species}}",
-    "*" = "Observation statistics:",
-    "  -" = "Mean: {.field {round(known_analysis$summary$mean_obs,1)}}",
-    "  -" = "Median: {.field {round(known_analysis$summary$median_obs,1)}}",
-    "  -" = "Range: {.field {round(known_analysis$summary$min_obs,1)}} - {.field {round(known_analysis$summary$max_obs,1)}}",
-    "*" = "Wilcoxon test p-value (vs successful): {.field {format(known_analysis$wilcox$p.value, scientific = TRUE)}}"
-  ))
+  cli::cli_ul(id = "stats")
+  cli::cli_li("Number of species: {.field {known_analysis$summary$n_species}}")
+  cli::cli_li("Observation statistics:")
+  cli::cli_ul(id = "substats")
+  cli::cli_li("Mean: {.field {round(known_analysis$summary$mean_obs,1)}}")
+  cli::cli_li("Median: {.field {round(known_analysis$summary$median_obs,1)}}")
+  cli::cli_li("Range: {.field {round(known_analysis$summary$min_obs,1)}} - {.field {round(known_analysis$summary$max_obs,1)}}")
+  cli::cli_end(id = "substats")
+  cli::cli_li("Wilcoxon test p-value (vs successful): {.field {format(known_analysis$wilcox$p.value, scientific = TRUE)}}")
+  cli::cli_end(id = "stats")
   
   # Non-Arctic species results
   cli::cli_h3("Non-Arctic Species")
-  cli::cli_bullets(c(
-    "*" = "Number of species: {.field {unknown_analysis$summary$n_species}}",
-    "*" = "Observation statistics:",
-    "  -" = "Mean: {.field {round(unknown_analysis$summary$mean_obs,1)}}",
-    "  -" = "Median: {.field {round(unknown_analysis$summary$median_obs,1)}}",
-    "  -" = "Range: {.field {round(unknown_analysis$summary$min_obs,1)}} - {.field {round(unknown_analysis$summary$max_obs,1)}}",
-    "*" = "Wilcoxon test p-value (vs successful): {.field {format(unknown_analysis$wilcox$p.value, scientific = TRUE)}}"
-  ))
+  cli::cli_ul(id = "stats")
+  cli::cli_li("Number of species: {.field {unknown_analysis$summary$n_species}}")
+  cli::cli_li("Observation statistics:")
+  cli::cli_ul(id = "substats")
+  cli::cli_li("Mean: {.field {round(unknown_analysis$summary$mean_obs,1)}}")
+  cli::cli_li("Median: {.field {round(unknown_analysis$summary$median_obs,1)}}")
+  cli::cli_li("Range: {.field {round(unknown_analysis$summary$min_obs,1)}} - {.field {round(unknown_analysis$summary$max_obs,1)}}")
+  cli::cli_end(id = "substats")
+  cli::cli_li("Wilcoxon test p-value (vs successful): {.field {format(unknown_analysis$wilcox$p.value, scientific = TRUE)}}")
+  cli::cli_end(id = "stats")
   
   # Combine data for visualization
   plot_data <- rbindlist(list(
@@ -133,7 +137,7 @@ analyze_no_overlap_cases <- function(known.file, unknown.file, plot.dir = ".", v
   ))
 }
 
-analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.device = "jpeg", verbose = FALSE) {
+analyze_patterns <- function(known.file, unknown.file, permutations = 100, plot.dir = ".", vis.save.device = "jpeg", verbose = FALSE) {
   # Load and prepare data
   known_stats <- fread(known.file)
   unknown_stats <- fread(unknown.file)
@@ -146,7 +150,7 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
     cli::cli_progress_bar(
       name = paste(dataset_name, "analysis"),
       type = "tasks",
-      total = 8
+      total = 7
     )
     
     # Group creation
@@ -166,8 +170,8 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
     )
     # Separate into no-overlap and successful cases
     no_overlap <- unique_dt[
-      excluded == TRUE & 
-        log(observations) > dimensions & 
+      excluded == TRUE &
+        log(observations) > dimensions &
         overlapRegion == 0
     ]
     successful <- unique_dt[excluded == FALSE]
@@ -196,7 +200,7 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
     geo_test <- vegan::adonis2(
       geo_dist ~ group,
       data = analysis_dt,
-      permutations = 999
+      permutations = permutations
     )
     
     # Geographic summary
@@ -213,29 +217,30 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
     
     wm <- get_world_map("longlat")
     
-    
     # Plot geographic patterns
     p1 <- ggplot() +
       geom_spatvector(data = wm) +
-      geom_point(data = rbind(no_overlap, successful), 
-                 aes(x = level3Long, y = level3Lat, color = group), size = 0.75) +
       geom_point(data = geo_summary,
                  aes(x = mean_long, y = mean_lat, fill = group),
                  size = 4, shape = 23) +
+      geom_point(data = rbind(no_overlap, successful),
+                 aes(x = level3Long, y = level3Lat, color = group), size = 0.75) +
       labs(
         title = paste(dataset_name, "- Geographic Distribution"),
         x = "Longitude",
-        y = "Latitude"
+        y = "Latitude",
+        color = "Status",
+        fill = "Status"
       ) +
       theme_minimal() +
       ggplot.theme()
     
     # Save plots
     save_ggplot(
-      p1, 
-      paste0(tolower(dataset_name), "_geographic_patterns"), 
-      3000, 3000, 
-      save.dir = plot.dir, 
+      p1,
+      paste0(tolower(dataset_name), "_geographic_patterns"),
+      3000, 3000,
+      save.dir = plot.dir,
       save.device = vis.save.device,
       suppress = TRUE
     )
@@ -257,7 +262,7 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
       env_test <- vegan::adonis2(
         env_dist ~ group,
         data = analysis_dt,
-        permutations = 999
+        permutations = permutations
       )
       
       # Create environmental plot only if we have variables
@@ -276,16 +281,16 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
         ) +
         theme_minimal() +
         ggplot.theme()
-     
-     save_ggplot(
-       p2, 
-       paste0(tolower(dataset_name), "_environmental_patterns"),
-       3000, 3000, 
-       save.dir = plot.dir, 
-       save.device = vis.save.device,
-       suppress = TRUE
-     )
-   }
+      
+      save_ggplot(
+        p2,
+        paste0(tolower(dataset_name), "_environmental_patterns"),
+        3000, 3000,
+        save.dir = plot.dir,
+        save.device = vis.save.device,
+        suppress = TRUE
+      )
+    }
     
     cli::cli_progress_done()
     
@@ -310,7 +315,7 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
   cli_bullets(c(
     "*" = "Geographic patterns (PERMANOVA):",
     "  -" = sprintf("F-statistic: %.3f", arctic_patterns$geographic_test$F[1]),
-    "  -" = sprintf("P-value: %.2e", arctic_patterns$geographic_test$`Pr(>F)`[1]), 
+    "  -" = sprintf("P-value: %.2e", arctic_patterns$geographic_test$`Pr(>F)`[1]),
     "  -" = sprintf("R-squared: %.3f", arctic_patterns$geographic_test$R2[1])
   ))
   
@@ -323,7 +328,7 @@ analyze_patterns <- function(known.file, unknown.file, plot.dir = ".", vis.save.
     ))
   }
   
-  cli_h3("Non-Arctic Species") 
+  cli_h3("Non-Arctic Species")
   cli_bullets(c(
     "*" = "Geographic patterns (PERMANOVA):",
     "  -" = sprintf("F-statistic: %.3f", non_arctic_patterns$geographic_test$F[1]),
