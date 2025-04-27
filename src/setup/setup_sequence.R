@@ -5,7 +5,7 @@ if (config$simulation$example) {
   source_all("./src/setup/custom_setup")
 }
 
-setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, hv.incl.threshold, hv.dims = NULL, cores.max = 1, force.seq = FALSE, verbose = FALSE) {
+setup_sequence <- function(approach = "precautionary", coord.uncertainty = NULL, hv.method, hv.accuracy, hv.incl.threshold, hv.dims = NULL, cores.max = 1, force.seq = FALSE, verbose = FALSE) {
   setup_dir <- "./outputs/setup"
   setup_wrangle_dir <- paste0(setup_dir, "/wrangle")
   setup_log <- paste0(setup_dir, "/logs")
@@ -59,9 +59,14 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     br_out <- paste0(save_dir, "/biovars-region-subset.tif")
 
     sp_dir <- filter_sequence(
-      spec.known = "test_present",
-      spec.unknown = "test_small",
+      spec.known = list(
+        name = "test_known"
+      ),
+      spec.unknown = list(
+        name = "test_small"
+      ),
       approach = approach,
+      coord.uncertainty = coord.uncertainty,
       cores.max = cores.max,
       force.seq = force.seq,
       verbose = verbose
@@ -84,7 +89,7 @@ setup_sequence <- function(approach = "precautionary", hv.method, hv.accuracy, h
     if (is.null(hv.dims)) {
       analyzed_data <- analyze_correlation(
         biovars$region,
-        file.out = paste0(setup_dir, "/correlation"),
+        dir.out = paste0(setup_dir, "/correlation"),
         verbose = verbose
       )
 

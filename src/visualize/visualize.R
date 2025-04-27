@@ -53,11 +53,12 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   occpancy_files <- paste0("figure-3A-", c("all", "angiosperms", "gymnosperms", "pteridophytes"))
   suitability_files <- paste0("figure-3B-", c("all", "angiosperms", "gymnosperms", "pteridophytes"))
   suit_occupancy_files <- "figure-3D-1-5"
-  composition_files  <- c("figure-4A", "figure-4B")
+  composition_files  <- c("figure-4A", "figure-AB", "figure-4B")
   connections_files <- "figure-5-all"
-  gamlss_files <- c("figure-6A", "figure-6B")
+  gamlss_files <- c("figure-6A", "figure-6B", "figure-6C")
   gam_files <- "figure-7"
-  sankey_files <- "figure-8"
+  polynomial_files <- "figure-8"
+  sankey_files <- "figure-9"
   
   
   # Initial full check
@@ -71,6 +72,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     connections_files,
     gamlss_files, 
     gam_files,
+    polynomial_files,
     sankey_files
   )
   
@@ -82,7 +84,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   } else {
     catn("Directory:", colcat(plot_dir, color = "output"))
     if (length(check_result$existing) > 0) {
-      catn("Existing files:", highcat(paste(basename(check_result$existing), collapse = ", ")))
+      vebcat("Existing files:", highcat(paste(basename(check_result$existing), collapse = ", ")), veb = verbose)
     }
     catn("Missing files:", highcat(paste(basename(check_result$missing), collapse = ", ")))
     catn("Continuing with visualization sequence for missing files...")
@@ -130,7 +132,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
 
   occ_files <- file.path(
     if (!validation) unknown_chunk_dir else known_chunk_dir,
-    paste0(gsub(" ", config$species$file_separator, unique(sp_stats$cleanName)), ".csv")
+    paste0(gsub(" ", config$species$file_separator, unique(sp_stats$included$cleanName)), ".csv")
   )
   
   if (!file.exists(file.path(stats_dir, "region-occ.csv"))) {
@@ -145,18 +147,18 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     print(overlap_dt)
     
     setkey(overlap_dt, species)
-    setkey(sp_stats, species)
+    setkey(sp_stats$included, species)
     
-    sp_stats[overlap_dt, inRegion := i.inRegion]
+    sp_stats$included[overlap_dt, inRegion := i.inRegion]
     
-    fwrite(sp_stats, file.path(stats_dir, "included-species.csv"))
+    fwrite(sp_stats$included, file.path(stats_dir, "included-species.csv"))
   }
   
-  catn("Found", highcat(length(sp_dirs)), "projections and", highcat(length(unique(sp_stats$cleanName))), "Species.")
+  catn("Found", highcat(length(sp_dirs)), "projections and", highcat(length(unique(sp_stats$included$cleanName))), "Species.")
   
-  if (length(sp_dirs) > length(unique(sp_stats$cleanName))) {
+  if (length(sp_dirs) > length(unique(sp_stats$included$cleanName))) {
     stop("Found more projections than species.")
-  } else if (length(sp_dirs) < length(unique(sp_stats$cleanName))) {
+  } else if (length(sp_dirs) < length(unique(sp_stats$included$cleanName))) {
     stop("Found more species than projections.")
   }
   
@@ -178,7 +180,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   # Split filenames into groups
   sp_group_dirs <- split_spec_by_group(
     sp_dirs, 
-    sp_stats, 
+    sp_stats$included, 
     "cleanName", 
     is.file = TRUE, 
     verbose
@@ -479,7 +481,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     all_probs <- fread(paste0(result_dir, "/suitability/suitability.csv"))
     
-    split_prob <- split_spec_by_group(all_probs, sp_stats, "cleanName", verbose)
+    split_prob <- split_spec_by_group(all_probs, sp_stats$included, "cleanName", verbose)
     
     split_prob <- lapply(split_prob, function(x) {
       x <- unique(x, by = "species")
@@ -689,13 +691,21 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     richness_dt <- get_taxon_richness(
       paoo.file = paoo_file,
-      stats = sp_stats,
+      stats = sp_stats$included,
       taxon = vis.composition.taxon,
+      verbose = verbose
+    )
+    
+    unknown_dt <- get_unknown_composition(
+      unknown.path = expected_res_file,
+      stats = sp_stats$included,
+      out.dir = result_dir,
       verbose = verbose
     )
     
     visualize_composition(
       dt = richness_dt,
+      dt.comparison = unknown_dt,
       region.name = vis.region.name,
       vis.x = "subRegionName",
       vis.x.sort = "westEast",
@@ -752,7 +762,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     richness_dt <- get_taxon_richness(
       paoo.file = paoo_file,
-      stats = sp_stats,
+      stats = sp_stats$included,
       taxon = "species",
       verbose = verbose
     )
@@ -794,7 +804,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     richness_dt <- get_taxon_richness(
       paoo.file = paoo_file,
-      stats = sp_stats,
+      stats = sp_stats$included,
       taxon = "species",
       country = TRUE,
       verbose = verbose
@@ -898,7 +908,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   finished <- length(check_visualization_files(gamlss_files, plot_dir, vis.title, vis.save.device, verbose)$missing) == 0
   
   if (finished) {
-    vebcat("Skipping Species Latitudinal Ranges figure.", color = "indicator")
+    vebcat("Skipping GAMLSS figure.", color = "indicator")
   } else {
     
     lat_dt <- analyze_latitudinal_pattern(
@@ -966,14 +976,14 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   finished <- length(check_visualization_files(gam_files, plot_dir, vis.title, vis.save.device, verbose)$missing) == 0
   
   if (finished)  {
-    vebcat("Skipping Species Sankey figure.", color = "indicator")
+    vebcat("Skipping GAM figure.", color = "indicator")
   } else {
     # Prepare GAM
     
     # Read from hypervolume dir to include excluded species
     lat_dt <- fread(stats_file, select = c("cleanName", "overlapRegion", "level3Name", "level3Lat", "excluded"))
     
-    #lat_dt <- sp_stats[, .(cleanName, overlapRegion, level3Name, level3Lat)]
+    #lat_dt <- sp_stats$included[, .(cleanName, overlapRegion, level3Name, level3Lat)]
     lat_dt <- data.table::setnames(lat_dt, "level3Lat", "centroidLatitude")
     
     print(lat_dt)
@@ -1030,6 +1040,106 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     rm(lat_dt, model, model_md)
     invisible(gc())
   }
+  
+  #------------------------------------#
+  ####   Distribution - Polynomial  ####
+  #------------------------------------#
+  
+  finished <- length(check_visualization_files(polynomial_files, plot_dir, vis.title, vis.save.device, verbose)$missing) == 0
+  
+  if (finished)  {
+    vebcat("Skipping Polynomial quantile regression figure.", color = "indicator")
+  } else {
+    
+    paoo_dt <- list()
+    
+    for (group in names(sp_group_dirs)) {
+      group_dirs <- sp_group_dirs[[group]]$filename
+      
+      paoo <- parallel_spec_handler(
+        spec.dirs = group_dirs,
+        shape = shape,
+        dir = paste0(log_dir_aoo, "/", group),
+        hv.project.method = "0.5-inclusion",
+        out.order = "-TPAoO",
+        fun = get_paoo,
+        verbose = verbose
+      )
+      
+      paoo_dt[[group]] <- paoo
+    }
+    
+    paoo_dt <- combine_groups(paoo_dt, "-TPAoO")
+    setnames(paoo_dt, "species", "cleanName")
+    paoo_dt <- paoo_dt[, .(cleanName, TPAoO, propTPAoO)]
+    # Filter out 0 TPAoO
+    #paoo_dt <- paoo_dt[TPAoO > 0]
+    paoo_dt <- unique(paoo_dt, by = "cleanName")
+    
+    print(nrow(paoo_dt))
+    
+    
+    # Calculate centroids and fit model
+    analysis_data <- calculate_species_centroids(
+      dt = sp_stats$included,
+      out.dir = result_dir,
+      verbose = verbose
+    )
+    
+    analysis_data[, specMeanCentroidLat := mean(.SD[["speciesCentroidLat"]], na.rm = TRUE), by = "cleanName"]
+    
+    analysis_data <- unique(analysis_data, by = "cleanName")
+    #analysis_data <- analysis_data[excluded == FALSE]
+    
+    # merge with paoo
+    non_model_data <- analysis_data[!(cleanName %in% paoo_dt$cleanName)]
+    non_model_data <- non_model_data[, `:=` (
+      TPAoO = 0,
+      propTPAoO = 0.0000000
+    )]
+    model_data <- analysis_data[paoo_dt, on = "cleanName", nomatch = NA]
+    analysis_data <- rbind(model_data, non_model_data)
+    
+    analysis_data <- analysis_data[TPAoO > 0]
+    
+    response <- "overlapRegion"
+    predictor <- "specMeanCentroidLat"
+    
+    analysis_data <- prepare_poly_spec(
+      dt = analysis_data,
+      response = response, 
+      predictor = predictor,
+      transform = NULL,
+      by.region = FALSE
+    )
+    
+    model_results <- fit_polynomial_model(
+      dt = analysis_data,
+      response = response, 
+      predictor = predictor
+    )
+    
+    visualize_polynomial_model(
+      dt = analysis_data,
+      model_results = model_results,
+      response = response,
+      predictor = predictor,
+      region.name = "Arctic",
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      plot.show = plot.show,
+      verbose = verbose
+    )
+    
+    # Get model summary
+    #summary_stats <- summarize_polynomial_model(model_results)
+    
+    mdwrite(
+      source = config$files$post_seq_md,
+      text = "2;Polynomial Model Summary",
+      data = cli_to_markdown(summarize_polynomial_model(model_results, transform = NULL))
+    )
+  }
    
   #------------------------#
   ####      Sankey      ####
@@ -1062,7 +1172,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
     
     richness_dt <- get_taxon_richness(
       paoo.file = paoo_file,
-      stats = sp_stats,
+      stats = sp_stats$included,
       taxon = "species",
       verbose = verbose
     )
@@ -1095,7 +1205,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       save.dir = plot_dir,
       save.device = vis.save.device,
       save.unit = vis.save.unit,
-      save.name = "figure-8",
+      save.name = "figure-9",
       plot.show = plot.show,
       verbose = Tverbose
     )

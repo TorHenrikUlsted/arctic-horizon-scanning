@@ -46,6 +46,7 @@ main <- function(
       hv_dir <- paste0("./outputs/hypervolume/", spec.unknown)
       vis_dir <- paste0("./outputs/visualize/", spec.unknown)
     } else {
+      stop("ME")
       hv_dir <- paste0("./outputs/hypervolume/", paste0(spec.unknown, "_validation"))
       vis_dir <- paste0("./outputs/visualize/", paste0(spec.unknown, "_validation"))
       validation_dir <- file.path("./outputs/validation", spec.unknown)
@@ -60,6 +61,7 @@ main <- function(
     )
     
     setup_sequence(
+      coord.uncertainty = coord.uncertainty,
       hv.method = hv.method,
       hv.accuracy = hv.accuracy, 
       hv.incl.threshold = hv.incl.threshold,

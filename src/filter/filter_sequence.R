@@ -68,7 +68,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
   }
   
   # Skip if the end file exists
-  if (!file.exists(absent_final) & !file.exists(present_final)) {
+  if (!file.exists(absent_final) || !file.exists(present_final)) {
 
     mdwrite(
       config$files$post_seq_md,
@@ -221,11 +221,11 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
   
 if (grepl("test", spec.unknown$name)) {
   if (grepl("small", spec.unknown$name)) {
-    download.key <- "0180552-240321170329656"
-    download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
+    spec.unknown$download.key <- "0180552-240321170329656"
+    spec.unknown$download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
   } else if (grepl("big", spec.unknown$name)) {
-    download.key <- "0038456-240906103802322"
-    download.doi <- "https://doi.org/10.15468/dl.85f3bs"
+    spec.unknown$download.key <- "0038456-240906103802322"
+    spec.unknown$download.doi <- "https://doi.org/10.15468/dl.85f3bs"
   } else {
     vebcat("Test has to be either 'test_small' or 'test_big'.", color = "fatalError")
     stop("Change the spec.unknown parameter.")

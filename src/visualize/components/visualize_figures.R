@@ -539,10 +539,33 @@ visualize_dist_suit <- function(stack.paoo, stack.suitability, region, region.na
 ####   Composition    ####
 #------------------------#
 
-visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis.fill, vis.group, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = F, verbose = F) {
+visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, vis.x.sort, vis.y, vis.fill, vis.group, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = F, verbose = F) {
   vebcat("Visualizing composition plot", color = "funInit")
 
   dt_copy <- copy(dt)
+
+  # Process comparison data if provided
+  has_comparison <- !is.null(dt.comparison)
+  if (has_comparison) {
+    # Prepare GloNAF data to match format of main data
+    comparison_copy <- copy(dt.comparison)
+    # Make sure GloNAF data has the same structure
+    if (!any(c(vis.x, vis.y, vis.fill) %in% names(comparison_copy))) {
+      vebcat("Comparison data structure doesn't match main data. Skipping comparison.", color = "warning")
+      vebprint(names(comparison_copy), text = "Comparison table:")
+      vebprint(names(dt_copy), text = "Input table:")
+      stop("ME")
+      has_comparison <- FALSE
+    } else {
+      # Add a source column to both datasets
+      comparison_copy[, data_source := "GloNAF"]
+      dt_copy[, data_source := "PresentStudy"]
+      
+      # Combine datasets for plotting
+      # Note: We'll separate them again in the plot using faceting
+      combined_dt <- rbindlist(list(dt_copy, comparison_copy), fill = TRUE)
+    }
+  }
 
   vebcat("Number of Sub Regions:", highcat(length(unique(dt_copy[[vis.x]]))))
 
@@ -554,11 +577,24 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
 
   # Convert x variable to ordered factor
   dt_copy[, (vis.x) := factor(get(vis.x), levels = ordered_levels)]
-
+  
   # Convert fill variable to factor and order if needed
   dt_copy[, (vis.fill) := factor(get(vis.fill))]
-
+  
   vebprint(levels(dt_copy[[vis.fill]]), verbose, "Initial fill levels:")
+  
+  # Apply any additional grouping
+  dt_copy <- get_order_group(dt_copy, verbose = verbose)
+  
+  vebprint(levels(dt_copy[[vis.fill]]), verbose, "Final fill levels:")
+  
+
+  # Do the same for comparison if it exists
+  if (has_comparison) {
+    combined_dt[, (vis.x) := factor(get(vis.x), levels = c(ordered_levels, "GloNAF"))]
+    combined_dt[, (vis.fill) := factor(get(vis.fill))]
+    combined_dt <- get_order_group(combined_dt, verbose = verbose)
+  }
 
   # Debug output
   vebprint(
@@ -569,11 +605,6 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
     )]),
     verbose, "Sample of data:"
   )
-
-  # Apply any additional grouping
-  dt_copy <- get_order_group(dt_copy, verbose = verbose)
-
-  vebprint(levels(dt_copy[[vis.fill]]), verbose, "Final fill levels:")
 
   # Create base plot ensuring proper variable mapping
   p1 <- geom_bar(stat = "identity", position = "stack")
@@ -638,6 +669,98 @@ visualize_composition <- function(dt, region.name, vis.x, vis.x.sort, vis.y, vis
     plot.show = plot.show,
     verbose = verbose
   )
+  
+  # If GloNAF data is available, create the modified plot with GloNAF bar
+  if (has_comparison) {
+    # Process GloNAF data to create a summary bar
+    if (vis.fill %in% names(comparison_copy)) {
+      # Summarize GloNAF data by the fill variable
+      comparison_summary <- comparison_copy[, sum(get(vis.y)), by = vis.fill]
+      setnames(comparison_summary, "V1", vis.y)
+      
+      # Make sure the fill variable is a factor with the same levels
+      comparison_summary[, (vis.fill) := factor(get(vis.fill), levels = levels(dt_copy[[vis.fill]]))]
+      
+      # Add a column for the x position (single bar named "GloNAF")
+      comparison_summary[, (vis.x) := "GloNAF"]
+      
+      # Create a new combined data frame with the original data and the GloNAF data
+      # Add two empty bars as spacers to create a bigger gap
+      spacer1 <- data.table()
+      spacer1[, (vis.x) := "SPACER1"]
+      spacer1[, (vis.y) := 0]
+      spacer1[, (vis.fill) := levels(dt_copy[[vis.fill]])[1]]
+      
+      spacer2 <- data.table()
+      spacer2[, (vis.x) := "SPACER2"]
+      spacer2[, (vis.y) := 0]
+      spacer2[, (vis.fill) := levels(dt_copy[[vis.fill]])[1]]
+      
+      all_data <- rbindlist(list(dt_copy, spacer1, spacer2, comparison_summary), fill = TRUE)
+      all_data <- all_data[!is.na(order)]
+      
+      # Order the x-axis to include the spacers and GloNAF
+      all_data[, (vis.x) := factor(get(vis.x), levels = c(ordered_levels, "SPACER1", "SPACER2", "GloNAF"))]
+      
+      # Create the plot with the GloNAF bar
+      fig4AB <- ggplot(all_data, aes(
+        x = .data[[vis.x]],
+        y = .data[[vis.y]],
+        fill = .data[[vis.fill]]
+      )) +
+        # Add the bars
+        geom_bar(stat = "identity", position = "stack") +
+        p2 +
+        p4 +
+        p5 +
+        ggplot.theme() +
+        p6 +
+        # Remove the spacer bars from the x-axis
+        scale_x_discrete(drop = FALSE, breaks = c(ordered_levels, "GloNAF")) +
+        # Make the GloNAF label bold and slightly larger
+        theme(
+          axis.text.x = element_text(
+            angle = 90, 
+            vjust = 0.5, 
+            hjust = 1, 
+            size = 16,
+            face = ifelse(levels(all_data[[vis.x]]) == "GloNAF", "bold", "plain")
+          )
+        )
+    }
+    
+    if (plot.show) print(fig4AB)
+    
+    save_ggplot(
+      save.plot = fig4AB,
+      save.name = "figure-4AB",
+      save.width = 3700,
+      save.height = 3700,
+      save.dir = save.dir,
+      save.device = save.device,
+      save.unit = save.unit,
+      vis.title = vis.title,
+      plot.show = plot.show,
+      verbose = verbose
+    )
+    
+    # Calculate and export differences
+    differences <- calculate_order_differences(
+      dt_copy, 
+      comparison_copy, 
+      vis.x, 
+      vis.y, 
+      vis.fill,
+      file.path(save.dir, "../../../results")
+    )
+    
+    # Print top differences to console
+    print(differences[difference > 0][1:5], text = "Top 5 orders with highest positive differences (over-represented in Arctic):")
+    
+    vebprint(differences[difference < 0][1:5], text = "Top 5 orders with highest negative differences (under-represented in Arctic):")
+  }
+  
+  
 
   fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) +
     p1 +
@@ -1117,6 +1240,7 @@ visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b",
     variable.name = "component",
     value.name = "value"
   )
+  
   # Create the plot
   fig6A <- ggplot() +
     # Add raw data points
@@ -1169,47 +1293,85 @@ visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b",
     plot.show = plot.show,
     verbose = verbose
   )
+  
+  pred_two_panel <- subset(pred_long, component != "prob_nonzero")
 
   # For the two-panel version:
   fig6B <- ggplot() +
+    # Add raw data points
     geom_point(
       data = data,
       aes(x = medianLat, y = overlapRegion),
       alpha = 0.2, color = "grey50", size = 1
     ) +
+    # Add both component lines
     geom_line(
-      data = pred_dt,
-      aes(x = medianLat, y = combined),
-      color = "#ff7300", linewidth = 1
+      data = pred_two_panel,
+      aes(x = medianLat, y = value, color = component),
+      linewidth = 1
+    ) +
+    scale_color_manual(
+      values = c(
+        "expected_mean" = "#82ca9d",
+        "combined" = "#ff7300"
+      ),
+      labels = c(
+        "expected_mean" = "E(Overlap | Overlap > 0)",
+        "combined" = "Combined Expectation"
+      ) 
     ) +
     theme_bw() +
     labs(
-      x = "Species Absolute Median Latitude",
-      y = "Proportional Arctic Niche Overlap",
-      title = "A. Predicted Overlap with "
+      x = "Species Absolute Median Latitude (°)",
+      y = "Overlap magnitude",
+      title = "A. Expected overlap given latitude"
+    ) +
+    theme(legend.position = "bottom")
+
+fig6B2 <- ggplot() +
+  # Add probability line
+  geom_line(
+    data = pred_dt,
+    aes(x = medianLat, y = prob_nonzero),
+    color = "#8884d8", linewidth = 1
+  ) +
+  scale_color_manual(
+    values = c(
+      "prob_nonzero" = "#8884d8"
+    ),
+    labels = c(
+      "prob_nonzero" = "Prob(Overlap > 0)"
     )
+    
+  ) +
+  theme_bw() +
+  labs(
+    x = "Species Absolute Median Latitude (°)",
+    y = "Probability of Any Overlap",
+    title = "B. Probability of Any Arctic Niche Overlap"
+  ) +
+  scale_y_continuous(limits = c(0, 1))
+  
+  save_ggplot(
+    save.plot = fig6B,
+    save.name = paste0(save.name, "B"),
+    save.width = 3200,
+    save.height = 2000,
+    save.dir = save.dir,
+    save.device = save.device,
+    save.unit = save.unit,
+    vis.title = vis.title,
+    plot.show = plot.show,
+    verbose = verbose
+  )
 
-  fig6B2 <- ggplot() +
-    geom_line(
-      data = pred_dt,
-      aes(x = medianLat, y = prob_nonzero),
-      color = "#8884d8", linewidth = 1
-    ) +
-    theme_bw() +
-    labs(
-      x = "Species Absolute Median Latitude",
-      y = "Probability of Non-Zero Overlap",
-      title = "B. Probability of Any Overlap"
-    ) +
-    scale_y_continuous(limits = c(0, 1))
-
-  fig6B <- fig6B / fig6B2 + plot_layout(heights = c(3, 2))
+  fig6C <- fig6B / fig6B2 + plot_layout(heights = c(3, 2))
 
   if (plot.show) print(fig6B)
 
   save_ggplot(
-    save.plot = fig6B,
-    save.name = paste0(save.name, "B"),
+    save.plot = fig6C,
+    save.name = paste0(save.name, "C"),
     save.width = 3200,
     save.height = 2000,
     save.dir = save.dir,
@@ -1305,6 +1467,126 @@ visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vi
   )
   
   vebcat("Latitude GAM plot Visualized Successfully", color = "funSuccess")
+}
+
+
+#-------------------------------------#
+####   Distribution - Polynomial   ####
+#-------------------------------------#
+visualize_polynomial_model <- function(dt, model_results, response = "overlapRegion", predictor = "centroidLat", region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-8", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
+  vebcat("Visualizing polynomial pattern analysis", color = "funInit")
+  
+  # Prepare the raw data
+  data_points <- copy(dt)
+  
+  setnames(data_points, c(response, predictor), c("overlapRegion", "centroidLat"))
+  
+  # Get predictions
+  pred_data <- copy(model_results$predictions)
+  
+  vebcat("Creating figure with response:", highcat(response), "and predictor:", highcat(predictor))
+  
+  # Create base plot
+  fig_lat <- ggplot() +
+    geom_point(
+      data = data_points,
+      aes(x = centroidLat, y = overlapRegion),
+      color = "gray50",
+      alpha = 0.5,
+      size = 1
+    ) +
+    # Add quantile regression lines with smoothing
+    geom_smooth(
+      data = pred_data,
+      aes(x = latitude, y = q10, color = "10th percentile"),
+      method = "gam",    # Use GAM for smoothing
+      formula = y ~ s(x, bs = "cs"), # Cubic spline basis
+      se = FALSE,        # Don't show confidence intervals
+      linewidth = 0.5
+    ) +
+    geom_smooth(
+      data = pred_data,
+      aes(x = latitude, y = q25, color = "25th percentile"),
+      method = "gam",
+      formula = y ~ s(x, bs = "cs"),
+      se = FALSE,
+      linewidth = 0.5
+    ) +
+    geom_smooth(
+      data = pred_data,
+      aes(x = latitude, y = q50, color = "50th percentile"),
+      method = "gam", 
+      formula = y ~ s(x, bs = "cs"),
+      se = FALSE,
+      linewidth = 0.5
+    ) +
+    geom_smooth(
+      data = pred_data,
+      aes(x = latitude, y = q75, color = "75th percentile"),
+      method = "gam",
+      formula = y ~ s(x, bs = "cs"),
+      se = FALSE,
+      linewidth = 0.5
+    ) +
+    geom_smooth(
+      data = pred_data,
+      aes(x = latitude, y = q90, color = "90th percentile"),
+      method = "gam",
+      formula = y ~ s(x, bs = "cs"),
+      se = FALSE,
+      linewidth = 0.5
+    ) +
+    # Add vertical line at equator
+    geom_vline(
+      xintercept = 0,
+      linetype = "dashed",
+      color = "gray50",
+      alpha = 0.5
+    ) +
+    # Customize colors 
+    scale_color_manual(
+      name = "Quantile",
+      values = c(
+        "10th percentile" = "#4A1486",  # Dark purple
+        "25th percentile" = "#807DBA",  # Light purple
+        "50th percentile" = "#3182BD",  # Blue
+        "75th percentile" = "#74C476",  # Light green
+        "90th percentile" = "#FDB863"   # Yellow
+      )
+    ) +
+    # Customize theme and labels
+    labs(
+      x = "Botanical Country Centroid Latitude (°)",
+      y = "Climatic Niche Overlap with the Arctic"
+    ) +
+    theme_minimal() +
+    theme(
+      panel.grid.minor = element_blank(),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 8),
+      axis.title = element_text(size = 10),
+      axis.text = element_text(size = 8)
+    ) +
+  
+  if (plot.show) print(fig_lat)
+  
+  if (plot.save) {
+    save_ggplot(
+      save.plot = fig_lat,
+      save.name = save.name,
+      save.width = 3200,
+      save.height = 2000,
+      save.dir = save.dir,
+      save.device = save.device,
+      save.unit = save.unit,
+      vis.title = vis.title,
+      plot.show = plot.show,
+      verbose = verbose
+    )
+  }
+  
+  vebcat("Polynomial pattern visualization completed successfully", color = "funSuccess")
 }
 
 

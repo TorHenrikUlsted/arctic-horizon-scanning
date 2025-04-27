@@ -403,7 +403,6 @@ handle_wgsrpd_names <- function(wgsrpd.dir = "./resources/region/wgsrpd") {
 
     names(wgsrpd) <- names
 
-
     file.remove(shapefile)
 
     writeVector(wgsrpd, shapefile, overwrite = TRUE)
@@ -414,13 +413,19 @@ handle_wgsrpd_names <- function(wgsrpd.dir = "./resources/region/wgsrpd") {
   return(invisible())
 }
 
-# This function identifies the polygon where the centroid is closest to the species total mean longitude and latitude values. Meaning not the centroid longitude latitude values themselves, but the species total mean coordinates.
+# This function identifies the polygon where the centroid is closest to the species total mean longitude and latitude values. Meaning not the centroid longitude latitude values themselves, but the species total mean coordinates in a given region.
 find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "decimalLongitude", latitude = "decimalLatitude", wgsrpd.dir = "./resources/region/wgsrpd", wgsrpdlvl = "3", wgsrpdlvl.name = TRUE, unique = TRUE, suppress = FALSE, verbose = FALSE) {
   vebcat("Identifying WGSRPD regions", color = "funInit", veb = !suppress)
 
   wgsrpdlvl.shape <- paste0(wgsrpd.dir, "/level", wgsrpdlvl, "/level", wgsrpdlvl, ".shp")
 
   wgsrpd_lvl <- load_region(wgsrpdlvl.shape)
+  
+  if (wgsrpdlvl.name) {
+    wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Name")
+  } else {
+    wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Code")
+  }
 
   wgsrpd_length <- length(names(wgsrpd_lvl))
 
@@ -438,50 +443,80 @@ find_wgsrpd_region <- function(spec.dt, projection = "longlat", longitude = "dec
   vebcat("Converting coordinates to points", veb = !suppress)
   occ_points <- vect(dt, geom = c(longitude, latitude), crs = prj)
   
+  # Debugging output
   vebprint(occ_points, verbose, "Occ points before intersect:")
+  vebprint(wgsrpd_lvl, verbose, "WGSRPD level data:")
 
   vebcat("Finding the intersecting points and regions", veb = !suppress)
   wgsrpd_region <- terra::intersect(wgsrpd_lvl, occ_points)
   
   if (nrow(wgsrpd_region) == 0) {
-    warning("No WGSRPD region intersections found for any points. Returning NA region information for", dt)
     vebcat("No WGSRPD region intersections found.", veb = !suppress)
     
-    wgsrpd_region[[paste0("level", wgsrpdlvl, "Long")]] <- dt[[longitude]]
-    wgsrpd_region[[paste0("level", wgsrpdlvl, "Lat")]] <- dt[[latitude]]
-    # Create a data.table with NA values for region columns
-    wgsrpd_region_dt <- as.data.table(wgsrpd_region)
+    # Create a data.table with original coordinates and "unknown" for the region name
+    wgsrpd_region_dt <- as.data.table(
+      setNames(
+        list("unknown", NA, NA, NA, dt[[longitude]], dt[[latitude]]),
+        c(
+          paste0("level", wgsrpdlvl, "Name"),
+          paste0("level", wgsrpdlvl, "Code"),
+          paste0("level", as.numeric(wgsrpdlvl) - 1, "Code"),
+          paste0("level", as.numeric(wgsrpdlvl) - 2, "Code"),
+          "speciesCentroidLong",
+          "speciesCentroidLat",
+          paste0("level", wgsrpdlvl, "CentroidLong"),
+          paste0("level", wgsrpdlvl, "CentroidLat")
+        )
+      )
+    )
     
-    wgsrpd_region_dt <- wgsrpd_region_dt[, c(
-      names(wgsrpd_region_dt)[1:wgsrpd_length],
-      paste0("level", wgsrpdlvl, "Long"),
-      paste0("level", wgsrpdlvl, "Lat")
-    ), with = FALSE]
-    
-    print(wgsrpd_region_dt)
-    
-    stop("ME")
-    
-  } else { 
-    if (wgsrpdlvl.name) {
-      wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Name")
-    } else {
-      wgsrpdlvl_name <- paste0("level", wgsrpdlvl, "Code")
+    if (unique) {
+      wgsrpd_region_dt <- unique(wgsrpd_region_dt, by = wgsrpdlvl_name)
     }
+  } else { 
+      centroids <- get_centroid_subregion(wgsrpd_region, wgsrpdlvl_name, centroid.per.subregion = TRUE, verbose = verbose)
+      
+        index <- match(values(wgsrpd_region)[[wgsrpdlvl_name]], names(centroids))
+
+        # Here it sets the intersected centroid
+        wgsrpd_region[["speciesCentroidLong"]] <- sapply(centroids[index], function(x) terra::crds(x)[1])
+        wgsrpd_region[["speciesCentroidLat"]] <- sapply(centroids[index], function(x) terra::crds(x)[2])
+
+    # centroid_dt <- data.table(
+    #   level3Name = names(centroids),
+    #   speciesCentroidLong = sapply(centroids, \(x) terra::crds(x)[1]),
+    #   speciesCentroidLat = sapply(centroids, \(x) terra::crds(x)[2])
+    # )
+    # 
+    # wgsrpd_region_dt <- centroid_dt[wgsrpd_region_dt, on = "level3Name"]
     
-    centroids <- get_centroid_subregion(wgsrpd_region, wgsrpdlvl_name, centroid.per.subregion = TRUE, verbose = verbose)
-    index <- match(values(wgsrpd_region)[[wgsrpdlvl_name]], names(centroids))
     
-    wgsrpd_region[[paste0("level", wgsrpdlvl, "Long")]] <- sapply(centroids[index], function(x) terra::crds(x)[1])
-    wgsrpd_region[[paste0("level", wgsrpdlvl, "Lat")]] <- sapply(centroids[index], function(x) terra::crds(x)[2])
+    region_centroids <- get_centroid_subregion(wgsrpd_lvl, wgsrpdlvl_name, centroid.per.subregion = TRUE, verbose = verbose)
+    index_region <- match(values(wgsrpd_region)[[wgsrpdlvl_name]], names(region_centroids))
+
+    # Here it sets the original region centroid
+    wgsrpd_region[[paste0("level", wgsrpdlvl, "CentroidLong")]] <- sapply(region_centroids[index_region], function(x) terra::crds(x)[1])
+    wgsrpd_region[[paste0("level", wgsrpdlvl, "CentroidLat")]] <- sapply(region_centroids[index_region], function(x) terra::crds(x)[2])
+    
+    # region_centroid_dt <- data.table(
+    #   level3Name = names(region_centroids),
+    #   CentroidLong = sapply(region_centroids, function(x) terra::crds(x)[1]),
+    #   CentroidLat = sapply(region_centroids, function(x) terra::crds(x)[2])
+    # )
+    # 
+    # # Rename columns dynamically
+    # setnames(region_centroid_dt, c("CentroidLong", "CentroidLat"), 
+    #          c(paste0("level", wgsrpdlvl, "CentroidLong"), paste0("level", wgsrpdlvl, "CentroidLat")))
+    # 
+    # wgsrpd_region_dt <- region_centroid_dt[wgsrpd_region_dt, on = "level3Name"]
     
     vebcat("Finishing up", veb = !suppress)
     wgsrpd_region_dt <- as.data.table(wgsrpd_region)
-    
     wgsrpd_region_dt <- wgsrpd_region_dt[, c(
       names(wgsrpd_region_dt)[1:wgsrpd_length],
-      paste0("level", wgsrpdlvl, "Long"),
-      paste0("level", wgsrpdlvl, "Lat")
+      "speciesCentroidLong", "speciesCentroidLat",
+      paste0("level", wgsrpdlvl, "CentroidLong"),
+      paste0("level", wgsrpdlvl, "CentroidLat")
     ), with = FALSE]
     
     if (unique) {
@@ -501,7 +536,8 @@ get_wgsrpd_polygon_centroid <- function(wgsrpd_dt, wgsrpd.dir = "./resources/reg
   wgsrpd_lvl <- load_region(wgsrpdlvl.shape)
   
   # Get unique regions from input data
-  unique_regions <- unique(wgsrpd_dt[[paste0("level", wgsrpdlvl, "Name")]])
+  level_name <- paste0("level", wgsrpdlvl, "Name")
+  unique_regions <- unique(wgsrpd_dt[[level_name]])
   
   # Initialize results data.table
   result_dt <- data.table(
@@ -512,8 +548,9 @@ get_wgsrpd_polygon_centroid <- function(wgsrpd_dt, wgsrpd.dir = "./resources/reg
   
   # Calculate geometric centroid for each region
   for (region in unique_regions) {
+    
     # Subset polygon for this region
-    region_poly <- wgsrpd_lvl[wgsrpd_lvl[[paste0("level", wgsrpdlvl, "Name")]] == region]
+    region_poly <- wgsrpd_lvl[wgsrpd_lvl[[level_name]] == region]
     
     # Get geometric centroid (force inside = TRUE to ensure point is within polygon)
     region_centroid <- terra::centroids(region_poly, inside = TRUE)

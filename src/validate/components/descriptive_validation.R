@@ -7,6 +7,7 @@ find_dataset_name <- function(dataset = "known", compare, example = FALSE, verbo
     compare[, sourceDataset := spec_unknown]
     return(compare)
   }
+  
   res_dir <- file.path("./outputs/validation", spec_unknown, "results")
   create_dir_if(res_dir)
   
@@ -18,26 +19,33 @@ find_dataset_name <- function(dataset = "known", compare, example = FALSE, verbo
   
   data <- fread(file)
   
-  res <- unique(compare, by = "cleanName") # ScientificName does not exist for 
+  res <- unique(compare, by = "scientificName")
   
-  
-  catn("input res:", nrow(res))
+  catn("input res_keys:", highcat(nrow(res)))
   
   res_keys <- get_gbif_keys(
-    spec = unique(res$scientificName),
+    spec = res$scientificName,
     out.dir = file.path(res_dir, "hv-data")
   )
   
   res_keys <- res_keys[, .(cleanName, scientificName, speciesKey, usageKey)]
   
-  res <- res_keys[res, on = "cleanName"]
+  res <- res_keys[res, on = "scientificName"]
   
-  catn("input res_keys:", nrow(res_keys))
-  stop("ME")
+  catn("output res_keys:", highcat(nrow(res_keys)))
   
   setnames(data, c("speciesKey.GBIF"), c("speciesKey"))
   
   data <- data[, .(speciesKey, usageKey, scientificName, species, sourceDataset)]
+  
+  # Add cleanName
+  data[, cleanName := {
+    res <- lapply(cli_progress_along(scientificName, "downloading"), function(i) {
+      clean_spec_name(scientificName[i], config$species$standard_symbols, config$species$standard_infraEpithets, verbose)
+    })
+    catn()
+    vapply(res, function(x) x$cleanName, character(1))
+  }]
   
   catn("Initial length:", highcat(nrow(res)))
   
@@ -47,19 +55,56 @@ find_dataset_name <- function(dataset = "known", compare, example = FALSE, verbo
   unmatched_key <- res[!(usageKey %in% matched_key$usageKey)]
   catn("Unmatched after usageKey:", highcat(nrow(unmatched_key)))
   
-  matched_spKey <- data[unmatched_key, on = "speciesKey", nomatch = 0L]
+  # Filter data for unmatched rows
+  data_unmatched <- data[!(usageKey %in% matched_key$usageKey)]
+  catn("Data left after usageKey:", highcat(nrow(data_unmatched)))
+  
+  
+  
+  matched_cleanName <- data_unmatched[unmatched_key, on = "cleanName", nomatch = 0L]
+  catn("Matched after cleanName:", highcat(nrow(matched_cleanName)))
+  
+  unmatched_cleanName <- unmatched_key[!(cleanName %in% matched_cleanName$cleanName)]
+  catn("Unmatched after cleanName:", highcat(nrow(unmatched_cleanName)))
+  
+  # Filter data for unmatched rows
+  data_unmatched <- data_unmatched[!(cleanName %in% matched_cleanName$cleanName)]
+  catn("Data left after cleanName:", highcat(nrow(data_unmatched)))
+  
+  unmatched_cleanName[, `:=` (
+    verbatimCleanName = cleanName,
+    cleanName = i.cleanName,
+    i.cleanName = NULL
+  )]
+  
+  matched_icleanName <- data_unmatched[unmatched_cleanName, on = "cleanName", nomatch = 0L]
+  catn("Matched after icleanName:", highcat(nrow(matched_icleanName)))
+  
+  unmatched_icleanName <- unmatched_cleanName[!(cleanName %in% matched_icleanName$cleanName)]
+  catn("Unmatched after icleanName:", highcat(nrow(unmatched_icleanName)))
+  
+  # Filter data for unmatched rows
+  data_unmatched <- data_unmatched[!(cleanName %in% matched_icleanName$cleanName)]
+  catn("Data left after icleanName:", highcat(nrow(data_unmatched)))
+  
+  
+  matched_spKey <- unique(data_unmatched[unmatched_icleanName, on = "speciesKey", nomatch = 0L], by = "scientificName")
+  matched_spKey <- unique(matched_spKey, by = "verbatimCleanName")
   catn("Matched after speciesKey:", highcat(nrow(matched_spKey)))
   
-  unmatched_spKey <- unmatched_key[!(speciesKey %in% matched_spKey$speciesKey)]
+  unmatched_spKey <- unmatched_icleanName[!(speciesKey %in% matched_spKey$speciesKey)]
   catn("Unmatched after speciesKey:", highcat(nrow(unmatched_spKey)))
   
   all_matches <- rbind(
     matched_key,
+    matched_cleanName,
+    matched_icleanName,
     matched_spKey,
     fill = TRUE
   )
   
   all_matches <- unique(all_matches, by = "scientificName")
+
   
   # Find columns starting with "i."
   i_cols <- grep("^i\\.", names(all_matches), value = TRUE)
@@ -79,15 +124,17 @@ find_dataset_name <- function(dataset = "known", compare, example = FALSE, verbo
 }
 
 add_too_few_observations <- function(dir, stats, verbose = FALSE) {
-  spec <- fread(
-    file.path(dir, "removed-species.csv"),
-    select = c("species", "observations", "dimensions")
-  )
-  setnames(spec, "species", "cleanName")
+  spec <- fread(file.path(dir, "removed-species.csv"))
   
-  spec[, excluded := TRUE]
-  
-  combined <- rbind(stats, spec, fill = TRUE)
+  if (grepl("_validation", dir)) {
+    combined <- rbind(stats, spec, fill = TRUE)
+  } else {
+    setnames(spec, "species", "cleanName")
+    
+    spec[, excluded := TRUE]
+    
+    combined <- rbind(stats, spec, fill = TRUE)
+  }
   
   return(combined)
 }
@@ -524,3 +571,4 @@ analyze_hypervolume_validation <- function(known.dir, unknown.dir, example = FAL
     )
   ))
 }
+

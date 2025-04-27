@@ -155,12 +155,12 @@ filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv
     included_sp <- fread(inc_sp_out)
   }
   
-  rm(excluded_sp)
-  invisible(gc())
-  
   vebcat("Stats successfully initialised.", color = "funSuccess")
   
-  return(included_sp)
+  return(list(
+    included = included_sp,
+    excluded = excluded_sp
+  ))
 }
 
 get_region_cells <- function(shape, template.filename, out.dir, verbose = FALSE) {
@@ -806,28 +806,43 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
   ))
 }
 
-calculate_taxon_richness <- function(dt, taxon, country = NULL, verbose = FALSE) {
+calculate_taxon_richness <- function(dt, taxon, region = TRUE, country = NULL, verbose = FALSE) {
   catn("Calculating richness for", highcat(taxon))
+  
+  by_if_region <- if (region) c(taxon, "subRegionName") else c(taxon)
+  by_taxon_or_region <- if (region) "subRegionName" else NULL
+  
+  vebprint(by_if_region, text = "by_if_region:")
+  vebprint(by_taxon_or_region, text = "by_taxon_or_region:")
+  vebprint(region, text = "region:")
+  
+  vebprint(ifelse(region, "paoo", "cleanName"), text = "ifelse:")
   
   dt_copy <- copy(dt)
   # Calculate richness per taxon and subregion (number of unique species in each combination)
-  dt_copy[, taxonRichness := length(unique(cleanName[PAoO > 0])), 
-          by = c(taxon, "subRegionName")]
+  dt_copy[, taxonRichness := ifelse(region,
+                                    length(unique(cleanName[PAoO > 0])),
+                                    length(unique(cleanName))), 
+          by = by_if_region]
+  # How many unique species are in each order
   
   vebprint(dt_copy, verbose, text = "Taxon Richness before sum:")
   
   # Calculate total richness per subregion (across all taxa)
-  dt_copy[, totalRichness := length(unique(cleanName[PAoO > 0])), 
-          by = subRegionName]
+  dt_copy[, totalRichness := ifelse(region, 
+                                     length(unique(cleanName[PAoO > 0])),
+                                     .N),
+          by = by_taxon_or_region]
   
   # Calculate relative richness
-  dt_copy[, relativeRichness := taxonRichness / totalRichness, by = c(taxon, "subRegionName")]
+  dt_copy[, relativeRichness := taxonRichness / totalRichness, by = by_if_region]
   
   # Remove duplicates to get one row per taxon-subregion combination
   if (is.null(country)) {
-    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName"))
+    dt_copy <- unique(dt_copy, by = by_if_region)
   } else {
-    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", country))
+    by_if_region <- c(by_if_region, country)
+    dt_copy <- unique(dt_copy, by = by_if_region)
   }
   
   vebprint(dt_copy, verbose, text = "Taxon Richness after sum:")
@@ -893,6 +908,117 @@ get_taxon_richness <- function(paoo.file, stats, taxon, country = FALSE, verbose
   
   return(richness_dt)
 }
+
+
+get_unknown_composition <- function(unknown.path, stats, taxon = "order", out.dir, verbose = FALSE) {
+  
+  out_file <- file.path(out.dir, "unknown-composition.csv")
+  
+  if (file.exists(out_file)) {
+    richness_dt <- fread(out_file)
+  } else {
+    unknown_dt <- fread(unknown.path, sep = "\t")
+    
+    unknown_dt[, c("genus", "specificEpithet", "cleanName", "other", "fullName", "extra", "structure") := {
+      res <- lapply(seq_along(scientificName), function(i) {
+        cat("\rProcessing rows for scientificName:", i, "of", .N)
+        flush.console()
+        clean_spec_name(scientificName[i], config$species$standard_symbols, config$species$standard_infraEpithets, verbose)
+      });catn()
+      list(
+        vapply(res, function(x) x$genus, character(1)),
+        vapply(res, function(x) x$specificEpithet, character(1)),
+        vapply(res, function(x) x$cleanName, character(1)),
+        vapply(res, function(x) x$other, character(1)),
+        vapply(res, function(x) x$fullName, character(1)),
+        vapply(res, function(x) x$extra, character(1)),
+        vapply(res, function(x) x$structure, character(1))
+      )
+    }]
+    
+    setnames(unknown_dt, "scientificName", "verbatim_name")
+    
+    # Get the taxonomic hierarchy
+    unknown_taxa = as.data.table(get_spec_taxons(unknown_dt$verbatim_name))
+    
+    # find the taxon group
+    richness_dt <- get_order_group(
+      unknown_taxa,
+      spec.col = "species"
+    )
+    
+    # Merge
+    richness_dt <- richness_dt[unknown_dt, on = "verbatim_name", nomatch = NULL]
+    
+    # Remove columns with names containing "i."
+    richness_dt <- richness_dt[, !grepl("^i\\.", names(richness_dt)), with = FALSE]
+    
+    # Calculate richness
+    richness_dt <- calculate_taxon_richness(
+      dt = richness_dt,
+      taxon = taxon,
+      region = FALSE,
+      verbose = verbose
+    )
+    
+    fwrite(richness_dt, out_file, bom = TRUE)
+  }
+  
+  
+  return(richness_dt)
+}
+
+# Function to calculate and export differences between study data and GloNAF
+calculate_order_differences <- function(dt, dt_comparison, vis.x, vis.y, vis.fill, out.dir) {
+  out_file <- file.path(out.dir, "order_differences.csv")
+  
+  if (file.exists(out_file)) {
+    result <- fread(out_file)
+  } else {
+    # Create copy of data
+    dt_copy <- copy(dt)
+    comparison_copy <- copy(dt_comparison)
+    
+    # Get all unique orders
+    all_orders <- unique(c(dt_copy[[vis.fill]], comparison_copy[[vis.fill]]))
+    
+    # Calculate total richness for each region and for GloNAF
+    region_totals <- dt_copy[, .(total_richness = sum(get(vis.y))), by = vis.x]
+    glonaf_total <- sum(comparison_copy[[vis.y]])
+    
+    # Calculate GloNAF relative richness for each order
+    glonaf_relative <- comparison_copy[, .(glonaf_relative = sum(get(vis.y)) / glonaf_total), by = vis.fill]
+    
+    # Calculate relative richness for each region and order
+    region_order_richness <- dt_copy[, .(study_relative = sum(get(vis.y)) / region_totals[get(vis.x) == .BY[[vis.x]], total_richness]), 
+                                     by = c(vis.x, vis.fill)]
+    
+    # Merge with GloNAF relative richness
+    result <- region_order_richness[glonaf_relative, on = vis.fill, all = TRUE]
+    
+    # Replace NA with 0
+    result[is.na(study_relative), study_relative := 0]
+    result[is.na(glonaf_relative), glonaf_relative := 0]
+    
+    # Remove NA orders
+    result <- result[!is.na(get(vis.fill))]
+    
+    # Calculate difference
+    result[, difference := study_relative - glonaf_relative]
+    
+    # Add absolute difference column for sorting
+    result[, abs_difference := abs(difference)]
+    
+    # Sort by absolute difference
+    setorder(result, -abs_difference)
+    
+    # Save to CSV
+    fwrite(result, out_file)
+  }
+  
+  return(result)
+}
+
 
 get_connections <- function(dt, verbose = FALSE) {
   dt_copy <- copy(dt)
@@ -1768,4 +1894,281 @@ print_formatted_table <- function(table_data, table_type) {
   }
   
   cli::cli_rule(col = "cyan")
+}
+
+
+calculate_species_centroids <- function(dt, out.dir, verbose = FALSE) {
+  # Input dt should have columns: species, level3Long, level3Lat
+  out_file <-file.path(out.dir, "spec-centroids.csv")
+  
+  if (file.exists(out_file)) {
+    species_centroids <- fread(out_file)
+  } else {
+    dt[, inRegion := NULL]
+    
+    spec_dt <- rbindlist(sp_stats)
+    
+    spec_dt[, `:=` (
+      decimalLongitude = level3Long,
+      decimalLatitude = level3Lat,
+      level3Long = NULL,
+      level3Lat = NULL,
+      level3Code = NULL, 
+      level2Code = NULL, 
+      level1Code = NULL
+    )]
+    
+    spec_centroids <- data.table()
+    
+    unique_species <- unique(spec_dt$cleanName)
+    
+    catn("Iterations:", highcat(length(unique_species)))
+    
+    for (i in cli_progress_along(1:length(unique_species), "downloading")) {
+      spec <- spec_dt[cleanName == unique_species[i]]
+      
+      spec_out <- find_wgsrpd_region(
+        spec.dt = spec,
+        projection = "longlat",
+        longitude = "decimalLongitude",
+        latitude = "decimalLatitude",
+        wgsrpd.dir = "./resources/region/wgsrpd",
+        wgsrpdlvl = "3",
+        wgsrpdlvl.name = TRUE,
+        unique = TRUE,
+        suppress = TRUE,
+        verbose = verbose
+      )
+      
+      spec_out <- spec[spec_out, on = "level3Name"]
+      
+      spec_centroids <- rbind(spec_centroids, spec_out)
+    }
+    
+    fwrite(spec_centroids, out_file, bom = TRUE)
+  }
+  
+  return(species_centroids)
+}
+
+prepare_poly_spec <- function(dt, response, predictor, transform = NULL, by.region = FALSE) {
+  vebcat("Preparing polynomial species", color = "funInit")
+  # Keep one row per species per level3 botanical country
+  dt <- dt[, .SD, .SDcols = c(response, predictor), by = .(cleanName, level3Name)]
+  
+  if (by.region) {
+    dt <- dt[, .(
+      res = mean(get(response), na.rm = TRUE),
+      pred = first(get(predictor))
+    ), by = level3Name]
+    
+    # Rename the columns to match the input names
+    setnames(dt, c("res", "pred"), c(response, predictor))
+  }
+  
+  dt <- dt[!is.na(dt[[response]]) & !is.na(dt[[predictor]])]
+  
+  dt[get(response) > 1, (response) := 1]
+  dt[get(response) < 0, (response) := 0]
+  
+  if (!is.null(transform) && transform == "logit") {
+    logit <- function(p) {
+      p <- ifelse(p == 0, 1e-6, ifelse(p == 1, 1 - 1e-6, p))
+      log(p / (1 - p))
+    }
+    
+    # Apply the logit transformation to the response variable
+    dt[[response]] <- logit(dt[[response]])
+  } else {
+    if (any(dt[[response]] < 0 | dt[[response]] > 1)) {
+      stop("Response variable must be between 0 and 1")
+    }
+  }
+  
+  setorderv(dt, predictor)
+
+  return(dt)
+}
+
+fit_polynomial_model <- function(dt, response = "overlapRegion", predictor = "centroidLat") {
+  vebcat("Fitting polynomial model", color = "funInit")
+  
+  # Create B-spline basis with knot at equator (0 degrees)
+  # Reduce degrees of freedom for smoother curves by setting df parameter
+  bs_matrix <- bs(dt[[predictor]], 
+                  knots = 0,
+                  #df = 10,      # Control smoothness - fewer df = smoother curves
+                  degree = 3)  # Cubic spline
+  
+  # Define quantiles to model
+  taus <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+  
+  vebcat("Fitting models for each quantile")
+  # Fit models for each quantile using logistic transformation
+  models <- lapply(taus, function(tau) {
+    rq(as.formula(paste(response, "~ bs_matrix")), data = dt, tau = tau, method = "br")
+  })
+  
+  # Create prediction grid
+  pred_grid <- data.table(
+    lat = seq(min(dt[[predictor]]), max(dt[[predictor]]), length.out = nrow(bs_matrix))
+  )
+  
+  vebcat("Acquiring predictions for each quantile")
+  # Get predictions for each quantile
+  pred_bs <- bs(pred_grid$lat, 
+                knots = 0,
+                degree = 3,
+                Boundary.knots = range(dt[[predictor]]))
+  
+  pred_dt <- as.data.table(pred_bs)
+  
+  # Get predictions for each quantile
+  predictions <- sapply(models, function(model) {
+    predict(model, newdata = pred_dt)
+  })
+  
+  # Combine predictions with grid
+  pred_dt <- data.table(
+    latitude = pred_grid$lat,
+    q10 = predictions[,1],
+    q25 = predictions[,2],
+    q50 = predictions[,3],
+    q75 = predictions[,4],
+    q90 = predictions[,5]
+  )[order(latitude)]
+  
+  return(list(
+    models = models,
+    predictions = pred_dt,
+    taus = taus,
+    bs_matrix = bs_matrix
+  ))
+}
+
+summarize_polynomial_model <- function(model_results, transform = NULL) {
+  # Extract coefficients for each quantile
+  cli::cli_h1("B-spline Quantile Regression Model Summary")
+  
+  # Get coefficients for each quantile
+  cli::cli_h2("Model Coefficients")
+  coef_summary <- lapply(seq_along(model_results$models), function(i) {
+    tau <- model_results$taus[i]
+    model <- model_results$models[[i]]
+    coefs <- coef(model)
+    if (!is.null(transform)) odds_ratios <- exp(coefs)
+    
+    # Print coefficient summary for each quantile
+    cli::cli_alert_info("Quantile {.val {tau * 100}}%")
+    coef_table <- data.table(
+      term = c(
+        "intercept",
+        "cubic_B-spline_basis1",  # or spline_basis1
+        "cubic_B-spline_basis2", 
+        "cubic_B-spline_basis3",
+        "cubic_B-spline_basis4"
+      ),
+      estimate = coefs,
+      odd_ratios = if (!is.null(transform)) odds_ratios else NULL
+    )
+    
+    # Format coefficient display
+    cli::cli_text("")
+    print(coef_table)
+    cli::cli_text("")
+    
+    data.table(
+      quantile = paste0("q", tau * 100),
+      term = names(coefs),
+      estimate = coefs,
+      odds_ratio = if (!is.null(transform)) odds_ratios else NULL
+    )
+  })
+  
+  coef_summary <- rbindlist(coef_summary)
+  
+  # Calculate and display R1 statistics
+  cli::cli_h2("Model Fit Statistics")
+  r1_stats <- lapply(seq_along(model_results$models), function(i) {
+    tau <- model_results$taus[i]
+    model <- model_results$models[[i]]
+    
+    # Get the response values
+    y <- model$y
+    
+    # Calculate proportion of zeros
+    prop_zeros <- mean(y < 0.001)
+    
+    # Calculate pseudo R² for quantile regression
+    residuals <- model$residuals
+    y_tau <- quantile(y, tau)
+    null_deviance <- sum(abs(y - y_tau))
+    model_deviance <- sum(abs(residuals))
+    
+    # Calculate pseudo R²
+    r1 <- 1 - model_deviance / null_deviance
+    
+    cli::cli_alert_info(sprintf(
+      "Quantile %.0f%%: %.1f%% of observations are near zero",
+      tau * 100, prop_zeros * 100
+    ))
+    
+    if (is.finite(r1)) {
+      cli::cli_alert_success("Pseudo R² at {.val {tau * 100}}% quantile: {.val {round(r1, 3)}}")
+    }
+    
+    data.table(
+      quantile = paste0("q", tau * 100),
+      R1 = if(is.finite(r1)) r1 else NA,
+      prop_zero = prop_zeros
+    )
+  })
+  
+  r1_stats <- rbindlist(r1_stats)
+  
+  # Display model information
+  cli::cli_h2("Model Information")
+  cli::cli_bullets(c(
+    "*" = "Number of observations: {.val {nrow(model_results$bs_matrix)}}",
+    "*" = "Degrees of freedom: {.val {ncol(model_results$bs_matrix)}}",
+    "*" = "Knot position: {.val 0} degrees (equator)",
+    "*" = "Boundary knots: {.val {round(attr(model_results$bs_matrix, 'Boundary.knots')[1], 2)}} to {.val {round(attr(model_results$bs_matrix, 'Boundary.knots')[2], 2)}} degrees"
+  ))
+  
+  # Display interpretation guide
+  cli::cli_h2("Interpretation Guide")
+  cli::cli_bullets(c(
+    "!" = "R1 values closer to 1 indicate better model fit",
+    "!" = "Coefficients show the effect of latitude on overlap at each quantile",
+    "!" = "The B-spline allows for different patterns in Northern and Southern hemispheres",
+    "!" = "Quantiles show the distribution bounds of overlap values",
+    if (!is.null(transform)) "!" = "Odds ratios represent the multiplicative effect on the odds of climatic overlap for a one-unit change in latitude"
+    
+  ))
+  
+  return(invisible())
+}
+
+load_paoo <- function(group, group.dirs, shape, log.dir, sp_stats, verbose = FALSE) {
+  for (group in names(sp_group_dirs)) {
+    group_dirs <- sp_group_dirs[[group]]$filename
+    
+    paoo <- parallel_spec_handler(
+      spec.dirs = group_dirs,
+      shape = shape,
+      dir = paste0(log_dir_aoo, "/", group),
+      hv.project.method = "0.5-inclusion",
+      out.order = "-TPAoO",
+      fun = get_paoo,
+      verbose = verbose
+    )
+    
+    paoo_files[[group]] <- paoo
+  }
+  
+  paoo_file <- combine_groups(paoo_files, "-TPAoO")
+  
+  paoo_dt <- richness_dt[PAoO > 0]
+  
+  return(paoo_dt)
 }

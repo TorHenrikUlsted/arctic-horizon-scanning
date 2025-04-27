@@ -42,7 +42,9 @@ load_utils <- function(parallel = FALSE) {
       "stringdist",
       "stringr",
       "knitr",
-      "vegan"
+      "vegan",
+      "quantreg",
+      "splines"
     ),
     non_parallel = c(
       "cli",

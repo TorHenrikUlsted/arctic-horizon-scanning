@@ -31,7 +31,7 @@ validate_sequence <- function(known.dir, unknown.dir, out.dir = ".", vis.save.de
   pattern_analysis <- analyze_patterns(
     known.file = known_file,
     unknown.file = unknown_file,
-    permutations = 1,
+    permutations = 999,
     plot.dir = plot_dir,
     vis.save.device = vis.save.device,
     verbose = verbose

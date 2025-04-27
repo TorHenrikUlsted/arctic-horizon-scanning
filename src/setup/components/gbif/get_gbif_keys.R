@@ -22,7 +22,16 @@ get_gbif_keys <- function(spec, out.dir = NULL, verbose = FALSE) {
   catn("Collecting", highcat(l_names), "species keys...")
   
   sp_w_keys <- gbif_retry(spec, "name_backbone_checklist")
-  sp_w_keys <- as.data.table(sp_w_keys)[, .(cleanName = spec, species, scientificName, rank, speciesKey, usageKey, status, synonym)]
+  sp_w_keys <- as.data.table(sp_w_keys)[, .(species, scientificName = spec, rank, speciesKey, usageKey, status, synonym)]
+  
+  # Add cleanName
+  sp_w_keys[, cleanName := {
+    res <- lapply(cli_progress_along(scientificName, "downloading"), function(i) {
+      clean_spec_name(scientificName[i], config$species$standard_symbols, config$species$standard_infraEpithets, verbose)
+    })
+    catn()
+    vapply(res, function(x) x$cleanName, character(1))
+  }]
   
   # Remove anything NA or names above species taxon level
   na_sp_keys <- sp_w_keys[is.na(scientificName) | scientificName == "" | is.na(speciesKey) | speciesKey == ""]

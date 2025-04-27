@@ -30,11 +30,11 @@ gbif:
 hypervolume:
   method: "box"
   accuracy: "accurate"
-  dimensions: 
-    - 18
-    - 10
-    - 3
-    - 4
+  dimensions:
+  - 18
+  - 10
+  - 3
+  - 4
   iterations: null
   inclusion.threshold: 0.5
   
