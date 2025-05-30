@@ -1,286 +1,421 @@
-#####################
-# Chunk from file
-#####################
+#------------------------#
+####    Chunk data    ####
+#------------------------#
 
-chunk_file <- function(file_path, cores.max = 1, chunk.name, chunk.column, chunk.dir, chunk.size = 1e6, iterations = NULL, verbose = T) {
-  vebcat("Initiating file chunking protocol.", color = "funInit")
-  
-  if (!file.exists(file_path)) {
-    vebcat("Cannot find file_path, reading", file_path, color = "nonFatalError")
+get_file_stats <- function(filename, chunk.name, out.file) {
+  if (!file.exists(out.file)) {
+    catn("Calculating total rows and unique", chunk.name, "...")
+    
+    total_calc <- system_calc_uniq_and_rows(filename, chunk.name, sep = "\t")
+    
+    writeLines(as.character(total_calc), out.file)
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = paste0(
+        "GBIF download returned **", total_calc[[2]], "** unique ", chunk.name,
+        " with **", total_calc[[1]], "** total rows"
+      )
+    )
   } else {
-    catn("Using file", highcat(file_path))
+    total_calc <- as.integer(readLines(out.file))
   }
   
-  create_dir_if(chunk.dir)
-  chunk_path <- paste0(chunk.dir, "/", chunk.name)
+  return(total_calc)
+}
+
+
+# Main chunking function
+chunk_data <- function(spec.occ, chunk.name = "species", chunk.column, chunk.dir, chunk.size = 1e7, iterations = NULL, verbose = TRUE) {
+  is_file <- is.character(spec.occ) && file.exists(spec.occ)
+  
+  vebcat("Initiating", if(is_file) "file" else "loaded dataframe", "chunking protocol.", color = "funInit")
+  
+  chunk_path <- file.path(chunk.dir, chunk.name)
   create_dir_if(chunk_path)
   
-  # core_dir <- paste0(chunk.dir, "/nodes")
-  # create_dir_if(core_dir)
-  
-  err_log <- paste0(chunk.dir, "/file-error.txt")
+  err_log <- file.path(chunk.dir, if(is_file) "file-error.txt" else "loaded-error.txt")
   create_file_if(err_log)
   
-  # If iterations is not provided, calculate the total number of chunks
-  if(is.null(iterations)) {
-    col_min_data <- find_min_data_col(file_path)
-    
-    if (!file.exists(paste0(chunk.dir, "/total-rows.txt"))) {
-      total_rows <- system_calc_rows(file_path)
-      
-      writeLines(as.character(total_rows), paste0(chunk.dir, "/total-rows.txt"))
-    } else {
-      total_rows <- as.numeric(readLines(paste0(chunk.dir, "/total-rows.txt")))
-    }
-    
-    vebcat("The file has", highcat(total_rows), "total number of rows.")
-    vebcat("chunk.size: ", highcat(chunk.size), veb = verbose)
-    total_chunks <- ceiling(total_rows / chunk.size)
-    vebcat("Total chunks:", highcat(total_chunks), veb = verbose)
-    # chunks_per_core <- ceiling(total_chunks / cores.max)
-    # vebcat("chunks per core:", highcat(chunks_per_core), veb = verbose)
-    
-    iteration_file <- paste0(chunk.dir, "/file-iteration.txt")
+  if (is_file) {
+    total_calc <- get_file_stats(spec.occ, chunk.name, file.path(chunk.dir, "total-calc.txt"))
+    total_rows <- total_calc[[1]]
+    unique_count <- total_calc[[2]]
+    df_header <- fread(spec.occ, nrows = 0)
+  } else {
+    unique_count <- length(unique(spec.occ$species))
+    total_rows <- nrow(spec.occ)
+    df_header <- names(spec.occ)
+  }
+  
+  catn("Can read", highcat(chunk.size), "chunks at a time")
+  
+  total_chunks <- ceiling(total_rows / chunk.size)
+  
+  if (is.null(iterations)) {
+    iteration_file <- file.path(chunk.dir, if(is_file) "file-iteration.txt" else "loaded-iteration.txt")
     
     if (file.exists(iteration_file)) {
-      i_start <- as.numeric(readLines(iteration_file))
+      i_start <- as.integer(readLines(iteration_file))
+      if (length(i_start) == 0) i_start <- 0
+      i_start <- i_start + 1 # Start on the next chunk instead of rerunning the last one
     } else {
       create_file_if(iteration_file)
       i_start <- 1
     }
+    
+    if (i_start > total_chunks) {
+      return(vebcat("Data already chunked", color = "funSuccess"))
+    }
+    
+    chunks <- seq(i_start, total_chunks)
+  } else {
+    chunks <- iterations
   }
   
-  if (i_start > total_chunks) {
-    vebcat("The starting iteration number is above total_chunks. Stopping the chunking process.", color = "nonFatalError")
-    return()
-  }
+  vebcat("The data has", highcat(unique_count), "unique", highcat(chunk.name), "and", highcat(total_rows), "total rows.")
   
-  if (is.vector(chunk.column) && length(chunk.column) > 1) {
-    vebcat("Combining columns:", highcat(chunk.column), veb = verbose)
-  }
+  catn("Writing out files to:", colcat(chunk_path, color = "output"))
   
-  df_header <- fread(file_path, nrows = 0)
-  vebprint(df_header, verbose, "data table header:")
+  catn("Running sequential chunking process\n")
+  cat(sprintf("%7s | %14s | %18s | %13s | %17s\n",
+              "Chunk", "Chunk n_rows", "Chunk unique rows", "Chunks total", "Chunks remaining"))
   
-  # cl <- makeCluster(cores.max)
-  # on.exit(closeAllConnections())
-  # 
-  # clusterEvalQ(cl, {
-  #   library(data.table)
-  # })
-  
-  catn("Writing out process to:", colcat(chunk_path, color = "output"))
-  
-  catn("Chunking file into files \n")
-  cat(
-    sprintf(
-      "%7s | %14s | %19s |  %13s | %13s | %17s\n", 
-      "Chunk", "Chunk n_rows", "Chunk n_uniq_rows", "Chunk class", "Chunks total", "Chunks remaining"
-    )
-  )
-  
-  i <- i_start
-  while(TRUE) {
+  for (i in chunks) {
     tryCatch({
-      
-      if (i > total_chunks) {
-        # Write the current iteration number to the file
-        writeLines(as.character(i), iteration_file)
-        break
+      if (is_file) {
+        data <- suppressWarnings(fread(spec.occ, skip = (i - 1) * chunk.size + 1, nrows = chunk.size, col.names = names(df_header), verbose = FALSE))
       }
       
-      # Read a chunk of the data
-      tryCatch({
-      data <- fread(file_path, skip = (i - 1) * chunk.size + 1, nrows = chunk.size, col.names = names(df_header), verbose = F)
-    }, error = function(e) {
-      catn("Error occurred when reading data file with fread.")
-      catn(e$message)
-    })
-
-      new_column <- chunk.column
-      tryCatch({
-        
-        if (is.vector(chunk.column) && length(chunk.column) > 1) {
-          data$cleanName <- apply(data[, ..chunk.column, drop = FALSE], 1, function(x) paste(na.omit(x), collapse = " "))
-          data$cleanName <- trimws(data$cleanName)
-          chunk.column <- "cleanName"
-        } else {
-          data <- remove_authorship(data, verbose = verbose)
-          
-          chunk.column <- "cleanName"
-        }
-      }, error = function(e) {
-        catn("Error when cleaned columns.")
-        catn(e$message)
-        
-        catn("Length unique cleaned column:", length(unique(data[[chunk.column]])))
-        catn("Str chunk.column:")
-        print(str(head(chunk.column, 2)))
-      })
+      data <- data[species != ""]
+      data[, (chunk.column) := species]
       
-      # Order and split the data
-      tryCatch({
-        data <- data[order(data[[chunk.column]]), ]
-        data_list <- split(data, data[[chunk.column]])
-        # Remove list items with blank names
-        data_list <- data_list[names(data_list) != ""]
-      }, error = function(e) {
-        catn("Error when ordering and splitting data_list.")
-        catn(e$message)
+      data <- data[order(data[[chunk.column]]), ]
+      species_list <- split(data, data[[chunk.column]])
+      species_list <- species_list[!names(species_list) %in% c("", NA)]
+      
+      lapply(names(species_list), function(species) {
+        filename <- gsub(" ", config$species$file_separator, species)
+        filename <- sub(paste0(config$species$file_separator, "$"), "", filename)
+        file_path <- file.path(chunk.dir, chunk.name, paste0(filename, ".csv"))
         
-        catn("Length of data_list: ", length(data_list))
-        catn("Class: ", class(data_list))
-        vebprint(head(names(data_list, 2)), text = "List names:")
-        print(str(head(data_list, 2)), text = "str:")
+        fwrite(species_list[[species]], file_path, append = file.exists(file_path))
       })
       
       cat(
         sprintf(
-          "\r%7.0f | %14.0f | %19.0f | %13s | %13.0f | %17.0f",
-          i, nrow(data), length(unique(data[[chunk.column]])), class(data_list), total_chunks, ceiling((total_rows - (i * chunk.size)) / chunk.size)
+          "\r%7d | %14d | %18d | %13d | %17d",
+          i, nrow(data), uniqueN(data[[chunk.column]]), total_chunks, total_chunks - i
         )
       )
+      
       flush.console()
+      writeLines(as.character(i), file.path(chunk.dir, if(is_file) "file-iteration.txt" else "loaded-iteration.txt"))
+    }, error = function(e) {
+      try(err_con <- file(err_log, open = "at"))
+      sink(err_con, type = "output")
       
-      tryCatch({
-        lapply(names(data_list), function(x) {
-          file_name <- paste0(chunk.dir, "/", chunk.name, "/", gsub(" ", "-", x), ".csv")
-          
-          if(!file.exists(file_name)) {
-            fwrite(data_list[[x]], file_name, bom = T)
-          } else {
-            fwrite(data_list[[x]], file_name, bom = T, append = T)
-          }
-        })
-      }, error = function(e) {
-        catn("Error when applying names and writing out files.")
-        catn(e$message)
-        vebprint(class(data_list), text = "Class:")
-        vebprint(head(names(data_list, 3)), text = "List names:")
-        vebprint(str(head(data_list, 3)), text = "str:")
-      })
+      catn("\nError in iteration", i)
+      print(e$message)
       
-      rm(data)
-      rm(data_list)
-      
-      # And then call the garbage collector
+      sink(type = "output")
+      close(err_con)
+    }, finally = {
+      closeAllConnections()
       invisible(gc())
+    })
+  };catn()
+  
+  vebcat("Chunking protocol completed successfully.", color = "funSuccess")
+}
+
+#------------------------#
+####  rename chunks   ####
+#------------------------#
+
+identify_accepted <- function(dt, verbose = FALSE) {
+  if (!any(tolower(dt$status) %in% "accepted" & 
+           tolower(dt$rank) %in% "species")
+  ) {
+    
+    vebcat(
+      "Found", highcat(length(unique(dt$usageKey))), 
+      "scientific names and", highcat(sum(tolower(dt$rank) == "species")),
+      "species", veb = verbose
+    )
+    
+    if (length(unique(dt$usageKey)) > 1) {
+      # identify accepted usageKey
+      accepted <- unique(dt$acceptedUsageKey)
+      # remove all keys that are not accepted
+      accepted <- accepted[!is.na(accepted)]
+      
+    } else {
+      accepted <- unique(dt$usageKey)
+    }
+    
+    # safety in case acceptedKey does not lead back to the accepted scientificName
+    if (length(accepted) == 0) return(invisible())
+    
+  } else {
+    vebcat("Found an accepted species", veb = verbose)
+    return(invisible())
+  }
+  
+  return(accepted)
+}
+
+process_accepted <- function(occ.data, checklist, accepted.keys, symbols, designations, verbose = FALSE) {
+  
+  if (length(accepted.keys) == 1) {
+    tryCatch({
+      # Get all potential names from checklist
+      potential_names <- checklist[usageKey == accepted.keys | acceptedUsageKey == accepted.keys, ]
+      accepted_name <- NULL
+      
+      # Try getting accepted name in order of preference
+      if (nrow(potential_names[status == "ACCEPTED"]) > 0) {
+        accepted_name <- potential_names[status == "ACCEPTED", scientificName][1]
+      } else if (nrow(potential_names) > 0) {
+        accepted_name <- potential_names[1, scientificName]
+      }
+      
+      # Only try API if we couldn't get a name from checklist
+      if (is.null(accepted_name) || is.na(accepted_name) || accepted_name == "") {
+        dt <- tryCatch({
+          gbif_retry(accepted.keys, "name_usage")
+        }, error = function(e) {
+          if (verbose) catn("GBIF API call failed:", e$message)
+          return(NULL)
+        })
+        
+        if (!is.null(dt) && !is.null(dt$data)) {
+          accepted_name <- dt$data$scientificName
+        }
+      }
+      
+      # If we got a valid name, clean and return it
+      if (!is.null(accepted_name) && !is.na(accepted_name) && accepted_name != "") {
+        accepted_name <- clean_spec_name(accepted_name, symbols, designations)$cleanName
+        return(list(accepted_name = accepted_name))
+      }
+      
+      # If we got here, use original name from occurrence data
+      original_name <- occ.data$scientificName[1]
+      if (!is.na(original_name)) {
+        original_name <- clean_spec_name(original_name, symbols, designations)$cleanName
+        return(list(accepted_name = original_name))
+      }
+      
+      if (verbose) catn("Could not resolve name for key", accepted.keys)
+      return(NULL)
       
     }, error = function(e) {
-      try(err_log <- file(err_log, open = "at"))
-      sink(err_log, append = T, type = "output")
+      if (verbose) catn("Error processing key", accepted.keys, ":", e$message)
+      return(NULL)
+    })
+  }
+  
+  result <- list()
+  
+  for (key in accepted.keys) {
+    tryCatch({
+      # Get all rows that could be relevant
+      checklist_subset <- checklist[acceptedUsageKey == key | usageKey == key, ]
       
-      catn("Error in chunk", i, ":", e$message)
+      if (nrow(checklist_subset) > 0) {
+        accepted_name <- NULL
+        
+        # Try getting accepted name in order of preference
+        if (nrow(checklist_subset[status == "ACCEPTED"]) > 0) {
+          accepted_name <- checklist_subset[status == "ACCEPTED", scientificName][1]
+        } else {
+          accepted_name <- checklist_subset[1, scientificName]
+        }
+        
+        # Try API only if necessary
+        if (is.null(accepted_name) || is.na(accepted_name) || accepted_name == "") {
+          dt <- tryCatch({
+            gbif_retry(key, "name_usage")
+          }, error = function(e) {
+            if (verbose) catn("GBIF API call failed for key", key, ":", e$message)
+            return(NULL)
+          })
+          
+          if (!is.null(dt) && !is.null(dt$data)) {
+            accepted_name <- dt$data$scientificName
+          }
+        }
+        
+        # If still no valid name, try using original name from data
+        if (is.null(accepted_name) || is.na(accepted_name) || accepted_name == "") {
+          original_rows <- occ.data[taxonKey == key, ]
+          if (nrow(original_rows) > 0) {
+            accepted_name <- original_rows$scientificName[1]
+          }
+        }
+        
+        if (!is.null(accepted_name) && !is.na(accepted_name) && accepted_name != "") {
+          # Get all relevant keys
+          relevant_keys <- unique(c(checklist_subset$usageKey, checklist_subset$acceptedUsageKey))
+          relevant_keys <- relevant_keys[!is.na(relevant_keys)]
+          
+          # Get occurrence data
+          occurrence_subset <- occ.data[taxonKey %in% relevant_keys, ]
+          
+          # Clean name
+          accepted_name <- clean_spec_name(accepted_name, symbols, designations)$cleanName
+          
+          # Only process if we have data
+          if (nrow(occurrence_subset) > 0) {
+            occurrence_subset[, cleanName := accepted_name]
+            result[[accepted_name]] <- occurrence_subset
+            
+            if (verbose) {
+              catn("Processed", accepted_name, "with", 
+                   nrow(checklist_subset), "taxa and", 
+                   nrow(occurrence_subset), "occurrences")
+            }
+          }
+        }
+      }
+    }, error = function(e) {
+      if (verbose) {
+        catn("Error processing key", key, ":", e$message)
+      }
+    })
+  }
+  
+  # Return original data if we couldn't process anything
+  if (length(result) == 0 && nrow(occ.data) > 0) {
+    original_name <- occ.data$scientificName[1]
+    if (!is.na(original_name)) {
+      original_name <- clean_spec_name(original_name, symbols, designations)$cleanName
+      occ.data[, cleanName := original_name]
+      result[[original_name]] <- occ.data
+      if (verbose) catn("Using original name", original_name, "for unresolved data")
+    }
+  }
+  
+  return(result)
+}
 
-      sink(type = "output")
-      close(err_log)
-    }); catn()
+handle_chunk_files <- function(processed.data, orig.file, file.sep = "_", verbose = FALSE) {
+  filename_backup <- data.table(
+    original = character(),
+    new = character()
+  )
+  
+  if ("accepted_name" %in% names(processed.data)) {
+    # Single key scenario
+    filename <- file.path(dirname(orig.file), paste0(gsub(" ", file.sep, processed.data$accepted_name), ".csv"))
+    
+    filename_backup <- rbind(
+      filename_map, 
+      data.table(
+        original_file = orig.file,
+        new_file = filename
+      )
+    )
+    
+    file.rename(orig.file, filename)
+    
+  } else {
+    # Multiple keys scenario
+    new_files <- character()
+    
+    for (name in names(processed.data)) {
+      filename <- file.path(dirname(orig.file), paste0(gsub(" ", file.sep, name), ".csv"))
+      
+      filename_backup <- rbind(
+        filename_backup,
+        data.table(
+          original = orig.file,
+          new = filename
+        )
+      )
+      
+      fwrite(processed.data[[name]], filename)
+      
+      if (file.exists(filename) && file.size(filename) > 0) {
+        new_files <- c(new_files, filename)
+        vebcat("Created file for", highcat(name), "with", 
+                            highcat(nrow(processed.data[[name]])), "occurrences", veb = verbose)
+      } else {
+        vebcat("Failed to create file", highcat(filename), veb = verbose)
+      }
+    }
+    
+    if (length(new_files) == length(processed.data)) {
+      file.remove(orig.file)
+      vebcat("Removed original file", highcat(orig.file), veb = verbose)
+    } else {
+      vebcat("Not all new files were created successfully. Keeping original file.", veb = verbose)
+    }
+  }
+  
+  fwrite(filename_backup, file.path(dirname(orig.file), "filename_backup.csv"), bom = TRUE)
+}
+
+rename_chunks <- function(spec.dir, symbols, designations, file.sep = "_", verbose = FALSE) {
+  files <- list.files(spec.dir, full.names = TRUE)
+  
+  iteration_file <- file.path(dirname(spec.dir), "rename-iteration.txt")
+  
+  if (file.exists(iteration_file)) {
+    i_start <- as.integer(readLines(iteration_file))
+    if (length(i_start) == 0) i_start <- 0
+    i_start <- i_start + 1 # Start on the next chunk instead of rerunning the last one
+  } else {
+    create_file_if(iteration_file)
+    i_start <- 1
+  }
+  
+  if (i_start > length(files)) return(catn("All files already renamed"))
+  
+  vebcat("Renaming files to accepted name", color = "funInit")
+  
+  for (i in i_start:length(files)) {
+    cat("\rChecking file", highcat(i), "/", highcat(length(files)))
+    
+    # Check for name more than string length of 2, means already processed
+    str_len <- length(str_split(basename(files[i]), file.sep)[[1]])
+    
+    if (str_len > 2) { # Means it has been processed before
+      writeLines(as.character(i), iteration_file)
+      next
+    }
+    
+    dt <- fread(files[i])
+    
+    unique_names <- unique(dt$scientificName)
+    
+    checklist <- as.data.table(gbif_retry(unique_names, "name_backbone_checklist"))
+    
+    accepted <- identify_accepted(checklist)
+    
+    if (!is.null(accepted)) {
+      processed_accepted <- process_accepted(dt, checklist, accepted, symbols, designations, verbose)
+      
+      handle_chunk_files(processed_accepted, files[i], file.sep, verbose)
+    }
     
     writeLines(as.character(i), iteration_file)
     
-    i <- i + 1
-  }
+  };catn()
   
-  vebcat("File chunking protocol completed successfully", veb = verbose)
+  vebcat("All files renamed successfully", color = "funSuccess")
 }
 
-#####################
-# Chunk loadable df
-#####################
-
-chunk_loaded_df <- function(df, chunk.name = "species", chunk.column, chunk.dir, iterations = NULL, verbose = FALSE) {
-  # File to store the last iteration number
-  last_iteration_file <- paste0(chunk.dir, "/loaded-iteration.txt")
-  
-  n_total <- length(unique(df[[chunk.column]]))
-  
-  # Check if the last iteration file exists
-  if(file.exists(last_iteration_file)) {
-    if (is.null(iterations)) {
-      iterations <- as.integer(readLines(last_iteration_file))
-      
-      if(iterations >= n_total) {
-        return(catn("This data has already been chunked."))
-      }
-    }
-  } 
-  
-  vebcat("Initiating loaded dataframe chunking protocol.", color = "funInit")  
-  
-    if (is.vector(chunk.column) && length(chunk.column) > 1) {
-      vebcat("Found vector more than 1 in length, combining columns:", highcat(chunk.column), veb = verbose)
-      
-      df$cleanName <- df[, do.call(paste, c(.SD, sep = " ")), .SDcols = chunk.column]
-      
-      chunk.column <- "cleanName"
-    }
-    
-    df <- remove_authorship(df, verbose = verbose)
-    
-    vebcat("Sorting data.", veb = verbose)
-    data <- df[order(df[[chunk.column]]), ]
-    
-    vebcat("Splitting data into", highcat(chunk.column), "lists.", veb = verbose)
-    data_list <- split(data, data[[chunk.column]])
-    
-    n_total <- length(data_list)
-    
-    create_dir_if(chunk.dir)
-    create_dir_if(paste0(chunk.dir, "/", chunk.name))
-    
-    err_log <- paste0(chunk.dir, "/loaded-error.txt")
-    create_file_if(err_log)
-    
-    # If iterations is not provided, run all iterations
-    if(is.null(iterations)) {
-      iterations <- seq_along(data_list)
-    }
-    
-    catn("Chunking dataframe into files")
-    cat(sprintf("%10s | %16s | %8s \n", paste0("n_", chunk.name), paste0("total n_", chunk.name), "Remaining"))
-    for(i in iterations) {
-      tryCatch({
-        x <- names(data_list)[i]
-        cat(sprintf("\r%10.0f | %16.0f | %8.0f", i, n_total, n_total - i))
-        flush.console()
-        
-        # Replace spaces with hyphens in x
-        x <- gsub(" ", "-", x)
-        
-        # Remove trailing hyphen, if any
-        x <- sub("-$", "", x)
-        
-        # Create the filename
-        file_name <- paste0(chunk.dir, "/", chunk.name, "/", x, ".csv")
-        
-        if(!file.exists(file_name)) {
-          fwrite(data_list[[i]], file_name, bom = T)
-        }
-        
-        writeLines(as.character(i), last_iteration_file)
-      }, error = function(e) {
-        try(err_log <- file(err_log, open = "at"))
-        sink(err_log, append = T, type = "output")
-        
-        catn("Error in iteration", i, ":", e$message)
-        
-        sink(type = "output")
-        close(err_log)
-      })
-    }; catn()
-    
-    vebcat("Loaded dataframe chunking protocol completed successfully.", color = "funSuccess")
-}
-
-################
-# Clean chunks
-################
+#------------------------#
+####   Clean chunks   ####
+#------------------------#
 
 clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterations = NULL, verbose = F) {
-  
+  vebcat("Initiating chunk cleaning protocol.", color = "funInit")
   err_log <- paste0(chunk.dir, "/cleaner-error.txt")
   create_file_if(err_log)
-
+  
   # File to store the last iteration number
   last_iteration_file <- paste0(chunk.dir, "/cleaner-iteration.txt")
   missing_sp_file <- paste0(chunk.dir, "/missing-species.txt")
@@ -296,20 +431,19 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
       iterations <- as.integer(readLines(last_iteration_file))
       
       if (iterations >= n_total) {
-        return(catn("This data has already been cleaned."))
+        return(vebcat("This data has already been cleaned.", color = "funSuccess"))
       }
-    } 
+    }
   }
   
-  vebcat("Initiating chunk cleaning protocol.", color = "funInit")
   
-  if(is.null(iterations) || is.na(iterations)) {
+  if (is.null(iterations) || is.na(iterations)) {
     iterations <- seq_along(chunk_files)
   }
   
   vebprint(chunk_files, text = "chunk_files:", veb = verbose)
   
-  j = 0
+  j <- 0
   
   catn("Cleaning chunk files")
   cat(sprintf("%6s | %10s | %10s \n", "total", "iteration", "Remaining"))
@@ -326,12 +460,12 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
     
     name <- gsub(".csv", "", name)
     
-    name <- gsub("-", " ", name)
+    name <- gsub(config$species$file_separator, " ", name)
     
     name_nospace <- gsub("\\s+", "", name)
     
     # Fuzzy match 1 letter -- birngs too many errors
-    #matches <- agrepl(name_nospace, strings, max.distance = 0.001)
+    # matches <- agrepl(name_nospace, strings, max.distance = 0.001)
     
     if (name_nospace %in% strings) {
       next
@@ -341,15 +475,15 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
     }
     
     j + 1
-    
-  };catn()
+  }
+  catn()
   
   try(it_con <- open(last_iteration_file, "w"))
-  writeLines(j, it_con)
+  writeLines(as.character(j), it_con)
   close(it_con)
   
-    chunk_files <- gsub("\\s+", "", gsub("-", "", gsub(".csv", "", basename(list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)))))
-    
+  chunk_files <- gsub("\\s+", "", gsub(config$species$file_separator, "", gsub(".csv", "", basename(list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", full.names = TRUE)))))
+  
   missing_sp <- chunk_files[!(chunk_files %in% gsub("\\s+", "", sp_w_keys$species))]
   
   if (length(missing_sp) > 0) {
@@ -361,11 +495,11 @@ clean_chunks <- function(chunk.name, chunk.column, chunk.dir, sp_w_keys, iterati
     catn("All chunk files are present in sp_w_keys$species.")
   }
   
-  list_md <- list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv",)
+  list_md <- list.files(paste0(chunk.dir, "/", chunk.name), pattern = "*.csv", )
   
   mdwrite(
-    post_seq_nums,
-    heading = paste0(
+    config$files$post_seq_md,
+    text = paste0(
       "Number of species after cleaning: **", length(list_md), "**"
     )
   )

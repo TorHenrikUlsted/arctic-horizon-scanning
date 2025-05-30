@@ -1,25 +1,21 @@
 load_wfo <- function() {
-  if (!file.exists("./resources/wfo/classification.csv")) {
-    if (!file.exists("./resources/wfo/WFO_Backbone.zip")) {
-      tryCatch({
-        if (!dir.exists("./resources/wfo")) dir.create("./resources/wfo", recursive = T)
-        cat(blue("A progress window pops up here, check your taskbar \n"))
-        suppressWarnings(WFO.download(save.dir = "./resources/wfo", WFO.remember = TRUE, timeout = 2000))
-      }, error = function(e) {
-        cat(red("Error in download:"), e$message, "\n")
-        cat(red("Could not download WFO Backbone. Manual download needed. \n"))
-        
-        cat("Opening download page \n")
-        browseURL("https://www.worldfloraonline.org/downloadData;jsessionid=D1501051E49AE20AB4B7297D021D6324")
-      }, finally = {
-        WFO_file <- "./resources/wfo/classification.csv"
-      })
-    } else {
-      unzip("./resources/wfo/WFO_Backbone.zip", exdir = "./resources/wfo")
-      WFO_file <- "./resources/wfo/classification.csv"
-    }
+
+  if (!file.exists("./resources/wfo/WFO_Backbone.zip")) {
+    tryCatch({
+      if (!dir.exists("./resources/wfo")) dir.create("./resources/wfo", recursive = T)
+      cat(blue("A progress window pops up here, check your taskbar \n"))
+      suppressWarnings(WFO.download(save.dir = "./resources/wfo", WFO.remember = TRUE, timeout = 2000))
+    }, error = function(e) {
+      cat(red("Error in download:"), e$message, "\n")
+      cat(red("Could not download WFO Backbone. Manual download needed. \n"))
+      
+      cat("Opening download page \n")
+      browseURL("https://www.worldfloraonline.org/downloadData;jsessionid=D1501051E49AE20AB4B7297D021D6324")
+    }, finally = {
+      WFO_file <- "./resources/wfo/WFO_Backbone.zip"
+    })
   } else {
-    WFO_file <- "./resources/wfo/classification.csv"
+    WFO_file <- "./resources/wfo/WFO_Backbone.zip"
   }
   
   return(WFO_file)
@@ -64,8 +60,83 @@ load_wwf_ecoregions <- function() {
   }
 }
 
+load_apg <- function(rank = "order", cite = FALSE, verbose = FALSE) {
+  filename <- "./resources/taxon/apg/apg4.txt"
+  article <- "https://doi.org/10.1111/boj.12385"
+  dataset <- "https://doi.org/10.15468/fzuaam"
+  
+  if (cite) return(list(apg = format_bibtex(suppressWarnings(cr_cn(article, format = "bibtex")))))
+    
+  download_if(
+    out.file = filename,
+    download.file.ext = "zip",
+    download.direct = "https://github.com/CatalogueOfLife/data-apg4/archive/master.zip",
+    download.page = dataset,
+    verbose = verbose
+  )
+  
+  apg <- fread(filename, sep="\t")
+  
+  apg <- apg[, .(scientificName, scientificNameAuthorship,taxonRank, parentNameUsage)]
+  
+  apg_ranks <- apg[apg$taxonRank == rank]
+  
+  angiosperms <- apg_ranks$scientificName
+  
+  return(angiosperms)
+}
+
+load_ppg <- function(rank = "order", cite = FALSE, verbose = FALSE) {
+  filename <- "./resources/taxon/ppg/ppg.csv"
+  article <- "https://doi.org/10.1111/jse.12229"
+  dataset <- "https://github.com/pteridogroup/ppg/"
+  
+  if (cite) return(list(ppg = format_bibtex(suppressWarnings(cr_cn(article, format = "bibtex")))))
+  
+  download_github_dir_if(
+    repo.owner = "pteridogroup",
+    repo.name = "ppg",
+    branch = "main",
+    dir.path = "data",
+    dir.out = dirname(filename),
+    file.exclude = "ppg.md",
+    verbose = verbose
+  )
+  
+  ppg <- fread(filename)
+  
+  ppg <- ppg[, .(scientificName, taxonRank, taxonomicStatus, order, genus, tribe, subfamily, family, acceptedNameUsage)]
+  
+  rank = "order"
+  
+  ppg <- unique(ppg, by = rank)
+  
+  pteridophytes <- ppg[[rank]]
+  
+  return(pteridophytes)
+}
+
+load_gpg <- function(rank = "order", cite = FALSE, verbose = FALSE) {
+  article <- "https://doi.org/10.1016/j.pld.2022.05.003"
+  
+  if (cite) return(list(gpg = format_bibtex(suppressWarnings(cr_cn(article, format = "bibtex")))))
+  
+  gymnosperms = c(
+    "Cycadales",
+    "Ginkgoales",
+    "Araucariales",
+    "Cupressales",
+    "Pinales",
+    "Ephedrales",
+    "Welwitchiales",
+    "Gnetales"
+  )
+  
+  return(gymnosperms)
+}
+
 load_region <- function(region.file, verbose = FALSE) {
-  vebcat("Loading region", color = "funInit")
+  vebcat("Loading region", veb = verbose, color = "funInit")
   
   if (!is.character(region.file)) {
     vebcat("Region is not a filepath.", color = "fatalError")
@@ -93,10 +164,10 @@ load_region <- function(region.file, verbose = FALSE) {
   
   # If the original CRS is not correctly defined, define it
   if (is.na(original_crs) || original_crs == "") {
-    vebcat("Found blank or na crs. Needs manual processing", color = "nonFatalError")
+    vebcat("Found blank or na crs. Needs manual processing", color = "nonFatalError", veb = verbose)
   }
   
-  vebcat("Regions imported successfully", color = "funSuccess")
+  vebcat("Regions imported successfully", color = "funSuccess", veb = verbose)
   
   return(region)
 }

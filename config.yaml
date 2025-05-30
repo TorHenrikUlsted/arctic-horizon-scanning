@@ -1,0 +1,160 @@
+repository:
+  name: "Horizon-Scanning-Repository"
+  pack.sequence: "all"
+  
+simulation:
+  seed: 12034
+  climate: "worldclim"
+  approach: "precautionary"
+  projection: "laea"
+  
+  validation: FALSE
+  example: TRUE
+  verbose: FALSE
+  force.sequence: null
+  
+dataset:
+  known: null
+  unknown: null
+  
+gbif:
+  region: null
+  known:
+    download.key: null
+    download.doi: null
+  unknown:
+    download.key: null
+    download.doi: null
+
+hypervolume:
+  method: "box"
+  accuracy: "accurate"
+  dimensions: null
+  iterations: null
+  inclusion.threshold: 0.5
+  
+visualization:
+  shape.name: "shapefile-name"
+  title: FALSE
+  region.name: "Region"
+  subregion.name: "Sub-Region"
+  composition.taxon: "order"
+  save.device: "jpeg"
+  save.unit: "px"
+  plot.show: FALSE
+
+projection:
+  raster_scale_m: 1000
+  crs:
+    laea: "+proj=laea +lon_0=0 +lat_0=90 +datum=WGS84"
+    aeqd: "+proj=aeqd +lon_0=0 +lat_0=90 +datum=WGS84"
+    longlat: "+proj=longlat +datum=WGS84 +ellps=WGS84"
+    mollweide: "+proj=moll +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs"
+    stere_north: "+proj=stere +lat_0=90 +lat_ts=70 +lon_0=-45 +k=1 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+    
+memory:
+  tracking: FALSE
+  limit: 0.75
+  core_limit: 0.4
+
+climate:
+  database:
+    worldclim:
+      var: "bio"
+      period: "1970-2000"
+      res: "2.5"
+      version: "2.1"
+    chelsa:
+      dataset: "climatologies"
+      var: "bio"
+      period: "1981-2010"
+      model: null
+      ssp: null
+      version: "2.1"
+
+species:
+  file_separator: "_"
+  clade_rank: "order"
+  infraEpithet_designations:
+    - "subsp."
+    - "ssp."
+    - "var."
+    - "f."
+  standard_infraEpithets:
+    "ssp.": "subsp."
+    "subspecies": "subsp."
+    "nothosubspecies": "nothosubsp."
+    "variety": "var."
+    "nothovariety": "nothovar."
+    "subvariety": "subvar."
+    "convariety": "convar."
+    "form": "subf."
+    "forma": "subf."
+    "subform": "subf."
+    "subforma": "subf."
+    "cultivarGroup": "cvgr."
+    "cultivar": "cv."
+    "grex": "gx."
+    "proles": "prol."
+    "lusus": "lus."
+  taxonRank_infraEpithets:
+    "SUBSPECIES": "subsp."
+    "VARIETY": "var."
+    "FORM": "f."
+  ignored_designations:
+    - "aff."
+    - "agg."
+    - "s. lat."
+    - "coll."
+    - "sp."
+  filename_symbols:
+    "×": "^x^"
+  standard_symbols:
+    "x": "×"
+    "^x^": "×"
+    "Ã—": "×"
+
+files:
+  post_seq_md: "./outputs/post-process/markdown/sequence-numbers.md"
+
+ggplot:
+  gradient:
+    vis.gradient: "viridis-B"
+    guide:
+      reverse: false
+      title.position: "top"
+      label.position: "bottom"
+      nrow: 1
+    na.value: "transparent"
+  theme:
+    text:
+      family: "Linux Libertine"
+    plot.title:
+      color: "black"
+      vjust: -0.5
+      hjust: 0.5
+      size: 18
+      face: "bold"
+      margin:
+        b: 10
+      lineheight: 1.2
+    plot.title.position: "plot"
+    plot.margin:
+      t: 10
+      r: 10
+      b: 20
+      l: 10
+      unit: "pt"
+    axis.text:
+      size: 16
+    axis.title.x:
+      size: 20
+      hjust: 0.5
+    axis.title.y:
+      size: 20
+    legend.text:
+      size: 18
+    legend.title:
+      size: 18
+      hjust: 0.5
+    legend.position: "bottom"
