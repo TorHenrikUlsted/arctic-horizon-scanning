@@ -4,7 +4,7 @@ filter_test_known <- function(dts, column, verbose = FALSE) {
   
   test_present <- dts$test_known
   
-  setnames(test_present, old = colnames(test_present), new = column)
+  setnames(test_present, old = "scientificName", new = column)
   
   fwrite(test_present, paste0(test_dir, "/present-final.csv"), bom = TRUE)
   
@@ -22,7 +22,7 @@ filter_test_small <- function(known.filtered, dts, column, verbose = FALSE) {
   
   test_small <- dts[["test_small"]]
   
-  setnames(test_small, old = colnames(test_small), new = column)
+  setnames(test_small, old = "scientificName", new = column)
   
   vebprint(test_small, verbose, text = "test_small dt:")
   
@@ -48,7 +48,7 @@ filter_test_big <- function(known.filtered, dts, column, verbose = FALSE) {
   
   test_big <- dts[["test_big"]]
   
-  setnames(test_big, old = colnames(test_big), new = column)
+  setnames(test_big, old = "scientificName", new = column)
   
   vebprint(test_big, verbose, text = "test_big dt:")
   

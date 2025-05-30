@@ -1,5 +1,3 @@
-config <- read_yaml("./config.yaml")
-
 load_config <- function() {
   #------------------------#
   ####      Memory      ####
@@ -16,7 +14,6 @@ load_config <- function() {
   #------------------------#
   ####    Projection    ####
   #------------------------#
-  
   for (projection in names(config$projection$crs)) {
     config$projection$crs[[projection]] <- crs(config$projection$crs[[projection]])
   }
@@ -85,44 +82,32 @@ load_config <- function() {
   #------------------------#
   
   # Handle all inputs and split into parts by "."
-  config_handler <- function(...) {
-    call_args <- match.call(expand.dots = FALSE)$`...`
-    args <- list(...)
-    names(args) <- sapply(call_args, deparse)
-    
-    set_nested <- function(lst, keys, value) {
-      if (length(keys) == 1) {
-        lst[[keys]] <- value
-      } else {
-        if (is.null(lst[[keys[1]]])) {
-          lst[[keys[1]]] <- list()
-        }
-        lst[[keys[1]]] <- set_nested(lst[[keys[1]]], keys[-1], value)
-      }
-      return(lst)
-    }
-    
-    for (original_name in names(args)) {
-      name <- original_name
-      if (grepl(".", name, fixed = TRUE)) {
-        name <- gsub(".", "$", name, fixed = TRUE)
-      }
-      name_parts <- strsplit(name, "$", fixed = TRUE)[[1]]
-      
-      config$simulation <<- set_nested(config$simulation, name_parts, args[[original_name]])
-    }
-  }
-  
+  # config_handler <- function(...) {
+  #   call_args <- match.call(expand.dots = FALSE)$`...`
+  #   args <- list(...)
+  #   names(args) <- sapply(call_args, deparse)
+  #   
+  #   set_nested <- function(lst, keys, value) {
+  #     if (length(keys) == 1) {
+  #       lst[[keys]] <- value
+  #     } else {
+  #       if (is.null(lst[[keys[1]]])) {
+  #         lst[[keys[1]]] <- list()
+  #       }
+  #       lst[[keys[1]]] <- set_nested(lst[[keys[1]]], keys[-1], value)
+  #     }
+  #     return(lst)
+  #   }
+  #   
+  #   for (original_name in names(args)) {
+  #     name <- original_name
+  #     if (grepl(".", name, fixed = TRUE)) {
+  #       name <- gsub(".", "$", name, fixed = TRUE)
+  #     }
+  #     name_parts <- strsplit(name, "$", fixed = TRUE)[[1]]
+  #     
+  #     config$simulation <<- set_nested(config$simulation, name_parts, args[[original_name]])
+  #   }
+  # }
   assign("config", config, envir = .GlobalEnv)
 }
-
-# If example is being run, change config to example and load it using example config
-if (!config$simulation$example) {
-  load_config()
-} else {
-  rm(config)
-  config <- read_yaml("./example/config.yaml")
-  source("./example/src/utils/components/config.R")
-  load_config()
-}
-

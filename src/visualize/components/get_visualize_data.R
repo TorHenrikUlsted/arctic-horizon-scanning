@@ -155,12 +155,12 @@ filter_stats_data <- function(vis.dt, known.list, unknown.chunk.dir, out.dir, hv
     included_sp <- fread(inc_sp_out)
   }
   
-  rm(excluded_sp)
-  invisible(gc())
-  
   vebcat("Stats successfully initialised.", color = "funSuccess")
   
-  return(included_sp)
+  return(list(
+    included = included_sp,
+    excluded = excluded_sp
+  ))
 }
 
 get_region_cells <- function(shape, template.filename, out.dir, verbose = FALSE) {
@@ -300,7 +300,7 @@ combine_groups <- function(x, out.order, out.n = NULL) {
 }
 
 get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbose = FALSE) {
-  init <- function(spec.filename, region, verbose) {
+  init <- function(spec.filename, region, extra, verbose) {
     sp_name <- clean_spec_filename(dirname(spec.filename[1]))
     vebcat("Species:", sp_name)
     
@@ -313,7 +313,7 @@ get_inclusion_cell <- function(spec.filename, region = NULL, extra = NULL, verbo
     return(summed_dt)
   }
   
-  execute <- function(spec.filename, region = NULL, extra = NULL, verbose = NULL) {
+  execute <- function(spec.filename, region, extra, verbose) {
     # Do it in batches, that is faster and saves space
     sp_name <- clean_spec_filename(dirname(spec.filename[1]))
     vebcat("Species:", sp_name)
@@ -433,7 +433,7 @@ convert_template_raster <- function(input.values, template.filename, projection,
 }
 
 get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pole = NULL, verbose = FALSE) {
-  vebcat("Setting up world Map.", color = "funInit")
+  vebcat("Setting up world Map.", veb = verbose, color = "funInit")
   
   accepted_maps <- c("wgsrpd", "rnaturalearth")
   
@@ -472,11 +472,9 @@ get_world_map <- function(projection, map.type = "wgsrpd", scale = "level3", pol
     world_map <- crop(world_map, equator_extent)
   }
   
-  print(projection)
-  
   world_map <- suppressWarnings(check_crs(world_map, projection, verbose))
   
-  vebcat("World Map setup completed successfully", color = "funSuccess")
+  vebcat("World Map setup completed successfully", veb = verbose, color = "funSuccess")
   
   return(world_map)
 }
@@ -808,28 +806,43 @@ get_prob_stats <- function(spec.filename, region, extra = NULL, verbose = FALSE)
   ))
 }
 
-calculate_taxon_richness <- function(dt, taxon, country = NULL, verbose = FALSE) {
+calculate_taxon_richness <- function(dt, taxon, region = TRUE, country = NULL, verbose = FALSE) {
   catn("Calculating richness for", highcat(taxon))
+  
+  by_if_region <- if (region) c(taxon, "subRegionName") else c(taxon)
+  by_taxon_or_region <- if (region) "subRegionName" else NULL
+  
+  vebprint(by_if_region, text = "by_if_region:")
+  vebprint(by_taxon_or_region, text = "by_taxon_or_region:")
+  vebprint(region, text = "region:")
+  
+  vebprint(ifelse(region, "paoo", "cleanName"), text = "ifelse:")
   
   dt_copy <- copy(dt)
   # Calculate richness per taxon and subregion (number of unique species in each combination)
-  dt_copy[, taxonRichness := length(unique(cleanName[PAoO > 0])), 
-          by = c(taxon, "subRegionName")]
+  dt_copy[, taxonRichness := ifelse(region,
+                                    length(unique(cleanName[PAoO > 0])),
+                                    length(unique(cleanName))), 
+          by = by_if_region]
+  # How many unique species are in each order
   
   vebprint(dt_copy, verbose, text = "Taxon Richness before sum:")
   
   # Calculate total richness per subregion (across all taxa)
-  dt_copy[, totalRichness := length(unique(cleanName[PAoO > 0])), 
-          by = subRegionName]
+  dt_copy[, totalRichness := ifelse(region, 
+                                     length(unique(cleanName[PAoO > 0])),
+                                     .N),
+          by = by_taxon_or_region]
   
   # Calculate relative richness
-  dt_copy[, relativeRichness := taxonRichness / totalRichness, by = c(taxon, "subRegionName")]
+  dt_copy[, relativeRichness := taxonRichness / totalRichness, by = by_if_region]
   
   # Remove duplicates to get one row per taxon-subregion combination
   if (is.null(country)) {
-    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName"))
+    dt_copy <- unique(dt_copy, by = by_if_region)
   } else {
-    dt_copy <- unique(dt_copy, by = c(taxon, "subRegionName", country))
+    by_if_region <- c(by_if_region, country)
+    dt_copy <- unique(dt_copy, by = by_if_region)
   }
   
   vebprint(dt_copy, verbose, text = "Taxon Richness after sum:")
@@ -895,6 +908,117 @@ get_taxon_richness <- function(paoo.file, stats, taxon, country = FALSE, verbose
   
   return(richness_dt)
 }
+
+
+get_unknown_composition <- function(unknown.path, stats, taxon = "order", out.dir, verbose = FALSE) {
+  
+  out_file <- file.path(out.dir, "unknown-composition.csv")
+  
+  if (file.exists(out_file)) {
+    richness_dt <- fread(out_file)
+  } else {
+    unknown_dt <- fread(unknown.path, sep = "\t")
+    
+    unknown_dt[, c("genus", "specificEpithet", "cleanName", "other", "fullName", "extra", "structure") := {
+      res <- lapply(seq_along(scientificName), function(i) {
+        cat("\rProcessing rows for scientificName:", i, "of", .N)
+        flush.console()
+        clean_spec_name(scientificName[i], config$species$standard_symbols, config$species$standard_infraEpithets, verbose)
+      });catn()
+      list(
+        vapply(res, function(x) x$genus, character(1)),
+        vapply(res, function(x) x$specificEpithet, character(1)),
+        vapply(res, function(x) x$cleanName, character(1)),
+        vapply(res, function(x) x$other, character(1)),
+        vapply(res, function(x) x$fullName, character(1)),
+        vapply(res, function(x) x$extra, character(1)),
+        vapply(res, function(x) x$structure, character(1))
+      )
+    }]
+    
+    setnames(unknown_dt, "scientificName", "verbatim_name")
+    
+    # Get the taxonomic hierarchy
+    unknown_taxa = as.data.table(get_spec_taxons(unknown_dt$verbatim_name))
+    
+    # find the taxon group
+    richness_dt <- get_order_group(
+      unknown_taxa,
+      spec.col = "species"
+    )
+    
+    # Merge
+    richness_dt <- richness_dt[unknown_dt, on = "verbatim_name", nomatch = NULL]
+    
+    # Remove columns with names containing "i."
+    richness_dt <- richness_dt[, !grepl("^i\\.", names(richness_dt)), with = FALSE]
+    
+    # Calculate richness
+    richness_dt <- calculate_taxon_richness(
+      dt = richness_dt,
+      taxon = taxon,
+      region = FALSE,
+      verbose = verbose
+    )
+    
+    fwrite(richness_dt, out_file, bom = TRUE)
+  }
+  
+  
+  return(richness_dt)
+}
+
+# Function to calculate and export differences between study data and GloNAF
+calculate_order_differences <- function(dt, dt_comparison, vis.x, vis.y, vis.fill, out.dir) {
+  out_file <- file.path(out.dir, "order_differences.csv")
+  
+  if (file.exists(out_file)) {
+    result <- fread(out_file)
+  } else {
+    # Create copy of data
+    dt_copy <- copy(dt)
+    comparison_copy <- copy(dt_comparison)
+    
+    # Get all unique orders
+    all_orders <- unique(c(dt_copy[[vis.fill]], comparison_copy[[vis.fill]]))
+    
+    # Calculate total richness for each region and for GloNAF
+    region_totals <- dt_copy[, .(total_richness = sum(get(vis.y))), by = vis.x]
+    glonaf_total <- sum(comparison_copy[[vis.y]])
+    
+    # Calculate GloNAF relative richness for each order
+    glonaf_relative <- comparison_copy[, .(glonaf_relative = sum(get(vis.y)) / glonaf_total), by = vis.fill]
+    
+    # Calculate relative richness for each region and order
+    region_order_richness <- dt_copy[, .(study_relative = sum(get(vis.y)) / region_totals[get(vis.x) == .BY[[vis.x]], total_richness]), 
+                                     by = c(vis.x, vis.fill)]
+    
+    # Merge with GloNAF relative richness
+    result <- region_order_richness[glonaf_relative, on = vis.fill, all = TRUE]
+    
+    # Replace NA with 0
+    result[is.na(study_relative), study_relative := 0]
+    result[is.na(glonaf_relative), glonaf_relative := 0]
+    
+    # Remove NA orders
+    result <- result[!is.na(get(vis.fill))]
+    
+    # Calculate difference
+    result[, difference := study_relative - glonaf_relative]
+    
+    # Add absolute difference column for sorting
+    result[, abs_difference := abs(difference)]
+    
+    # Sort by absolute difference
+    setorder(result, -abs_difference)
+    
+    # Save to CSV
+    fwrite(result, out_file)
+  }
+  
+  return(result)
+}
+
 
 get_connections <- function(dt, verbose = FALSE) {
   dt_copy <- copy(dt)
@@ -1551,4 +1675,500 @@ print_gamlss_summary <- function(models, results) {
     cli_text("")
     cli_text("Note: BIC tends to favor simpler models, especially with larger sample sizes")
   }
+}
+
+compare_gam_models <- function(data, predictor = "centroidLatitude", response = "overlapRegion") {
+  if (any(data[[response]] < 0 | data[[response]] > 1)) {
+    cli::cli_alert_danger("Response variable must be between 0 and 1 exclusively for beta regression")
+    stop("Invalid response variable range")
+  }
+  
+  # Create model formulas with smooth terms
+  full_formula <- as.formula(paste(response, "~ s(", predictor, ")"))
+  null_formula <- as.formula(paste(response, "~ 1"))
+  
+  # Start CLI output
+  cli_h1("GAM Model Comparison")
+  cli_alert_info("Fitting models...")
+  
+  # List to store models
+  models <- list()
+  
+  # Progress bar
+  cli_progress_bar("Fitting models", total = 2, type = "download")
+  
+  # 1. Full model with smooth term
+  cli_progress_update()
+  models$full <- gam(
+    formula = full_formula,
+    family = betar(link = "logit"),
+    data = data,
+    method = "REML"  # Restricted Maximum Likelihood for smooth parameter estimation
+  )
+  
+  # 2. Null model
+  cli_progress_update()
+  models$null <- gam(
+    formula = null_formula,
+    family = betar(link = "logit"),
+    data = data,
+    method = "REML"
+  )
+  
+  cli_progress_done()
+  
+  # Get scores
+  reml_scores <- sapply(models, function(x) summary(x)$sp.criterion)
+  delta_reml <- reml_scores - min(reml_scores)
+  precision_scores <- sapply(models, function(x) summary(x)$family$getTheta())
+  r_sq_scores <- sapply(models, function(x) summary(x)$r.sq)
+  deviance_scores <- sapply(models, function(x) summary(x)$dev.expl)
+  edf_scores <- c(sum(summary(models$full)$s.table[, 1]), 0)
+  edf_total_scores <- c(sum(summary(models$full)$s.table[, 2]), 0)
+  
+  results <- data.table::data.table(
+    model = names(models),
+    reml = reml_scores,
+    delta_reml = delta_reml,
+    precision = precision_scores,
+    edf = edf_scores,
+    edf.total = edf_total_scores,
+    r_sq_adj = r_sq_scores,
+    deviance_explained = deviance_scores,
+    description = c(
+      full = "Full model (smooth term for latitude)",
+      null = "Null model (intercept only)"
+    )
+  )
+  # Sort by REML score (lower is better)
+  results <- results[order(results$reml), ]
+  
+  cli::cli_alert_success("Model fitting finished successfully")
+  
+  result <- list(
+    summary = results,
+    models = models
+  )
+  
+  print_gam_summary(models = result$models, results = result$summary)
+  
+  return(result)
+}
+
+print_gam_summary <- function(models, results) {
+  # Helper function for consistent number formatting
+  format_num <- function(x, digits = 3) {
+    format(round(as.numeric(x), digits), big.mark = ",", trim = TRUE)
+  }
+  
+  # Color schemes for different elements
+  heading_color <- "cyan"
+  subheading_color <- "magenta" 
+  stat_color <- "green"
+  warning_color <- "yellow"
+  
+  # ---- Model Specifications Section ----
+  cli::cli_h1(cli::col_cyan("GAM Model Analysis"))
+  
+  for (i in 1:length(models)) {
+    model_summary <- summary(models[[i]])
+    model_name <- names(models)[i]
+    
+    # Model header with colored name
+    cli::cli_h2(cli::col_magenta(paste("Model:", model_name)))
+    
+    # Core model statistics with colored values
+    cli::cli_bullets(c(
+      "►" = sprintf("Family: %s {.val %s} (Precision: {.val %.3f})", 
+                    models[[i]]$family$family, 
+                    models[[i]]$family$link,
+                    models[[i]]$family$getTheta()),
+      "►" = sprintf("R-sq.(adj): {.val %.4f}", model_summary$r.sq),
+      "►" = sprintf("Deviance explained: {.val %.2f%%}", model_summary$dev.expl * 100),
+      "►" = sprintf("REML score: {.val %s}", format_num(model_summary$sp.criterion)),
+      "►" = sprintf("Scale est.: {.val %.3f}", model_summary$scale),
+      "►" = sprintf("Sample size: {.val %d}", model_summary$n)
+    ))
+    
+    # ---- Coefficients Tables ----
+    # Parametric coefficients
+    cli::cli_h3(cli::col_cyan("Parametric Coefficients"))
+    if (is.data.table(model_summary$p.table)) {
+      print_formatted_table(model_summary$p.table, "parametric")
+    } else {
+      print(model_summary$p.table)
+    }
+    
+    # Smooth terms
+    cli::cli_h3(cli::col_cyan("Smooth Terms"))
+    if (is.data.table(model_summary$s.table)) {
+      print_formatted_table(model_summary$s.table, "smooth")
+    } else {
+      print(model_summary$s.table)
+    }
+    
+    cli::cli_rule()
+  }
+  
+  # ---- Model Comparison Section ----
+  cli::cli_h2(cli::col_magenta("Model Comparison"))
+  
+  # Format results columns
+  results[, `:=`(
+    REML = format_num(reml, 1),
+    Delta_REML = format_num(delta_reml, 1),
+    Precision = format_num(precision, 3),
+    EDF = format_num(edf, 2),
+    EDF.Total = format_num(edf.total, 2),
+    R_sq_adj = format_num(r_sq_adj, 4),
+    Deviance_Explained = paste0(format_num(deviance_explained * 100, 2), "%")
+  )]
+  
+  # Print comparison statistics with enhanced formatting
+  cli::cli_h3(cli::col_cyan("Model Performance Metrics"))
+  cli::cli_bullets(c(
+    "►" = cli::col_green(sprintf(
+      "REML Difference: {.val %s} (lower is better)",
+      format_num(abs(as.numeric(gsub(",", "", results$REML[1])) - 
+                       as.numeric(gsub(",", "", results$REML[2]))), 1)
+    )),
+    "►" = cli::col_green(sprintf(
+      "Model Complexity (EDF): Full = {.val %s}, Null = {.val %s}",
+      results$EDF[1], results$EDF[2]
+    )),
+    "►" = cli::col_green(sprintf(
+      "Precision Parameters: Full = {.val %s}, Null = {.val %s}",
+      results$Precision[1], results$Precision[2]
+    )),
+    "►" = cli::col_green(sprintf(
+      "R-sq.(adj): Full = {.val %s}, Null = {.val %s}",
+      results$R_sq_adj[1], 
+      ifelse(length(results$R_sq_adj) > 1, results$R_sq_adj[2], "N/A")
+    )),
+    "►" = cli::col_green(sprintf(
+      "Deviance Explained: Full = {.val %s}, Null = {.val %s}",
+      results$Deviance_Explained[1],
+      ifelse(length(results$Deviance_Explained) > 1, results$Deviance_Explained[2], "N/A")
+    ))
+  ))
+  
+  # ---- Interpretation Guide ----
+  cli::cli_h3(cli::col_magenta("Interpretation Guide"))
+  cli::cli_bullets(c(
+    "!" = cli::col_yellow("REML scores: Lower values indicate better model fit"),
+    "!" = cli::col_yellow("EDF: Higher values show increased model complexity"),
+    "!" = cli::col_yellow("Precision: Higher values indicate less data dispersion"),
+    "!" = cli::col_yellow("R-sq.(adj): Proportion of variance explained (higher is better)"),
+    "!" = cli::col_yellow("Deviance explained: Percentage improvement over null model")
+  ))
+  
+  invisible(results)
+}
+
+# Enhanced table printing helper function
+print_formatted_table <- function(table_data, table_type) {
+  col_names <- colnames(table_data)
+  
+  # Add significance stars
+  if (any(c("Pr(>|z|)", "p-value") %in% col_names)) {
+    p_col <- ifelse("Pr(>|z|)" %in% col_names, "Pr(>|z|)", "p-value")
+    table_data$Signif. <- sapply(table_data[[p_col]], function(p) {
+      if (p < 0.001) return(cli::col_green("***"))
+      if (p < 0.01) return(cli::col_green("**"))
+      if (p < 0.05) return(cli::col_green("*"))
+      if (p < 0.1) return(cli::col_yellow("."))
+      return("")
+    })
+    col_names <- c(col_names, "Signif.")
+  }
+  
+  # Print formatted table
+  header <- paste(cli::col_cyan(cli::style_bold(col_names)), collapse = "    ")
+  cli::cli_text(header)
+  cli::cli_rule(col = "cyan")
+  
+  for (i in 1:nrow(table_data)) {
+    row_data <- format(table_data[i,], digits = 4, trim = TRUE)
+    row_text <- paste(row_data, collapse = "    ")
+    cli::cli_text(row_text)
+  }
+  
+  cli::cli_rule(col = "cyan")
+}
+
+
+calculate_species_centroids <- function(dt, out.dir, verbose = FALSE) {
+  # Input dt should have columns: species, level3Long, level3Lat
+  out_file <-file.path(out.dir, "spec-centroids.csv")
+  
+  if (file.exists(out_file)) {
+    species_centroids <- fread(out_file)
+  } else {
+    dt[, inRegion := NULL]
+    
+    spec_dt <- rbindlist(sp_stats)
+    
+    spec_dt[, `:=` (
+      decimalLongitude = level3Long,
+      decimalLatitude = level3Lat,
+      level3Long = NULL,
+      level3Lat = NULL,
+      level3Code = NULL, 
+      level2Code = NULL, 
+      level1Code = NULL
+    )]
+    
+    spec_centroids <- data.table()
+    
+    unique_species <- unique(spec_dt$cleanName)
+    
+    catn("Iterations:", highcat(length(unique_species)))
+    
+    for (i in cli_progress_along(1:length(unique_species), "downloading")) {
+      spec <- spec_dt[cleanName == unique_species[i]]
+      
+      spec_out <- find_wgsrpd_region(
+        spec.dt = spec,
+        projection = "longlat",
+        longitude = "decimalLongitude",
+        latitude = "decimalLatitude",
+        wgsrpd.dir = "./resources/region/wgsrpd",
+        wgsrpdlvl = "3",
+        wgsrpdlvl.name = TRUE,
+        unique = TRUE,
+        suppress = TRUE,
+        verbose = verbose
+      )
+      
+      spec_out <- spec[spec_out, on = "level3Name"]
+      
+      spec_centroids <- rbind(spec_centroids, spec_out)
+    }
+    
+    fwrite(spec_centroids, out_file, bom = TRUE)
+  }
+  
+  return(species_centroids)
+}
+
+prepare_poly_spec <- function(dt, response, predictor, transform = NULL, by.region = FALSE) {
+  vebcat("Preparing polynomial species", color = "funInit")
+  # Keep one row per species per level3 botanical country
+  dt <- dt[, .SD, .SDcols = c(response, predictor), by = .(cleanName, level3Name)]
+  
+  if (by.region) {
+    dt <- dt[, .(
+      res = mean(get(response), na.rm = TRUE),
+      pred = first(get(predictor))
+    ), by = level3Name]
+    
+    # Rename the columns to match the input names
+    setnames(dt, c("res", "pred"), c(response, predictor))
+  }
+  
+  dt <- dt[!is.na(dt[[response]]) & !is.na(dt[[predictor]])]
+  
+  dt[get(response) > 1, (response) := 1]
+  dt[get(response) < 0, (response) := 0]
+  
+  if (!is.null(transform) && transform == "logit") {
+    logit <- function(p) {
+      p <- ifelse(p == 0, 1e-6, ifelse(p == 1, 1 - 1e-6, p))
+      log(p / (1 - p))
+    }
+    
+    # Apply the logit transformation to the response variable
+    dt[[response]] <- logit(dt[[response]])
+  } else {
+    if (any(dt[[response]] < 0 | dt[[response]] > 1)) {
+      stop("Response variable must be between 0 and 1")
+    }
+  }
+  
+  setorderv(dt, predictor)
+
+  return(dt)
+}
+
+fit_polynomial_model <- function(dt, response = "overlapRegion", predictor = "centroidLat") {
+  vebcat("Fitting polynomial model", color = "funInit")
+  
+  # Create B-spline basis with knot at equator (0 degrees)
+  # Reduce degrees of freedom for smoother curves by setting df parameter
+  bs_matrix <- bs(dt[[predictor]], 
+                  knots = 0,
+                  #df = 10,      # Control smoothness - fewer df = smoother curves
+                  degree = 3)  # Cubic spline
+  
+  # Define quantiles to model
+  taus <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+  
+  vebcat("Fitting models for each quantile")
+  # Fit models for each quantile using logistic transformation
+  models <- lapply(taus, function(tau) {
+    rq(as.formula(paste(response, "~ bs_matrix")), data = dt, tau = tau, method = "br")
+  })
+  
+  # Create prediction grid
+  pred_grid <- data.table(
+    lat = seq(min(dt[[predictor]]), max(dt[[predictor]]), length.out = nrow(bs_matrix))
+  )
+  
+  vebcat("Acquiring predictions for each quantile")
+  # Get predictions for each quantile
+  pred_bs <- bs(pred_grid$lat, 
+                knots = 0,
+                degree = 3,
+                Boundary.knots = range(dt[[predictor]]))
+  
+  pred_dt <- as.data.table(pred_bs)
+  
+  # Get predictions for each quantile
+  predictions <- sapply(models, function(model) {
+    predict(model, newdata = pred_dt)
+  })
+  
+  # Combine predictions with grid
+  pred_dt <- data.table(
+    latitude = pred_grid$lat,
+    q10 = predictions[,1],
+    q25 = predictions[,2],
+    q50 = predictions[,3],
+    q75 = predictions[,4],
+    q90 = predictions[,5]
+  )[order(latitude)]
+  
+  return(list(
+    models = models,
+    predictions = pred_dt,
+    taus = taus,
+    bs_matrix = bs_matrix
+  ))
+}
+
+summarize_polynomial_model <- function(model_results, transform = NULL) {
+  # Extract coefficients for each quantile
+  cli::cli_h1("B-spline Quantile Regression Model Summary")
+  
+  # Get coefficients for each quantile
+  cli::cli_h2("Model Coefficients")
+  coef_summary <- lapply(seq_along(model_results$models), function(i) {
+    tau <- model_results$taus[i]
+    model <- model_results$models[[i]]
+    coefs <- coef(model)
+    if (!is.null(transform)) odds_ratios <- exp(coefs)
+    
+    # Print coefficient summary for each quantile
+    cli::cli_alert_info("Quantile {.val {tau * 100}}%")
+    coef_table <- data.table(
+      term = c(
+        "intercept",
+        "cubic_B-spline_basis1",  # or spline_basis1
+        "cubic_B-spline_basis2", 
+        "cubic_B-spline_basis3",
+        "cubic_B-spline_basis4"
+      ),
+      estimate = coefs,
+      odd_ratios = if (!is.null(transform)) odds_ratios else NULL
+    )
+    
+    # Format coefficient display
+    cli::cli_text("")
+    print(coef_table)
+    cli::cli_text("")
+    
+    data.table(
+      quantile = paste0("q", tau * 100),
+      term = names(coefs),
+      estimate = coefs,
+      odds_ratio = if (!is.null(transform)) odds_ratios else NULL
+    )
+  })
+  
+  coef_summary <- rbindlist(coef_summary)
+  
+  # Calculate and display R1 statistics
+  cli::cli_h2("Model Fit Statistics")
+  r1_stats <- lapply(seq_along(model_results$models), function(i) {
+    tau <- model_results$taus[i]
+    model <- model_results$models[[i]]
+    
+    # Get the response values
+    y <- model$y
+    
+    # Calculate proportion of zeros
+    prop_zeros <- mean(y < 0.001)
+    
+    # Calculate pseudo R² for quantile regression
+    residuals <- model$residuals
+    y_tau <- quantile(y, tau)
+    null_deviance <- sum(abs(y - y_tau))
+    model_deviance <- sum(abs(residuals))
+    
+    # Calculate pseudo R²
+    r1 <- 1 - model_deviance / null_deviance
+    
+    cli::cli_alert_info(sprintf(
+      "Quantile %.0f%%: %.1f%% of observations are near zero",
+      tau * 100, prop_zeros * 100
+    ))
+    
+    if (is.finite(r1)) {
+      cli::cli_alert_success("Pseudo R² at {.val {tau * 100}}% quantile: {.val {round(r1, 3)}}")
+    }
+    
+    data.table(
+      quantile = paste0("q", tau * 100),
+      R1 = if(is.finite(r1)) r1 else NA,
+      prop_zero = prop_zeros
+    )
+  })
+  
+  r1_stats <- rbindlist(r1_stats)
+  
+  # Display model information
+  cli::cli_h2("Model Information")
+  cli::cli_bullets(c(
+    "*" = "Number of observations: {.val {nrow(model_results$bs_matrix)}}",
+    "*" = "Degrees of freedom: {.val {ncol(model_results$bs_matrix)}}",
+    "*" = "Knot position: {.val 0} degrees (equator)",
+    "*" = "Boundary knots: {.val {round(attr(model_results$bs_matrix, 'Boundary.knots')[1], 2)}} to {.val {round(attr(model_results$bs_matrix, 'Boundary.knots')[2], 2)}} degrees"
+  ))
+  
+  # Display interpretation guide
+  cli::cli_h2("Interpretation Guide")
+  cli::cli_bullets(c(
+    "!" = "R1 values closer to 1 indicate better model fit",
+    "!" = "Coefficients show the effect of latitude on overlap at each quantile",
+    "!" = "The B-spline allows for different patterns in Northern and Southern hemispheres",
+    "!" = "Quantiles show the distribution bounds of overlap values",
+    if (!is.null(transform)) "!" = "Odds ratios represent the multiplicative effect on the odds of climatic overlap for a one-unit change in latitude"
+    
+  ))
+  
+  return(invisible())
+}
+
+load_paoo <- function(group, group.dirs, shape, log.dir, sp_stats, verbose = FALSE) {
+  for (group in names(sp_group_dirs)) {
+    group_dirs <- sp_group_dirs[[group]]$filename
+    
+    paoo <- parallel_spec_handler(
+      spec.dirs = group_dirs,
+      shape = shape,
+      dir = paste0(log_dir_aoo, "/", group),
+      hv.project.method = "0.5-inclusion",
+      out.order = "-TPAoO",
+      fun = get_paoo,
+      verbose = verbose
+    )
+    
+    paoo_files[[group]] <- paoo
+  }
+  
+  paoo_file <- combine_groups(paoo_files, "-TPAoO")
+  
+  paoo_dt <- richness_dt[PAoO > 0]
+  
+  return(paoo_dt)
 }

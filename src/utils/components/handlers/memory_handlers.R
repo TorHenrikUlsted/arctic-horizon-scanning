@@ -104,13 +104,29 @@ get_mem_usage <- function(type = "free", format = "b") {
 
 get_process_mem_use <- function(unit = "gb") {
   pid <- Sys.getpid()
+  os <- Sys.info()["sysname"]
   
-  ram <- system2("ps", args=c("-p", pid, "-o", "rss="), stdout = TRUE)
+  # Get memory usage based on OS
+  if (os == "Windows") {
+    # Use tasklist command for Windows
+    cmd <- sprintf('tasklist /FI "PID eq %d" /FO CSV /NH', pid)
+    output <- system2("cmd", args = c("/c", cmd), stdout = TRUE)
+    # Parse the CSV output - memory is in KB in 5th column
+    values <- strsplit(gsub('"', '', output), ",")[[1]]
+    ram <- as.numeric(gsub(",", "", values[5])) # Remove any commas in numbers
+  } else {
+    # Use ps command for Unix-like systems
+    ram <- system2("ps", args=c("-p", pid, "-o", "rss="), stdout = TRUE)
+    ram <- as.numeric(ram)
+  }
   
-  ram <- as.numeric(ram)
+  if (is.na(ram)) {
+    warning("Could not get process memory usage")
+    return(NA)
+  }
   
+  # Convert to requested unit (input is in KB)
   ram <- format_mem_unit(ram, unit.in = "kb", unit.out = unit)
-  
   ram <- round(ram, 3)
   
   catn("Current process RAM in", unit, highcat(unname(ram)))
@@ -146,7 +162,7 @@ tryCatch({
   
   # Start the tracking in a separate R session
   system(paste0("Rscript -e \"
-    source('./src/utils/components/memory_handlers.R')
+    source('./src/utils/components/handlers/memory_handlers.R')
     repeat {
       if (file.exists('", file.stop, "')) break
       new_mem_usage <- get_mem_usage(type = 'used', format = 'gb')
@@ -211,14 +227,14 @@ track_memory <- function(fun, tracking = config$memory$tracking, identifier = NU
   
   function(...) {
     fun_name <- if(!is.null(identifier)) identifier else deparse(substitute(fun))
-    mem_start <- get_mem_usage("used", "gb")
+    mem_start <- get_process_mem_use("gb")  # Process-specific memory
     time_start <- Sys.time()
     
     # Run the function with cleanup
     result <- tryCatch({
       fun(...)
     }, finally = {
-      mem_end <- get_mem_usage("used", "gb")
+      mem_end <- get_process_mem_use("gb")  # Process-specific memory
       time_end <- Sys.time()
       mem_diff <- mem_end - mem_start
       time_diff <- difftime(time_end, time_start, units = "mins")
@@ -231,33 +247,66 @@ track_memory <- function(fun, tracking = config$memory$tracking, identifier = NU
   }
 }
 
-mem_check <- function(identifier = NULL, ram.use = NULL, interval = 60, verbose = FALSE) {
-  mem_used_gb <- get_mem_usage(type = "used", format = "gb")
-  mem_limit_gb <- config$memory$mem_limit / 1024^3
-  
-  if (mem_used_gb >= mem_limit_gb) {
-    if (!is.null(ram.use)) {
-      ram_con <- file(ram.use, open = "a")
-      writeLines(paste0(
-        "RAM usage ", mem_used_gb, 
-        " is above the maximum ", mem_limit_gb,
-        if(!is.null(identifier)) paste(" Waiting with", identifier)
-      ), ram_con)
-      close(ram_con)
+mem_check <- function(identifier = NULL, ram.use = NULL, custom_msg = NULL, interval = 60, verbose = FALSE) {
+  tryCatch({
+    mem_used_gb <- round(get_mem_usage(type = "used", format = "gb"), 2)
+    mem_limit_gb <- round(config$memory$mem_limit / 1024^3, 2)
+    
+    # Static variable to track if message has been written for this identifier
+    msg_written <- if (exists(".msg_written", envir = .GlobalEnv)) 
+      get(".msg_written", envir = .GlobalEnv) 
+    else 
+      list()
+    
+    if (mem_used_gb >= mem_limit_gb) {
+      if (!is.null(ram.use) && (!identifier %in% names(msg_written) || !msg_written[[identifier]])) {
+        ram_con <- NULL
+        tryCatch({
+          ram_con <- file(ram.use, open = "a")
+          msg <- paste0(
+            "RAM usage ", mem_used_gb, 
+            " GB is above the maximum ", mem_limit_gb, " GB"
+          )
+          if (!is.null(custom_msg)) {
+            msg <- paste0(msg, ". ", custom_msg)
+          } else if (!is.null(identifier)) {
+            msg <- paste0(msg, ". Waiting with ", identifier)
+          }
+          writeLines(msg, ram_con)
+          close(ram_con)
+          
+          # Mark message as written for this identifier
+          msg_written[[identifier]] <- TRUE
+          assign(".msg_written", msg_written, envir = .GlobalEnv)
+        }, error = function(e) {
+          warning(paste("Failed to write to RAM usage file:", e$message))
+        }, finally = {
+          if(!is.null(ram_con)) try(close(ram_con))
+        })
+      }
+      
+      vebcat("Memory usage:", mem_used_gb, "GB exceeds limit:", mem_limit_gb, "GB", veb = verbose)
+      invisible(gc(full = TRUE))
+      
+      if (interval > 0) {
+        Sys.sleep(interval)
+        Sys.sleep(runif(1, 0, 1))
+      }
+      
+      return(TRUE)
     }
     
-    vebcat("Memory usage:", mem_used_gb, "GB exceeds limit:", mem_limit_gb, "GB", veb = verbose)
-    invisible(gc(full = TRUE))
-    
-    if (interval > 0) {
-      Sys.sleep(interval)
-      # Add random delay to prevent synchronization of multiple processes
-      Sys.sleep(runif(1, 0, 1))
+    # Reset message written status when memory is OK again
+    if (!is.null(identifier) && identifier %in% names(msg_written)) {
+      msg_written[[identifier]] <- FALSE
+      assign(".msg_written", msg_written, envir = .GlobalEnv)
     }
     
-    return(TRUE)
-  }
-  return(FALSE)
+    return(FALSE)
+  }, error = function(e) {
+    warning(paste("Error in memory check:", e$message))
+    return(FALSE) # Return false on error to avoid infinite loops
+  })
 }
 
 calc_num_cores <- function(ram.high, ram.low = 0, cores.total = detectCores(), verbose = FALSE) {

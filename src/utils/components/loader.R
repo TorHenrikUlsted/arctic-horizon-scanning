@@ -136,7 +136,7 @@ load_gpg <- function(rank = "order", cite = FALSE, verbose = FALSE) {
 }
 
 load_region <- function(region.file, verbose = FALSE) {
-  vebcat("Loading region", color = "funInit")
+  vebcat("Loading region", veb = verbose, color = "funInit")
   
   if (!is.character(region.file)) {
     vebcat("Region is not a filepath.", color = "fatalError")
@@ -164,10 +164,10 @@ load_region <- function(region.file, verbose = FALSE) {
   
   # If the original CRS is not correctly defined, define it
   if (is.na(original_crs) || original_crs == "") {
-    vebcat("Found blank or na crs. Needs manual processing", color = "nonFatalError")
+    vebcat("Found blank or na crs. Needs manual processing", color = "nonFatalError", veb = verbose)
   }
   
-  vebcat("Regions imported successfully", color = "funSuccess")
+  vebcat("Regions imported successfully", color = "funSuccess", veb = verbose)
   
   return(region)
 }

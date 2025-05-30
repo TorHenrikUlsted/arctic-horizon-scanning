@@ -2,14 +2,14 @@
 ####      ggplot2     ####
 #------------------------#
 
-save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir, save.device = "jpeg", save.unit = "px", vis.title = FALSE, plot.show = FALSE, verbose = FALSE) {
+save_ggplot <- function(save.plot, save.name, save.width, save.height, save.dir, save.device = "jpeg", save.unit = "px", vis.title = FALSE, plot.show = FALSE, suppress = FALSE, verbose = FALSE) {
   vebprint(save.plot, veb = plot.show)
   
   fig_out <- paste0(save.dir, "/", save.name, ".", save.device)
   
   create_dir_if(dirname(fig_out))
   
-  catn("Saving plot to:", colcat(fig_out, color = "output"))
+  if (!suppress) catn("Saving plot to:", colcat(fig_out, color = "output"))
   ggsave(fig_out, device = save.device, unit = save.unit, width = save.width, height = save.height, plot = save.plot)
 }
 

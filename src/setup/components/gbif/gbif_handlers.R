@@ -16,49 +16,57 @@ gbif.match <- function(checklist) {
   old_names <- cols[-(2:3)]
   new_names <- c("verbatimName.GBIF", "rank.GBIF", "speciesKey.GBIF", "usageKey.GBIF", "acceptedUsageKey.GBIF", "status.GBIF", "synonym.GBIF")
   
-  data.table::setnames(sp_w_keys, old_names, new_names) 
+  data.table::setnames(sp_w_keys, old_names, new_names)
   
-  return(sp_w_keys)
+  # add back dataset names
+  sp_w_keys <- sp_w_keys[checklist, on = "verbatimName.GBIF", nomatch=0L]
+  
+  return(list(
+    data = sp_w_keys,
+    names = c("species", "scientificName", new_names)
+  ))
 }
 
 gbif.accepted <- function(match.result) {
-  for (i in 1:nrow(match.result)) {
-    cat("\rChecking scientificName", highcat(i), "/", nrow(match.result))
+  
+  checklist_copy <- copy(match.result$data)
+  spec_list <- match.result$data[, match.result$names, with = FALSE]
+  
+  for (i in cli::cli_progress_along(
+    1:nrow(spec_list),
+    name = "Checking scientificName",
+    type = "iterator",
+    format = "{cli::pb_spin} {cli::pb_current}/{cli::pb_total}"
+  )) {
     
-    spec <- match.result[i]
+    spec <- spec_list[i]
     
     if (spec$synonym.GBIF == FALSE) next
     
     verbatimName <- spec$verbatimName.GBIF
     search_key <- spec$acceptedUsageKey.GBIF
+    dataset <- spec$sourceDataset
     
     dt <- as.data.table(gbif_retry(search_key, "name_usage")$data)
     
-    # vebprint(match.result[i], text = "match.res:")
-    # vebprint(dt, text = "dt:")
-    # 
-    # catn(verbatimName)
-    # catn(dt$species)
-    # catn(dt$scientificName)
-    # catn(dt$rank)
-    # catn(dt$speciesKey)
-    # catn(dt$key)
-    # catn(dt$taxonomicStatus)
-    
-    match.result[i] <- data.table(
+    spec_list[i] <- data.table(
       verbatimName.GBIF = verbatimName,
-      species = if (!is.na(match.result[i]$species)) dt$species else NA,
+      species = if (!is.na(spec_list[i]$species)) dt$species else NA,
       scientificName = dt$scientificName,
       rank.GBIF = dt$rank,
-      speciesKey.GBIF = if (!is.na(match.result[i]$speciesKey.GBIF)) dt$speciesKey else NA,
+      speciesKey.GBIF = if (!is.na(spec_list[i]$speciesKey.GBIF)) dt$speciesKey else NA,
       usageKey.GBIF = dt$key,
       acceptedUsageKey.GBIF = NA,
       status.GBIF = dt$taxonomicStatus,
-      synonym.GBIF = FALSE
+      synonym.GBIF = FALSE,
+      sourceDataset = dataset
     )
   };catn()
   
-  return(match.result)
+  # add back dataset names
+  res <- spec_list[checklist_copy, on = "verbatimName.GBIF", nomatch=0L]
+  
+  return(res)
 }
 
 gbif_standardize <- function(dt, out.file, verbose = FALSE) {
@@ -68,6 +76,7 @@ gbif_standardize <- function(dt, out.file, verbose = FALSE) {
   }
   
   if (file.exists(out.file)) return(fread(out.file))
+  create_dir_if(out.file)
   
   vebcat("Identifying accepted GBIF usageKeys", color = "indicator")
   
@@ -148,11 +157,56 @@ gbif_standardize <- function(dt, out.file, verbose = FALSE) {
   
   mdwrite(
     config$files$post_seq_md,
-    text = "3;GBIF accepted name conversion",
+    text = paste0("3;GBIF accepted name conversion for ", basename(dirname(out.file))),
     data <- md_dt
   )
   
   fwrite(res_dt, out.file, bom = TRUE)
   
   return(res_dt)
+}
+
+filter_keys <- function(keys.dt, out.dir, verbose = FALSE) {
+  name <- basename(dirname(out.dir))
+  
+  data.table::setnames(keys.dt, "usageKey.GBIF", "usageKey")
+  # Filter out usageKeys that will be included in speciesKey
+  species_keys <- keys.dt[tolower(rank.GBIF) == "species", unique(speciesKey.GBIF)]
+  # Filter out lower-level taxa if their species is already present
+  removed_keys <- keys.dt[speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species"]
+  
+  if (nrow(removed_keys) > 0) {
+    catn("Found", highcat(nrow(removed_keys)), "taxons below species where the species is already included")
+    fwrite(removed_keys, paste0(out.dir, "/dup_sp_keys.csv"))
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = paste0("**", nrow(removed_keys), "** taxons below an already included species were removed for ", name, " species")
+    )
+  }
+  
+  keys_dt <- keys.dt[!(speciesKey.GBIF %in% species_keys & tolower(rank.GBIF) != "species")]
+  
+  na_keys <- keys.dt[(is.na(usageKey))]
+  
+  if (nrow(na_keys) > 0) {
+    catn("Found", highcat(nrow(na_keys)), "NA usageKeys when filtering keys")
+    fwrite(na_keys, paste0(out.dir, "/na_sp_keys.csv"))
+    
+    mdwrite(
+      config$files$post_seq_md,
+      text = paste0("**", nrow(na_keys), "** NA usageKeys were removed for ", name, " species")
+    )
+  }
+  
+  na_keys <- keys.dt[!(is.na(usageKey))]
+  
+  fwrite(keys_dt, paste0(out.dir, "/filtered-sp-keys.csv"))
+  
+  keys_dt <- keys_dt[, .(usageKey)]
+  
+  rm(keys.dt, name, species_keys, removed_keys)
+  invisible(gc())
+  
+  return(keys_dt)
 }

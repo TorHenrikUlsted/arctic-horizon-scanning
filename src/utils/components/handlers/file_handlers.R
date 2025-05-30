@@ -1,14 +1,12 @@
 create_dir_if <- function(..., keep = TRUE) {
-  dirs <- list(...)
-  for (d in dirs) {
-    if (!dir.exists(d)) {
-      dir.create(d, recursive = TRUE)
-    } else {
-      if (keep == FALSE) {
-        unlink(d, recursive = TRUE)
-        
-        dir.create(d, recursive = TRUE)
-      }
+  paths <- list(...)
+  for (p in paths) {
+    dir <- ifelse(tools::file_ext(p) != "", dirname(p), p)
+    if (!dir.exists(dir)) {
+      dir.create(dir, recursive = TRUE)
+    } else if (keep == FALSE) {
+      unlink(dir, recursive = TRUE)
+      dir.create(dir, recursive = TRUE)
     }
   }
 }
@@ -152,13 +150,13 @@ import_font_if <- function(font, paths, pattern) {
 
 download_github_dir_if <- function(repo.owner, repo.name, branch = "main", dir.path, dir.out, file.exclude = NULL, verbose = FALSE) {
   
-  vebcat("Detecting", repo.name, "installation...", color = "funInit")
+  vebcat("Detecting", repo.name, "installation...", color = "funInit", veb = verbose)
   
   dir_out_len <- length(list.files(dir.out))
   
   if (dir.exists(dir.out) &  dir_out_len > 0) {
-    catn("Location", colcat(dir.out, color = "output"))
-    vebcat("GitHub repository", highcat(repo.name), "already downloaded with", highcat(dir_out_len), "files.", color = "funSuccess")
+    vebcat("Location", colcat(dir.out, color = "output"), veb = verbose)
+    vebcat("GitHub repository", highcat(repo.name), "already downloaded with", highcat(dir_out_len), "files.", color = "funSuccess", veb = verbose)
     return(invisible())
   }
   
@@ -203,5 +201,26 @@ download_github_dir_if <- function(repo.owner, repo.name, branch = "main", dir.p
   }
   
   catn("All GitHub files have been downloaded to:", colcat(dir.out, color = "output"))
-  vebcat("Successfully installed", repo.name, color = "funSuccess")
+  vebcat("Successfully installed", repo.name, color = "funSuccess", veb = verbose)
+}
+
+if_file <- function(filepath, parameter = "exists", threshold = NULL) {
+  if (!file.exists(filepath)) return(FALSE)
+
+  file_info <- file.info(filepath)
+  
+  state <- FALSE
+  
+  switch (parameter,
+    "exists" = state <- TRUE,
+    "today" = if (as.Date(file_info$mtime) == Sys.Date()) state <- TRUE,
+    "size" = if (!is.null(threshold) && file_info$size >= threshold) state <- TRUE,
+    "isdir" = if (file_info$isdir) state <- TRUE,
+    {
+      warning("Invalid parameter value. Returning FALSE by default.") 
+      state <- FALSE
+    }
+  )
+  
+  return(state)
 }

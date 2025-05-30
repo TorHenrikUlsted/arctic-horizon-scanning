@@ -65,26 +65,7 @@ wrangle_if <- function(fun.name, column, verbose = FALSE) {
   vebcat("Directory:", highcat(dir), veb = verbose)
 
   create_dir_if(dir)
-  present_out <- paste0(dir, "/", name, "-present.csv")
-  absent_out <- paste0(dir, "/", name, "-absent.csv")
-
-  if (!file.exists(present_out)) present_out <- NULL
-  if (!file.exists(absent_out)) absent_out <- NULL
-
-  if ((!is.null(present_out) || !is.null(absent_out))) {
-    vebcat(highcat(name), "already wrangled, loading files..", veb = verbose)
-
-    res <- list()
-
-    if (!is.null(present_out)) res$present <- fread(present_out)
-    if (!is.null(absent_out)) res$absent <- fread(absent_out)
-  } else {
-    vebcat("Initiating", name, "wrangling protocol.", color = "funInit")
-
-    res <- fun(name = name, column = column, verbose = verbose)
-
-    vebcat(name, "wrangling protocol successfully completed.", color = "funSuccess")
-  }
+  res <- fun(name = name, column = column, verbose = verbose)
 
   name <- sub("^wrangle_", "", fun.name)
 
@@ -162,7 +143,7 @@ syncheck_dfs <- function(wrangled_dfs, column, out.dir, cores.max, verbose, coun
         verbose = verbose,
         counter = counter
       ) # returns list of clean and mismatched info
-
+      
       # Select best match
       sp_checked <- check_syn_wfo_one(
         wfo.match.dt = sp_synonyms$clean,
@@ -276,7 +257,7 @@ setup_raw_data <- function(column, cores.max = 1, verbose = FALSE, counter = 1) 
   create_dir_if(paste0(files_dir, "/test"))
 
   checklist <- wrangle_all(column = column, verbose = verbose)
-
+  
   if (!is.null(checklist)) {
     vebprint(names(checklist), verbose, "dfs added to checklist:")
 

@@ -7,7 +7,7 @@ get_occ_data <- function(species_w_keys, file.name, region = NULL, coord.uncerta
   usagekeys <- species_w_keys$usageKey
   
   catn("Number of species keys:", highcat(length(usagekeys)))
-  vebprint(head(str(usagekeys), 3), text = "Species keys sample:")
+  vebprint(head(usagekeys, 3), text = "Species keys sample:")
   
   out <- NULL
 

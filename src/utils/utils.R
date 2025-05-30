@@ -7,6 +7,7 @@ load_utils <- function(parallel = FALSE) {
   
   pkgs = list(
     common = c(
+      "tools",
       "data.table",
       "yaml",
       "WorldFlora",
@@ -23,6 +24,7 @@ load_utils <- function(parallel = FALSE) {
       "ggplot2",
       "patchwork",
       "gamlss",
+      "mgcv",
       "ggnewscale",
       "ggrepel",
       "ggpubr",
@@ -39,7 +41,10 @@ load_utils <- function(parallel = FALSE) {
       "viridis",
       "stringdist",
       "stringr",
-      "knitr"
+      "knitr",
+      "vegan",
+      "quantreg",
+      "splines"
     ),
     non_parallel = c(
       "cli",
@@ -97,6 +102,7 @@ load_utils <- function(parallel = FALSE) {
     "./src/utils/components/handlers/time_handlers.R",
     "./src/utils/components/handlers/file_handlers.R",
     "./src/utils/components/handlers/lock_handlers.R",
+    "./src/utils/components/handlers/markdown_handlers.R",
     "./src/utils/components/conversion.R",
     "./src/utils/components/loader.R",
     "./src/utils/components/config.R"
@@ -110,24 +116,27 @@ load_utils <- function(parallel = FALSE) {
   # Initialize variables in global environment
   assign("WFO_file", load_wfo(), envir = globalenv())
   
-
-
   cat("Loading WGSRPD. \n")
   download_github_dir_if("tdwg", "wgsrpd", "master", "level2", "resources/region/wgsrpd/level2")
   download_github_dir_if("tdwg", "wgsrpd", "master", "level3", "resources/region/wgsrpd/level3")
   
   if (!parallel) {
-    cat("Creating reference list. \n")
     sys.source("./src/utils/components/handlers/cite_handlers.R", envir = globalenv())
     format <- "bibtex"
-    cited_packages <- cite_packages(pkgs, formats = format)
     
-    cat("Citing loaders. \n")
-    cited_packages[[format]] <- c(cited_packages[[format]], load_apg(cite = TRUE))
-    cited_packages[[format]] <- c(cited_packages[[format]], load_ppg(cite = TRUE))
-    cited_packages[[format]] <- c(cited_packages[[format]], load_gpg(cite = TRUE))
-    
-    # Functions relying on packages
-    write_citations(cited_packages, "./outputs/utils/citations")
+    if(!if_file(paste0("./outputs/utils/citations/citations.", format), "today")) {
+      cat("Creating reference list. \n")
+      cited_packages <- cite_packages(pkgs, formats = format)
+      
+      cat("Citing loaders. \n")
+      cited_packages[[format]] <- c(cited_packages[[format]], load_apg(cite = TRUE))
+      cited_packages[[format]] <- c(cited_packages[[format]], load_ppg(cite = TRUE))
+      cited_packages[[format]] <- c(cited_packages[[format]], load_gpg(cite = TRUE))
+      
+      # Functions relying on packages
+      write_citations(cited_packages, "./outputs/utils/citations")
+    } else {
+      cat("Reference list already created today. \n")
+    }
   }
 }

@@ -68,38 +68,42 @@ node_hypervolume <- function(
           while (!skip_to_end) {
             catn("Running main sequence.")
 
-            processed_data <- track_memory(process_species, identifier = paste0("process_species_", spec.name))(
-              spec.dt = spec,
-              spec.name = spec.name,
-              process.dir = process.dir,
-              method = hv.method,
-              iteration = iteration,
-              verbose = verbose,
-              warn.file = node$warn,
-              err.file = node$err
-            )
-
+            processed_data <- track_memory(function() {
+              process_species(
+                spec.dt = spec,
+                spec.name = spec.name,
+                process.dir = process.dir,
+                method = hv.method,
+                iteration = iteration,
+                verbose = verbose,
+                warn.file = node$warn,
+                err.file = node$err
+              )
+            }, identifier = paste0("process_species_", spec.name))()
+            
             if (is.list(processed_data) && processed_data$excluded == TRUE) {
               vebcat("Setting skip_to_end to TRUE.", veb = verbose)
               skip_to_end <- TRUE
               break
             }
 
-            analyzed_hv <- track_memory(hv_analysis, identifier = paste0("process_species_", spec.name))(
-              spec.mat = processed_data,
-              method = hv.method,
-              spec.name = spec.name,
-              incl_threshold = hv.incl.threshold,
-              accuracy = hv.accuracy,
-              iteration = iteration,
-              hv.dir = process.dir,
-              lock.dir = pro_locks_dir,
-              proj.dir = proj_dir,
-              cores.max.high = cores.max.high,
-              verbose = verbose,
-              warn.file = node$warn,
-              err.file = node$err
-            )
+            analyzed_hv <- track_memory(function() {
+              hv_analysis(
+                spec.mat = processed_data,
+                method = hv.method,
+                spec.name = spec.name,
+                incl_threshold = hv.incl.threshold,
+                accuracy = hv.accuracy,
+                iteration = iteration,
+                hv.dir = process.dir,
+                lock.dir = pro_locks_dir,
+                proj.dir = proj_dir,
+                cores.max.high = cores.max.high,
+                verbose = verbose,
+                warn.file = node$warn,
+                err.file = node$err
+              )
+            }, identifier = paste0("process_species_", spec.name))()
 
             catn("Appending data to csv file.")
 
@@ -160,6 +164,7 @@ node_hypervolume <- function(
     }, finally = function() {
       catn("Cleaning up node environment")
       closeAllConnections()
+      rm(list = setdiff(ls(), "j"))
       invisible(gc(full = TRUE))
     }
   )

@@ -41,8 +41,17 @@ is.locked <- function(lock.dir, lock.n = 1) {
 
 
 unlock <- function(lock.object) {
+  if (is.null(lock.object)) {
+    catn("Could not find lock:", lock.object, "continuing without unlocking.")
+    return(invisible())
+  }
+  
   tryCatch({
-    file.remove(lock.object)
+    if (file.exists(lock.object)) {
+      file.remove(lock.object)
+    } else {
+      return(invisible())
+    }
   }, error = function(e) {
     return(vebcat("Failed to unlock ", lock.object, " with error: ", e$message, color = "nonFatalError"))
   })
