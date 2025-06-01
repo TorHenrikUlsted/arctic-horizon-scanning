@@ -80,7 +80,7 @@ setup_parallel <- function(par.dir, spec.list, iterations, cores.max, cores.max.
   tryCatch(
     {
       clusterEvalQ(cl, {
-        source("./src/utils/utils.R")
+        source("./R/utils/utils.R")
         load_utils(parallel = TRUE)
         for (file in custom.evals) {
           tryCatch(
@@ -269,7 +269,7 @@ cleanup_files <- function(dir_path,
       warning(sprintf("Failed to remove: %s", files[i]))
     }
   }
-  
+
   if (verbose) {
     catn(sprintf(
       "Successfully removed %d/%d items",

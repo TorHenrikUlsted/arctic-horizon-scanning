@@ -35,7 +35,7 @@ download_climate_data <- function(database = "worldclim", verbose = FALSE) {
     )
   } else {
     vebcat("Error: database not found.", color = "fatalError")
-    stop("Edit config in './src/utils/config.R'")
+    stop("Edit config in './R/utils/config.R'")
   }
 }
 

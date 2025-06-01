@@ -1,10 +1,10 @@
-source_all("./src/filter/components")
+source_all("./R/filter/components")
 if (config$simulation$example) {
   source_all("./example/src/filter")
   src_dir <- "./example/src"
 } else {
-  source_all("./src/filter/custom_filters")
-  src_dir <- "./src"
+  source_all("./R/filter/custom_filters")
+  src_dir <- "./R"
 }
 
 filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE, approach = "precautionary", column = "scientificName", coord.uncertainty = NULL, cores.max = 1, region = NULL, download.key = NULL, download.doi = NULL, chunk.size = 1e6, chunk.iterations = NULL, force.seq = NULL, verbose = FALSE) {
@@ -15,24 +15,24 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
   if (is.null(spec.unknown$name)) stop("spec.unknown cannot be NULL")
 
   filter_timer <- start_timer("filter_timer")
-  
+
   filter_dir <- "./outputs/filter"
   wrangle_dir <- "./outputs/setup/wrangle"
   unknown_dir <- file.path(filter_dir, gsub("_", "-", spec.unknown$name))
   known_dir <- ifelse(!is.null(spec.known$name), file.path(filter_dir, gsub("_", "-", spec.known$name)), filter_dir)
-  
+
   absent_final <- file.path(unknown_dir, "absent-final.csv")
   present_final <- file.path(known_dir, "present-final.csv")
   coord_un_file <- file.path(build_climate_path(), "coordinateUncertainty-m.txt")
   if (is.null(coord.uncertainty)) coord.uncertainty <- as.integer(readLines(coord_un_file))
-  
+
   # Look for file in correct folder based on validation run
   seq_fin_file <- file.path(filter_dir, gsub("_", "-", if (!validation) {
     spec.unknown$name
   } else {
     spec.known$name
   }), "filter-sequence-completed.txt")
-  
+
   if (!is.null(force.seq) && ("all" %in% force.seq | "filter" %in% force.seq | "validation" %in% force.seq)) {
     catn("Forcing filter sequence.")
     if (file.exists(seq_fin_file)) file.remove(seq_fin_file)
@@ -43,9 +43,9 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
     chunk_dir <- readLines(seq_fin_file)
     return(chunk_dir)
   }
-  
+
   vebcat("Initiating filtering sequence", color = "seqInit")
-  
+
   if (grepl("test", spec.unknown$name)) {
     manual_out <- file.path(wrangle_dir, "test/manual-check-file.csv")
     manual_edited <- "./resources/data-raw/test/manual-check-file.csv"
@@ -53,7 +53,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
     manual_out <- "./outputs/setup/wrangle/manual-check-file.csv"
     manual_edited <- "./resources/manual-edit/manual-check-file.csv"
   }
-  
+
   if (file.exists(manual_out)) {
     man_l <- nrow(fread(manual_out))
     if (man_l > 0 & !file.exists(manual_edited)) {
@@ -66,10 +66,9 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
   } else {
     catn("No manual handling file found. Continuing with the process.")
   }
-  
+
   # Skip if the end file exists
   if (!file.exists(absent_final) || !file.exists(present_final)) {
-
     mdwrite(
       config$files$post_seq_md,
       text = "1;Filter Sequence"
@@ -84,7 +83,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
       col.select = NULL,
       verbose = verbose
     )
-    
+
     if (length(manual_edited) > 0) {
       dts <- fix_manual(
         dts = dts,
@@ -93,9 +92,9 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
         verbose = verbose
       )
     }
-    
+
     vebprint(dts, verbose, "all data tables:")
-    
+
     # Add sourceDataset
     dts <- setNames(
       lapply(seq_along(dts), function(i) {
@@ -105,7 +104,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
         dt
       }), names(dts)
     )
-    
+
     #------------------------#
     ####   Filter lists   ####
     #------------------------#
@@ -142,7 +141,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
       kan <- sum(unlist(kn$absent))
       un <- nrow(dts[[paste0(spec.unknown$name, "_absent")]])
     }
-    
+
     spec_known <- get(paste0("filter_", spec.known$name))
     spec_unknown <- get(paste0("filter_", spec.unknown$name))
 
@@ -199,39 +198,38 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
       text = "2;Filter function summary",
       data = md_dt
     )
-  
   } else {
     known <- list(present = fread(present_final))
     unknown <- fread(absent_final)
   }
-  
+
   #------------------------#
   #### Filter gbif keys ####
   #------------------------#
-  
+
   keys_dts <- filter_gbif_keys(
     spec.dts = list(known = known$present, unknown = unknown),
     out.dirs = list(known = known_dir, unknown = unknown_dir),
     verbose = verbose
   )
-  
+
   #------------------------#
   ####    Occurrence    ####
   #------------------------#
-  
-if (grepl("test", spec.unknown$name)) {
-  if (grepl("small", spec.unknown$name)) {
-    spec.unknown$download.key <- "0180552-240321170329656"
-    spec.unknown$download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
-  } else if (grepl("big", spec.unknown$name)) {
-    spec.unknown$download.key <- "0038456-240906103802322"
-    spec.unknown$download.doi <- "https://doi.org/10.15468/dl.85f3bs"
-  } else {
-    vebcat("Test has to be either 'test_small' or 'test_big'.", color = "fatalError")
-    stop("Change the spec.unknown parameter.")
+
+  if (grepl("test", spec.unknown$name)) {
+    if (grepl("small", spec.unknown$name)) {
+      spec.unknown$download.key <- "0180552-240321170329656"
+      spec.unknown$download.doi <- "https://doi.org/10.15468/dl.xzxdpx"
+    } else if (grepl("big", spec.unknown$name)) {
+      spec.unknown$download.key <- "0038456-240906103802322"
+      spec.unknown$download.doi <- "https://doi.org/10.15468/dl.85f3bs"
+    } else {
+      vebcat("Test has to be either 'test_small' or 'test_big'.", color = "fatalError")
+      stop("Change the spec.unknown parameter.")
+    }
   }
-}
-  
+
   if (!validation && force.seq != "validation") {
     occ_name <- file.path(unknown_dir, paste0(gsub("_", "-", spec.unknown$name), "-occ"))
     spec_w_keys <- keys_dts$unknown
@@ -250,7 +248,7 @@ if (grepl("test", spec.unknown$name)) {
     vebprint(force.seq, text = "force.seq:")
     stop("Something went")
   }
-  
+
   occ_data <- get_occ_data(
     species_w_keys = spec_w_keys,
     file.name = occ_name,
@@ -264,7 +262,7 @@ if (grepl("test", spec.unknown$name)) {
   #------------------------#
   ####     Chunking     ####
   #------------------------#
-  
+
   chunk_protocol(
     spec.occ = occ_data,
     spec.keys = spec_w_keys,
@@ -276,7 +274,7 @@ if (grepl("test", spec.unknown$name)) {
     approach = approach,
     verbose = verbose
   )
-  
+
   return_dir <- paste0(chunk_dir, "/species")
 
   create_file_if(seq_fin_file)

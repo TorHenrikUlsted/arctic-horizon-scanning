@@ -63,7 +63,7 @@ load_utils <- function(parallel = FALSE) {
   
   options(repos = c(CRAN = "https://cloud.r-project.org"))
   
-  sys.source("./src/utils/components/check_updates.R", envir = globalenv())
+  sys.source("./R/utils/components/check_updates.R", envir = globalenv())
   updated <- check_updates(pkgs)
   
   for (pkg in pkgs) {
@@ -86,26 +86,26 @@ load_utils <- function(parallel = FALSE) {
     }
   }
   
-  sys.source("./src/utils/components/custom_colors.R", envir = globalenv())
+  sys.source("./R/utils/components/custom_colors.R", envir = globalenv())
   assign("cc", custom_colors(), envir = globalenv())
   
   component_files <- c(
     
-    "./src/utils/components/handlers/condition_handlers.R",
-    "./src/utils/components/handlers/memory_handlers.R",
-    "./src/utils/components/helpers/citation_helpers.R",
-    "./src/utils/components/helpers/data_table_helpers.R",
-    "./src/utils/components/helpers/ggplot_helpers.R",
-    "./src/utils/components/helpers/object_helpers.R",
-    "./src/utils/components/helpers/spatial_helpers.R",
-    "./src/utils/components/helpers/system_helpers.R",
-    "./src/utils/components/handlers/time_handlers.R",
-    "./src/utils/components/handlers/file_handlers.R",
-    "./src/utils/components/handlers/lock_handlers.R",
-    "./src/utils/components/handlers/markdown_handlers.R",
-    "./src/utils/components/conversion.R",
-    "./src/utils/components/loader.R",
-    "./src/utils/components/config.R"
+    "./R/utils/components/handlers/condition_handlers.R",
+    "./R/utils/components/handlers/memory_handlers.R",
+    "./R/utils/components/helpers/citation_helpers.R",
+    "./R/utils/components/helpers/data_table_helpers.R",
+    "./R/utils/components/helpers/ggplot_helpers.R",
+    "./R/utils/components/helpers/object_helpers.R",
+    "./R/utils/components/helpers/spatial_helpers.R",
+    "./R/utils/components/helpers/system_helpers.R",
+    "./R/utils/components/handlers/time_handlers.R",
+    "./R/utils/components/handlers/file_handlers.R",
+    "./R/utils/components/handlers/lock_handlers.R",
+    "./R/utils/components/handlers/markdown_handlers.R",
+    "./R/utils/components/conversion.R",
+    "./R/utils/components/loader.R",
+    "./R/utils/components/config.R"
   )
   
   for (file in component_files) {
@@ -121,7 +121,7 @@ load_utils <- function(parallel = FALSE) {
   download_github_dir_if("tdwg", "wgsrpd", "master", "level3", "resources/region/wgsrpd/level3")
   
   if (!parallel) {
-    sys.source("./src/utils/components/handlers/cite_handlers.R", envir = globalenv())
+    sys.source("./R/utils/components/handlers/cite_handlers.R", envir = globalenv())
     format <- "bibtex"
     
     if(!if_file(paste0("./outputs/utils/citations/citations.", format), "today")) {

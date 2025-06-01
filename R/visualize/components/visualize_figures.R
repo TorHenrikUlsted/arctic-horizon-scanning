@@ -554,7 +554,6 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
       vebcat("Comparison data structure doesn't match main data. Skipping comparison.", color = "warning")
       vebprint(names(comparison_copy), text = "Comparison table:")
       vebprint(names(dt_copy), text = "Input table:")
-      stop("ME")
       has_comparison <- FALSE
     } else {
       # Add a source column to both datasets

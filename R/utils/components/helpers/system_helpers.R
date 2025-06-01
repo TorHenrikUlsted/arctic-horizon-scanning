@@ -509,16 +509,16 @@ create_clickable_link <- function(url, text = NULL, file = TRUE, params = NULL) 
   return(link)
 }
 
-find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NULL, verbose = FALSE) {
+find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NULL, as.table = FALSE, verbose = FALSE) {
   term <- to_char(term, verbose = verbose)
   files <- list.files(dir, pattern = file.pattern, full.names = TRUE, recursive = TRUE)
-
+  
   if (!is.null(file.exclude)) {
     files <- files[!sapply(files, function(file) {
       any(sapply(file.exclude, function(exclude) grepl(exclude, file, fixed = TRUE)))
     })]
   }
-
+  
   results <- lapply(files, function(file) {
     tryCatch(
       {
@@ -526,21 +526,20 @@ find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NU
         # Use word boundaries and lookahead/lookbehind for exact matches
         pattern <- paste0("(?<!(\\w|\\$))", gsub("([.|()\\^{}+$*?]|\\[|\\])", "\\\\\\1", term), "(?!(\\w|\\$))")
         matches <- which(sapply(lines, function(line) grepl(pattern, line, perl = TRUE)))
-
+        
         if (length(matches) > 0) {
-          if (verbose) {
-            # cat("File:", file, "\n")
-            cat("Matches found on lines:", paste(matches, collapse = ", "), "\n")
-            cat("Matching lines:\n")
-            for (m in matches) {
-              cat("  Line", m, ":", lines[m], "\n")
-            }
-            cat("\n")
+          # Always show results in navigable format
+          for (m in matches) {
+            link_text <- create_clickable_link(file, basename(file), m)
+            cli::cli_text("{cli::bg_yellow(link_text)} {.emph (Line {.val {m}})}")
+            cli::cli_code(trimws(lines[m]))
+            cli::cli_text("")
           }
-
-          link_text <- create_clickable_link(file, basename(file))
-          cat(link_text)
-
+          
+          if (verbose) {
+            cli::cli_alert_info("Found {.val {length(matches)}} match{?es} in {.file {basename(file)}}")
+          }
+          
           data.table(
             file = file,
             lineNumber = matches,
@@ -552,15 +551,25 @@ find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NU
         }
       },
       error = function(e) {
-        if (verbose) warning("Error processing file: ", file, "\nError: ", e$message)
+        if (verbose) cli::cli_alert_danger("Error processing file: {.file {file}}\nError: {.emph {e$message}}")
         NULL
       }
     )
   })
-  return(rbindlist(results[!sapply(results, is.null)]))
+  
+  if (all(sapply(results, is.null))) cli::cli_alert_info("No terms found.")
+  
+  return(
+    if (as.table) {
+      rbindlist(results[!sapply(results, is.null)])
+    } else {
+      invisible()
+    }
+  )
 }
 
-find_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL, dir = ".", file.pattern = "\\.R$") {
+
+find_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL, dir = ".", file.pattern = "\\.R$", verbose = FALSE) {
   term <- to_char(term)
   line.pattern <- to_char(line.pattern)
 
@@ -660,58 +669,124 @@ remove_outer_pattern <- function(text, pattern, replacement = "", show.diff = TR
   }
 }
 
-replace_term_name <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", file.exclude = NULL, verbose = FALSE) {
+replace_term <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$", 
+                              file.exclude = NULL, verbose = FALSE, replace = FALSE) {
   name.old <- to_char(name.old, string = "Old name after check:", verbose = verbose)
   name.new <- to_char(name.new, string = "New name after check:", verbose = verbose)
   res <- find_term(name.old, dir, file.pattern, file.exclude = file.exclude, verbose = verbose)
-
+  
   if (is.null(res)) {
     message("No occurrences of '", name.old, "' found. No changes made.")
     return(invisible(NULL))
   }
+  
   unique_files <- unique(res$file)
-
+  
+  # Collect all changes for preview/execution
+  all_changes <- list()
+  
   for (file in unique_files) {
     tryCatch(
       {
         original_lines <- readLines(file, warn = FALSE)
         pattern <- gsub("\\$", "\\\\$", name.old)
         pattern <- paste0("(^|[^[:alnum:]_])(", pattern, ")([^[:alnum:]_]|$)")
-
+        
         new_lines <- gsub(pattern, paste0("\\1", name.new, "\\3"), original_lines)
-
-        # Identify lines where the replacement occurred
         replaced_lines <- which(original_lines != new_lines)
-
-        vebprint(replaced_lines, verbose, "Replaced lines:")
-
+        
         if (length(replaced_lines) > 0) {
-          # Only style if changes were made
-          temp_file <- tempfile(fileext = ".R")
-          writeLines(new_lines, temp_file)
-          tryCatch(
-            {
-              styler::style_file(temp_file)
-              styled_lines <- readLines(temp_file, warn = FALSE)
-              writeLines(styled_lines, file)
-            },
-            error = function(e) {
-              warning("Error during styling: ", e$message, ". Writing unstyled changes.")
-              writeLines(new_lines, file)
-            }
-          )
-          catn("Updated", file, "at line\n-", paste(replaced_lines, collapse = "\n- "), "\n")
+          for (line_num in replaced_lines) {
+            all_changes[[length(all_changes) + 1]] <- list(
+              file = file,
+              line_number = line_num,
+              old_content = original_lines[line_num],
+              new_content = new_lines[line_num]
+            )
+          }
         }
-
-        # Clean up temporary file
-        if (exists("temp_file")) file.remove(temp_file)
       },
       error = function(e) {
         warning("Error processing file: ", file, "\nError: ", e$message)
       }
     )
   }
-  vebcat("Finished updating", paste0("'", highcat(name.old), "'"), "to", paste0("'", highcat(name.new), "'"), "in all files.", color = "proSuccess")
+  
+  if (length(all_changes) == 0) {
+    message("No changes needed.")
+    return(invisible(NULL))
+  }
+  
+  if (!replace) {
+    # SAFEMODE - Preview changes
+    cli::cli_rule(cli::bg_red("{.emph SAFEMODE}"))
+    cli::cli_alert_info("These are the changes that would be made:")
+    cli::cli_text("")
+    
+    for (change in all_changes) {
+      cli::cli_h3("File: {.file {change$file}} Line: {.val {change$line_number}}")
+      cli::cli_text("Old: {.code {change$old_content}}")
+      cli::cli_text("New: {.code {change$new_content}}")
+      cli::cli_text("")
+    }
+    
+    cli::cli_alert_warning("To apply these changes, run again with {.arg replace = TRUE}")
+    
+  } else {
+    # Apply changes
+    for (file in unique_files) {
+      tryCatch(
+        {
+          original_lines <- readLines(file, warn = FALSE)
+          pattern <- gsub("\\$", "\\\\$", name.old)
+          pattern <- paste0("(^|[^[:alnum:]_])(", pattern, ")([^[:alnum:]_]|$)")
+          
+          new_lines <- gsub(pattern, paste0("\\1", name.new, "\\3"), original_lines)
+          replaced_lines <- which(original_lines != new_lines)
+          
+          vebprint(replaced_lines, verbose, "Replaced lines:")
+          
+          if (length(replaced_lines) > 0) {
+            # Only style if changes were made
+            temp_file <- tempfile(fileext = ".R")
+            writeLines(new_lines, temp_file)
+            tryCatch(
+              {
+                styler::style_file(temp_file)
+                styled_lines <- readLines(temp_file, warn = FALSE)
+                writeLines(styled_lines, file)
+              },
+              error = function(e) {
+                warning("Error during styling: ", e$message, ". Writing unstyled changes.")
+                writeLines(new_lines, file)
+              }
+            )
+            catn("Updated", file, "at line\n-", paste(replaced_lines, collapse = "\n- "), "\n")
+          }
+          
+          # Clean up temporary file
+          if (exists("temp_file")) file.remove(temp_file)
+        },
+        error = function(e) {
+          warning("Error processing file: ", file, "\nError: ", e$message)
+        }
+      )
+    }
+    
+    # Show applied changes using cli
+    cli::cli_alert_success("Changes applied:")
+    cli::cli_text("")
+    
+    for (change in all_changes) {
+      cli::cli_h3("File: {.file {change$file}} Line: {.val {change$line_number}}")
+      cli::cli_text("Old: {.code {change$old_content}}")
+      cli::cli_text("New: {.code {change$new_content}}")
+      cli::cli_text("")
+    }
+    
+    vebcat("Finished updating", paste0("'", highcat(name.old), "'"), "to", paste0("'", highcat(name.new), "'"), "in all files.", color = "proSuccess")
+  }
+  
   if (verbose) {
     catn("Output:")
     find_term(name.new, dir, file.pattern, file.exclude)
@@ -730,7 +805,7 @@ replace_term_pattern <- function(term, line.pattern = NULL, file.exclude = NULL,
     invisible(return(NULL))
   }
 
-  replace_in_file <- function(file, line_numbers, old_code, new_code, verbose = FALSE) {
+  replace_in_file <- function(file, line_numbers, old_code, new_code, verbose = verbose) {
     lines <- readLines(file, warn = FALSE)
     for (i in seq_along(line_numbers)) {
       lines[line_numbers[i]] <- new_code[i]
