@@ -230,7 +230,7 @@ filter_sequence <- function(spec.known = NULL, spec.unknown, validation = FALSE,
     }
   }
 
-  if (!validation && force.seq != "validation") {
+  if (!validation && (is.null(force.seq) || force.seq != "validation")) {
     occ_name <- file.path(unknown_dir, paste0(gsub("_", "-", spec.unknown$name), "-occ"))
     spec_w_keys <- keys_dts$unknown
     download.key <- spec.unknown$download.key
