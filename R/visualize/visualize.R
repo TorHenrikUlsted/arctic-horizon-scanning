@@ -1,6 +1,6 @@
 source_all("./R/visualize/components")
 
-visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res.known, shape, hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.save.device = "jpeg", vis.save.unit = "px", validation = FALSE, plot.show = FALSE, verbose = FALSE) {
+visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res.known, shape, hv.dir, hv.method = "box", vis.projection = "longlat", vis.title = TRUE, vis.base.name = "Base", vis.region.name = "Region", vis.subregion.name = "Sub Region", vis.composition.taxon = "order", vis.save.device = "jpeg", vis.save.unit = "px", validation = FALSE, plot.show = FALSE, verbose = FALSE) {
   #------------------------#
   ####    Load dirs     ####
   #------------------------#
@@ -52,7 +52,7 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
   occpancy_files <- paste0("figure-3A-", c("all", "angiosperms", "gymnosperms", "pteridophytes"))
   suitability_files <- paste0("figure-3B-", c("all", "angiosperms", "gymnosperms", "pteridophytes"))
   suit_occupancy_files <- "figure-3D-1-5"
-  composition_files <- c("figure-4A", "figure-AB", "figure-4B")
+  composition_files <- c("figure-4A", "figure-4AB", "figure-4B", "figure-4C")
   connections_files <- "figure-5-all"
   gamlss_files <- c("figure-6A", "figure-6B", "figure-6C")
   gam_files <- "figure-7"
@@ -715,14 +715,23 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       verbose = verbose
     )
     
-    
-
     mdwrite(
       config$files$post_seq_md,
       text = "2;Statistical Significance of Taxonomic Composition Differences",
       data = composition_results
     )
-
+    
+    visualize_composition_significance(
+      dt = composition_results,
+      base.name = vis.base.name,
+      region.name = vis.region.name,
+      subregion.name = vis.subregion.name,
+      vis.title = vis.title,
+      save.dir = plot_dir,
+      save.device = vis.save.device,
+      verbose = verbose
+    )
+    
     visualize_composition(
       dt = richness_dt,
       dt.comparison = unknown_dt,
@@ -1146,6 +1155,8 @@ visualize_sequence <- function(out.dir = "./outputs/visualize", res.unknown, res
       region.name = "Arctic",
       vis.title = vis.title,
       save.dir = plot_dir,
+      save.device = vis.save.device,
+      save.unit = vis.save.unit,
       plot.show = plot.show,
       verbose = verbose
     )

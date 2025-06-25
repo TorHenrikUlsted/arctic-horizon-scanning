@@ -1,6 +1,6 @@
 source_all("./R/setup/components")
 if (config$simulation$example) {
-  source_all("./example/src/setup")
+  source_all("./example/R/setup")
 } else {
   source_all("./R/setup/custom_setup")
 }

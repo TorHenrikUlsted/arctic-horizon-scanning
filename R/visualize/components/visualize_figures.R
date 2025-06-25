@@ -559,7 +559,7 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
       # Add a source column to both datasets
       comparison_copy[, data_source := "GloNAF"]
       dt_copy[, data_source := "PresentStudy"]
-      
+
       # Combine datasets for plotting
       # Note: We'll separate them again in the plot using faceting
       combined_dt <- rbindlist(list(dt_copy, comparison_copy), fill = TRUE)
@@ -576,17 +576,17 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
 
   # Convert x variable to ordered factor
   dt_copy[, (vis.x) := factor(get(vis.x), levels = ordered_levels)]
-  
+
   # Convert fill variable to factor and order if needed
   dt_copy[, (vis.fill) := factor(get(vis.fill))]
-  
+
   vebprint(levels(dt_copy[[vis.fill]]), verbose, "Initial fill levels:")
-  
+
   # Apply any additional grouping
   dt_copy <- get_order_group(dt_copy, verbose = verbose)
-  
+
   vebprint(levels(dt_copy[[vis.fill]]), verbose, "Final fill levels:")
-  
+
 
   # Do the same for comparison if it exists
   if (has_comparison) {
@@ -668,7 +668,7 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
     plot.show = plot.show,
     verbose = verbose
   )
-  
+
   # If GloNAF data is available, create the modified plot with GloNAF bar
   if (has_comparison) {
     # Process GloNAF data to create a summary bar
@@ -676,31 +676,31 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
       # Summarize GloNAF data by the fill variable
       comparison_summary <- comparison_copy[, sum(get(vis.y)), by = vis.fill]
       setnames(comparison_summary, "V1", vis.y)
-      
+
       # Make sure the fill variable is a factor with the same levels
       comparison_summary[, (vis.fill) := factor(get(vis.fill), levels = levels(dt_copy[[vis.fill]]))]
-      
+
       # Add a column for the x position (single bar named "GloNAF")
       comparison_summary[, (vis.x) := "GloNAF"]
-      
+
       # Create a new combined data frame with the original data and the GloNAF data
       # Add two empty bars as spacers to create a bigger gap
       spacer1 <- data.table()
       spacer1[, (vis.x) := "SPACER1"]
       spacer1[, (vis.y) := 0]
       spacer1[, (vis.fill) := levels(dt_copy[[vis.fill]])[1]]
-      
+
       spacer2 <- data.table()
       spacer2[, (vis.x) := "SPACER2"]
       spacer2[, (vis.y) := 0]
       spacer2[, (vis.fill) := levels(dt_copy[[vis.fill]])[1]]
-      
+
       all_data <- rbindlist(list(dt_copy, spacer1, spacer2, comparison_summary), fill = TRUE)
       all_data <- all_data[!is.na(order)]
-      
+
       # Order the x-axis to include the spacers and GloNAF
       all_data[, (vis.x) := factor(get(vis.x), levels = c(ordered_levels, "SPACER1", "SPACER2", "GloNAF"))]
-      
+
       # Create the plot with the GloNAF bar
       fig4AB <- ggplot(all_data, aes(
         x = .data[[vis.x]],
@@ -719,17 +719,17 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
         # Make the GloNAF label bold and slightly larger
         theme(
           axis.text.x = element_text(
-            angle = 90, 
-            vjust = 0.5, 
-            hjust = 1, 
+            angle = 90,
+            vjust = 0.5,
+            hjust = 1,
             size = 16,
             face = ifelse(levels(all_data[[vis.x]]) == "GloNAF", "bold", "plain")
           )
         )
     }
-    
+
     if (plot.show) print(fig4AB)
-    
+
     save_ggplot(
       save.plot = fig4AB,
       save.name = "figure-4AB",
@@ -742,24 +742,24 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
       plot.show = plot.show,
       verbose = verbose
     )
-    
+
     # Calculate and export differences
     differences <- calculate_order_differences(
-      dt_copy, 
-      comparison_copy, 
-      vis.x, 
-      vis.y, 
+      dt_copy,
+      comparison_copy,
+      vis.x,
+      vis.y,
       vis.fill,
       file.path(save.dir, "../../../results")
     )
-    
+
     # Print top differences to console
     print(differences[difference > 0][1:5], text = "Top 5 orders with highest positive differences (over-represented in Arctic):")
-    
+
     vebprint(differences[difference < 0][1:5], text = "Top 5 orders with highest negative differences (under-represented in Arctic):")
   }
-  
-  
+
+
 
   fig4B <- ggplot(dt_copy, aes(x = get(vis.x), y = get(vis.y), fill = get(vis.group))) +
     p1 +
@@ -795,6 +795,52 @@ visualize_composition <- function(dt, dt.comparison = NULL, region.name, vis.x, 
   vebcat("Composition plot successfully visualized", color = "funSuccess")
 }
 
+visualize_composition_significance <- function(dt, base.name = "Base", region.name = "Region", subregion.name = "Subregion", vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.device = "jpeg", save.unit = "px", plot.show = FALSE, verbose = FALSE) {
+  # Create visualizations (rest of visualization code remains the same)
+  vebcat("Creating significance test visualizations", color = "funInit")
+
+  # Sort by effect size for easy interpretation
+  dt <- dt[order(-effect_size)]
+
+  # 1. P-values and effect sizes plot
+  p1 <- ggplot(dt, aes(x = reorder(region, -effect_size))) +
+    geom_col(aes(y = effect_size, fill = significant_adjusted), alpha = 0.7) +
+    geom_hline(yintercept = c(0.1, 0.3, 0.5), linetype = "dashed", color = "gray50") +
+    scale_fill_manual(
+      values = c("TRUE" = "#d73027", "FALSE" = "#4575b4"),
+      labels = c("TRUE" = "Significant", "FALSE" = "Not Significant"),
+      name = "FDR-corrected: "
+    ) +
+    labs(
+      if (vis.title) title = "Effect Sizes of Taxonomic Composition Differences",
+      if (vis.title) subtitle = paste0("Cramér's V comparing each ", subregion.name, " to ", base.name, " baseline"),
+      x = paste0(region.name, " ", subregion.name),
+      y = "Effect Size (Cramér's V)",
+      caption = "Dashed lines: 0.1=small, 0.3=medium, 0.5=large effect"
+    ) +
+    theme_minimal() +
+    ggplot.theme() +
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
+      legend.position = "bottom",
+      plot.subtitle = element_text(hjust = 0.5), # center
+      plot.caption = element_text(hjust = 0.5)
+    )
+
+  save_ggplot(
+    save.plot = p1,
+    save.name = "figure-4C",
+    save.width = 3000,
+    save.height = 2400,
+    save.dir = save.dir,
+    save.device = save.device,
+    plot.show = plot.show,
+    verbose = verbose
+  )
+
+  vebcat("Significance test visualizations completed", color = "funSuccess")
+}
+
 #------------------------#
 ####   Connections    ####
 #------------------------#
@@ -805,7 +851,7 @@ visualize_connections <- function(dt, taxon, centroid = FALSE, region.name, subr
   if (taxon == "species") taxon <- "cleanName"
 
   wm <- get_world_map(projection = projection, verbose = verbose)
-  # wm <- wm[wm$level3Name != "Antarctica"]
+  wm <- wm[wm$level3Name != "Antarctica"]
 
   sub_dt <- copy(dt)
 
@@ -964,13 +1010,13 @@ visualize_spec_ranges <- function(dt, taxon, centroid = FALSE, multiple = FALSE,
   region <- load_region(region)
   region <- region[, c("floregName", "floregLong", "floregLat")]
   region <- check_crs(region, projection)
-  # wm <- wm[wm$level3Name != "Antarctica"]
-                          
+  wm <- wm[wm$level3Name != "Antarctica"]
+
   if (multiple) subregion <- region[region$floregName == subregion.name]
-  
+
   catn("Number of rows in input data to function:", highcat(nrow(dt)))
   if (multiple) catn("Any not the input subregion:", highcat(any(dt$subRegionName != subregion.name)))
-  
+
   converted_points <- convert_con_points(
     dt = dt,
     taxon = taxon,
@@ -978,9 +1024,9 @@ visualize_spec_ranges <- function(dt, taxon, centroid = FALSE, multiple = FALSE,
     centroid = centroid,
     verbose = verbose
   )
-  
+
   if (multiple) catn("Any not the input subregion after conversion:", highcat(any(dt$subRegionName != subregion.name)))
-  
+
   catn("Number of rows in converted data:", highcat(nrow(converted_points$origin)))
 
   if (taxon == "cleanName") taxon <- "species"
@@ -995,26 +1041,25 @@ visualize_spec_ranges <- function(dt, taxon, centroid = FALSE, multiple = FALSE,
       color = "transparent"
     ) +
     geom_spatvector(data = wm, fill = NA, color = "black", linewidth = 0.1)
-  
+
   # Create the zoomed plot of the subregion
   if (multiple) {
-    
     zoom_grob <- create_zoom_annotation(
       basemap = wm,
       region = subregion,
       points = converted_points$origin
     )
-    
+
     # Modified positioning for the inset
     wm_ext <- terra::ext(wm)
     region_ext <- terra::ext(subregion)
-    
+
     inset_pos <- position_zoom_annotation(
-      top = -0.05, 
-      right = -0.1, 
+      top = -0.05,
+      right = -0.1,
       plot.ext = wm_ext,
       region.ext = zoom_grob$extents,
-      width = 0.35, 
+      width = 0.35,
       height = 0.25
     )
     # xmin & ymin = bottom-left
@@ -1024,7 +1069,7 @@ visualize_spec_ranges <- function(dt, taxon, centroid = FALSE, multiple = FALSE,
       xend = c(inset_pos$xmin, inset_pos$xmax), # left-bottom, right-bottom
       yend = c(inset_pos$ymin, inset_pos$ymin)
     )
-    
+
     fig5 <- fig5 +
       geom_spatvector(
         data = subregion,
@@ -1057,37 +1102,37 @@ visualize_spec_ranges <- function(dt, taxon, centroid = FALSE, multiple = FALSE,
         "Species Points" = "Species Centroids within Botanical Countries"
       ),
       guide = guide_legend(
-        title.position = "top", ncol = 1, 
+        title.position = "top", ncol = 1,
         order = 1, override.aes = list(size = 3)
       )
     )
-  
-    # Add the appropriate fill scale based on whether multiple is true
-    if (multiple) {
-      fig5 <- fig5 +
-        scale_fill_manual(
-          values = c(
-            "Subregions" = "#4682B4",
-            "Selected Subregion" = "#0013ff"
-          ),
-          labels = c(
-            "Subregions" = "Circumpolar Arctic",
-            "Selected Subregion" = subregion.name
-          ),
-          guide = guide_legend(title.position = "top", ncol = 1, order = 2)
-        )
-    } else {
-      fig5 <- fig5 +
-        scale_fill_manual(
-          values = c(
-            "Subregions" = "#4682B4"
-          ),
-          labels = c(
-            "Circumpolar Arctic"
-          ),
-          guide = guide_legend(title.position = "top", ncol = 1, order = 2)
-        )
-    }
+
+  # Add the appropriate fill scale based on whether multiple is true
+  if (multiple) {
+    fig5 <- fig5 +
+      scale_fill_manual(
+        values = c(
+          "Subregions" = "#4682B4",
+          "Selected Subregion" = "#0013ff"
+        ),
+        labels = c(
+          "Subregions" = "Circumpolar Arctic",
+          "Selected Subregion" = subregion.name
+        ),
+        guide = guide_legend(title.position = "top", ncol = 1, order = 2)
+      )
+  } else {
+    fig5 <- fig5 +
+      scale_fill_manual(
+        values = c(
+          "Subregions" = "#4682B4"
+        ),
+        labels = c(
+          "Circumpolar Arctic"
+        ),
+        guide = guide_legend(title.position = "top", ncol = 1, order = 2)
+      )
+  }
 
   # Add the theme to the plot
   fig5 <- fig5 +
@@ -1160,28 +1205,28 @@ visualize_spec_ranges_by_subregion <- function(dt, taxon, centroid = FALSE, mult
     plot.show = plot.show,
     verbose = verbose
   )
-  
+
   catn("Number of total rows of input data:", highcat(nrow(dt)))
   vebprint(names(dt), text = "Names of input data:")
   catn("Number of subregions:", highcat(length(subregions)))
-  
+
   if (multiple) {
     # Then create individual plots for each subregion
     for (i in 1:length(subregions)) {
       subregion <- subregions[[i]]
       # Filter data for current subregion
       subregion_dt <- dt[subRegionName == subregion]
-      
+
       catn("Subsetting data for:", highcat(subregion))
       catn("Number of rows in subregion:", highcat(nrow(subregion_dt)))
       catn("Proportion of rows subregion/total rows:", highcat(nrow(subregion_dt) / nrow(dt)))
-      
+
       # Skip if no data for this subregion
       if (nrow(subregion_dt) == 0) {
         warning(paste("No data for subregion:", subregion))
         next
       }
-      
+
       # Create plot for this subregion
       visualize_spec_ranges(
         dt = subregion_dt,
@@ -1239,7 +1284,7 @@ visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b",
     variable.name = "component",
     value.name = "value"
   )
-  
+
   # Create the plot
   fig6A <- ggplot() +
     # Add raw data points
@@ -1292,7 +1337,7 @@ visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b",
     plot.show = plot.show,
     verbose = verbose
   )
-  
+
   pred_two_panel <- subset(pred_long, component != "prob_nonzero")
 
   # For the two-panel version:
@@ -1317,7 +1362,7 @@ visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b",
       labels = c(
         "expected_mean" = "E(Overlap | Overlap > 0)",
         "combined" = "Combined Expectation"
-      ) 
+      )
     ) +
     theme_bw() +
     labs(
@@ -1327,30 +1372,29 @@ visualize_gamlss <- function(dt, model, region.name, vis.gradient = "viridis-b",
     ) +
     theme(legend.position = "bottom")
 
-fig6B2 <- ggplot() +
-  # Add probability line
-  geom_line(
-    data = pred_dt,
-    aes(x = medianLat, y = prob_nonzero),
-    color = "#8884d8", linewidth = 1
-  ) +
-  scale_color_manual(
-    values = c(
-      "prob_nonzero" = "#8884d8"
-    ),
-    labels = c(
-      "prob_nonzero" = "Prob(Overlap > 0)"
-    )
-    
-  ) +
-  theme_bw() +
-  labs(
-    x = "Species Absolute Median Latitude (°)",
-    y = "Probability of Any Overlap",
-    title = "B. Probability of Any Arctic Niche Overlap"
-  ) +
-  scale_y_continuous(limits = c(0, 1))
-  
+  fig6B2 <- ggplot() +
+    # Add probability line
+    geom_line(
+      data = pred_dt,
+      aes(x = medianLat, y = prob_nonzero),
+      color = "#8884d8", linewidth = 1
+    ) +
+    scale_color_manual(
+      values = c(
+        "prob_nonzero" = "#8884d8"
+      ),
+      labels = c(
+        "prob_nonzero" = "Prob(Overlap > 0)"
+      )
+    ) +
+    theme_bw() +
+    labs(
+      x = "Species Absolute Median Latitude (°)",
+      y = "Probability of Any Overlap",
+      title = "B. Probability of Any Arctic Niche Overlap"
+    ) +
+    scale_y_continuous(limits = c(0, 1))
+
   save_ggplot(
     save.plot = fig6B,
     save.name = paste0(save.name, "B"),
@@ -1390,27 +1434,27 @@ fig6B2 <- ggplot() +
 visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-7", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing Latitude GAM plot", color = "funInit")
   data <- copy(dt)
-  
+
   # Create prediction data frame
   lat_seq <- seq(min(dt$centroidLatitude), max(dt$centroidLatitude), length.out = 100)
   pred_df <- data.table(centroidLatitude = lat_seq)
-  
+
   # Get predictions with standard errors
   predictions <- predict(model$full, newdata = pred_df, se.fit = TRUE, type = "response")
-  
+
   # Create prediction data table with confidence intervals
   pred_dt <- data.table(
     latitude = lat_seq,
     fit = predictions$fit,
     se = predictions$se.fit
   )
-  
+
   # Add confidence intervals
   pred_dt[, `:=`(
     lower = fit - (1.96 * se),
     upper = fit + (1.96 * se)
   )]
-  
+
   # Create the plot
   fig7 <- ggplot() +
     # Add confidence interval ribbon
@@ -1446,12 +1490,12 @@ visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vi
     labs(
       x = "Species Centroid Latitude (°)",
       y = paste0("Species Proportional Niche Overlap with ", region.name),
-      title = if(vis.title) "Niche Overlap vs Latitude" else NULL,
-      subtitle = if(vis.title) "GAM with beta regression" else NULL
+      title = if (vis.title) "Niche Overlap vs Latitude" else NULL,
+      subtitle = if (vis.title) "GAM with beta regression" else NULL
     )
-  
+
   if (plot.show) print(fig7)
-  
+
   save_ggplot(
     save.plot = fig7,
     save.name = save.name,
@@ -1464,7 +1508,7 @@ visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vi
     plot.show = plot.show,
     verbose = verbose
   )
-  
+
   vebcat("Latitude GAM plot Visualized Successfully", color = "funSuccess")
 }
 
@@ -1474,17 +1518,17 @@ visualize_gam <- function(dt, model, region.name, vis.gradient = "viridis-b", vi
 #-------------------------------------#
 visualize_polynomial_model <- function(dt, model_results, response = "overlapRegion", predictor = "centroidLat", region.name, vis.gradient = "viridis-b", vis.title = FALSE, save.dir, save.name = "figure-8", save.device = "jpeg", save.unit = "px", plot.save = TRUE, plot.show = FALSE, verbose = FALSE) {
   vebcat("Visualizing polynomial pattern analysis", color = "funInit")
-  
+
   # Prepare the raw data
   data_points <- copy(dt)
-  
+
   setnames(data_points, c(response, predictor), c("overlapRegion", "centroidLat"))
-  
+
   # Get predictions
   pred_data <- copy(model_results$predictions)
-  
+
   vebcat("Creating figure with response:", highcat(response), "and predictor:", highcat(predictor))
-  
+
   # Create base plot
   fig_lat <- ggplot() +
     geom_point(
@@ -1498,9 +1542,9 @@ visualize_polynomial_model <- function(dt, model_results, response = "overlapReg
     geom_smooth(
       data = pred_data,
       aes(x = latitude, y = q10, color = "10th percentile"),
-      method = "gam",    # Use GAM for smoothing
+      method = "gam", # Use GAM for smoothing
       formula = y ~ s(x, bs = "cs"), # Cubic spline basis
-      se = FALSE,        # Don't show confidence intervals
+      se = FALSE, # Don't show confidence intervals
       linewidth = 0.5
     ) +
     geom_smooth(
@@ -1514,7 +1558,7 @@ visualize_polynomial_model <- function(dt, model_results, response = "overlapReg
     geom_smooth(
       data = pred_data,
       aes(x = latitude, y = q50, color = "50th percentile"),
-      method = "gam", 
+      method = "gam",
       formula = y ~ s(x, bs = "cs"),
       se = FALSE,
       linewidth = 0.5
@@ -1542,15 +1586,15 @@ visualize_polynomial_model <- function(dt, model_results, response = "overlapReg
       color = "gray50",
       alpha = 0.5
     ) +
-    # Customize colors 
+    # Customize colors
     scale_color_manual(
       name = "Quantile",
       values = c(
-        "10th percentile" = "#4A1486",  # Dark purple
-        "25th percentile" = "#807DBA",  # Light purple
-        "50th percentile" = "#3182BD",  # Blue
-        "75th percentile" = "#74C476",  # Light green
-        "90th percentile" = "#FDB863"   # Yellow
+        "10th percentile" = "#4A1486", # Dark purple
+        "25th percentile" = "#807DBA", # Light purple
+        "50th percentile" = "#3182BD", # Blue
+        "75th percentile" = "#74C476", # Light green
+        "90th percentile" = "#FDB863" # Yellow
       )
     ) +
     # Customize theme and labels
@@ -1567,9 +1611,8 @@ visualize_polynomial_model <- function(dt, model_results, response = "overlapReg
       axis.title = element_text(size = 10),
       axis.text = element_text(size = 8)
     ) +
-  
-  if (plot.show) print(fig_lat)
-  
+    if (plot.show) print(fig_lat)
+
   if (plot.save) {
     save_ggplot(
       save.plot = fig_lat,
@@ -1584,7 +1627,7 @@ visualize_polynomial_model <- function(dt, model_results, response = "overlapReg
       verbose = verbose
     )
   }
-  
+
   vebcat("Polynomial pattern visualization completed successfully", color = "funSuccess")
 }
 

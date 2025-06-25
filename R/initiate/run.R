@@ -1,3 +1,4 @@
+# Run these one at a time
 source("./R/initiate/setup_utils.R")
 
 source("./R/initiate/run_main.R")

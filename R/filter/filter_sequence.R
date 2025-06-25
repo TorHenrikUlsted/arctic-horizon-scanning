@@ -1,7 +1,7 @@
 source_all("./R/filter/components")
 if (config$simulation$example) {
-  source_all("./example/src/filter")
-  src_dir <- "./example/src"
+  source_all("./example/R/filter")
+  src_dir <- "./example/R"
 } else {
   source_all("./R/filter/custom_filters")
   src_dir <- "./R"

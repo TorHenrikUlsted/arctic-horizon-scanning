@@ -529,12 +529,14 @@ find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NU
         
         if (length(matches) > 0) {
           # Always show results in navigable format
-          for (m in matches) {
-            link_text <- create_clickable_link(file, basename(file), m)
-            cli::cli_text("{cli::bg_yellow(link_text)} {.emph (Line {.val {m}})}")
-            cli::cli_code(trimws(lines[m]))
-            cli::cli_text("")
-          }
+          if (!as.table)
+            for (m in matches) {
+              link_text <- create_clickable_link(file, basename(file), m)
+              cli::cli_text("{cli::bg_yellow(link_text)} {.emph (Line {.val {m}})}")
+              cli::cli_code(trimws(lines[m]))
+              cli::cli_text("")
+            }
+          
           
           if (verbose) {
             cli::cli_alert_info("Found {.val {length(matches)}} match{?es} in {.file {basename(file)}}")
@@ -559,12 +561,10 @@ find_term <- function(term, dir = ".", file.pattern = "\\.R$", file.exclude = NU
   
   if (all(sapply(results, is.null))) cli::cli_alert_info("No terms found.")
   
-  return(
-    if (as.table) {
-      rbindlist(results[!sapply(results, is.null)])
-    } else {
-      invisible()
-    }
+  if (as.table) (
+    return(
+     invisible(rbindlist(results[!sapply(results, is.null)]))
+    )
   )
 }
 
@@ -673,7 +673,7 @@ replace_term <- function(name.old, name.new, dir = ".", file.pattern = "\\.R$",
                               file.exclude = NULL, verbose = FALSE, replace = FALSE) {
   name.old <- to_char(name.old, string = "Old name after check:", verbose = verbose)
   name.new <- to_char(name.new, string = "New name after check:", verbose = verbose)
-  res <- find_term(name.old, dir, file.pattern, file.exclude = file.exclude, verbose = verbose)
+  res <- find_term(name.old, dir, file.pattern, file.exclude = file.exclude, as.table = TRUE, verbose = verbose)
   
   if (is.null(res)) {
     message("No occurrences of '", name.old, "' found. No changes made.")

@@ -931,7 +931,7 @@ get_unknown_composition <- function(unknown.path, stats, taxon = "order", out.di
   if (file.exists(out_file)) {
     richness_dt <- fread(out_file)
   } else {
-    unknown_dt <- fread(unknown.path, sep = "\t")
+    unknown_dt <- fread(unknown.path)
 
     unknown_dt[, c("genus", "specificEpithet", "cleanName", "other", "fullName", "extra", "structure") := {
       res <- lapply(seq_along(scientificName), function(i) {
@@ -1232,54 +1232,7 @@ analyze_composition_significance <- function(study_dt, comparison_dt, taxon_col 
     "*" = "Alternative: Taxonomic composition differs from GloNAF baseline"
   ))
   
-  # Sort by effect size for easy interpretation
   results <- results[order(-effect_size)]
-  
-  # Create visualizations (rest of visualization code remains the same)
-  if (!is.null(save.dir)) {
-    create_dir_if(save.dir)
-    
-    vebcat("Creating significance test visualizations", color = "funInit")
-    
-    # 1. P-values and effect sizes plot
-    if (nrow(valid_tests) > 0) {
-      p1 <- ggplot(results, aes(x = reorder(region, -effect_size))) +
-        geom_col(aes(y = effect_size, fill = significant_adjusted), alpha = 0.7) +
-        geom_hline(yintercept = c(0.1, 0.3, 0.5), linetype = "dashed", color = "gray50") +
-        scale_fill_manual(
-          values = c("TRUE" = "#d73027", "FALSE" = "#4575b4"),
-          labels = c("TRUE" = "Significant", "FALSE" = "Not Significant"),
-          name = "FDR-corrected"
-        ) +
-        labs(
-          title = "Effect Sizes of Taxonomic Composition Differences",
-          subtitle = "Cramér's V comparing each region to GloNAF baseline",
-          x = "Arctic Subregion",
-          y = "Effect Size (Cramér's V)",
-          caption = "Dashed lines: 0.1=small, 0.3=medium, 0.5=large effect"
-        ) +
-        theme_minimal() +
-        ggplot.theme() +
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
-          legend.position = "bottom"
-        )
-      
-      save_ggplot(
-        save.plot = p1,
-        save.name = "composition-significance-overview",
-        save.width = 3000,
-        save.height = 2400,
-        save.dir = save.dir,
-        save.device = save.device,
-        plot.show = plot.show,
-        verbose = verbose
-      )
-    }
-    
-    # Rest of visualization code continues...
-    vebcat("Significance test visualizations completed", color = "funSuccess")
-  }
   
   vebcat("Composition significance testing completed", color = "funSuccess")
   
@@ -1697,47 +1650,49 @@ analyze_latitudinal_pattern <- function(stats, spec.file, out.dir, verbose = FAL
   log_dir <- file.path(out.dir, "logs")
   out_file <- file.path(out.dir, "results/calculated-median-latitude.csv")
   lat_stats <- fread(stats)
-
+  
   if (file.exists(out_file)) {
-    catn("File found, reading file..")
-    calced_dt <- fread(out_file)
+    merged_dt <- fread(out_file)
   } else {
-    catn("Getting species filenames")
-    spec_name_stats <- unique(lat_stats$cleanName)
-
-    spec_list <- readLines(spec.file)
-
-    spec_names <- gsub(config$species$file_separator, " ", gsub(".csv", "", basename(spec_list)))
-
-    spec_list <- spec_list[spec_names %in% spec_name_stats]
-
-    projection <- get_crs_config("longlat")
-
-    calced_dt <- parallel_spec_handler(
-      spec.dirs = spec_list,
-      dir = file.path(log_dir, "distribution"),
-      hv.project.method = "longlat",
-      out.order = "-medianLat",
-      extra = list(projection = projection),
-      fun = latitude_analysis,
-      verbose = verbose
-    )
+      catn("Getting species filenames")
+      spec_name_stats <- unique(lat_stats$cleanName)
+      
+      spec_list <- readLines(spec.file)
+      
+      spec_names <- gsub(config$species$file_separator, " ", gsub(".csv", "", basename(spec_list)))
+      
+      spec_list <- spec_list[spec_names %in% spec_name_stats]
+      
+      projection <- get_crs_config("longlat")
+      
+      calced_dt <- parallel_spec_handler(
+        spec.dirs = spec_list,
+        dir = file.path(log_dir, "distribution"),
+        hv.project.method = "longlat",
+        out.order = "-medianLat",
+        extra = list(projection = projection),
+        fun = latitude_analysis,
+        verbose = verbose
+      )
+    
+    lat_stats <- lat_stats[, .(cleanName, order, realizedNiche, overlapRegion, observations, dimensions, excluded)]
+    
+    lat_stats <- unique(lat_stats, by = "cleanName")
+    
+    catn("Species min absolute median latitude:", highcat(min(calced_dt$medianLat, na.rm = TRUE)))
+    
+    catn("Species max absolute median latitude:", highcat(max(calced_dt$medianLat, na.rm = TRUE)))
+    
+    merged_dt <- lat_stats[calced_dt, on = "cleanName", nomatch = 0L]
+    
+    merged_dt <- unique(merged_dt, by = "cleanName")
+    
+    merged_dt <- merged_dt[!is.na(medianLat)]
+    
+    fwrite(merged_dt, out_file)
   }
 
-  lat_stats <- lat_stats[, .(cleanName, order, realizedNiche, overlapRegion, observations, dimensions, excluded)]
-
-  lat_stats <- unique(lat_stats, by = "cleanName")
-
-  catn("Species min absolute median latitude:", highcat(min(calced_dt$medianLat, na.rm = TRUE)))
-
-  catn("Species max absolute median latitude:", highcat(max(calced_dt$medianLat, na.rm = TRUE)))
-
-  merged_dt <- lat_stats[calced_dt, on = "cleanName", nomatch = 0L]
-
-  merged_dt <- unique(merged_dt, by = "cleanName")
-
-  merged_dt <- merged_dt[!is.na(medianLat)]
-
+  vebcat("Analyzing latitudinal patterns completed successfully", color = "funSuccess")
   return(merged_dt)
 }
 

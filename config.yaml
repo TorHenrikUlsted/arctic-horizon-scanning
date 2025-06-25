@@ -36,6 +36,7 @@ hypervolume:
 visualization:
   shape.name: "shapefile-name"
   title: FALSE
+  base.name: "Base"
   region.name: "Region"
   subregion.name: "Sub-Region"
   composition.taxon: "order"
