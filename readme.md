@@ -1,10 +1,10 @@
-# Arctic Horizon Scanning: Potential Alien Vascular Plant Species
+# Horizon scanning of potential new alien vascular plant species and their climatic niche space across the Arctic
 
 ## Overview
 
 This repository contains a generalizable analysis pipeline for horizon scanning of potential alien vascular plant species based on climatic niche modeling through hypervolume analysis. The framework identifies species from a candidate pool that could potentially establish in a reference region under current climate conditions.
 
-While the provided example implementation focuses on Arctic plant invasions (analyzing non-Arctic species that could establish in the Arctic), the pipeline is designed to be adapted for other regions and invasion scenarios through customizable components.
+While the provided example implementation focuses on Arctic plant invasion biology (analyzing non-Arctic species that could establish in the Arctic), the pipeline is designed to be adapted for other regions and invasion scenarios through customizable components.
 
 **⚠️ Important Note**: The validation sequence and some visualization elements contain Arctic-specific assumptions that would need modification for other regions.
 
@@ -261,4 +261,4 @@ For questions or issues, please open an issue on GitHub or contact:
 
 ## Acknowledgments
 
-This project was developed as part of a master thesis at NTNU, investigating biological invasions in the Arctic under current and future climate scenarios.
+This project was initiated as part of a master thesis at the Norwegian University of Science and Technology (NTNU), investigating potential new alien vascular plant species and their climatic niche space across the Arctic.
