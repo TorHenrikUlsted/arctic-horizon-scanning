@@ -41,7 +41,8 @@ hypervolume:
 visualization:
   shape.name: "cavm-noice"
   title: FALSE
-  region.name: "the Arctic"
+  base.name: "GloNAF"
+  region.name: "Arctic"
   subregion.name: "Floristic Province"
   composition.taxon: "order"
   save.device: "jpeg"
